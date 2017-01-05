@@ -1,0 +1,15 @@
+datadir: /home/gerhard/bioinf/Refseq/benchmarking2
+outdir: /home/gerhard/bioinf/Refseq/benchmarking2/benchmark1
+threshold: 0.20
+shortreads:
+  - { type: illumina, dir: illumina }
+longreads:
+  - { type: pacbio, dir: pacbio }
+nreads: 50
+samples:
+  ID12912701:
+    - locus: A
+      reference: '01:01:01:01'
+  ID12912702:
+    - locus: A
+      reference: '24:02:01:01'

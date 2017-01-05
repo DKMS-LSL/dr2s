@@ -1,0 +1,8 @@
+^.*\.Rproj$
+^\.Rproj\.user$
+^data-raw$
+^cache$
+^stuff$
+^testdata$
+^README\.Rmd$
+^README-.*\.png$

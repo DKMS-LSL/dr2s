@@ -1,0 +1,13 @@
+.Rproj.user
+.Rhistory
+.RData
+inst/doc
+cache
+stuff
+output
+outdir
+testdata
+scratch.[rR]
+eval.[rR]
+.*.Rnb.cached
+.*.Rnb.cached

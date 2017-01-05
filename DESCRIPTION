@@ -1,0 +1,75 @@
+Package: DR2S
+Title: Dual redundant reference sequencing
+Version: 0.0.1
+Author: Gerhard Schöfl <gerhard.schofl@gmail.com>
+Description: Generate highly accurate reference sequences from heterozygous
+    HLA and KIR samples by combining data from long-read and short-read
+    sequencing technologies
+Depends:
+    R (>= 3.3.0)
+License: MIT + file LICENSE
+Suggests:
+    testthat (>= 0.8),
+    knitr,
+    rmarkdown,
+    rPython
+LazyData: true
+Type: Package
+Maintainer: Gerhard Schöfl <gerhard.schofl@gmail.com>
+Encoding: UTF-8
+LinkingTo: Rcpp
+Imports:
+    Rcpp,
+    readr,
+    Rsamtools,
+    dplyr,
+    ggplot2,
+    data.table,
+    Biostrings,
+    DECIPHER,
+    S4Vectors,
+    XVector,
+    iterators,
+    itertools,
+    foreach,
+    hlatools,
+    IPDdata,
+    grid,
+    assertthat,
+    magrittr,
+    memoise,
+    digest,
+    doParallel,
+    yaml,
+    tibble,
+    XRPython
+SystemRequirements: C++11, samtools, bwa (>= 0.7.11)
+VignetteBuilder: knitr
+RoxygenNote: 5.0.1
+Collate:
+    'DR2S-class.R'
+    'DR2S-methods.R'
+    'DR2S-package.r'
+    'DR2S-utils.R'
+    'MergeEnv-methods.R'
+    'MergeEnv-class.R'
+    'RcppExports.R'
+    'all-generics.R'
+    'bwamem.R'
+    'config.R'
+    'conseq.R'
+    'consmat.R'
+    'errors.R'
+    'multiplot.R'
+    'partition-reads.R'
+    'phasing.R'
+    'pileup.R'
+    'polish-utils.R'
+    'polish.R'
+    'polymorphic-positions.R'
+    'report.R'
+    'samtools.R'
+    'sequtils.R'
+    'snp-matrix.R'
+    'utils.R'
+    'zzz.R'
