@@ -1,3 +1,4 @@
+
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 DR2S - Dual redundant reference sequencing
 ==========================================
@@ -125,5 +126,6 @@ This package is ony available via github. It depends on a local installation of 
 install.packages("devtools")  # if not already installed
 library("devtools")
 install_github("gschofl/hlatools")
+install_github("gschofl/IBDdata")
 install_github("gschofl/DR2S")
 ```
