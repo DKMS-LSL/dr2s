@@ -164,7 +164,7 @@ stouffers_zscore <- function(z, w = rep(1, length(z))) {
 merge_conseqs_ <- function(seqs, scores, verbose = TRUE) {
   aln <- DECIPHER::AdjustAlignment(DECIPHER::AlignSeqs(
     seqs, verbose = FALSE, gapOpening = -12, gapExtension = -2,
-    iterations = 1, refinements = 1, restrict = -500
+    iterations = 1, refinements = 1, restrict = c(-500, 2, 10)
   ))
   #browse_align(seqs)
   split1 <- strsplit(toString(aln[[1]]), "")[[1]]
