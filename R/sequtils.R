@@ -33,6 +33,8 @@ extract_fastq.default <- function(x, qnames = NULL, n = 100, replace = TRUE) {
 }
 
 trim_softclipped_ends <- function(bam, qnames = NULL, preserve_ref_ends = FALSE) {
+  message("Entering trim_softclipped_ends")
+  on.exit(message("Exiting trim_softclipped_ends"))
   i <- if (is.null(qnames)) {
     seq_along(bam$qname)
   } else {
@@ -255,6 +257,7 @@ multialign_consensus <- function(aln) {
 }
 
 trim_polymorphic_ends <- function(fq, min_len = 50) {
+  message("Entering trim_polymorphic_ends")
   sr <- fq@sread
   if (length(sr@metadata) > 0) {
     not_trim_starts <- sr@metadata$not_trim_starts
@@ -269,9 +272,14 @@ trim_polymorphic_ends <- function(fq, min_len = 50) {
   } else seq_along(start)
   pos   <- 1
   while (length(i) > 0) {
+    message("Trimming ", length(i), " reads from start")
+    i <- i[Biostrings::width(sr[i]) > pos]
+    if (length(i) == 0)
+      next
     i <- i[Biostrings::subseq(sr[i], pos, pos) == Biostrings::subseq(sr[i], pos + 1, pos + 1)]
     start[i] <- start[i] + 1
     pos <- pos + 1
+
   }
   start[start > 1] <- start[start > 1] + 1
 
@@ -281,11 +289,25 @@ trim_polymorphic_ends <- function(fq, min_len = 50) {
   } else seq_along(end)
   pos <- end
   while (length(i) > 0) {
+    message("Trimming ", length(i), " reads from end")
+    ##i <- i[Biostrings::width(sr[i]) > pos]
+    i <- i[pos[i] > 1]
+    if (length(i) == 0)
+      next
     i <- i[Biostrings::subseq(sr[i], pos[i], pos[i]) == Biostrings::subseq(sr[i], pos[i] - 1, pos[i] - 1)]
     end[i] <- end[i] - 1
     pos[i] <- pos[i] - 1
   }
   end[end > 1] <- end[end > 1] - 1
+
+  ## filter low complexity reads
+  if (any(j <- (end - start) <= 0)) {
+    remove   <- which(j)
+    fq    <- fq[-remove]
+    start <- start[-remove]
+    end   <- end[-remove]
+  }
+
   fq@sread <- Biostrings::subseq(fq@sread, start, end)
   fq@quality@quality <- Biostrings::subseq(fq@quality@quality, start, end)
   fq[Biostrings::width(fq) >= min_len]

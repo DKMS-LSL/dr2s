@@ -236,7 +236,9 @@ expand_longread_consmat <- function(lrm, srm) {
   m <- cbind(as.matrix(lrm), `+` = 0)
   if (length(ins(srm)) > 0) {
     insert <- matrix(c(0, 0, 0, 0, median(rowSums(m)), 0), ncol = 6)
-    INSit <- hlatools::ihasNext(iter(ins(srm)))
+    my_ins <- sort(ins(srm))
+    my_ins <- my_ins[my_ins < nrow(lrm)]
+    INSit <- hlatools::ihasNext(iter(my_ins))
     while (hlatools::hasNext(INSit)) {
       i <- iterators::nextElem(INSit)
       m <- rbind(m[1:(i - 1), ], insert, m[i:NROW(m), ])
