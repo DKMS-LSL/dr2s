@@ -2,7 +2,6 @@
 
 # Pileup ------------------------------------------------------------------
 
-
 #' Calculate pile-up for a BAM file.
 #'
 #' @param bamfile BAM file path.
@@ -34,7 +33,8 @@
 Pileup <- function(bamfile,
                    threshold = 0.20,
                    max_depth = 250,
-                   min_base_quality = 13,
+                   ##min_base_quality = 13,
+                   min_base_quality = 0,
                    min_mapq = 0,
                    min_nucleotide_depth = 1,
                    min_minor_allele_depth = 0,
@@ -191,10 +191,15 @@ pileup_get_insertions_ <- function(x, threshold) {
         s0 <- s[s != "-"]
         if (length(s0) > 2) {
           gT <- data.frame(seq_along(s0))
+          # s1 <- DECIPHER::AdjustAlignment(
+          #   DECIPHER::AlignSeqs(s0, guideTree = gT, verbose = FALSE,
+          #                       iterations = 0, refinements = 0,
+          #                       restrict = c(-500, 2, 10), normPower = 0)
+          # )
           s1 <- DECIPHER::AdjustAlignment(
-            DECIPHER::AlignSeqs(s0, guideTree = gT, verbose = FALSE,
+            DECIPHER::AlignSeqs(s0, verbose = FALSE,
                                 iterations = 0, refinements = 0,
-                                restrict = -500, normPower = 0)
+                                restrict = c(-500, 2, 10), normPower = 0)
           )
           s1 <- c(s1, Biostrings::DNAStringSet(
             rep(paste0(rep.int("-", max_width), collapse = ""), sum(s == "-"))

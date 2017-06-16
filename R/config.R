@@ -176,7 +176,8 @@ validate_dr2s_conf <- function(conf) {
     warning("No FASTQ files in short read directory <", shortreaddir, ">", call. = FALSE, immediate. = TRUE)
   }
   ## Normalise locus
-  conf$locus   <- sub("^(HLA-|KIR)", "", normalise_locus(conf$locus))
+  ##conf$locus   <- sub("^(HLA-|KIR)", "", normalise_locus(conf$locus))
+  conf$locus   <- sub("^HLA-", "", normalise_locus(conf$locus))
   ## Check consensus method
   conf$consensus <- match.arg(conf$consensus, c("multialign", "mapping"))
   if (conf$consensus == "multialign") {

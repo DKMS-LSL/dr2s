@@ -1,4 +1,4 @@
-## Method: map0 ####
+# Method: map0 ####
 
 #' @export
 map0.DR2S <- function(x,

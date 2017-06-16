@@ -115,7 +115,7 @@ analyseDR2SError <- function(seqs) {
   } else seqs
   aln <- DECIPHER::AdjustAlignment(DECIPHER::AlignSeqs(
     seqs0, verbose = FALSE, gapOpening = -12, gapExtension = -2,
-    iterations = 2, refinements = 1, restrict = -500
+    iterations = 2, refinements = 1, restrict = c(-500, 2, 10)
   ))
   mat <- DR2S:::snp_gap_matrix(DR2S:::variant_matrix(aln))
   prt <- partition(partition_reads(mat[["snp"]]))
