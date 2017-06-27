@@ -18,7 +18,10 @@ yield.HapEnv <- function(envir, pos = NULL) {
       sr = offset(sr)
     ),
     ##
-    haplotype = envir$haplotype
+    haplotype = envir$haplotype,
+    ## 95% confidence limit of allelic balance
+    balance_upper_confint = envir$balance_upper_confint
+    ##
   ), class = c("variant_list", "list"))
 }
 
@@ -100,7 +103,7 @@ disambiguate_variant <- function(x,
   if (!is.na(match(rownames(x$sr), ins(x$sr)))) {
     gaps <- sr[, vars][["-"]]
     base <- sr[, vars][[which(!names(vars) %in% "-")]]
-    if (base/gaps > 3/2) {
+    if (base/gaps > x$balance_upper_confint) {
       # fewer gaps than insertion bases -> assume all reads carry the insertion
       warning_msg <- warning_msg %<<% "|Check insertion in short reads!"
       sr[, vars]["-"] <- 0

@@ -225,7 +225,7 @@ multialign <- function(x, haplo, n, align = list(
   readfile <- x$map1[[haplo]]$reads
   fq <- ShortRead::readFastq(readfile)
   ids  <- as.character(ShortRead::id(fq))
-  q    <- as.numeric(DR2S:::strsplitN(DR2S:::strsplitN(ids, " ", 2, fixed = TRUE), "=", 2, fixed = TRUE))
+  q    <- as.numeric(strsplitN(strsplitN(ids, " ", 2, fixed = TRUE), "=", 2, fixed = TRUE))
   w    <- Biostrings::width(fq)
   wq   <- (w/max(w)) * q^2
   n    <- if (length(wq) > n) n else length(wq)
@@ -247,6 +247,10 @@ multialign <- function(x, haplo, n, align = list(
 multialign_consensus <- function(aln) {
   n      <- length(aln)
   mat    <- t(Biostrings::consensusMatrix(aln))[, c(1:4, 16)]
+  ## always accept the first and last base irrespective of how many gaps there are
+  mat[1, 5] <- 0
+  mat[NROW(mat), 5] <- 0
+  ##
   tbl    <- table(mat[, 5]/n)
   cutoff <- as.numeric(names(tbl)[which.min(tbl)])
   mat0   <- mat[mat[, 5]/n <= cutoff, 1:4]/n
@@ -257,7 +261,7 @@ multialign_consensus <- function(aln) {
 }
 
 trim_polymorphic_ends <- function(fq, min_len = 50) {
-  message("Entering trim_polymorphic_ends")
+  #message("Entering trim_polymorphic_ends")
   sr <- fq@sread
   if (length(sr@metadata) > 0) {
     not_trim_starts <- sr@metadata$not_trim_starts

@@ -85,8 +85,7 @@ report_map_ <- function(x, map, outdir, block_width, ...) {
     probvar_file <- paste("problems", x$getLrdType(), x$getMapper(), "tsv", sep = ".")
     vars <- x$consensus$problematic_variants %>%
       dplyr::arrange(pos, haplotype)
-    write.table(format(vars), file = file.path(outdir, probvar_file),
-                quote = FALSE, sep = "\t", row.names = FALSE)
+    readr::write_tsv(vars, path = file.path(outdir, probvar_file), append = FALSE, col_names = TRUE)
   }
 
   invisible(x)

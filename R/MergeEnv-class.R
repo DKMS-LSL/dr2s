@@ -97,10 +97,15 @@ MergeEnv_$set("public", "init", function(hapEnv) {
   }
   envir$LR = expand_longread_consmat(lrm = lr, srm = envir$SR)
   envir$variants = list()
-  envir$POSit = hlatools::ihasNext(iter(ambiguous_positions(envir$SR, self$threshold)))
+  envir$POSit = hlatools::ihasNext(iter(apos <- ambiguous_positions(envir$SR, self$threshold)))
   envir$pos = 1L
   envir$current_variant = NULL
   envir$init = TRUE
+  envir$balance = apply(as.matrix(envir$SR[apos, ]), 1, function(x) {
+    tmp <- sort(x, decreasing = TRUE)[1:2]
+    tmp[1] / tmp[2]
+  })
+  envir$balance_upper_confint <- mean(envir$balance, na.rm = TRUE) + 1.96*sd(envir$balance, na.rm = TRUE)
 })
 
 
