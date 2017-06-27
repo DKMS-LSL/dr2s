@@ -4,7 +4,7 @@
 \alias{Pileup}
 \title{Calculate pile-up for a BAM file.}
 \usage{
-Pileup(bamfile, threshold = 0.2, max_depth = 250, min_base_quality = 13,
+Pileup(bamfile, threshold = 0.2, max_depth = 250, min_base_quality = 0,
   min_mapq = 0, min_nucleotide_depth = 1, min_minor_allele_depth = 0,
   distinguish_strands = FALSE, distinguish_nucleotides = TRUE,
   ignore_query_Ns = TRUE, include_deletions = TRUE,
@@ -98,4 +98,3 @@ A \code{list} with slots:
 \examples{
 ###
 }
-

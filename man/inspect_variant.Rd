@@ -16,4 +16,3 @@ inspect_variant(x, i, j = i)
 \description{
 Print diagnostic summary of a variant
 }
-

@@ -36,6 +36,7 @@ sequences produced in the previous step.}
 
 \item{\code{consensus}}{\code{[ConsList]}; final consensus sequences for A and B.}
 }}
+
 \section{Public Methods}{
 
 \describe{
@@ -66,6 +67,6 @@ Extract FASTQs for partitioned reads and if the consensus method is
 \item{x$setConfig(name, value}{Modify configuration}
 }
 }
+
 \keyword{data}
 \keyword{internal}
-

@@ -9,4 +9,3 @@ mcoef(x)
 \description{
 q = Q/K: cluster weight/number of polymorphic positions
 }
-

@@ -23,4 +23,3 @@ Partition a SNP matrix into two haplotype groups
 \examples{
 ###
 }
-

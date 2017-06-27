@@ -20,4 +20,3 @@ Constructor for \code{\link[=MergeEnv_]{MergeEnv}} objects.
 \examples{
 ###
 }
-

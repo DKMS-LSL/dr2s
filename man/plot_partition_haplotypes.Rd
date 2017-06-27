@@ -27,4 +27,3 @@ Tile plot of haplotyped reads.
 \examples{
 ###
 }
-

@@ -29,4 +29,3 @@ Plot probability of consensus bases.
 \examples{
 ##
 }
-

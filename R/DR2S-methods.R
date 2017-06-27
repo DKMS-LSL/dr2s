@@ -966,6 +966,12 @@ DR2S_$set("public", "runMap3",
              list2env(args, envir = env)
            }
 
+           ## stop if no shortreads provided
+           if (is.null(self$getConfig("shortreads"))) {
+             message("Cannot run map3. No shortreads provided")
+             return(invisible(self))
+           }
+
            reftag    <- "merged"
            outdir    <- dir_create_if_not_exists(file.path(self$getOutdir(), reftag))
            sreadpath <- self$getShortreads()

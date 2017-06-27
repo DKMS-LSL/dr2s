@@ -25,4 +25,3 @@ Generate reference sequences in a FASTA file
 ###
 }
 \keyword{internal}
-

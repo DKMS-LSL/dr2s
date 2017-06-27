@@ -20,7 +20,8 @@ with the fields \code{type} ("pacbio" or "nanopore") and \code{dir}.
 Additional optional fields: \code{name} and \code{opts}.}
 
 \item{shortreads}{The type and location of the short reads as a named list
-with the fields \code{type} ("illumina") and \code{dir}.}
+with the fields \code{type} ("illumina") and \code{dir}. Short reads are optional.
+\code{NULL} can be provided.}
 
 \item{datadir}{The data directory (See Note).}
 
@@ -84,6 +85,7 @@ constructing final long read consensus sequences. Note, that the second
 approach is prone to introducing alignment artifacts if there is a lot of
 mismatch between the reference used and the actual allele sequences.
 }
+
 \examples{
 \dontrun{
 x <- DR2Smap(
@@ -108,7 +110,7 @@ x <- DR2Smap(
 }
 }
 \seealso{
-Other DR2S.mapper.functions: \code{\link{cache}},
+Other DR2S mapper functions: \code{\link{cache}},
   \code{\link{clear}}, \code{\link{extract_fastq}},
   \code{\link{map0}}, \code{\link{map1}},
   \code{\link{map2}}, \code{\link{map3}},
@@ -117,4 +119,3 @@ Other DR2S.mapper.functions: \code{\link{cache}},
   \code{\link{report}},
   \code{\link{split_reads_by_haplotype}}
 }
-

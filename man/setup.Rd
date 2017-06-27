@@ -12,4 +12,3 @@ setup(bin = "~/bin")
 \description{
 Initialize DR2S commandline scripts.
 }
-

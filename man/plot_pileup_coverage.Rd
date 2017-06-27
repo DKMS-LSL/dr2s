@@ -31,4 +31,3 @@ Plot pileup coverage
 \examples{
 ###
 }
-

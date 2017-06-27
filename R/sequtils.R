@@ -33,8 +33,8 @@ extract_fastq.default <- function(x, qnames = NULL, n = 100, replace = TRUE) {
 }
 
 trim_softclipped_ends <- function(bam, qnames = NULL, preserve_ref_ends = FALSE) {
-  message("Entering trim_softclipped_ends")
-  on.exit(message("Exiting trim_softclipped_ends"))
+  #message("Entering trim_softclipped_ends")
+  #on.exit(message("Exiting trim_softclipped_ends"))
   i <- if (is.null(qnames)) {
     seq_along(bam$qname)
   } else {

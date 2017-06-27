@@ -43,4 +43,3 @@ Construct a consensus matrix from a pile-up
 \examples{
 ###
 }
-

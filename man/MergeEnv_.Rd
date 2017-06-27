@@ -25,6 +25,7 @@ Class \code{"MergeEnv"}
 
 \item{\code{x}}{\code{[\link[=DR2S_]{DR2S}]}; the original \code{DR2S} object.}
 }}
+
 \section{Public Methods}{
 
 \describe{
@@ -35,6 +36,6 @@ walk along the consensus matrices until there are no SNPs to be walked
 one step at a time (\code{until = NULL}).}
 }
 }
+
 \keyword{data}
 \keyword{internal}
-

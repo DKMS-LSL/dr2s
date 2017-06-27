@@ -7,6 +7,7 @@
 #' @docType package
 #' @name DR2S
 #' @useDynLib DR2S
+#' @importFrom methods is
 #' @import assertthat
 #' @import data.table
 #' @import foreach

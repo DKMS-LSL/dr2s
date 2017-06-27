@@ -24,4 +24,3 @@ Extract (a subset of) reads from a bamfile
 \examples{
 ###
 }
-

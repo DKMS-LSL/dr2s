@@ -20,4 +20,3 @@ Plot distribution of haplotype partitioned reads
 \examples{
 ###
 }
-

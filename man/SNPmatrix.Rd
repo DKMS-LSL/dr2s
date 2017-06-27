@@ -24,4 +24,3 @@ Construct a SNP matrix.
 \examples{
 ##
 }
-

@@ -48,7 +48,8 @@
 #' with the fields \code{type} ("pacbio" or "nanopore") and \code{dir}.
 #' Additional optional fields: \code{name} and \code{opts}.
 #' @param shortreads The type and location of the short reads as a named list
-#' with the fields \code{type} ("illumina") and \code{dir}.
+#' with the fields \code{type} ("illumina") and \code{dir}. Short reads are optional.
+#' \code{NULL} can be provided.
 #' @param datadir The data directory (See Note).
 #' @param outdir The output directory (See Note).
 #' @param reference (Optional) The reference allele(s). One or both alleles

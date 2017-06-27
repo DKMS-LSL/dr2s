@@ -160,20 +160,22 @@ validate_dr2s_conf <- function(conf) {
   if (length(dir(longreaddir, pattern = ".+fastq(.gz)?")) == 0) {
     stop("No FASTQ files in long read directory <", longreaddir, ">", call. = FALSE)
   }
-  ##Check short reads
-  srdfields <- c("type", "dir")
-  if (!all(srdfields %in% names(conf$shortreads))) {
-    stop("Missing fields <", comma(srdfields[!srdfields %in% names(conf$shortreads)]), "> in shortreads config", call. = FALSE)
-  }
-  if (!conf$shortreads$type %in% c("illumina")) {
-    stop("Unsupported shortread type <", conf$shortreads$type, ">", call. = FALSE)
-  }
-  shortreaddir <- file.path(conf$datadir, conf$shortreads$dir)
-  if (!file.exists(longreaddir)) {
-    warning("No short read directory <", shortreaddir, ">", call. = FALSE, immediate. = TRUE)
-  }
-  if (length(dir(shortreaddir, pattern = ".+fastq(.gz)?")) == 0) {
-    warning("No FASTQ files in short read directory <", shortreaddir, ">", call. = FALSE, immediate. = TRUE)
+  ## Check short reads (short reads are optional i.e. the field can be NULL)
+  if (!is.null(conf$shortreads)) {
+    srdfields <- c("type", "dir")
+    if (!all(srdfields %in% names(conf$shortreads))) {
+      stop("Missing fields <", comma(srdfields[!srdfields %in% names(conf$shortreads)]), "> in shortreads config", call. = FALSE)
+    }
+    if (!conf$shortreads$type %in% c("illumina")) {
+      stop("Unsupported shortread type <", conf$shortreads$type, ">", call. = FALSE)
+    }
+    shortreaddir <- file.path(conf$datadir, conf$shortreads$dir)
+    if (!file.exists(longreaddir)) {
+      warning("No short read directory <", shortreaddir, ">", call. = FALSE, immediate. = TRUE)
+    }
+    if (length(dir(shortreaddir, pattern = ".+fastq(.gz)?")) == 0) {
+      warning("No FASTQ files in short read directory <", shortreaddir, ">", call. = FALSE, immediate. = TRUE)
+    }
   }
   ## Normalise locus
   ##conf$locus   <- sub("^(HLA-|KIR)", "", normalise_locus(conf$locus))

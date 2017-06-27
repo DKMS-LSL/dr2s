@@ -25,4 +25,3 @@ Plot basecall frequency
 \examples{
 ###
 }
-

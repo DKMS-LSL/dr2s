@@ -23,7 +23,7 @@ containing the consensus sequences \code{\{A,B\}.\{readtype\}.\{mapper\}.checked
 and a html alignment file \code{aln.\{readtype\}.\{mapper\}.checked.html}.
 }
 \seealso{
-Other DR2S.mapper.functions: \code{\link{DR2Smap}},
+Other DR2S mapper functions: \code{\link{DR2Smap}},
   \code{\link{cache}}, \code{\link{clear}},
   \code{\link{extract_fastq}}, \code{\link{map0}},
   \code{\link{map1}}, \code{\link{map2}},
@@ -31,4 +31,3 @@ Other DR2S.mapper.functions: \code{\link{DR2Smap}},
   \code{\link{polish}}, \code{\link{report}},
   \code{\link{split_reads_by_haplotype}}
 }
-

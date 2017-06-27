@@ -22,4 +22,3 @@ Filter a bamfile by qnames
 \examples{
 ###
 }
-

@@ -182,7 +182,7 @@ compliant compiler.
 install.packages("devtools")  # if not already installed
 library("devtools")
 install_github("gschofl/hlatools")
-install_github("gschofl/IBDdata")
+install_github("gschofl/IPDdata")
 install_github("gschofl/DR2S")
 ```
 

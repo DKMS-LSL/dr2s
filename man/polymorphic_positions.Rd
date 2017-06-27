@@ -22,4 +22,3 @@ Calculate polymorphic positions from a consensus matrix.
 \examples{
 ##
 }
-

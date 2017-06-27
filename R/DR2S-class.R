@@ -202,10 +202,10 @@ DR2S_ <- R6::R6Class(
       ## Private fields
       ## undebug(DR2S:::initialise_dr2s)
       private$conf   = initialise_dr2s(conf, create_outdir = create_outdir)
-      private$hla    = findLocus(private$conf$locus)
+      private$ipd    = findLocus(private$conf$locus)
       if (is.null(private$conf$reference)) {
         private$conf$reference = "consensus"
-        private$conf$ref_path  = generate_reference_sequence(private$hla, "consensus", private$conf$outdir)
+        private$conf$ref_path  = generate_reference_sequence(private$ipd, "consensus", private$conf$outdir)
       }
       else {
         if (file.exists(ref_path <- private$conf$reference)) {
@@ -213,7 +213,7 @@ DR2S_ <- R6::R6Class(
           private$conf$ref_path  = normalizePath(ref_path, mustWork = TRUE)
         } else {
           private$conf$reference = expand_hla_allele(conf$reference, conf$locus)
-          private$conf$ref_path  = generate_reference_sequence(private$hla, private$conf$reference, private$conf$outdir, fullname = TRUE)
+          private$conf$ref_path  = generate_reference_sequence(private$ipd, private$conf$reference, private$conf$outdir, fullname = TRUE)
         }
       }
       if (is.null(private$conf$alternate)) {
@@ -225,7 +225,7 @@ DR2S_ <- R6::R6Class(
           private$conf$alt_path  = normalizePath(alt_path, mustWork = TRUE)
         } else {
           private$conf$alternate = expand_hla_allele(private$conf$alternate, private$conf$locus)
-          private$conf$alt_path  = generate_reference_sequence(private$hla, private$conf$alternate, private$conf$outdir, fullname = TRUE)
+          private$conf$alt_path  = generate_reference_sequence(private$ipd, private$conf$alternate, private$conf$outdir, fullname = TRUE)
         }
       }
       private$conf$A_reftype = NA
@@ -245,9 +245,9 @@ DR2S_ <- R6::R6Class(
     clear = function() {
       unlink(self$getOutdir(), recursive = TRUE)
       dir_create_if_not_exists(file.path(self$getOutdir()))
-      if (!is.null(private$hla)) {
-        private$conf$ref_path = generate_reference_sequence(self$getHLA(), self$getReference(), self$getOutdir(), fullname = TRUE)
-        private$conf$alt_path = generate_reference_sequence(self$getHLA(), self$getAlternate(), self$getOutdir(), fullname = TRUE)
+      if (!is.null(private$ipd)) {
+        private$conf$ref_path = generate_reference_sequence(self$getIPD(), self$getReference(), self$getOutdir(), fullname = TRUE)
+        private$conf$alt_path = generate_reference_sequence(self$getIPD(), self$getAlternate(), self$getOutdir(), fullname = TRUE)
       }
       invisible(self)
     },
@@ -315,6 +315,9 @@ DR2S_ <- R6::R6Class(
     ##
     getShortreads = function() {
       dir <- self$getSrdDir()
+      if (is.null(dir)) {
+        return(NULL)
+      }
       readpath <- findReads(dir, self$getSampleId(), self$getLocus())
       if (is.null(readpath) || length(readpath) == 0) {
         stop("No reads available for readtype <", self$getSrdType(), ">")
@@ -363,7 +366,11 @@ DR2S_ <- R6::R6Class(
     },
     ##
     getSrdDir = function() {
-      file.path(self$getDatadir(), self$getConfig("shortreads")$dir)
+      if (!is.null(srddir <- self$getConfig("shortreads")$dir)) {
+        file.path(self$getDatadir(), srddir)
+      } else {
+        NULL
+      }
     },
     ##
     getReftype = function() {
@@ -391,11 +398,11 @@ DR2S_ <- R6::R6Class(
     },
     ##
     getRefSeq = function() {
-      if (!is.null(self$getHLA())) {
+      if (!is.null(self$getIPD())) {
         if (self$getReference() == "consensus") {
-          self$getHLA()$cons
+          self$getIPD()$cons
         } else {
-          self$getHLA()$get_reference_sequence(self$getReference())
+          self$getIPD()$get_reference_sequence(self$getReference())
         }
       } else {
         Biostrings::readDNAStringSet(self$getRefPath())
@@ -408,8 +415,8 @@ DR2S_ <- R6::R6Class(
     ##
     getAltSeq = function() {
       if (!is.null(self$getAlternate())) {
-        if (!is.null(self$getHLA())) {
-          self$getHLA()$get_reference_sequence(self$getAlternate())
+        if (!is.null(self$getIPD())) {
+          self$getIPD()$get_reference_sequence(self$getAlternate())
         } else {
           Biostrings::readDNAStringSet(self$getAltPath())
         }
@@ -438,8 +445,8 @@ DR2S_ <- R6::R6Class(
       }
     },
     ##
-    getHLA = function() {
-      private$hla
+    getIPD = function() {
+      private$ipd
     },
     ##
     getPileup = function() {
@@ -942,7 +949,7 @@ DR2S_ <- R6::R6Class(
   ##
   private = list(
     conf      = NULL,
-    hla       = NULL,
+    ipd       = NULL,
     run_      = function(step) {
       switch(
         step,

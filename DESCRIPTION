@@ -42,10 +42,12 @@ Imports:
     doParallel,
     yaml,
     tibble,
-    XRPython
+    XRPython,
+    kirtools,
+    methods
 SystemRequirements: C++11, samtools, bwa (>= 0.7.11)
 VignetteBuilder: knitr
-RoxygenNote: 5.0.1
+RoxygenNote: 6.0.1
 Collate:
     'DR2S-class.R'
     'DR2S-methods.R'

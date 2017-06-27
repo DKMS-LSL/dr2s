@@ -10,4 +10,3 @@ Generate highly accurate reference sequences from heterozygous
 HLA and KIR samples by combining data from long-read and short-read
 sequencing technologies
 }
-

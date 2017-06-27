@@ -35,4 +35,3 @@ A \code{consmat} object includes the attributes:
 \examples{
 ###
 }
-

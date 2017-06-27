@@ -23,11 +23,10 @@ If the layout is something like \code{matrix(c(1, 2, 3, 3), nrow = 2, byrow = TR
 then plot 1 will go in the upper left, 2 will go in the upper right, and
 3 will go all the way across the bottom.
 }
-\author{
-Winston Chang
-}
 \references{
 \url{http://www.cookbook-r.com/Graphs/Multiple_graphs_on_one_page_(ggplot2)/}
 }
+\author{
+Winston Chang
+}
 \keyword{internal}
-
