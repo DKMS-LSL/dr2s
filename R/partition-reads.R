@@ -19,7 +19,7 @@ partition_reads <- function(x, cl_method="ward.D", min_len = 0.8, skip_gap_freq 
   ppos <- colnames(x)
   xm <- x[order(rownames(x)),]
 
-  bad_ppos <- apply(xm, 2, function(x) NROW(x[x == "."])/NROW(x) > skip_gap_freq )
+  bad_ppos <- apply(xm, 2, function(x) NROW(x[x == "-"])/NROW(x) > skip_gap_freq )
   xm <- xm[,!bad_ppos]
   bad_ppos <- ppos[bad_ppos]
 
@@ -34,7 +34,7 @@ partition_reads <- function(x, cl_method="ward.D", min_len = 0.8, skip_gap_freq 
   x_sub <- x_[nchar(gsub("-", "", x_)) > min_len*NCOL(x)]
   x_sub <- Biostrings::DNAStringSet(x_sub)
   # get hamming distance ## maybe try something else too
-  xdist <- stringDist(x_sub, method="hamming")
+  xdist <- Biostrings::stringDist(x_sub, method="hamming")
   xmat <- as.matrix(xdist)
 
   ## Perform a hierarchical clustering
