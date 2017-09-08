@@ -39,10 +39,10 @@ SNPmatrix <- function(bamfile,
     ct <- paste0(c("c", rep("i", length(pm))), collapse = "")
     ans <- readr::read_csv(outfile, col_types = ct, trim_ws = TRUE)
     mat <- as.matrix(ans[, -1])
-    mat_ <- factor(mat, levels = 0:4, labels = c(".", "A", "C", "G", "T"))
-    dim(mat_) <- dim(mat)
-    dimnames(mat_) <- list(ans$qname, colnames(mat))
-    mat_
+    ## Use directly a matrix of characters; Better handling and no need to convert always, because we need the SNPs as
+    mat <- apply(mat, 2, function(x) factor(x, levels = 0:4, labels = c("-", "A", "C", "G", "T")))
+    rownames(mat) <- ans$qname
+    mat
   } else{
     stop("Failed to call SNP matrix from ", basename(bamfile))
   }

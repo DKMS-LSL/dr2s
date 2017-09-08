@@ -19,8 +19,9 @@ bam_sort_index <- function(samfile,
                    "")
   sorted <- sub("sam(.gz)?$", ext, samfile)
   ## -F260 exclude 'read unmapped', 'not primary alignment'
+  ## Better use -F2308 to also exclude chimeric reads!!!!
   fmt <-
-    "samtools view -@%s -F260 %s -q%s -bT '%s' '%s' | samtools sort -T /tmp/sorted -m%s -@%s -o '%s' - && samtools index '%s'"
+    "samtools view -@%s -F2308 %s -q%s -bT '%s' '%s' | samtools sort -T /tmp/sorted -m%s -@%s -o '%s' - && samtools index '%s'"
   cmd <-
     sprintf(fmt, threads, if (sample > 0) "-s" %+% sample else "", min_mapq,
             reffile, samfile, threadmem, threads, sorted, sorted)

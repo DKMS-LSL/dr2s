@@ -14,7 +14,9 @@ map0.DR2S <- function(x,
                       include_insertions = FALSE,
                       force = FALSE,
                       fullname = TRUE,
-                      plot = TRUE) {
+                      # for now set plot to FALSE; cant plot with the clustering
+                      plot = FALSE) {
+                      #plot = TRUE) {
   message("\nStep 0: Initial mapping of long reads ... \n")
   Sys.sleep(1)
   x$runMap0(opts = opts, optsname = optsname, pct = pct, threshold = threshold,
@@ -147,14 +149,15 @@ print.map0 <- function(x, ...) {
 #' @export
 partition_haplotypes.DR2S <- function(x,
                                       max_depth = 1e4,
-                                      shuffle = TRUE,
+                                      # shuffle = TRUE,
                                       skip_gap_freq = 2/3,
-                                      plot = TRUE,
+                                      plot = FALSE,
+                                      # plot = TRUE,
                                       ...) {
   message("\nStep 1: Partition reads into haplotypes ...")
   Sys.sleep(1)
   x$runHaplotypePartitioning(max_depth = max_depth,
-                             shuffle = shuffle,
+                             # shuffle = shuffle,
                              skip_gap_freq = skip_gap_freq,
                              plot = plot)
   message("  Done!\n")
@@ -164,7 +167,7 @@ partition_haplotypes.DR2S <- function(x,
 
 DR2S_$set("public", "runHaplotypePartitioning",
          function(max_depth = 1e4,
-                  shuffle = TRUE,
+                  # shuffle = TRUE,
                   skip_gap_freq = 2/3,
                   plot = TRUE) {
            stopifnot(self$hasPileup())
@@ -193,7 +196,9 @@ DR2S_$set("public", "runHaplotypePartitioning",
            }
 
            message(sprintf("  Partitioning %s reads over %s SNPs ...", NROW(mat), NCOL(mat)))
-           prt <- DR2S:::partition_reads(x = mat, shuffle = shuffle, skip_gap_freq = skip_gap_freq)
+           # don't use shuffle argument
+           prt <- partition_reads(x = mat, skip_gap_freq = skip_gap_freq)
+           # prt <- partition_reads(x = mat, shuffle = shuffle, skip_gap_freq = skip_gap_freq)
 
            self$partition = structure(list(
              mat = mat,

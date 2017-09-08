@@ -6,7 +6,6 @@
 #' Partition a SNP matrix into two haplotype groups
 #'
 #' @param x A \code{[read x position]} SNP matrix.
-#' @param shuffle Shuffle positions.
 #' @param skip_gap_freq Skip a badly behaved polymorphic position if the
 #' frequency of gaps within a haplotype group exceeds \code{skip_gap_freq}.
 #'
@@ -14,130 +13,85 @@
 #' @export
 #' @examples
 #' ###
-partition_reads <- function(x, shuffle = TRUE, skip_gap_freq = 2/3) {
-  x_ <- if (shuffle && NCOL(x) > 1) {
-    x[, sample(NCOL(x))]
-  } else x
+partition_reads <- function(x, cl_method="ward.D", min_len = 0.8, skip_gap_freq = 2/3){
 
-  part_ <- HapPart(read_name = rownames(x_), snp_pos = colnames(x_))
-  read_names_  <- as.vector(part_)
-  rownames(x_) <- NULL
+  # get SNPs
+  ppos <- colnames(x)
+  xm <- x[order(rownames(x)),]
 
-  slice <- x_[, 1L]
-  nm <- top2(slice)
+  bad_ppos <- apply(xm, 2, function(x) NROW(x[x == "."])/NROW(x) > skip_gap_freq )
+  xm <- xm[,!bad_ppos]
+  bad_ppos <- ppos[bad_ppos]
 
-  isA <- slice == nm[1L]
-  isB <- slice == nm[2L]
+  ## Get the SNPs as sequences
+  x_ <- apply(xm, 1, function(t) c(unlist(paste(t, collapse = ""))))
 
-  read_names_0A <- read_names_[isA]
-  read_names_0B <- read_names_[isB]
+  ## Get only the fraction of reads that contain at least min_len of total SNPs
+  # might be evaluated whether really necessary; Seems so. Produces way better clustering!
+  # a good cutoff seems around 0.8
+  # The remaining reads need to be assigned to clades as well.
+  # Maybe build a consensus of the clusters and align each missing read to the best matching cluster?
+  x_sub <- x_[nchar(gsub("-", "", x_)) > min_len*NCOL(x)]
+  x_sub <- Biostrings::DNAStringSet(x_sub)
+  # get hamming distance ## maybe try something else too
+  xdist <- stringDist(x_sub, method="hamming")
+  xmat <- as.matrix(xdist)
 
-  K(part_) <- K(part_) + 1L
+  ## Perform a hierarchical clustering
+  hcc <-  hclust(xdist, method = cl_method)
+  plot(hcc, labels=FALSE)
+  ## do a dynamic cut. Need to be evaluated$
+  clusts <- dynamicTreeCut::cutreeHybrid(hcc, distM = xmat, deepSplit = 1)
+  # extract the clusters for each sequence
+  clades <- as.factor(unlist(lapply(unname(clusts$labels), function(i) rawToChar(as.raw(as.integer(i)+64)))))
+  names(clades) <- hcc$labels
 
-  cls_ <- ifelse(isA, "A", ifelse(isB, "B", "-"))
+  # try cluster quality measure
+  # get distance of each read to all clades
+  clades <- clust_quality(clades, xmat)
+  clades <- arrange(clades, read)
 
-  Q(part_)[read_names_ %in% read_names_0A] <- Q(part_)[read_names_ %in% read_names_0A] + 1L
-  Q(part_)[read_names_ %in% read_names_0B] <- Q(part_)[read_names_ %in% read_names_0B] - 1L
-
-  CLS(part_) <- cls_
-  PRT(part_) <- ifelse(cls_ == "-", sample(c("A", "B"), 1), cls_)
-  partition_reads_(x_ = x_[, -1, drop = FALSE], part_, read_names_, skip_gap_freq)
+  # Create the partition table
+  part_ <- HapPart(read_name = clades$read, snp_pos = colnames(x))
+  PRT(part_) <- clades$clade
+  HTR(part_) <- hcc
+  mcoef(part_) <- clades$coeff
+  return(part_)
 }
 
 # Helpers -----------------------------------------------------------------
 
-top2 <- function(slice) {
-  lv <- levels(slice)
-  ilv <- which(lv != ".")
-  tb <- tabulate(slice, nbins = length(lv))[ilv]
-  names(tb) <- lv[ilv]
-  names(sort(tb, decreasing = TRUE)[1:2])
-}
-
-partition_reads_ <- function(x_, part_, read_names_, skip_gap_freq) {
-  if (NCOL(x_) == 0) {
-    return(part_)
+# Get quality measure of all vs all clusters
+clust_quality <- function(clades, xmat){
+  # Get means for all clusters from distance matrix
+  clade_sums <- data.frame(clade = clades)
+  for (clade in levels(clades)){
+    ownclade <- names(clades[clades == clade])
+    sums_ownclade <- unlist(lapply(names(clades), function(t) mean(xmat[t,][names(xmat[t,]) %in% ownclade])))
+    clade_sums <- dplyr::bind_cols(clade_sums, !!clade := sums_ownclade)
   }
+  clade_sums <- dplyr::bind_cols(read = names(clades), clade_sums)
 
-  slice <- x_[, 1L]
+  ## Calculate coefficients for each vs each cluster for each read
+  scored_clade_sums <- data.frame()
+  for (cld in levels(clade_sums$clade)){
+    clds <- levels(clade_sums$clade)
+    tmpcld <- dplyr::filter(clade_sums, clade == cld)
 
-  # extract the partitioning scheme from the previous iteration and
-  # assign the next polymorphic position according to this scheme
-  if (length(nm <- assign_partition(slice, part = PRT(part_), skip_gap_freq)) == 2) {
-    isA <- slice == nm[["A"]]
-    isB <- slice == nm[["B"]]
-
-    read_names_1A <- read_names_[isA]
-    read_names_1B <- read_names_[isB]
-
-    K(part_) <- K(part_) + 1L
-
-    cls_ <- ifelse(isA, "A", ifelse(isB, "B", "-"))
-
-    Q(part_)[read_names_ %in% read_names_1A] <- Q(part_)[read_names_ %in% read_names_1A] + 1L
-    Q(part_)[read_names_ %in% read_names_1B] <- Q(part_)[read_names_ %in% read_names_1B] - 1L
-
-    # Classify
-    CLS(part_) <- cls_
-
-    # Partition
-    PRT(part_) <- ifelse(part_ %in% read_names_[Q(part_) >= 0L], "A", "B")
-  } else {
-    ## excise offending SNP
-    SNP(part_) <- SNP(part_)[-K(part_) -  1L]
-    ## excise offending column in classification table
-    attr(part_, "classification") <- attr(part_, "classification")[, -K(part_) - 1L]
+    # The main coefficient is the distance of own cluster to that of all others
+    coeff <- data.frame(tmpcld[cld]/rowMeans(tmpcld[clds[!clds == cld]]))
+    names(coeff) <- "coeff"
+    tmpcld <- dplyr::bind_cols(tmpcld, coeff)
+    for (ocld in clds){
+      cnames <- c(names(tmpcld), paste0("coeff", ocld))
+      ## The finer coefficients are the distance of own cluster to those of all others separately
+      indCoef <- tmpcld[cld]/tmpcld[ocld]
+      tmpcld <- dplyr::bind_cols(tmpcld, replace(indCoef, indCoef == 1, 0))
+      names(tmpcld) <- cnames
+    }
+    scored_clade_sums <- dplyr::bind_rows(scored_clade_sums, tmpcld)
   }
-
-  #x_ <- x_[, -1, drop = FALSE]
-  #(slice <- x_[, 1L])
-  Recall(x_[, -1, drop = FALSE], part_, read_names_, skip_gap_freq)
-}
-
-assign_partition <- function(slice, part, skip_gap_freq) {
-  lvls_  <- levels(slice)
-  nbins_ <- length(lvls_)
-  sliceA <- slice[part == "A"]
-  sliceB <- slice[part == "B"]
-
-  # Tabulate the two parts and calculate the fraction of
-  # nucleotides with each part
-  A <- array(tabulate(sliceA, nbins = nbins_), dimnames = list(lvls_))
-  B <- array(tabulate(sliceB, nbins = nbins_), dimnames = list(lvls_))
-
-  # check frequency of non-nucleotides
-  if (A[names(A) == "."]/sum(A) > skip_gap_freq || B[names(B) == "."]/sum(B) > skip_gap_freq) {
-    message("Skipping badly behaved polymorphic position")
-    return(NULL)
-  }
-
-  # remove non-nucleotide
-  A <- A[names(A) != "."]
-  B <- B[names(B) != "."]
-
-  A <- A/sum(A)
-  B <- B/sum(B)
-
-  # An allele will be overrepresented in it's correct partition and under-
-  # represented in the opposite partition. Spurious alleles will be randomly
-  # distributed across partitions. The two correctly partitioned alleles will
-  # show the maximum frequency difference across the partiotions.
-  d <- (A - B)^2
-  nm <- names(sort(d, decreasing = TRUE)[1:2])
-
-  ## We calculate the determinant of the square matrix formed by
-  ## the frequencies of alleles "A" and "B" in parts A and be respectively.
-  mx <- rbind(A = A[nm], B = B[nm])
-
-  if (det2(mx) > 0) {
-    Anm <- nm[1L]
-    Bnm <- nm[2L]
-  } else {
-    Anm <- nm[2L]
-    Bnm <- nm[1L]
-  }
-
-  c(A = Anm, B = Bnm)
+  scored_clade_sums
 }
 
 
@@ -154,6 +108,9 @@ HapPart <- function(read_name, snp_pos) {
     snp_pos = snp_pos,
     k       = 0L,            # total number of polymorphic positions
     q       = rep(0, n),     # cluster weight
+    # add mcoef and tree
+    mcoef   = rep(0, n),     # coefficient of membership to one cluster vs all other clusters
+    tree    = NULL,          # Add tree from hclust
     classification = matrix( # running classification of polymorphic positions
       rep("", n * k),
       nrow = n,
@@ -195,12 +152,16 @@ print.HapPart <- function(x, sort_by = "none", nrows = 8, ...) {
   attr(rs, "snp_pos") <- SNP(x)
   attr(rs, "k") <- K(x)
   attr(rs, "q") <- Q(x)[i]
+  # add mcoef attr
+  attr(rs, "mcoef") <- mcoef(x)[i]
   attr(rs, "classification") <- CLS(x)[i, , drop = FALSE]
   attr(rs, "partition") <- PRT(x)[i]
+  attr(rs, "tree") <- HTR(x)
   class(rs) <- c("HapPart", "character")
   rs
 }
 
+## sk: replaced by attr; mcoef is membership coefficient of one over all other clusters
 #' Cluster membership coefficient q
 #'
 #' q = Q/K: cluster weight/number of polymorphic positions
@@ -209,7 +170,13 @@ print.HapPart <- function(x, sort_by = "none", nrows = 8, ...) {
 mcoef <- function(x) UseMethod("mcoef")
 #' @export
 mcoef.HapPart <- function(x) {
-  Q(x)/K(x)
+  attr(x, "mcoef")
+}
+`mcoef<-` <- function(x, value) UseMethod("mcoef<-")
+#' @export
+`mcoef<-.HapPart` <- function(x, value) {
+  attr(x, "mcoef") <- value
+  x
 }
 
 #' @export
@@ -281,6 +248,18 @@ PRT.HapPart <- function(x) {
 `PRT<-` <- function(x, value) UseMethod("PRT<-")
 `PRT<-.HapPart` <- function(x, value) {
   attr(x, "partition") <- value
+  x
+}
+
+# get tree from hclust
+HTR <- function(x) UseMethod("HTR")
+HTR.HapPart <- function(x) {
+  attr(x, "tree")
+}
+
+`HTR<-` <- function(x, value) UseMethod("HTR<-")
+`HTR<-.HapPart` <- function(x, value) {
+  attr(x, "tree") <- value
   x
 }
 

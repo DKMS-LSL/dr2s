@@ -418,7 +418,6 @@ map3 <- function(x,
 #' }
 partition_haplotypes <- function(x,
                                  max_depth = 1e4,
-                                 shuffle = TRUE,
                                  plot = TRUE,
                                  ...) {
   UseMethod("partition_haplotypes")
