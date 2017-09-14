@@ -242,7 +242,7 @@ split_reads_by_haplotype.DR2S <- function(x,
   invisible(x)
 }
 
-#self <- dl3.part
+self <- dl3.part
 # x <- dl3.part
 
 DR2S_$set("public", "splitReadsByHaplotype",
@@ -272,11 +272,11 @@ DR2S_$set("public", "splitReadsByHaplotype",
 
            ### RM ###
            ## override limitA and limitB if not NULL
-           if (!is.null(limitA))
-             self$setLimitA(limitA)
-
-           if (!is.null(limitB))
-             self$setLimitB(limitB)
+           # if (!is.null(limitA))
+           #   self$setLimitA(limitA)
+           #
+           # if (!is.null(limitB))
+           #   self$setLimitB(limitB)
 
            ##############################
 

@@ -15,10 +15,10 @@
 #' ###
 
 ## debug ##
-#x <- dl3.part$partition$mat
-# cl_method="ward.D"
-# min_len = 0.8
-#skip_gap_freq = 2/3
+# x <- dl3.part$partition$mat
+#  cl_method="ward.D"
+#  min_len = 0.8
+# skip_gap_freq = 2/3
 #partn <- partition_reads(x)
 #length(partn[mcoef(partn)>1])
 #length(partn)
@@ -33,37 +33,44 @@ partition_reads <- function(x, cl_method="ward.D", min_len = 0.8, skip_gap_freq 
   ## Get the SNP matrix as sequences
   xseqs <- apply(xm, 1, function(t) c(unlist(paste(t, collapse = ""))))
   xseqs <- Biostrings::DNAStringSet(xseqs)
+  # Try hamming dist from decipher without using terminal gaps and also penalize all gaps vs gaps
+  xmat <- DECIPHER::DistanceMatrix(xseqs, includeTerminalGaps = FALSE, penalizeGapLetterMatches = TRUE, penalizeGapGapMatches = TRUE, correction = "none", processors = 4)
+
 
   ## Get only the fraction of reads that contain at least min_len of total SNPs
   # might be evaluated whether really necessary; Seems so. Produces way better clustering!
   # a good cutoff seems around 0.8
-  clustres <- get_clusts(xseqs, cl_method = cl_method, min_len = min_len)
+  clustres <- get_clusts(xseqs, xmat, cl_method = cl_method, min_len = min_len)
   subclades <- clustres$clades
   tree <- clustres$tree
 
+  # get distance of each read to all clades and assign the read to the clade with min distance
+  clades <- dplyr::data_frame(read = names(xseqs))
+  subclades <- dplyr::data_frame(clustclade = subclades, read = names(subclades))
+  clades <- dplyr::full_join(clades, subclades, by = "read")
+  clades <- assign_partition(clades, xmat)
+
+  # get cluster quality measure; coefficients
+  clades <- clust_quality(clades, xmat)
+
   ## add consenus mapping for read classification
   ## Get consensus sequences for all haplotypes from initial clustering
-  conseqs <- Biostrings::DNAStringSet(lapply(levels(subclades), function(x) get_Hap_consensus(x, xseqs, subclades)))
-  names(conseqs) <- levels(subclades)
-  xconseqs <- c(xseqs, conseqs)
+  #conseqs <- Biostrings::DNAStringSet(lapply(levels(subclades), function(x) get_Hap_consensus(x, xseqs, subclades)))
+  #names(conseqs) <- levels(subclades)
+  #xconseqs <- c(xseqs, conseqs)
 
   ## Assign haplotypes to missing reads
-  xmat <- as.matrix(Biostrings::stringDist(xconseqs, method = "hamming"))
-  clades <- unlist(lapply(names(xseqs), function(x) assign_partition(xmat[x, names(conseqs)])))
-  clades<- dplyr::data_frame(read = names(xseqs), clade = clades)
-  subclades <- dplyr::data_frame(clustclade = subclades, read = names(subclades))
+  #xmat <- as.matrix(Biostrings::stringDist(xconseqs, method = "hamming"))
+  #clades <- unlist(lapply(names(xseqs), function(x) assign_partition(xmat[x, names(conseqs)])))
+  #clades<- dplyr::data_frame(read = names(xseqs), clade = clades)
+  #subclades <- dplyr::data_frame(clustclade = subclades, read = names(subclades))
 
-  clades <- dplyr::full_join(clades, subclades, by = "read")
+
   clades <- clades %>%
-    dplyr::mutate(correct = dplyr::if_else(is.na(clustclade), NA, dplyr::if_else(clustclade == clade, TRUE, FALSE)))
-
+  dplyr::mutate(correct = dplyr::if_else(is.na(clustclade), NA, dplyr::if_else(clustclade == clade, TRUE, FALSE)))
   ## Correctly classified clades in the initial clustering
   falseClassified <- NROW(dplyr::filter(clades, correct==FALSE))/NROW(dplyr::filter(clades, correct == TRUE))
   message(sprintf( " Corrected classification of %.2f%% reads", 100*falseClassified))
-
-  # try cluster quality measure
-  # get distance of each read to all clades
-  clades <- clust_quality(clades, xmat)
 
   # Create the partition table
   part_ <- HapPart(read_name = clades$read, snp_pos = colnames(x))
@@ -71,7 +78,6 @@ partition_reads <- function(x, cl_method="ward.D", min_len = 0.8, skip_gap_freq 
   HTR(part_) <- tree
   SNP(part_) <- ppos
   K(part_) <- length(ppos)-length(bad_ppos)
-  clades
   mcoef(part_) <- clades$coeff
 
   return(part_)
@@ -79,18 +85,21 @@ partition_reads <- function(x, cl_method="ward.D", min_len = 0.8, skip_gap_freq 
 
 # Helpers -----------------------------------------------------------------
 
-get_clusts <- function(xseqs, min_len, cl_method){
+get_clusts <- function(xseqs, xmat, min_len = 0.8, cl_method = "ward.D"){
   x_sub <- xseqs[Biostrings::width(gsub("-", "", xseqs)) > min_len*Biostrings::width(xseqs[1])]
 
-  # get hamming distance ## maybe try something else too
-  subdist <- Biostrings::stringDist(x_sub, method="hamming")
-  submat <- as.matrix(subdist)
+  # get distance only for the subset
+  submat <- xmat[names(x_sub), names(x_sub)]
+  subdist <- dist(submat)
+  #subdist <- Biostrings::stringDist(x_sub, method="hamming")
+  #submat <- as.matrix(subdist)
+
 
   ## Perform a hierarchical clustering
   hcc <-  hclust(subdist, method = cl_method)
   plot(hcc, labels=FALSE)
   ## do a dynamic cut. Need to be evaluated
-  clusts <- dynamicTreeCut::cutreeHybrid(hcc, distM = submat, deepSplit = 1)
+  clusts <- dynamicTreeCut::cutreeHybrid(hcc, distM = submat, deepSplit = 2)
   # extract the clusters for each sequence
   clades <- as.factor(unlist(lapply(unname(clusts$labels), function(i) rawToChar(as.raw(as.integer(i)+64)))))
   names(clades) <- hcc$labels
@@ -99,25 +108,34 @@ get_clusts <- function(xseqs, min_len, cl_method){
 }
 
 # Get quality measure of all vs all clusters
-clust_quality <- function(clades, xmat){
+assign_partition <- function(clades, xmat){
+
   # Get means for all clusters from distance matrix
   clade_sums <- clades
-  for (cld in levels(clades$clustclade)){
+  hptypes <- levels(clades$clustclade)
+  for (cld in hptypes){
     ownclade <- dplyr::filter(clades, clustclade == cld)$read
     sums_ownclade <- unlist(lapply(clades$read, function(t) mean(xmat[t,][names(xmat[t,]) %in% ownclade])))
     clade_sums <- dplyr::bind_cols(clade_sums, !!cld := sums_ownclade)
   }
+  # get only proper reads, i.e. not NA in the dist matrix. That happens mostly to reads size == 1
+  clade_sums <- dplyr::filter(clade_sums, !is.na(A))
+  clade <- unlist(lapply(clade_sums$read, function(a) get_haptype(a, clade_sums)))
+  dplyr::bind_cols(clade_sums, clade = clade)
+}
+
+
+clust_quality <- function(clades, xmat){
   ## Calculate coefficients for each vs each cluster for each read
   scored_clade_sums <- dplyr::data_frame()
-  for (cld in levels(clade_sums$clustclade)){
-    clds <- levels(clade_sums$clustclade)
-    tmpcld <- dplyr::filter(clade_sums, clade == cld)
-
+  hptypes <- levels(clades$clustclade)
+  for (cld in hptypes){
+    tmpcld <- dplyr::filter(clades, clade == cld)
     # The main coefficient is the distance of own cluster to that of all others
-    coeff <- tmpcld[cld]/rowMeans(tmpcld[clds[!clds == cld]])
+    coeff <- tmpcld[cld]/rowMeans(tmpcld[hptypes[!hptypes == cld]])
     names(coeff) <- "coeff"
     tmpcld <- dplyr::bind_cols(tmpcld, coeff)
-    for (ocld in clds){
+    for (ocld in hptypes){
       cnames <- c(names(tmpcld), paste0("coeff", ocld))
       ## The finer coefficients are the distance of own cluster to those of all others separately
       indCoef <- tmpcld[cld]/tmpcld[ocld]
@@ -129,16 +147,23 @@ clust_quality <- function(clades, xmat){
   dplyr::arrange(scored_clade_sums, read)
 }
 
-get_Hap_consensus <- function(cld, x_, clades){
-  seqsCld <- x_[names(x_) %in% names(clades[clades == cld])]
-  seq <- Biostrings::DNAString(Biostrings::consensusString(seqsCld, ambiguityMap="N", threshold = 0.5))
-  seq
+
+get_haptype <- function(name, clade_sums){
+  entry <- dplyr::filter(clade_sums, read == name)
+  value <- min(entry[hptypes])
+  names(entry[which(entry == value)])
 }
 
-assign_partition <- function(mat){
-  haplotypes <- names(mat[mat == min(mat)])
-  if (length(haplotypes) > 1){sample(haplotypes, 1)}else{haplotypes}
-}
+# get_Hap_consensus <- function(cld, x_, clades){
+#   seqsCld <- x_[names(x_) %in% names(clades[clades == cld])]
+#   seq <- Biostrings::DNAString(Biostrings::consensusString(seqsCld, ambiguityMap="N", threshold = 0.5))
+#   seq
+# }
+
+#assign_partition <- function(mat){
+#  haplotypes <- names(mat[mat == min(mat)])
+#  if (length(haplotypes) > 1){sample(haplotypes, 1)}else{haplotypes}
+#}
 
 # Class: HapPart -----------------------------------------------------------
 
@@ -322,7 +347,7 @@ HTR.HapPart <- function(x) {
 plot_partition_histogram <- function(x, label = "") {
   stopifnot(is(x, "HapPart"))
   ggplot(partition(x)) +
-    geom_histogram(aes(x = mcoef, fill = haplotype), binwidth = 0.05) +
+    geom_histogram(aes(x = mcoef, fill = haplotype), binwmeidth = 0.05) +
     scale_fill_manual(values = PARTCOL()) +
     geom_vline(xintercept = 0L, linetype = "dashed", colour = "grey80") +
     geom_vline(xintercept = c(-0.75, -0.5, -0.25, 0.25, 0.5, 0.75),
