@@ -426,9 +426,7 @@ partition_haplotypes <- function(x,
 #' Partition mapped long reads into haplotypes
 #'
 #' @param x A \code{\link[=DR2S_]{DR2S}} object.
-#' @param limitA Cutoff value for haplotype A.
-#' @param limitB Cutoff value for haplotype B.
-#' @param scale TODO
+#' @param limits List of Cutoff values for haplotypes.
 #' @param ... Further arguments passed to methods.
 #'
 #' @return A \code{\link[=DR2S_]{DR2S}} object.
@@ -457,9 +455,7 @@ partition_haplotypes <- function(x,
 #'   report(block_width = 60)
 #' }
 split_reads_by_haplotype <- function(x,
-                                     limitA = NULL,
-                                     limitB = limitA,
-                                     scale  = 2,
+                                     limits,
                                      ...) {
   UseMethod("split_reads_by_haplotype")
 }

@@ -236,16 +236,24 @@ print.PartList <- function(x, ...) {
 
 #' @export
 split_reads_by_haplotype.DR2S <- function(x,
-                                          limitA = NULL,
-                                          limitB = limitA,
-                                          scale = 2,
+                                          limits,
                                           ...) {
-  x$splitReadsByHaplotype(limitA = limitA, limitB = limitB, scale = scale)
+  x$splitReadsByHaplotype( limits)
   invisible(x)
 }
 
+#self <- dl3.part
+# x <- dl3.part
+
 DR2S_$set("public", "splitReadsByHaplotype",
-         function(limitA = NULL, limitB = limitA, scale = 2, plot = TRUE) {
+         function(limits){
+         # ## debug
+         # limitA = NULL
+         # limitB = limitA
+         # limits = list()
+         # scale = 2
+         # plot = FALSE
+         ############
            stopifnot(self$hasPartition())
 
            ## Overide default arguments
@@ -256,6 +264,13 @@ DR2S_$set("public", "splitReadsByHaplotype",
            }
 
            prt  <- partition(self$getPartition())
+
+           haplotypes <- levels(prt$haplotype)
+
+           # Set all limits to NULL
+           self.setLimits <- sapply(haplotypes, function(x) NULL)
+
+           ### RM ###
            ## override limitA and limitB if not NULL
            if (!is.null(limitA))
              self$setLimitA(limitA)
@@ -263,33 +278,41 @@ DR2S_$set("public", "splitReadsByHaplotype",
            if (!is.null(limitB))
              self$setLimitB(limitB)
 
-           if (is.null(self$getLimitA())) {
-             prtA <- prt[prt$haplotype == "A", ]
-             prtB <- prt[prt$haplotype == "B", ]
-             lmts <- optimal_partition_limits(cA = prtA$mcoef, cB = -1*prtB$mcoef, scale, TRUE)
-             self$setLimitA(lmts$limits$c[lmts$limits$haplotype == "A"])
-             self$setLimitB(lmts$limits$c[lmts$limits$haplotype == "B"])
-             self$partition$lmt <- lmts$plt
-           }
+           ##############################
 
-           if (self$getLimitB() > 0) {
-             self$setLimitB( -1 * self$getLimitB() )
-           }
+           # no need at all to ask again if its null! We just set it to NULL
+           # if (is.null(self$getLimitA())) {
+           prts <-  lapply(haplotypes, function(x) prt[prt$haplotype == x,])
+           names(prts) <- haplotypes
 
-           readsA <- dplyr::filter(prt, mcoef >= self$getLimitA())[, c("read", "mcoef")]
-           readsA <- readsA[order(abs(readsA$mcoef), decreasing = TRUE), ]
-           readsB <- dplyr::filter(prt, mcoef <= self$getLimitB())[, c("read", "mcoef")]
-           readsB <- readsB[order(abs(readsB$mcoef), decreasing = TRUE), ]
+           #prtA <- prt[prt$haplotype == "A", ]
+           #prtB <- prt[prt$haplotype == "B", ]
+           scores <- lapply(prts, function(x) x$mcoef)
+           #cA = 1-prtA$mcoef
+           #cB = 1-prtB$mcoef
+           lmts <- optimal_partition_limits(scores)
+           plainlmts <- as.list(lmts$limits$c)
+           names(plainlmts) <- lmts$limits$haplotype
 
-           nA <- NROW(readsA)
-           nB <- NROW(readsB)
-           self$partition$hpl =
-             structure(list(
-               A = structure(readsA$read, q = abs(readsA$mcoef), freq = nA / (nA + nB), limit = self$getLimitA()),
-               B = structure(readsB$read, q = abs(readsB$mcoef), freq = nB / (nA + nB), limit = self$getLimitB())
-             ), class = c("HapList", "list"))
+           self$setLimits(plainlmts)
+           self$partition$lmt <- lmts$plt
 
-           if (plot) {
+           reads <- lapply(names(self$getLimits()), function(x) dplyr::filter(prt, haplotype == x, mcoef <= self$getLimits()[x]))
+           names(reads) <- names(self$getLimits())
+
+           resStruct <- lapply(names(reads), function(x) {
+             tr <- reads[[x]]
+             structure(
+               tr$read,
+               q = tr$mcoef,
+               freq = NROW(tr)/NROW(dplyr::bind_rows(reads)),
+               limit = self$getLimits()[[x]]
+             )})
+           names(resStruct) <- haplotypes
+           self$partition$hpl = structure( resStruct, class = c("HapList", "list"))
+
+           if (FALSE) {
+           # if (plot) {
              tag   <- self$getMapTag(0)
              bnm   <- basename(self$map0$bamfile)
              outf  <- file.path(self$getOutdir(), paste0("plot0.partition.", sub("bam$", "pdf", usc(bnm))))
@@ -304,16 +327,14 @@ DR2S_$set("public", "splitReadsByHaplotype",
 #' @export
 print.HapList <- function(x, ...) {
   msg <- sprintf("An object of class '%s'.\n", class(x)[1])
-  msg <- sprintf(
-    "%s $A: n %s; frequency %s; limit %s\n $B: n %s; frequency %s; limit %s\n",
-    msg,
-    length(x$A),
-    round(attr(x$A, "freq"), 3),
-    attr(x$A, "limit"),
-    length(x$B),
-    round(attr(x$B, "freq"), 3),
-    attr(x$B, "limit")
-  )
+  for (haplotype in names(x)) {
+    msg <- paste0(msg,
+             sprintf("%s: n %s; frequency %s; limit %s\n",
+               haplotype,
+               length(x[haplotype]),
+               round(attr(x[[haplotype]], "freq"), 3),
+               attr(x[[haplotype]], "limit")))
+  }
   cat(msg)
 }
 

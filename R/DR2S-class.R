@@ -79,8 +79,7 @@ clear.DR2S <- function(x, ...) {
 #' \item{\code{x$runHaplotypePartitioning(max_depth = 1e4, shuffle = TRUE,
 #' skip_gap_freq = 2/3, plot = TRUE)}}{
 #' Partition mapped long reads into haplotypes}
-#' \item{\code{x$splitReadsByHaplotype(limitA = NULL, limitB = limitA, scale = 2,
-#' plot = TRUE)}}{
+#' \item{\code{x$splitReadsByHaplotype(limit = list(), #' plot = TRUE)}}{
 #' Partition mapped long reads into haplotypes}
 #' \item{\code{x$extractFastq(nreads = NULL, replace = FALSE, nalign = 30)}}{
 #' Extract FASTQs for partitioned reads and if the consensus method is
@@ -329,25 +328,36 @@ DR2S_ <- R6::R6Class(
       self$getConfig("mapper")
     },
     ##
-    getLimitA = function() {
-      self$getConfig("limitA")
+    getLimits = function() {
+      self$getConfig("limits")
     },
     ##
-    setLimitA = function(lmt) {
-      stopifnot(is.null(lmt) || lmt >= -1 && lmt <= 1)
-      self$setConfig("limitA", lmt)
+    setLimits = function(lmts) {
+      ## Todo: add test for data consistency!
+      private$conf$limits = lmts
       invisible(self)
     },
+
+    # getLimitA = function() {
+    #   self$getConfig("limitA")
+    # },
     ##
-    getLimitB = function() {
-      self$getConfig("limitB")
-    },
-    ##
-    setLimitB = function(lmt) {
-      stopifnot(is.null(lmt) || lmt >= -1 && lmt <= 1)
-      self$setConfig("limitB", lmt)
-      invisible(self)
-    },
+
+    # setLimitA = function(lmt) {
+    #   stopifnot(is.null(lmt) || lmt >= -1 && lmt <= 1)
+    #   self$setConfig("limitA", lmt)
+    #   invisible(self)
+    # },
+    # ##
+    # getLimitB = function() {
+    #   self$getConfig("limitB")
+    # },
+    # ##
+    # setLimitB = function(lmt) {
+    #   stopifnot(is.null(lmt) || lmt >= -1 && lmt <= 1)
+    #   self$setConfig("limitB", lmt)
+    #   invisible(self)
+    # },
     ##
     getPipeline = function() {
       self$getConfig("pipeline")

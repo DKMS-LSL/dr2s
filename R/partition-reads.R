@@ -13,73 +13,108 @@
 #' @export
 #' @examples
 #' ###
-partition_reads <- function(x, cl_method="ward.D", min_len = 0.8, skip_gap_freq = 2/3){
 
+## debug ##
+#x <- dl3.part$partition$mat
+# cl_method="ward.D"
+# min_len = 0.8
+#skip_gap_freq = 2/3
+#partn <- partition_reads(x)
+#length(partn[mcoef(partn)>1])
+#length(partn)
+partition_reads <- function(x, cl_method="ward.D", min_len = 0.8, skip_gap_freq = 2/3){
   # get SNPs
   ppos <- colnames(x)
   xm <- x[order(rownames(x)),]
-
   bad_ppos <- apply(xm, 2, function(x) NROW(x[x == "-"])/NROW(x) > skip_gap_freq )
   xm <- xm[,!bad_ppos]
   bad_ppos <- ppos[bad_ppos]
 
-  ## Get the SNPs as sequences
-  x_ <- apply(xm, 1, function(t) c(unlist(paste(t, collapse = ""))))
+  ## Get the SNP matrix as sequences
+  xseqs <- apply(xm, 1, function(t) c(unlist(paste(t, collapse = ""))))
+  xseqs <- Biostrings::DNAStringSet(xseqs)
 
   ## Get only the fraction of reads that contain at least min_len of total SNPs
   # might be evaluated whether really necessary; Seems so. Produces way better clustering!
   # a good cutoff seems around 0.8
-  # The remaining reads need to be assigned to clades as well.
-  # Maybe build a consensus of the clusters and align each missing read to the best matching cluster?
-  x_sub <- x_[nchar(gsub("-", "", x_)) > min_len*NCOL(x)]
-  x_sub <- Biostrings::DNAStringSet(x_sub)
-  # get hamming distance ## maybe try something else too
-  xdist <- Biostrings::stringDist(x_sub, method="hamming")
-  xmat <- as.matrix(xdist)
+  clustres <- get_clusts(xseqs, cl_method = cl_method, min_len = min_len)
+  subclades <- clustres$clades
+  tree <- clustres$tree
 
-  ## Perform a hierarchical clustering
-  hcc <-  hclust(xdist, method = cl_method)
-  plot(hcc, labels=FALSE)
-  ## do a dynamic cut. Need to be evaluated$
-  clusts <- dynamicTreeCut::cutreeHybrid(hcc, distM = xmat, deepSplit = 1)
-  # extract the clusters for each sequence
-  clades <- as.factor(unlist(lapply(unname(clusts$labels), function(i) rawToChar(as.raw(as.integer(i)+64)))))
-  names(clades) <- hcc$labels
+  ## add consenus mapping for read classification
+  ## Get consensus sequences for all haplotypes from initial clustering
+  conseqs <- Biostrings::DNAStringSet(lapply(levels(subclades), function(x) get_Hap_consensus(x, xseqs, subclades)))
+  names(conseqs) <- levels(subclades)
+  xconseqs <- c(xseqs, conseqs)
+
+  ## Assign haplotypes to missing reads
+  xmat <- as.matrix(Biostrings::stringDist(xconseqs, method = "hamming"))
+  clades <- unlist(lapply(names(xseqs), function(x) assign_partition(xmat[x, names(conseqs)])))
+  clades<- dplyr::data_frame(read = names(xseqs), clade = clades)
+  subclades <- dplyr::data_frame(clustclade = subclades, read = names(subclades))
+
+  clades <- dplyr::full_join(clades, subclades, by = "read")
+  clades <- clades %>%
+    dplyr::mutate(correct = dplyr::if_else(is.na(clustclade), NA, dplyr::if_else(clustclade == clade, TRUE, FALSE)))
+
+  ## Correctly classified clades in the initial clustering
+  falseClassified <- NROW(dplyr::filter(clades, correct==FALSE))/NROW(dplyr::filter(clades, correct == TRUE))
+  message(sprintf( " Corrected classification of %.2f%% reads", 100*falseClassified))
 
   # try cluster quality measure
   # get distance of each read to all clades
   clades <- clust_quality(clades, xmat)
-  clades <- arrange(clades, read)
 
   # Create the partition table
   part_ <- HapPart(read_name = clades$read, snp_pos = colnames(x))
   PRT(part_) <- clades$clade
-  HTR(part_) <- hcc
+  HTR(part_) <- tree
+  SNP(part_) <- ppos
+  K(part_) <- length(ppos)-length(bad_ppos)
+  clades
   mcoef(part_) <- clades$coeff
+
   return(part_)
 }
 
 # Helpers -----------------------------------------------------------------
 
+get_clusts <- function(xseqs, min_len, cl_method){
+  x_sub <- xseqs[Biostrings::width(gsub("-", "", xseqs)) > min_len*Biostrings::width(xseqs[1])]
+
+  # get hamming distance ## maybe try something else too
+  subdist <- Biostrings::stringDist(x_sub, method="hamming")
+  submat <- as.matrix(subdist)
+
+  ## Perform a hierarchical clustering
+  hcc <-  hclust(subdist, method = cl_method)
+  plot(hcc, labels=FALSE)
+  ## do a dynamic cut. Need to be evaluated
+  clusts <- dynamicTreeCut::cutreeHybrid(hcc, distM = submat, deepSplit = 1)
+  # extract the clusters for each sequence
+  clades <- as.factor(unlist(lapply(unname(clusts$labels), function(i) rawToChar(as.raw(as.integer(i)+64)))))
+  names(clades) <- hcc$labels
+
+  return(list(clades = clades, tree = hcc))
+}
+
 # Get quality measure of all vs all clusters
 clust_quality <- function(clades, xmat){
   # Get means for all clusters from distance matrix
-  clade_sums <- data.frame(clade = clades)
-  for (clade in levels(clades)){
-    ownclade <- names(clades[clades == clade])
-    sums_ownclade <- unlist(lapply(names(clades), function(t) mean(xmat[t,][names(xmat[t,]) %in% ownclade])))
-    clade_sums <- dplyr::bind_cols(clade_sums, !!clade := sums_ownclade)
+  clade_sums <- clades
+  for (cld in levels(clades$clustclade)){
+    ownclade <- dplyr::filter(clades, clustclade == cld)$read
+    sums_ownclade <- unlist(lapply(clades$read, function(t) mean(xmat[t,][names(xmat[t,]) %in% ownclade])))
+    clade_sums <- dplyr::bind_cols(clade_sums, !!cld := sums_ownclade)
   }
-  clade_sums <- dplyr::bind_cols(read = names(clades), clade_sums)
-
   ## Calculate coefficients for each vs each cluster for each read
-  scored_clade_sums <- data.frame()
-  for (cld in levels(clade_sums$clade)){
-    clds <- levels(clade_sums$clade)
+  scored_clade_sums <- dplyr::data_frame()
+  for (cld in levels(clade_sums$clustclade)){
+    clds <- levels(clade_sums$clustclade)
     tmpcld <- dplyr::filter(clade_sums, clade == cld)
 
     # The main coefficient is the distance of own cluster to that of all others
-    coeff <- data.frame(tmpcld[cld]/rowMeans(tmpcld[clds[!clds == cld]]))
+    coeff <- tmpcld[cld]/rowMeans(tmpcld[clds[!clds == cld]])
     names(coeff) <- "coeff"
     tmpcld <- dplyr::bind_cols(tmpcld, coeff)
     for (ocld in clds){
@@ -91,9 +126,19 @@ clust_quality <- function(clades, xmat){
     }
     scored_clade_sums <- dplyr::bind_rows(scored_clade_sums, tmpcld)
   }
-  scored_clade_sums
+  dplyr::arrange(scored_clade_sums, read)
 }
 
+get_Hap_consensus <- function(cld, x_, clades){
+  seqsCld <- x_[names(x_) %in% names(clades[clades == cld])]
+  seq <- Biostrings::DNAString(Biostrings::consensusString(seqsCld, ambiguityMap="N", threshold = 0.5))
+  seq
+}
+
+assign_partition <- function(mat){
+  haplotypes <- names(mat[mat == min(mat)])
+  if (length(haplotypes) > 1){sample(haplotypes, 1)}else{haplotypes}
+}
 
 # Class: HapPart -----------------------------------------------------------
 
@@ -348,28 +393,21 @@ plot_partition_haplotypes <- function(x, thin = 1, label = "", sort = TRUE, name
 # Optimal partitioning ----------------------------------------------------
 
 
-optimal_partition_limits <- function(cA, cB, scale = 2, correction = TRUE) {
-  coeff_cuts <- seq(0.95, 0.00, by = -0.05)
-  scaleA <- scaleB <- scale
-  rA <- sapply(coeff_cuts, function(cutoff) sum(cA >= cutoff))
-  rB <- sapply(coeff_cuts, function(cutoff) sum(cB >= cutoff))
-  if (correction) {
-    mAB <- c(max(rA), max(rB))
-    i <- which.min(mAB)
-    corrfact <- sqrt(2 * (mAB[i]/sum(mAB)))
-    scaleA <- if (i == 1) scaleA * corrfact else scaleA
-    scaleB <- if (i == 2) scaleB * corrfact else scaleB
+optimal_partition_limits <- function(scores) {
+  coeff_cuts <- seq(0.05, 1.10, by = 0.05)
+  rHap <- lapply(scores, function(x) sapply(coeff_cuts, function(cutoff) sum(x <= cutoff)))
+
+  df <- dplyr::data_frame()
+  for(hapType in names(rHap)){
+    df <- dplyr::bind_rows(df,
+    dplyr::data_frame(c = coeff_cuts, r = unlist(rHap[hapType])) %>%
+      dplyr::mutate(haplotype = hapType, score = (r/c)) %>%
+      dplyr::mutate(max.score = score == max(score)))
   }
-  df <- dplyr::bind_rows(
-    dplyr::data_frame(c = coeff_cuts, r = rA) %>%
-      dplyr::mutate(haplotype = "A", score = (c^scaleA * r), scale = scaleA) %>%
-      dplyr::mutate(max.score = score == max(score)),
-    dplyr::data_frame(c = coeff_cuts, r = rB) %>%
-      dplyr::mutate(haplotype = "B", score = (c^scaleB * r), scale = scaleB) %>%
-      dplyr::mutate(max.score = score == max(score))
-  )
+
   dfmax <- dplyr::filter(df, max.score) %>%
-    dplyr::select(haplotype, c, r, score, scale)
+    dplyr::select(haplotype, c, r, score)
+
   list(
     limits = dfmax,
     plt = ggplot(df, aes(r, c, colour = haplotype)) +

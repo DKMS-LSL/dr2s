@@ -25,8 +25,9 @@ create_dr2s_conf <- function(sample,
     outdir     = outdir,
     threshold  = threshold,
     mapper     = conf0$mapper   %||% "bwamem",
-    limitA     = conf0$limitA   %||% NULL,
-    limitB     = conf0$limitB   %||% NULL,
+    # limitA     = conf0$limitA   %||% NULL,
+    # limitB     = conf0$limitB   %||% NULL,
+    limits     = conf0$limits   %||% NULL,
     pipeline   = conf0$pipeline %||% c("clear", "map0", "partition", "split", "extract", "map1", "map2", "map3", "polish", "report"),
     longreads  = longreads,
     shortreads = shortreads,
@@ -48,8 +49,9 @@ read_dr2s_conf <- function(config_file) {
   conf$outdir     <- conf$outdir     %||% file.path(conf$datadir, "output")
   conf$threshold  <- conf$threshold  %||% 0.2
   conf$mapper     <- conf$mapper     %||% "bwamem"
-  conf["limitA"]  <- conf$limitA     %||% list(NULL)
-  conf["limitB"]  <- conf$limitN     %||% list(NULL)
+  # conf["limitA"]  <- conf$limitA     %||% list(NULL)
+  # conf["limitB"]  <- conf$limitN     %||% list(NULL)
+  conf$limits  <- conf$limits     %||% list(NULL)
   conf$pipeline   <- conf$pipeline   %||% c("clear", "map0", "partition", "split", "extract", "map1", "map2", "map3", "polish", "report")
   conf$longreads  <- conf$longreads  %||% list(type = "pacbio", dir = "pacbio")
   conf$shortreads <- conf$shortreads %||% list(type = "illumina", dir = "illumina")
@@ -124,9 +126,9 @@ initialise_dr2s <- function(conf, create_outdir = TRUE) {
 }
 
 validate_dr2s_conf <- function(conf) {
-  fields <- c("datadir", "outdir", "threshold", "mapper", "limitA", "limitB",
+  fields <- c("datadir", "outdir", "threshold", "mapper", "limits",
               "pipeline", "longreads", "shortreads", "nreads", "opts",
-              "sample_id", "locus", "reference", "alternate", "consensus")
+              "sample_id", "locus", "reference", "alternate", "consensus")#"limitA", "limitB",
   if (!all(fields %in% names(conf))) {
     stop("Missing fields <", comma(fields[!fields %in% names(conf)]), "> in config", call. = FALSE)
   }
