@@ -28,6 +28,7 @@ create_dr2s_conf <- function(sample,
     # limitA     = conf0$limitA   %||% NULL,
     # limitB     = conf0$limitB   %||% NULL,
     limits     = conf0$limits   %||% NULL,
+    haptypes   = conf0$haptypes   %||% NULL,
     pipeline   = conf0$pipeline %||% c("clear", "map0", "partition", "split", "extract", "map1", "map2", "map3", "polish", "report"),
     longreads  = longreads,
     shortreads = shortreads,
@@ -51,7 +52,8 @@ read_dr2s_conf <- function(config_file) {
   conf$mapper     <- conf$mapper     %||% "bwamem"
   # conf["limitA"]  <- conf$limitA     %||% list(NULL)
   # conf["limitB"]  <- conf$limitN     %||% list(NULL)
-  conf$limits  <- conf$limits     %||% list(NULL)
+  conf$limits     <- conf$limits     %||% list(NULL)
+  conf$haptypes   <- conf$haptypes   %||% list(NULL)
   conf$pipeline   <- conf$pipeline   %||% c("clear", "map0", "partition", "split", "extract", "map1", "map2", "map3", "polish", "report")
   conf$longreads  <- conf$longreads  %||% list(type = "pacbio", dir = "pacbio")
   conf$shortreads <- conf$shortreads %||% list(type = "illumina", dir = "illumina")
@@ -126,7 +128,7 @@ initialise_dr2s <- function(conf, create_outdir = TRUE) {
 }
 
 validate_dr2s_conf <- function(conf) {
-  fields <- c("datadir", "outdir", "threshold", "mapper", "limits",
+  fields <- c("datadir", "outdir", "threshold", "mapper", "limits", "haptypes",
               "pipeline", "longreads", "shortreads", "nreads", "opts",
               "sample_id", "locus", "reference", "alternate", "consensus")#"limitA", "limitB",
   if (!all(fields %in% names(conf))) {

@@ -359,6 +359,16 @@ DR2S_ <- R6::R6Class(
     #   invisible(self)
     # },
     ##
+    getHapTypes = function() {
+      self$getConfig("haptypes")
+    },
+    ##
+    setHapTypes = function(x) {
+      ## Todo: add test for data consistency!
+      private$conf$haptypes = x
+      invisible(self)
+    },
+    ##
     getPipeline = function() {
       self$getConfig("pipeline")
     },
@@ -475,7 +485,6 @@ DR2S_ <- R6::R6Class(
       if (missing(group)) {
         self$partition$hpl
       } else {
-        grp <- match.arg(group, c("A", "B"))
         self$partition$hpl[[grp]]
       }
     },
