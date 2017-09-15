@@ -165,11 +165,16 @@ partition_haplotypes.DR2S <- function(x,
 
 }
 
-DR2S_$set("public", "runHaplotypePartitioning",
-         function(max_depth = 1e4,
-                  # shuffle = TRUE,
+#self <- dedk
+DR2S_$set("public", "runHaplotypePartitioning", function(max_depth = 1e4,
                   skip_gap_freq = 2/3,
                   plot = TRUE) {
+
+                  # debug
+                  # max_depth = 1e4
+                  # shuffle = TRUE,
+                  # skip_gap_freq = 2/3
+                  # plot = TRUE
            stopifnot(self$hasPileup())
 
            ## Overide default arguments
@@ -196,9 +201,8 @@ DR2S_$set("public", "runHaplotypePartitioning",
            }
 
            message(sprintf("  Partitioning %s reads over %s SNPs ...", NROW(mat), NCOL(mat)))
-           # don't use shuffle argument
            prt <- partition_reads(x = mat, skip_gap_freq = skip_gap_freq)
-           # prt <- partition_reads(x = mat, shuffle = shuffle, skip_gap_freq = skip_gap_freq)
+           self$setHapTypes(levels(as.factor(PRT(self$partition$prt))))
 
            self$partition = structure(list(
              mat = mat,
@@ -208,7 +212,8 @@ DR2S_$set("public", "runHaplotypePartitioning",
            ),
            class = c("PartList", "list"))
 
-           if (plot) {
+           if (FALSE){
+           # if (plot) {
              message("  Plotting ...")
              bnm   <- basename(self$map0$bamfile)
              outf  <- file.path(self$getOutdir(), paste0("plot0.partition.", sub("bam$", "pdf", usc(bnm))))
@@ -242,18 +247,11 @@ split_reads_by_haplotype.DR2S <- function(x,
   invisible(x)
 }
 
-self <- dl3.part
+#self <- dl3.part
 # x <- dl3.part
 
-DR2S_$set("public", "splitReadsByHaplotype",
-         function(limits){
-         # ## debug
-         # limitA = NULL
-         # limitB = limitA
-         # limits = list()
-         # scale = 2
-         # plot = FALSE
-         ############
+DR2S_$set("public", "splitReadsByHaplotype", function(limits,
+                                                      plot = FALSE){
            stopifnot(self$hasPartition())
 
            ## Overide default arguments
@@ -264,32 +262,16 @@ DR2S_$set("public", "splitReadsByHaplotype",
            }
 
            prt  <- partition(self$getPartition())
-
            haplotypes <- levels(prt$haplotype)
 
            # Set all limits to NULL
            self.setLimits <- sapply(haplotypes, function(x) NULL)
 
-           ### RM ###
-           ## override limitA and limitB if not NULL
-           # if (!is.null(limitA))
-           #   self$setLimitA(limitA)
-           #
-           # if (!is.null(limitB))
-           #   self$setLimitB(limitB)
-
-           ##############################
-
-           # no need at all to ask again if its null! We just set it to NULL
-           # if (is.null(self$getLimitA())) {
            prts <-  lapply(haplotypes, function(x) prt[prt$haplotype == x,])
            names(prts) <- haplotypes
 
-           #prtA <- prt[prt$haplotype == "A", ]
-           #prtB <- prt[prt$haplotype == "B", ]
            scores <- lapply(prts, function(x) x$mcoef)
-           #cA = 1-prtA$mcoef
-           #cB = 1-prtB$mcoef
+
            lmts <- optimal_partition_limits(scores)
            plainlmts <- as.list(lmts$limits$c)
            names(plainlmts) <- lmts$limits$haplotype
@@ -297,9 +279,11 @@ DR2S_$set("public", "splitReadsByHaplotype",
            self$setLimits(plainlmts)
            self$partition$lmt <- lmts$plt
 
+           # Get only reads within the limit
            reads <- lapply(names(self$getLimits()), function(x) dplyr::filter(prt, haplotype == x, mcoef <= self$getLimits()[x]))
            names(reads) <- names(self$getLimits())
 
+           # results Structure
            resStruct <- lapply(names(reads), function(x) {
              tr <- reads[[x]]
              structure(
@@ -309,7 +293,7 @@ DR2S_$set("public", "splitReadsByHaplotype",
                limit = self$getLimits()[[x]]
              )})
            names(resStruct) <- haplotypes
-           self$partition$hpl = structure( resStruct, class = c("HapList", "list"))
+           self$partition$hpl = structure(resStruct, class = c("HapList", "list"))
 
            if (FALSE) {
            # if (plot) {
@@ -360,9 +344,15 @@ extract_fastq.DR2S <- function(x, nreads = NULL, replace = FALSE, nalign = 40, .
   message("  Done!\n")
   invisible(x)
 }
-
+#self <- hla.split
 DR2S_$set("public", "extractFastq",
           function(nreads = NULL, replace = FALSE, nalign = 40) {
+
+            # debug
+            # nreads = NULL
+            # replace = FALSE
+            # nalign = 40
+
             stopifnot(self$hasHapList())
 
             ## Overide default arguments
@@ -376,118 +366,67 @@ DR2S_$set("public", "extractFastq",
             if (!is.null(nreads))
               self$setNreads(nreads)
 
-            adir <- dir_create_if_not_exists(file.path(self$getOutdir(), "A"))
-            aqnames <- self$getHapList("A")
-            ## extract haplotype A reads from bamfile
-            afq  <- extract_fastq(
-              x = self$map0$bamfile,
-              qnames = aqnames,
-              n = self$getNreads(),
-              replace = replace
-            )
-            if (!is.null(nreads)) {
-              attr(self$partition$hpl$A, "index") <- which(aqnames %in% as.character(ShortRead::id(afq)))
-              attr(self$partition$hpl$A, "n") <- self$getNreads()
-            }
-            afile <- paste("hap.A", self$getLrdType(), self$getMapper(),
-                           paste0("lim", 100 * abs(attr(self$getHapList("A"), "limit"))),
-                           paste0("n", length(afq)),
-                           "fastq", "gz", sep = ".")
-            aout <- file_delete_if_exists(file.path(adir, afile))
-            ShortRead::writeFastq(afq, aout, compress = TRUE)
-            self$map1$A = structure(
-              list(
-                dir     = adir,
-                reads   = aout,
-                ref     = NULL,
-                bamfile = list(reference = NULL, alternate = NULL),
-                pileup  = list(reference = NULL, alternate = NULL),
-                conseq  = list(
-                  reference  = NULL,
-                  alternate  = NULL,
-                  merged     = NULL,
-                  multialign = NULL
-                ),
-                seqpath = list(
-                  reference  = NULL,
-                  alternate  = NULL,
-                  merged     = NULL,
-                  multialign = NULL
-                ),
-                tag     = list(
-                  reference  = NULL,
-                  alternate  = NULL,
-                  merged     = NULL,
-                  multialign = NULL
-                )
-              ),
-              class = c("map1", "list")
-            )
-            if (self$hasMultialign()) {
-              message("   Constructing initial A consensus from ", nalign, " reads ...")
-              cons <- multialign_consensus(multialign(self, "A", nalign))
-              aconsfile <- paste("consensus", self$getLrdType(), "multialign", paste0("A", nalign), "fa", sep = ".")
-              names(cons) <- aconsfile
-              aconsout <- file_delete_if_exists(file.path(adir, aconsfile))
-              Biostrings::writeXStringSet(cons, aconsout)
-              self$map1$A$ref <- list(refpath = aconsout, refseq = cons)
-            }
+            ## do this for each haptype
+            hptypes <- self$getHapTypes()
+            for (hptype in hptypes){
+              dir <- dir_create_if_not_exists(file.path(self$getOutdir(), hptype))
 
-            bdir <- dir_create_if_not_exists(file.path(self$getOutdir(), "B"))
-            bqnames <- self$getHapList("B")
-            ## extract haplotype A reads from bamfile
-            bfq  <- extract_fastq(
-              x = self$map0$bamfile,
-              qnames = bqnames,
-              n = self$getNreads(),
-              replace = replace
-            )
-            if (!is.null(nreads)) {
-              attr(self$partition$hpl$B, "index") <- which(bqnames %in% as.character(ShortRead::id(bfq)))
-              attr(self$partition$hpl$B, "n") <- self$getNreads()
-            }
-            bfile <-  paste("hap.B", self$getLrdType(), self$getMapper(),
-                            paste0("lim", 100 * abs(attr(self$getHapList("B"), "limit"))),
-                            paste0("n", length(bfq)),
-                            "fastq", "gz", sep = ".")
-            bout <- file_delete_if_exists(file.path(bdir, bfile))
-            ShortRead::writeFastq(bfq, bout, compress = TRUE)
-            self$map1$B = structure(
-              list(
-                dir     = bdir,
-                reads   = bout,
-                ref     = NULL,
-                bamfile = list(reference = NULL, alternate = NULL),
-                pileup  = list(reference = NULL, alternate = NULL),
-                conseq  = list(
-                  reference  = NULL,
-                  alternate  = NULL,
-                  merged     = NULL,
-                  multialign = NULL
+              qnames <- self$getHapList(hptype)
+              ## extract haplotype A reads from bamfile
+              fq  <- extract_fastq(
+                x = self$map0$bamfile,
+                qnames = qnames,
+                n = self$getNreads(),
+                replace = replace
+              )
+              if (!is.null(nreads)) {
+                attr(self$partition$hpl[hptype], "index") <- which(qnames %in% as.character(ShortRead::id(fq)))
+                attr(self$partition$hpl[hptype], "n") <- self$getNreads()
+              }
+              file <- paste("hap", hptype, self$getLrdType(), self$getMapper(),
+                             paste0("lim", 100 * abs(attr(self$getHapList(hptype), "limit"))),
+                             paste0("n", length(fq)),
+                             "fastq", "gz", sep = ".")
+              out <- file_delete_if_exists(file.path(dir, file))
+              ShortRead::writeFastq(fq, out, compress = TRUE)
+              self$map1[[hptype]] = structure(
+                list(
+                  dir     = dir,
+                  reads   = out,
+                  ref     = NULL,
+                  bamfile = list(reference = NULL, alternate = NULL),
+                  pileup  = list(reference = NULL, alternate = NULL),
+                  conseq  = list(
+                    reference  = NULL,
+                    alternate  = NULL,
+                    merged     = NULL,
+                    multialign = NULL
+                  ),
+                  seqpath = list(
+                    reference  = NULL,
+                    alternate  = NULL,
+                    merged     = NULL,
+                    multialign = NULL
+                  ),
+                  tag     = list(
+                    reference  = NULL,
+                    alternate  = NULL,
+                    merged     = NULL,
+                    multialign = NULL
+                  )
                 ),
-                seqpath = list(
-                  reference  = NULL,
-                  alternate  = NULL,
-                  merged     = NULL,
-                  multialign = NULL
-                ),
-                tag     = list(
-                  reference  = NULL,
-                  alternate  = NULL,
-                  merged     = NULL,
-                  multialign = NULL
-                )
-              ),
-              class = c("map1", "list")
-            )
-            if (self$hasMultialign()) {
-              message("   Constructing initial B consensus from ", nalign, " reads ...")
-              cons <- multialign_consensus(multialign(self, "B", nalign))
-              bconsfile <- paste("consensus", self$getLrdType(), "multialign", paste0("B", nalign), "fa", sep = ".")
-              names(cons) <- bconsfile
-              bconsout <- file_delete_if_exists(file.path(bdir, bconsfile))
-              Biostrings::writeXStringSet(cons, bconsout)
-              self$map1$B$ref <- list(refpath = bconsout, refseq = cons)
+                class = c("map1", "list")
+              )
+              if (self$hasMultialign()) {
+                message("   Constructing initial ", hptype, " consensus from ", nalign, " reads ...")
+                cons <- multialign_consensus(multialign(self, hptype, nalign))
+                hptype
+                consfile <- paste("consensus", self$getLrdType(), "multialign", paste0(hptype, nalign), "fa", sep = ".")
+                names(cons) <- consfile
+                consout <- file_delete_if_exists(file.path(dir, consfile))
+                Biostrings::writeXStringSet(cons, consout)
+                self$map1[[hptype]]$ref <- list(refpath = consout, refseq = cons)
+              }
             }
 
             return(invisible(self))
@@ -522,6 +461,9 @@ map1.DR2S <- function(x,
   invisible(x)
 }
 
+# debug
+#self <- dedk.fq
+#self$map1$
 DR2S_$set("public", "runMap1",
          function(opts = list(),
                   pct = 100,
@@ -535,6 +477,20 @@ DR2S_$set("public", "runMap1",
                   force = FALSE,
                   fullname = TRUE,
                   plot = TRUE) {
+
+                  # debug
+                  # opts = list()
+                  # pct = 100
+                  # min_base_quality = 3
+                  # min_mapq = 0
+                  # max_depth = 1e4
+                  # min_nucleotide_depth = 3
+                  # include_deletions = TRUE
+                  # include_insertions = TRUE
+                  # pruning_cutoff = 0.75
+                  # force = FALSE
+                  # fullname = TRUE
+                  # plot = TRUE
            stopifnot(pct > 0 && pct <= 100)
 
            ## Overide default arguments
@@ -547,6 +503,8 @@ DR2S_$set("public", "runMap1",
            ## Mapper
            map_fun <- self$getMapFun()
 
+           ## Probably no need to use anymore as we can use multialign
+           if(FALSE){
            refs <- if (!is.null(self$getAltPath())) {
              c("reference", "alternate")
            } else if (self$hasMultialign()) {
@@ -556,8 +514,13 @@ DR2S_$set("public", "runMap1",
            }
            # group = "A"
            # reftag = "multialign"
-           foreach(group = c("A", "B")) %:%
-             foreach(reftag = refs) %do% {
+           }
+           hptypes <- levels(as.factor(PRT(self$partition$prt)))
+           # foreach(group = hptypes) %:%
+           #   foreach(reftag = refs) %do% {
+           reftag <- "multialign"
+
+           foreach(group = hptypes) %do% {
                if (is.null(outdir <- self$map1[[group]]$dir)) {
                  stop("Readfiles missing for readgroup ", dQuote(group))
                }
@@ -635,6 +598,9 @@ DR2S_$set("public", "runMap1",
                self$map1[[group]]$tag[[reftag]] = maptag
              }
 
+
+           ## NO need to use as we use multialign
+           if (FALSE){
            ## infer which haplogroup is closer to the reference allele
            if (length(refs) == 1) {
              nA <- n_polymorphic_positions(self$map1$A$pileup[[reftag]]$consmat)
@@ -690,12 +656,20 @@ DR2S_$set("public", "runMap1",
                         c(setdiff(rtag, atag), setdiff(atag, rtag)),
                         mtag[2:length(mtag)]), collapse = " ")
            }
+           }
 
+
+           ## Work here:
+           # First clean error
+           ##self <- dedk.map1
+           ##hptypes <- c("A", "B")
+           #self$map1$A <- self$map1$C
+           #self$map1$B <- self$map1$D
 
            if (plot) {
              message("  Plotting ...")
              if (self$hasMap1Alternate()) {
-               foreach(group = c("A", "B")) %do% {
+               foreach(group = hptypes) %do% {
                  ## Coverage and base frequency
                  gfile <- file.path(
                    self$getOutdir(),
@@ -714,6 +688,7 @@ DR2S_$set("public", "runMap1",
                self$plotMap1Summary(group = NULL, thin = 0.1, width = 4)
                dev.off()
              }
+
 
              ## Consensus sequence probability
              gfile <-
