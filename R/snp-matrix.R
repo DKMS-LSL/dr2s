@@ -13,6 +13,8 @@ SNPmatrix <- function(bamfile,
                       max_depth,
                       polymorphic_positions,
                       cleanup = TRUE) {
+
+                      # cleanup = FALSE
   assertthat::assert_that(requireNamespace("readr", quietly = TRUE))
   if (is(polymorphic_positions, "tbl_df") &&
       all(colnames(polymorphic_positions) %in% c("position", "a1", "f1", "a2", "f2"))) {
@@ -35,6 +37,11 @@ SNPmatrix <- function(bamfile,
   if (cleanup) {
     on.exit(unlink(outfile))
   }
+
+  # debug
+  #outfile
+  #pm
+  #rPython::python.call("py_get_snp_matrix", bamfile, outfile, max_depth, pm, simplify = FALSE)
   if (rPython::python.call("py_get_snp_matrix", bamfile, outfile, max_depth, pm, simplify = FALSE)) {
     ct <- paste0(c("c", rep("i", length(pm))), collapse = "")
     ans <- readr::read_csv(outfile, col_types = ct, trim_ws = TRUE)
