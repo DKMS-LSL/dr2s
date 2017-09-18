@@ -141,8 +141,8 @@ DR2S_ <- R6::R6Class(
     ##       $alternate [character]
     ##       $merged [character]
     map1 = list(
-      A = list(),
-      B = list()
+      # A = list(),
+      # B = list()
     ),
     ## Remapping of A and B reads to $map1$A$conseq and $map1$B$conseq
     ## and construction of $map2$A$conseq and $map2$B$conseq
@@ -159,8 +159,8 @@ DR2S_ <- R6::R6Class(
     ##     $seqpath [character]
     ##     $tag [character]
     map2 = list(
-      A = list(),
-      B = list()
+      # A = list(),
+      # B = list()
     ),
     ## Mapping of short reads and long reads to $map2$A$conseq and $map2$B$conseq
     ## class: map3
@@ -194,14 +194,16 @@ DR2S_ <- R6::R6Class(
       ## Public fields
       self$map0      = list()
       self$partition = list()
-      self$map1      = list(A = list(), B = list())
-      self$map2      = list(A = list(), B = list())
+      self$map1      = list()#A = list(), B = list())
+      self$map2      = list()#A = list(), B = list())
       self$map3      = list()
       self$consensus = list()
       ## Private fields
       ## undebug(DR2S:::initialise_dr2s)
       private$conf   = initialise_dr2s(conf, create_outdir = create_outdir)
       private$ipd    = findLocus(private$conf$locus)
+
+      ## ToDo: look if this is still used!
       if (is.null(private$conf$reference)) {
         private$conf$reference = "consensus"
         private$conf$ref_path  = generate_reference_sequence(private$ipd, "consensus", private$conf$outdir)
@@ -227,6 +229,7 @@ DR2S_ <- R6::R6Class(
           private$conf$alt_path  = generate_reference_sequence(private$ipd, private$conf$alternate, private$conf$outdir, fullname = TRUE)
         }
       }
+      # ToDo: If still used rm A,B
       private$conf$A_reftype = NA
       private$conf$B_reftype = NA
     },
@@ -253,8 +256,11 @@ DR2S_ <- R6::R6Class(
     cleanup = function() {
       unlink(self$map0$bamfile)
       unlink(paste0(self$map0$bamfile, ".bai"))
-      unlink(file.path(self$getOutdir(), "A"), recursive = TRUE)
-      unlink(file.path(self$getOutdir(), "B"), recursive = TRUE)
+      foreach(hpt = self$getHapTypes()) %do% {
+        unlink(file.path(self$getOutdir(), hpt), recursive = TRUE)
+      }
+      # unlink(file.path(self$getOutdir(), "A"), recursive = TRUE)
+      # unlink(file.path(self$getOutdir(), "B"), recursive = TRUE)
       unlink(file.path(self$getOutdir(), "merged"), recursive = TRUE)
       invisible(self)
     },
@@ -485,9 +491,10 @@ DR2S_ <- R6::R6Class(
       if (missing(group)) {
         self$partition$hpl
       } else {
-        self$partition$hpl[[grp]]
+        self$partition$hpl[[group]]
       }
     },
+    # ToDo: look if we still need it; Otherwise delete, if so make generic
     getARefType = function() {
       private$conf$A_reftype
     },
@@ -502,7 +509,7 @@ DR2S_ <- R6::R6Class(
     },
     ##
     getConseqs = function(group = NULL, mapn = 1) {
-      group <- match.arg(group, c("A", "B"))
+      group <- match.arg(group, self$getHapTypes)
       if (mapn == 1) {
         ref <- self$map1[[group]]$conseq$reference %||% Biostrings::BStringSet()
         alt <- self$map1[[group]]$conseq$alternate %||% Biostrings::BStringSet()
@@ -541,11 +548,11 @@ DR2S_ <- R6::R6Class(
       stopifnot(is.numeric(n),
                 n >= 0 && n <= 3)
       if (n == 1) {
-        group <- match.arg(group, c("A", "B"))
+        group <- match.arg(group, self$getHapTypes())
         ref <- match.arg(ref, c("reference", "alternate", "merged", "multialign"))
       }
       if (n == 2) {
-        group <- match.arg(group, c("A", "B"))
+        group <- match.arg(group, self$getHapTypes())
       }
       if (n == 3) {
         ref <- match.arg(group, c("LRA", "LRB", "SRA", "SRB"))
@@ -558,7 +565,7 @@ DR2S_ <- R6::R6Class(
     },
     ##
     mergeMap1Conseqs = function(group) {
-      group   <- match.arg(group, c("A", "B"))
+      group   <- match.arg(group, self$getHapTypes())
       conseqs <- self$getConseqs(group, mapn = 1)
       zscore  <- metadata(conseqs)
       message("\n  Merging consensus seqs for group ", group)
@@ -566,7 +573,7 @@ DR2S_ <- R6::R6Class(
     },
     ##
     getGroupPileup = function(group = NULL, ref = NULL, reads = "pacbio1") {
-      group  <- match.arg(group, c("A", "B"))
+      group  <- match.arg(group, self$getHapTypes())
       ref    <- match.arg(ref, c("reference", "alternate", "multialign", "LRA", "LRB", "SRA", "SRB"))
       reads  <- match.arg(reads, c("pacbio1", "pacbio2", "shotgun"))
       switch(
@@ -728,33 +735,26 @@ DR2S_ <- R6::R6Class(
                                      point_size = 1) {
       ref   <- match.arg(ref, c("reference", "alternate", "merged", "multialign"))
       reads <- match.arg(reads, c("pacbio1", "pacbio2", "shotgun"))
-      lblA  <-
-        self$getMapTag(switch(
-          reads,
-          pacbio1 = 1,
-          pacbio2 = 2,
-          shotgun = 3
-        ), "A", ref)
-      lblB  <-
-        self$getMapTag(switch(
-          reads,
-          pacbio1 = 1,
-          pacbio2 = 2,
-          shotgun = 3
-        ), "B", ref)
-      cseqA <- switch(
-        reads,
-        pacbio1 = self$map1$A$conseq[[ref]],
-        pacbio2 = self$map2$A$conseq,
-        shotgun = self$map3$conseq$A
-      )
-      cseqB <- switch(
-        reads,
-        pacbio1 = self$map1$B$conseq[[ref]],
-        pacbio2 = self$map2$B$conseq,
-        shotgun = self$map3$conseq$B
-      )
-      plot_conseq_probability(cseqA, cseqB, threshold, text_size, point_size, labelA = lblA, labelB = lblB)
+      hptypes <- self$getHapTypes()
+
+      cseqs <- foreach(hp = hptypes) %do% {
+        list(
+          label = self$getMapTag(switch(
+            reads,
+            pacbio1 = 1,
+            pacbio2 = 2,
+            shotgun = 3
+          ), hp, ref),
+          cseq = switch(
+            reads,
+            pacbio1 = self$map1[[hp]]$conseq[[ref]],
+            pacbio2 = self$map2[[hp]]$conseq,
+            shotgun = self$map3$conseq[[hp]]
+          ))
+      }
+      names(cseqs) <- hptypes
+
+      plot_conseq_probability(cseqs, threshold, text_size, point_size)
     },
     ##
     ## Summary methods ####
@@ -808,7 +808,7 @@ DR2S_ <- R6::R6Class(
     ##
     plotMap1Summary = function(group = NULL, thin = 0.2, width = 10) {
       if (self$hasMap1Alternate()) {
-        group <- match.arg(group, c("A", "B"))
+        group <- match.arg(group, self$getHapTypes())
         tag1 <- self$getMapTag(1, group, "reference")
         tag2 <- self$getMapTag(1, group, "alternate")
         multiplot(
@@ -820,15 +820,19 @@ DR2S_ <- R6::R6Class(
         )
       } else {
         ref  <- if (self$hasMultialign()) "multialign" else "reference"
-        tag1 <- self$getMapTag(1, "A", ref)
-        tag2 <- self$getMapTag(1, "B", ref)
+        hptypes <- self$getHapTypes()
+        plotlist <- foreach(hp = hptypes) %do% {
+          tag <- self$getMapTag(1, hp, ref)
+          list(self$plotGroupCoverage(hp, ref, "pacbio1", NULL, NULL, thin, width, tag, drop.indels = TRUE),
+          self$plotGroupBasecallFrequency(hp, ref, "pacbio1", NULL, " ", drop.indels = TRUE))
+          }
+        plotlist <- unlist(plotlist, recursive = FALSE)
+        layout_vector <- rep(1:length(plotlist), rep(c(1,3), length(hptypes)))
+        layout = matrix(layout_vector, ncol = length(hptypes))
+
         multiplot(
-          self$plotGroupCoverage("A", ref, "pacbio1", NULL, NULL, thin, width, tag1, drop.indels = TRUE),
-          self$plotGroupBasecallFrequency("A", ref, "pacbio1", NULL, " ", drop.indels = TRUE),
-          self$plotGroupCoverage("B", ref, "pacbio1", NULL, NULL, thin, width, tag2, drop.indels = TRUE),
-          self$plotGroupBasecallFrequency("B", ref, "pacbio1", NULL, " ", drop.indels = TRUE),
-          layout = matrix(c(1, 2, 2, 2, 3, 4, 4, 4), ncol = 2)
-        )
+          plotlist = plotlist,
+          layout = layout)
       }
     },
     ##

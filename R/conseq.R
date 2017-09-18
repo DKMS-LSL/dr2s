@@ -223,59 +223,48 @@ make_ambig_consensus_ <- function(x, threshold, exclude_gaps = FALSE, as_string 
 #'
 #' @examples
 #' ##
-plot_conseq_probability <- function(seqA,
-                                    seqB,
+plot_conseq_probability <- function(cseqs,
                                     threshold = "auto",
                                     text_size = 3,
-                                    point_size = 1,
-                                    labelA = "",
-                                    labelB = "") {
-  if (nzchar(labelA) && nzchar(labelB)) {
-    if (is.list(labelA))
-      labelA <- unlist(labelA)
-    if (is.list(labelB))
-      labelB <- unlist(labelB)
-    atags <- gsub("[<>]", "", strsplit(labelA, " ", fixed = TRUE)[[1]])
-    btags <- gsub("[<>]", "", strsplit(labelB, " ", fixed = TRUE)[[1]])
-    label <- paste0(intersect(atags, btags), collapse = ".")
-    agroup <- paste0(setdiff(atags, intersect(atags, btags)), collapse = ".")
-    bgroup <- paste0(setdiff(btags, intersect(atags, btags)), collapse = ".")
-  } else {
+                                    point_size = 1) {
+  labels <- unlist(lapply(cseqs, function(x) x$label), recursive = FALSE)
+  seqs <- unlist(lapply(cseqs, function(x) x$cseq))
+
+  # get labels and tags
+  if (all(nzchar(labels))){
+    tags <- lapply(labels, function(x) gsub("[<>]", "", strsplit(x, " ", fixed = TRUE)[[1]]))
+    groups <- lapply(tags, function(x) paste0(setdiff(x, Reduce(intersect, tags)), collapse = "."))
+    label <- paste0(Reduce(intersect, tags), collapse = ".")
+  } else{
     label <- ""
-    agroup <- "A"
-    bgroup <- "B"
+    groups <- 1:length(cseqs)
   }
-  if (!is.null(metadata(seqA)$zscore) && !is.null(metadata(seqB)$zscore)) {
+
+  if (all(unlist(lapply(seqs, function(x) !is.null(metadata(x)))))) {
     ylabel <- "Z-score probability"
   } else {
     ylabel <- "Frequency"
   }
-  seqA <- inject_deletions(seqA)
-  seqB <- inject_deletions(seqB)
-  df <- dplyr::bind_rows(dplyr::data_frame(
-    group = agroup,
-    pos   = seq_len(Biostrings::width(seqA)),
-    base  = strsplit(as.character(seqA), split = "")[[1]],
-    prob  = if (!is.null(metadata(seqA)$zscore)) {
-      pnorm(metadata(seqA)$zscore)
-    } else {
-      metadata(seqA)$freq
+  seqs <- lapply(seqs, function(x) inject_deletions(x))
+  df <- dplyr::bind_rows(
+    foreach(hp = names(cseqs)) %do% {
+      seq <- seqs[[hp]]
+      dplyr::data_frame(
+        group = groups[[hp]],
+        pos   = seq_len(Biostrings::width(seq)),
+        base  = strsplit(as.character(seq), split = "")[[1]],
+        prob  = if (!is.null(metadata(seq)$zscore)) {
+          pnorm(metadata(seq)$zscore)
+        } else {
+          metadata(seq)$freq
+        }
+      )
     }
-  ),
-  dplyr::data_frame(
-    group = bgroup,
-    pos   = seq_len(Biostrings::width(seqB)),
-    base  = strsplit(as.character(seqB), split = "")[[1]],
-    prob  = if (!is.null(metadata(seqB)$zscore)) {
-      pnorm(metadata(seqB)$zscore)
-    } else {
-      metadata(seqB)$freq
-    }
-  ))
+  )
   lower <- if (threshold == "auto") {
     dplyr::summarise(dplyr::group_by(df, group), lower = quantile(prob, 0.0025))
   } else {
-    dplyr::data_frame(group = c(agroup, bgroup), lower = threshold)
+    dplyr::data_frame(group = unlist(groups), lower = threshold)
   }
   df2 <- dplyr::filter(dplyr::left_join(df, lower, by = "group"), prob <= lower)
   ggplot(df, aes(pos, prob)) +
@@ -291,4 +280,3 @@ plot_conseq_probability <- function(seqA,
     ggtitle(label) +
     theme_bw()
 }
-

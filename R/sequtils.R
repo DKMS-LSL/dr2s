@@ -221,7 +221,7 @@ multialign <- function(x, haplo, n, align = list(
   normPower = 1
 )) {
   stopifnot(is(x$map1[[haplo]], "map1"))
-  haplo <- match.arg(haplo, c("A", "B"))
+  haplo <- match.arg(haplo, x$getHapTypes())
   readfile <- x$map1[[haplo]]$reads
   fq <- ShortRead::readFastq(readfile)
   ids  <- as.character(ShortRead::id(fq))

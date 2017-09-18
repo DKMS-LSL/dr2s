@@ -202,7 +202,7 @@ DR2S_$set("public", "runHaplotypePartitioning", function(max_depth = 1e4,
 
            message(sprintf("  Partitioning %s reads over %s SNPs ...", NROW(mat), NCOL(mat)))
            prt <- partition_reads(x = mat, skip_gap_freq = skip_gap_freq)
-           self$setHapTypes(levels(as.factor(PRT(self$partition$prt))))
+           self$setHapTypes(levels(as.factor(PRT(prt))))
 
            self$partition = structure(list(
              mat = mat,
@@ -461,9 +461,6 @@ map1.DR2S <- function(x,
   invisible(x)
 }
 
-# debug
-#self <- dedk.fq
-#self$map1$
 DR2S_$set("public", "runMap1",
          function(opts = list(),
                   pct = 100,
@@ -657,17 +654,10 @@ DR2S_$set("public", "runMap1",
                         mtag[2:length(mtag)]), collapse = " ")
            }
            }
-
-
-           ## Work here:
-           # First clean error
-           ##self <- dedk.map1
-           ##hptypes <- c("A", "B")
-           #self$map1$A <- self$map1$C
-           #self$map1$B <- self$map1$D
-
            if (plot) {
              message("  Plotting ...")
+             hptypes <- self$getHapTypes()
+
              if (self$hasMap1Alternate()) {
                foreach(group = hptypes) %do% {
                  ## Coverage and base frequency
@@ -684,7 +674,7 @@ DR2S_$set("public", "runMap1",
                  self$getOutdir(),
                  paste("plot1", self$getLrdType(), self$getMapper(), "pdf", sep = ".")
                )
-               pdf(file = gfile, width = 16, height = 8, onefile = TRUE)
+               pdf(file = gfile, width = 8*length(hptypes), height = 8, onefile = TRUE)
                self$plotMap1Summary(group = NULL, thin = 0.1, width = 4)
                dev.off()
              }
@@ -697,7 +687,7 @@ DR2S_$set("public", "runMap1",
              if (self$hasMap1Alternate()) {
                pdf(file = gfile, width = 20, height = 8, onefile = TRUE)
              } else {
-               pdf(file = gfile, width = 12, height = 8, onefile = TRUE)
+               pdf(file = gfile, width = 12, height = 4*length(hptypes), onefile = TRUE)
              }
 
              self$plotMap1SummaryConseqProb(text_size = 1.5,
