@@ -15,7 +15,11 @@
 #' ###
 
 ## debug ##
-# x <- dedk.part$partition$mat
+#self <- dedk.part
+#self$getPartition()
+#x <- dedk$partition$mat
+#x
+#class(x)
 #   cl_method="ward.D"
 #   min_len = 0.8
 #  skip_gap_freq = 2/3
@@ -435,6 +439,77 @@ plot_partition_haplotypes <- function(x, thin = 1, label = "", sort = TRUE, name
     theme(legend.position = "top")
 }
 
+
+#' Plot tree of first clustering
+#'
+#' @param x A \code{HapPart} object.
+#'
+#' @return A \code{ggplot} object.
+#' @export
+#' @examples
+#' ###
+plot_partition_tree <- function(x){
+  stopifnot(is(x, "HapPart"))
+  # ToDo: test if packages are loaded
+  tree <- HTR(x)
+  k <- length(levels(as.factor(PRT(x))))
+
+  dendr <- ggdendro::dendro_data(tree, type = "rectangle")
+
+  clust <- cutree(tree, k=3)
+  clust <- dplyr::data_frame(label = names(clust), haplotype = clust)
+  clust <- partition(x) %>%
+    dplyr::rename(label = read) %>%
+    dplyr::select(-mcoef)
+
+  dendr$labels <- dplyr::left_join(dendr$labels, clust, by="label")
+  # rect <- aggregate(x~haplotype, ggdendro::label(dendr), range)
+  # rect <- data.frame(rect$haplotype, rect$x)
+
+
+  height <- unique(dendr$segments$y)[order(unique(dendr$segments$y), decreasing = TRUE)]
+  cut.height <- mean(c(height[k], height[k-1]))
+  dendr$segments <- dendr$segments %>%
+    dplyr::mutate(line =  dplyr::if_else(
+      y == yend & y > cut.height, 1, dplyr::if_else(
+        yend > cut.height,1, 2)))
+
+  dendr$segments$cluster <- c(-1, diff(dendr$segments$line))
+  change <- which(dendr$segments$cluster == 1)
+  for (i in 1:k) dendr$segments$cluster[change[i]] = i + 1
+  dendr$segments <- dendr$segments %>%
+    dplyr::mutate(cluster = dplyr::if_else( line == 1, 1, ifelse( cluster == 0, NA, cluster)))
+  dendr$segments$cluster <- unlist(lapply(1:NROW(dendr$segments$cluster), function(x) getCl(x, dendr$segments$cluster, change)))
+
+  # Correct order of haplotypes
+  lab <- as.numeric(unique(dendr$labels$haplotype))
+  names(lab) <- 2:5
+  lab <- order(lab)
+
+  # Make plot
+  ggplot() +
+    geom_segment(data=ggdendro::segment(dendr), aes(x = x, y = y, xend = xend, yend = yend, color = factor(cluster)), size = 1.25) +
+    scale_color_discrete(name = "Haplotype",
+                        breaks = lab + 1,
+                        labels =  LETTERS[1:4]) +
+    geom_hline(yintercept = cut.height, color = "blue") +
+    ggtitle("Initial clustering of haplotypes") +
+    # ggdendro::theme_dendro() +
+    theme_bw() +
+    theme(legend.position = "bottom",
+          axis.title = element_blank(),
+          axis.text  = element_blank(),
+          axis.ticks  = element_blank()
+          )
+}
+
+# Print helper
+getCl <- function(n, cluster, change) {
+  ifelse(!is.na(cluster[n]),
+         cluster[n],
+         cluster[change[max(which(change < n))]]
+  )
+}
 
 # Optimal partitioning ----------------------------------------------------
 

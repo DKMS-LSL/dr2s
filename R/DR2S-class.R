@@ -555,12 +555,13 @@ DR2S_ <- R6::R6Class(
         group <- match.arg(group, self$getHapTypes())
       }
       if (n == 3) {
-        ref <- match.arg(group, c("LRA", "LRB", "SRA", "SRB"))
+        ref <- match.arg(group, c(paste0("LR", self$getHapTypes()), paste0("SR", self$getHapTypes())))#c("LRA", "LRB", "SRA", "SRB"))
+
       }
       switch(n + 1L,
              self$map0$tag,
              self$map1[[group]]$tag[[ref]],
-             self$map2[[group]]$tag,
+             self$map2[[group]]$tag[[1]],
              self$map3$tag[[ref]])
     },
     ##
@@ -574,7 +575,12 @@ DR2S_ <- R6::R6Class(
     ##
     getGroupPileup = function(group = NULL, ref = NULL, reads = "pacbio1") {
       group  <- match.arg(group, self$getHapTypes())
-      ref    <- match.arg(ref, c("reference", "alternate", "multialign", "LRA", "LRB", "SRA", "SRB"))
+      validRef <-c("reference",
+                   "alternate",
+                   "multialign",
+                   paste0("LR", self$getHapTypes()),
+                   paste0("SR", self$getHapTypes()))
+      ref    <- match.arg(ref, validRef)
       reads  <- match.arg(reads, c("pacbio1", "pacbio2", "shotgun"))
       switch(
         reads,
@@ -723,6 +729,10 @@ DR2S_ <- R6::R6Class(
       plot_partition_histogram(x = self$getPartition(), label %|ch|% tag)
     },
     ##
+    plotPartitionTree = function() {
+      plot_partition_tree(x = self$getPartition())
+    },
+    ##
     plotPartitionHaplotypes = function(thin = 1, label = "") {
       tag <- self$getMapTag()
       plot_partition_haplotypes(x = self$getPartition(), thin, label %|ch|% tag)
@@ -753,7 +763,6 @@ DR2S_ <- R6::R6Class(
           ))
       }
       names(cseqs) <- hptypes
-
       plot_conseq_probability(cseqs, threshold, text_size, point_size)
     },
     ##
@@ -786,8 +795,11 @@ DR2S_ <- R6::R6Class(
     ##
     plotPartitionSummary = function(label = "", limits = NULL) {
       tag <- self$getMapTag()
-      p1  <- self$plotPartitionHistogram(label = label %||% tag) +
-        ggplot2::theme(legend.position = "none")
+      p1 <- ifelse(length(self$getHapTypes()) == 2,
+                   self$plotPartitionHistogram(label = label %||% tag) +
+                    ggplot2::theme(legend.position = "none"),
+                   self$plotPartitionTree())
+
       p2  <- self$plotPartitionHaplotypes(thin = 1, label = " ") +
         ggplot2::theme(legend.position = "bottom")
       if (!is.null(limits)) {
@@ -837,43 +849,71 @@ DR2S_ <- R6::R6Class(
     },
     ##
     plotMap2Summary = function(thin = 0.2, width = 10) {
-      tag1 <- self$getMapTag(n = 2, group = "A")
-      tag2 <- self$getMapTag(2, "B")
+      hptypes <- self$getHapTypes()
+      plotlist <- foreach(hp = hptypes) %do% {
+        tag <- self$getMapTag(2, hp)
+        list(self$plotGroupCoverage(hp, ref = NULL, "pacbio2",
+                                    threshold = NULL, range = NULL, thin, width,
+                                    label = tag),
+        self$plotGroupBasecallFrequency(hp, NULL, "pacbio2", NULL, " "))
+        }
+      plotlist <- unlist(plotlist, recursive = FALSE)
+      layout_vector <- rep(1:length(plotlist), rep(c(1,3), length(hptypes)))
+      layout = matrix(layout_vector, ncol = length(hptypes))
+
       multiplot(
-        self$plotGroupCoverage(group = "A", ref = NULL, reads = "pacbio2",
-                               threshold = NULL, range = NULL, thin, width,
-                               label = tag1),
-        self$plotGroupBasecallFrequency("A", NULL, "pacbio2", NULL, " "),
-        self$plotGroupCoverage("B", NULL, "pacbio2", NULL, NULL, thin, width, tag2),
-        self$plotGroupBasecallFrequency("B", NULL, "pacbio2", NULL, " "),
-        layout = matrix(c(1, 2, 2, 2, 3, 4, 4, 4), ncol = 2)
-      )
+        plotlist = plotlist,
+        layout = layout)
     },
     ##
-    plotMap3SummaryLR = function(thin = 0.2, width = 10) {
-      tag1 <- self$getMapTag(3, group = "LRA")
-      tag2 <- self$getMapTag(3, group = "LRB")
+    plotMap3Summary = function(readtype, thin = 0.2, width = 10) {
+      # debug
+      # thin = 0.2
+      # width = 10
+      hptypes <- self$getHapTypes()
+
+          #   group = NULL
+          #   ref = ref
+          #   reads = "shotgun"
+          #                        threshold = NULL
+          #   range = NULL
+          #   thin = thin
+          #                        width = width
+          #   label = tag
+          # self$plotGroupCoverage(group = NULL, ref = ref, reads = "shotgun",
+          #                        threshold = NULL, range = NULL, thin = thin,
+          #                        width = width, label = tag)
+      plotlist <- foreach(hp = hptypes) %do% {
+        ref <- paste0(readtype, hp)
+        tag <- self$getMapTag(3, ref)
+        list(
+          self$plotGroupCoverage(group = NULL, ref = ref, reads = "shotgun",
+                                 threshold = NULL, range = NULL, thin = thin,
+                                 width = width, label = tag),
+          self$plotGroupBasecallFrequency(group = NULL, ref = ref, reads = "shotgun",
+                                          threshold = NULL, label = " "))
+        }
+      plotlist <- unlist(plotlist, recursive = FALSE)
+      layout_vector <- rep(1:length(plotlist), rep(c(1,3), length(hptypes)))
+      layout = matrix(layout_vector, ncol = length(hptypes))
       multiplot(
-        self$plotGroupCoverage(group = NULL, ref = "LRA", reads = "shotgun", NULL, NULL, thin, width, tag1),
-        self$plotGroupBasecallFrequency(NULL, "LRA", "shotgun", NULL, " "),
-        self$plotGroupCoverage(NULL, "LRB", "shotgun", NULL, NULL, thin, width, tag2),
-        self$plotGroupBasecallFrequency(NULL, "LRB", "shotgun", NULL, " "),
-        layout = matrix(c(1, 2, 2, 2, 3, 4, 4, 4), ncol = 2)
-      )
+        plotlist = plotlist,
+        layout = layout)
     },
     ##
-    plotMap3SummarySR = function(thin = 0.2, width = 10) {
-      tag1 <- self$getMapTag(3, group = "SRA")
-      tag2 <- self$getMapTag(3, group = "SRB")
-      multiplot(
-        self$plotGroupCoverage(NULL, "SRA", "shotgun", NULL, NULL, thin, width, tag1),
-        self$plotGroupBasecallFrequency(NULL, "SRA", "shotgun", NULL, " "),
-        self$plotGroupCoverage(NULL, "SRB", "shotgun", NULL, NULL, thin, width, tag2),
-        self$plotGroupBasecallFrequency(NULL, "SRB", "shotgun", NULL, " "),
-        layout = matrix(c(1, 2, 2, 2, 3, 4, 4, 4), ncol = 2)
-      )
-    },
-    ##
+    # RM
+    # plotMap3SummarySR = function(thin = 0.2, width = 10) {
+    #   tag1 <- self$getMapTag(3, group = "SRA")
+    #   tag2 <- self$getMapTag(3, group = "SRB")
+    #   multiplot(
+    #     self$plotGroupCoverage(NULL, "SRA", "shotgun", NULL, NULL, thin, width, tag1),
+    #     self$plotGroupBasecallFrequency(NULL, "SRA", "shotgun", NULL, " "),
+    #     self$plotGroupCoverage(NULL, "SRB", "shotgun", NULL, NULL, thin, width, tag2),
+    #     self$plotGroupBasecallFrequency(NULL, "SRB", "shotgun", NULL, " "),
+    #     layout = matrix(c(1, 2, 2, 2, 3, 4, 4, 4), ncol = 2)
+    #   )
+    # },
+    # ##
     plotMap1SummaryConseqProb = function(text_size = 1.75,
                                          point_size = 0.75,
                                          threshold = "auto") {
@@ -916,6 +956,9 @@ DR2S_ <- R6::R6Class(
     plotMap2SummaryConseqProb = function(text_size = 1.75,
                                          point_size = 0.75,
                                          threshold = "auto") {
+      # debug
+      # reads = "pacbio2"
+      # ref = NULL
       print(
         self$plotConseqProbability(
           ref = NULL,

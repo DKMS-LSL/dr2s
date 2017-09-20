@@ -313,9 +313,10 @@ browse_align <- function(seq,
     gapExtension = gapExtension,
     ...
   )
+  Biostrings::writeXStringSet(aln, paste0(file, ".fa"))
   DECIPHER::BrowseSeqs(
     aln,
-    file,
+    paste0(file, ".html"),
     openURL,
     colorPatterns = TRUE,
     highlight = NA,

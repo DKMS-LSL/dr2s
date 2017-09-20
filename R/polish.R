@@ -1,11 +1,15 @@
 #' @export
+
+# b_self <- self
+# x <- b_self
+# x <- dedk.map3
 polish.DR2S <- function(x, threshold = x$getThreshold(), lower_limit = 0.60, cache = TRUE) {
+
   assertthat::assert_that(
     is(x$map3, "map3"),
-    is(x$map3$pileup$LRA$consmat, "consmat"),
-    is(x$map3$pileup$SRA$consmat, "consmat"),
-    is(x$map3$pileup$LRB$consmat, "consmat"),
-    is(x$map3$pileup$SRB$consmat, "consmat")
+    all(unlist(foreach(rtype = x$map3$pileup) %do% {
+      is(rtype$consmat, "consmat")
+    }))
   )
 
   args <- x$getOpts("polish")
@@ -14,36 +18,33 @@ polish.DR2S <- function(x, threshold = x$getThreshold(), lower_limit = 0.60, cac
     list2env(args, envir = env)
   }
 
+  # get read types and haplotypes
+  rtypes <- names(x$map3$pileup)
+  hptypes <- x$getHapTypes()
+
   menv <- MergeEnv(x, threshold)
-  menv$init("A")
-  menv$walk("A")
-  menv$init("B")
-  menv$walk("B")
+  for (hptype in hptypes){
+    menv$init(hptype)
+    menv$walk(hptype)
+  }
 
   ## Short read phasing
   ## phasing.R
-  menv$a$phasemat    <- phasematrix(compact(menv$a$variants))
-  menv$a$phasebreaks <- phasebreaks(menv$a$phasemat)
-  menv$b$phasemat    <- phasematrix(compact(menv$b$variants))
-  menv$b$phasebreaks <- phasebreaks(menv$b$phasemat)
-
-  ## phasing plots
-  if (!is.null(menv$a$phasemat)) {
-    fileA <-file.path(x$getOutdir(), paste("plot4.phasing.A", x$getLrdType(), x$getMapper(), "pdf", sep = "."))
-    pdf(fileA, width = 16, height = 10, onefile = TRUE)
-    pa <- phaseplot(menv$a$phasemat) +
-      ggplot2::ggtitle("Short read phasing A")
-    print(pa)
-    dev.off()
+  for (hptype in hptypes){
+    menv$hptypes[[hptype]]$phasemat     <- phasematrix(compact(menv$hptypes[[hptype]]$variants))
+    menv$hptypes[[hptype]]$phasebreaks <- phasebreaks(menv$hptypes[[hptype]]$phasemat)
   }
 
-  if (!is.null(menv$b$phasemat)) {
-    fileB <- file.path(x$getOutdir(), paste("plot4.phasing.B", x$getLrdType(), x$getMapper(), "pdf", sep = "."))
-    pdf(fileB, width = 16, height = 10, onefile = TRUE)
-    pb <- phaseplot(menv$b$phasemat) +
-      ggplot2::ggtitle("Short read phasing B")
-    print(pb)
-    dev.off()
+  ## phasing plots
+  for (hptype in hptypes){
+    if (!is.null(menv$hptypes[[hptype]]$phasemat)){
+      file <- file.path(x$getOutdir(), paste("plot4.phasing", hptype, x$getLrdType(), x$getMapper(), "pdf", sep = "."))
+      pdf(file, width = 16, height = 10, onefile = TRUE)
+      p <- phaseplot(menv$hptypes[[hptype]]$phasemat) +
+        ggplot2::ggtitle(paste0("Short read phasing A ", hptype))
+      print(p)
+      dev.off()
+    }
   }
 
   rs <- menv$export()
@@ -61,20 +62,24 @@ polish.DR2S <- function(x, threshold = x$getThreshold(), lower_limit = 0.60, cac
 
 # Helpers -----------------------------------------------------------------
 
-
+# x <- rs
 get_problematic_variants <- function(x, lower_limit) {
   stopifnot(is(x, "DR2S"))
-  vars <- collect_variants(x = x$consensus)
+  vars <- collect_variants(x = x)
   vars <- dplyr::group_by(vars, haplotype)
   vars <- dplyr::filter(vars, lower < lower_limit | nzchar(warning))
   dplyr::mutate(vars, freq = round(freq, 3), lower = round(lower, 3))
 }
 
-collect_variants <- function(x) {
-  avars <- x$A$variants
-  bvars <- x$B$variants
 
-  if (length(avars) == 0 && length(bvars) == 0) {
+collect_variants <- function(x) {
+  hptypes <- x$getHapTypes()
+  # hvars <- x$A$variants
+  # bvars <- x$B$variants
+  hvars <- foreach(hptype = hptypes) %do% {x$consensus[[hptype]]$variants}
+  names(hvars) <- hptypes
+
+  if (all(unlist(lapply(hvars, function(x) length(x) == 0)))){
     return(
       dplyr::data_frame(
         haplotype = character(0), pos = integer(0), ref = character(0),
@@ -83,25 +88,18 @@ collect_variants <- function(x) {
     )
   }
 
-  dfa <- do.call("rbind", lapply(avars, extract_variant_, h = "A"))
-  ## check for phasing problems
-  aphasebreak <- dplyr::filter(x$A$phasebreaks, breakpos)$posx
-  dfa <- dplyr::mutate(dfa, warning = ifelse(
-    pos %in% aphasebreak,
-    sub("^\\|", "", warning %<<% "|Phasebreak in short reads"),
-    warning
-  ))
+  phasebreaks <- lapply(hptypes, function(t) dplyr::filter(x$consensus[[t]]$phasebreaks, breakpos)$posx)
+  names(phasebreaks) <- hptypes
 
-  dfb <- do.call("rbind", lapply(bvars, extract_variant_, h = "B"))
-  ## check for phasing problems
-  bphasebreak <- dplyr::filter(x$B$phasebreaks, breakpos)$posx
-  dfb <- dplyr::mutate(dfb, warning = ifelse(
-    pos %in% bphasebreak,
-    sub("^\\|", "", warning %<<% "|Phasebreak in short reads"),
-    warning
-  ))
+  df <- do.call("rbind",
+                  lapply(hptypes, function(x) do.call("rbind", lapply(hvars[[x]],  extract_variant_, h = x))))
 
-  dplyr::as_data_frame(rbind(dfa, dfb))
+  df <- df %>%
+      dplyr::group_by(haplotype) %>%
+      dplyr::mutate(warning = ifelse(pos  %in% unlist(phasebreaks[haplotype]),
+                                     sub("^\\|", "", warning %<<% "|Phasebreak in short reads"),
+                                     warning))
+  df
 }
 
 extract_variant_ <- function(v, h) {

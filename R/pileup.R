@@ -169,7 +169,8 @@ pileup_find_insertion_positions_ <- function(x, threshold) {
   pos <- ambiguous_positions(cm, threshold = threshold)
   pos[cm[pos, "+"] > threshold]
 }
-
+# debug
+# threshold <- 0.2
 pileup_get_insertions_ <- function(x, threshold) {
   res <- list()
   colnm <- colnames(x$consmat)
@@ -180,7 +181,7 @@ pileup_get_insertions_ <- function(x, threshold) {
     inseqs <- inseqs[order(as.integer(names(inseqs)))]
     ## DEBUG ANFANG ##
     # x$consmat[inpos, ]
-    # inseq <- inseqs[[1]]
+    #inseq <- inseqs[[3]]
     # table(inseq)
     ## DEBUG ENDE ##
     for (inseq in inseqs) {
@@ -208,9 +209,11 @@ pileup_get_insertions_ <- function(x, threshold) {
           s1 <- s
         }
       }  else {
+        # get biostringset which fills all positions with gaps where it is not complete, i.e. width is < max width
         dels <- Biostrings::DNAStringSet(vapply(max(Biostrings::width(s)) - Biostrings::width(s), function(x) {
           paste0(rep.int("-", x), collapse = "")
         }, FUN.VALUE = ""))
+        # merge both biostrings so each seq is of same width
         s1 <- Biostrings::xscat(s, dels)
       }
       cm <- t(Biostrings::consensusMatrix(s1))[, colnm, drop = FALSE]
@@ -221,11 +224,16 @@ pileup_get_insertions_ <- function(x, threshold) {
     }
     names(res) <- names(inseqs)
   }
+  # Remove all empty positions for now!! ToDo: Better apply this to the initial ins pos calling in the python script
+  res <- Filter(length,res)
   res
 }
 
 #' @keywords internal
 #' @export
+# debug
+# threshold = NULL
+# x <- pileup
 pileup_include_insertions <- function(x, threshold = NULL) {
   stopifnot(is(x, "pileup"))
   if (is.null(threshold)) {

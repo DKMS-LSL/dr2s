@@ -45,30 +45,24 @@ MergeEnv_ <- R6::R6Class(
   classname = "MergeEnv",
   public = list(
     threshold = NA_real_,
-    a = NA,
-    b = NA,
+    hptypes   = NA,
     x = NA,
     initialize = function(x, threshold = x$getThreshold()) {
       assertthat::assert_that(is(x, "DR2S"))
-      self$a = structure(as.environment(list(haplotype = "A")), class = "HapEnv")
-      self$b = structure(as.environment(list(haplotype = "B")), class = "HapEnv")
+      self$hptypes <- foreach(hptype = x$getHapTypes(), .final = function(h) setNames(h, x$getHapTypes())) %do% {
+       structure(as.environment(list(haplotype = hptype)), class = "HapEnv")
+      }
       self$threshold = threshold
       self$x = x
     },
+
     isIntialised = function(hapEnv) {
-      hapEnv <- match.arg(hapEnv, c("A", "B"))
-      if (hapEnv == "A") {
-        !is.null(self$a$init)
-      } else if (hapEnv == "B") {
-        !is.null(self$b$init)
-      }
+      hapEnv <- match.arg(hapEnv, self$x$getHapTypes())
+      !is.null(self$hptypes[[hptype]]$init)
     },
     getHapEnv = function(hapEnv) {
-      hapEnv <- match.arg(hapEnv, c("A", "B"))
-      if (hapEnv == "A")
-        self$a
-      else if (hapEnv == "B")
-        self$b
+      hapEnv <- match.arg(hapEnv, self$x$getHapTypes())
+      self$hptypes[[hapEnv]]
     },
     currentVariant = function(envir) {
       if (!is.null(envir$current_variant)) {
@@ -76,25 +70,20 @@ MergeEnv_ <- R6::R6Class(
       } else NULL
     },
     print = function(left = 3, right = left, ...) {
-      self$showMatrix(self$a, left = left, right = right)
-      cat("\n")
-      self$showMatrix(self$b, left = left, right = right)
+      for (hptype in self$hptypes){
+        self$showMatrix(hptype, left = left, right = right)
+        cat("\n")
+      }
     }
   )
 )
 
-## self$init() ####
 MergeEnv_$set("public", "init", function(hapEnv) {
-  hapEnv <- match.arg(hapEnv, c("A", "B"))
-  if (hapEnv == "A") {
-    envir <- self$a
-    envir$SR = self$x$map3$pileup$SRA$consmat ## consmat short reads haplotype A
-    lr <- self$x$map3$pileup$LRA$consmat ## consmat long reads haplotype A
-  } else if (hapEnv == "B") {
-    envir <- self$b
-    envir$SR = self$x$map3$pileup$SRB$consmat ## consmat short reads haplotype B
-    lr <- self$x$map3$pileup$LRB$consmat ## consmat long reads haplotype B
-  }
+  hapEnv <- match.arg(hapEnv, self$x$getHapTypes())
+  envir <- self$hptypes[[hapEnv]]
+  envir$SR <- self$x$map3$pileup[[paste0("SR", hapEnv)]]$consmat ## consmat short reads
+  lr <- self$x$map3$pileup[[paste0("LR", hapEnv)]]$consmat ## consmat long reads
+
   envir$LR = expand_longread_consmat(lrm = lr, srm = envir$SR)
   envir$variants = list()
   envir$POSit = hlatools::ihasNext(iter(apos <- ambiguous_positions(envir$SR, self$threshold)))
@@ -111,7 +100,7 @@ MergeEnv_$set("public", "init", function(hapEnv) {
 
 ## self$walk_one() ####
 MergeEnv_$set("public", "walk_one", function(hapEnv, verbose = FALSE) {
-  hapEnv <- match.arg(hapEnv, c("A", "B"))
+  hapEnv <- match.arg(hapEnv, self$x$getHapTypes())
   if (!self$isIntialised(hapEnv)) {
     self$init(hapEnv)
   }
@@ -127,12 +116,13 @@ MergeEnv_$set("public", "walk_one", function(hapEnv, verbose = FALSE) {
 })
 
 ## self$walk() ####
+# self <- menv
+# hapEnv <- "A"
 MergeEnv_$set("public", "walk", function(hapEnv, verbose = FALSE) {
-  hapEnv <- match.arg(hapEnv, c("A", "B"))
+  hapEnv <- match.arg(hapEnv, self$x$getHapTypes())
   if (!self$isIntialised(hapEnv)) {
     self$init(hapEnv)
   }
-
   envir <- self$getHapEnv(hapEnv)
   while (private$step_through(envir)) {
     if (verbose) {
@@ -160,6 +150,9 @@ MergeEnv_$set("private", "step_through", function(envir) {
 
 ## self$showConsensus() ####
 MergeEnv_$set("public", "showConsensus", function(envir, pos, left = 6, right = left, offset = 0) {
+  # debug
+  # envir <- self$a
+  #self$a$init()
   if (is.null(envir$init)) {
     cat("Haplotype", envir$haplotype, "not initialised.")
     return(invisible(NULL))
@@ -201,41 +194,35 @@ MergeEnv_$set("public", "showMatrix", function(envir, pos, left = 6, right = lef
 
 ## self$export() ####
 MergeEnv_$set("public", "export", function() {
-  cmA <- self$a$SR
-  attr(cmA, "read_ids") <- NULL
-  cseqA <- conseq(cmA, "HapA", "ambig", exclude_gaps = TRUE, threshold = self$threshold)
-  metadata(cseqA) <- list()
-
-  cmB <- self$b$SR
-  attr(cmB, "read_ids") <- NULL
-  cseqB <- conseq(cmB, "HapB", "ambig", exclude_gaps = TRUE, threshold = self$threshold)
-  metadata(cseqB) <- list()
 
   cons <- structure(
-    list(
-      A = list(
-        matrix = cmA,
-        variants = compact(self$a$variants),
-        phasemat = self$a$phasemat,
-        phasebreaks = self$a$phasebreaks
-      ),
-      B = list(
-        matrix = cmB,
-        variants = compact(self$b$variants),
-        phasemat = self$b$phasemat,
-        phasebreaks = self$b$phasebreaks
-      ),
-      seq = c(cseqA, cseqB)
+    c(
+      foreach (hptype = self$x$getHapTypes(),
+                 .final = function(x) setNames(x, self$x$getHapTypes())) %do% {
+        envir <- self$hptypes[[hptype]]
+        list(
+        matrix       = envir$SR,
+        variants     = compact(envir$variants),
+        phasemat     = envir$phasemat,
+        phasebreaks  = envir$phasebreaks
+      )},
+      seq = list(foreach(hptype = self$x$getHapTypes(),
+                            .final = function(x) setNames(x, self$x$getHapTypes())) %do% {
+        sr <- self$hptypes[[hptype]]$SR
+        cseq <- conseq(sr, paste0("HAP", hptype), "ambig", exclude_gaps = TRUE, threshold = self$threshold)
+        metadata(cseq) <- list()
+        cseq
+      })
     ),
     class = c("ConsList", "list")
-  )
+    )
+
   self$x$setConsensus(cons)
   return(invisible(self$x))
 })
 
 
 # Helpers -----------------------------------------------------------------
-
 
 expand_longread_consmat <- function(lrm, srm) {
   m <- cbind(as.matrix(lrm), `+` = 0)
@@ -248,8 +235,6 @@ expand_longread_consmat <- function(lrm, srm) {
       i <- iterators::nextElem(INSit)
       m <- rbind(m[1:(i - 1), ], insert, m[i:NROW(m), ])
     }
-    # m[(i-2):(i+10), ]
-    # print(srm[(i-2):(i+10), ], n = 13)
     stopifnot(NROW(m) == NROW(srm))
     dimnames(m) <- dimnames(srm)
   }

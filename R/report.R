@@ -1,4 +1,8 @@
 #' @export
+
+# debug
+x <- dedk.bla
+block_width = 80
 report.DR2S <- function(x, which, block_width = 80, ...) {
 
   args <- x$getOpts("report")
@@ -24,7 +28,6 @@ report.DR2S <- function(x, which, block_width = 80, ...) {
     report_map_(x, which, outdir, block_width = block_width, ...)
   }
 }
-
 report_map_ <- function(x, map, outdir, block_width, ...) {
   map <- match.arg(tolower(map), c("map3", "map2", "map1"))
   ref <-  Biostrings::BStringSet(x$getRefSeq())
@@ -34,52 +37,67 @@ report_map_ <- function(x, map, outdir, block_width, ...) {
     names(alt) <- strsplitN(names(alt), "~", 1, fixed = TRUE)
   }
 
+  # debug
+  #addins <- list()
   addins <- list(...)$addins
   if (!is.null(addins)) {
     addins <- Biostrings::readBStringSet(addins)
     names(addins) <- strsplitN(names(addins), "~", 1, fixed = TRUE)
   }
 
-  if (map == "map1") {
-    if (x$hasMap1Alternate()) {
-      hapA <- x$map1$A$conseq$merged
-      hapB <- x$map1$B$conseq$merged
-    } else {
-      hapA <- x$map1$A$conseq$reference
-      hapB <- x$map1$B$conseq$reference
-    }
-  } else if (map == "map2") {
-    hapA <- x$map2$A$conseq
-    hapB <- x$map2$B$conseq
-  } else if (map == "map3") {
-    hapA <- x$consensus$seq["HapA"]
-    hapB <- x$consensus$seq["HapB"]
-  }
+  haps <- switch(
+    map,
+    "map1" = ifelse(
+      x$hasMap1Alternate(),
+      foreach(hptype = x$getHapTypes()) %do% {x$map1[[hptype]]$conseq$merged},
+      foreach(hptype = x$getHapTypes()) %do% {x$map1[[hptype]]$conseq$reference}
+    ),
+    "map2" = foreach(hptype = x$getHapTypes(), .final = function(h) setNames(h, x$getHapTypes())) %do% {x$map2[[hptype]]$conseq},
+    "map3" = unlist(foreach(hptype = x$getHapTypes()) %do% {x$consensus$seq[hptype]})
+  )
 
   ## Write html alignment file
-  aln_file <-  paste(map, "aln", x$getLrdType(), x$getMapper(), "unchecked.html", sep = ".")
-  browse_align(c(ref, hapA, alt, hapB, addins), file = file.path(outdir, aln_file), openURL = FALSE)
+  aln_file <-  paste(map, "aln", x$getLrdType(), x$getMapper(), "unchecked", sep = ".")
+  # get all seqs as stringset
+  seqs <- unlist(Biostrings::BStringSetList(haps))
+  names(seqs) <- names(haps)
+  seqs <- c(ref, seqs, alt, addins)
+  browse_align(seqs, file = file.path(outdir, aln_file), openURL = FALSE)
 
   ## Write consensus FASTA files
-  hapA_file <- paste(map, "A", x$getLrdType(), x$getMapper(), "unchecked.fa", sep = ".")
-  Biostrings::writeXStringSet(
-    hapA,
-    filepath = file.path(outdir, hapA_file),
-    format = "fasta"
-  )
 
-  hapB_file <- paste(map, "B", x$getLrdType(), x$getMapper(), "unchecked.fa", sep = ".")
-  Biostrings::writeXStringSet(
-    hapB,
-    filepath = file.path(outdir, hapB_file),
-    format = "fasta"
-  )
+  for (hptype in x$getHapTypes()) {
+    hap_file <- paste(map, hptype, x$getLrdType(), x$getMapper(), "unchecked.fa", sep = ".")
+    Biostrings::writeXStringSet(
+      haps[[hptype]],
+      filepath = file.path(outdir, hap_file),
+      format = "fasta"
+    )
+  }
+
+  # to RM
+  # hapA_file <- paste(map, "A", x$getLrdType(), x$getMapper(), "unchecked.fa", sep = ".")
+  # Biostrings::writeXStringSet(
+  #   hapA,
+  #   filepath = file.path(outdir, hapA_file),
+  #   format = "fasta"
+  # )
+  #
+  # hapB_file <- paste(map, "B", x$getLrdType(), x$getMapper(), "unchecked.fa", sep = ".")
+  # Biostrings::writeXStringSet(
+  #   hapB,
+  #   filepath = file.path(outdir, hapB_file),
+  #   format = "fasta"
+  # )
 
   ## Write Pairwise Alignment
-  pair_file <- paste(map, "aln", x$getLrdType(), x$getMapper(), "unchecked.pair", sep = ".")
-  aln <- Biostrings::pairwiseAlignment(pattern = hapA, subject = hapB, type = "global")
-  Biostrings::writePairwiseAlignments(aln, file.path(outdir, pair_file), block.width = block_width)
+  if (length(x$getHapTypes()) == 2){
+    pair_file <- paste(map, "aln", x$getLrdType(), x$getMapper(), "unchecked.pair", sep = ".")
+    aln <- Biostrings::pairwiseAlignment(pattern = hap[["A"]], subject = hap[["B"]], type = "global")
+    Biostrings::writePairwiseAlignments(aln, file.path(outdir, pair_file), block.width = block_width)
+  }
 
+  ## CHECK HERE
   if (map == "map3") {
     ## Report problematic Variants
     probvar_file <- paste("problems", x$getLrdType(), x$getMapper(), "tsv", sep = ".")

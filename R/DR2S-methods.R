@@ -89,7 +89,9 @@ DR2S_$set("public", "runMap0",
              sample = pct / 100,
              min_mapq = min_mapq,
              force = force,
-             clean = TRUE
+             # clean = TRUE
+             # debug
+             clean = FALSE
            )
 
            ## Calculate pileup from graphmap produced SAM file
@@ -165,7 +167,6 @@ partition_haplotypes.DR2S <- function(x,
 
 }
 
-#self <- dedk
 DR2S_$set("public", "runHaplotypePartitioning", function(max_depth = 1e4,
                   skip_gap_freq = 2/3,
                   plot = TRUE) {
@@ -420,7 +421,6 @@ DR2S_$set("public", "extractFastq",
               if (self$hasMultialign()) {
                 message("   Constructing initial ", hptype, " consensus from ", nalign, " reads ...")
                 cons <- multialign_consensus(multialign(self, hptype, nalign))
-                hptype
                 consfile <- paste("consensus", self$getLrdType(), "multialign", paste0(hptype, nalign), "fa", sep = ".")
                 names(cons) <- consfile
                 consout <- file_delete_if_exists(file.path(dir, consfile))
@@ -556,7 +556,9 @@ DR2S_$set("public", "runMap1",
                  pct / 100,
                  min_mapq,
                  force = force,
-                 clean = TRUE
+                 clean = FALSE
+                 # debug
+                 # clean = TRUE
                )
                self$map1[[group]]$bamfile[[reftag]] = bamfile
 
@@ -597,63 +599,63 @@ DR2S_$set("public", "runMap1",
 
 
            ## NO need to use as we use multialign
-           if (FALSE){
-           ## infer which haplogroup is closer to the reference allele
-           if (length(refs) == 1) {
-             nA <- n_polymorphic_positions(self$map1$A$pileup[[reftag]]$consmat)
-             nB <- n_polymorphic_positions(self$map1$B$pileup[[reftag]]$consmat)
-             if (nA < nB) {
-               self$setARefType("ref")
-               self$setBRefType("alt")
-             } else {
-               self$setARefType("alt")
-               self$setBRefType("ref")
-             }
-           } else if (length(refs) == 2) {
-             nAref <- n_polymorphic_positions(self$map1$A$pileup$reference$consmat)
-             nAalt <- n_polymorphic_positions(self$map1$A$pileup$alternate$consmat)
-             nBref <- n_polymorphic_positions(self$map1$B$pileup$reference$consmat)
-             nBalt <- n_polymorphic_positions(self$map1$B$pileup$alternate$consmat)
-             if (nAref < nAalt && nBref > nBalt) {
-               self$setARefType("ref")
-               self$setBRefType("alt")
-             } else {
-               self$setARefType("alt")
-               self$setBRefType("ref")
-             }
-           }
-
-           ## merge consensus sequences
-           if (length(refs) == 2) {
-             message("  Merging the consensus sequences ...")
-
-             mseqpathA <- sub("\\.reference\\.", ".merged.", self$map1$A$seqpath$reference)
-             mconseqA <- self$mergeMap1Conseqs(group = "A")
-             self$map1$A$conseq$merged = mconseqA
-             self$map1$A$seqpath$merged = mseqpathA
-             Biostrings::writeXStringSet(mconseqA, mseqpathA)
-             rtag <- strsplit(self$map1$A$tag$reference, " ")[[1]]
-             atag <- strsplit(self$map1$A$tag$alternate, " ")[[1]]
-             mtag <- intersect(rtag, atag)
-             self$map1$A$tag$merged <-
-               paste0(c(mtag[1],
-                        c(setdiff(rtag, atag), setdiff(atag, rtag)),
-                        mtag[2:length(mtag)]), collapse = " ")
-
-             mseqpathB <- sub("\\.reference\\.", ".merged.", self$map1$B$seqpath$reference)
-             mconseqB <- self$mergeMap1Conseqs("B")
-             self$map1$B$conseq$merged = mconseqB
-             self$map1$B$seqpath$merged = mseqpathB
-             Biostrings::writeXStringSet(mconseqB, mseqpathB)
-             rtag <- strsplit(self$map1$B$tag$reference, " ")[[1]]
-             atag <- strsplit(self$map1$B$tag$alternate, " ")[[1]]
-             mtag <- intersect(rtag, atag)
-             self$map1$B$tag$merged <-
-               paste0(c(mtag[1],
-                        c(setdiff(rtag, atag), setdiff(atag, rtag)),
-                        mtag[2:length(mtag)]), collapse = " ")
-           }
-           }
+           # if (FALSE){
+           # ## infer which haplogroup is closer to the reference allele
+           # if (length(refs) == 1) {
+           #   nA <- n_polymorphic_positions(self$map1$A$pileup[[reftag]]$consmat)
+           #   nB <- n_polymorphic_positions(self$map1$B$pileup[[reftag]]$consmat)
+           #   if (nA < nB) {
+           #     self$setARefType("ref")
+           #     self$setBRefType("alt")
+           #   } else {
+           #     self$setARefType("alt")
+           #     self$setBRefType("ref")
+           #   }
+           # } else if (length(refs) == 2) {
+           #   nAref <- n_polymorphic_positions(self$map1$A$pileup$reference$consmat)
+           #   nAalt <- n_polymorphic_positions(self$map1$A$pileup$alternate$consmat)
+           #   nBref <- n_polymorphic_positions(self$map1$B$pileup$reference$consmat)
+           #   nBalt <- n_polymorphic_positions(self$map1$B$pileup$alternate$consmat)
+           #   if (nAref < nAalt && nBref > nBalt) {
+           #     self$setARefType("ref")
+           #     self$setBRefType("alt")
+           #   } else {
+           #     self$setARefType("alt")
+           #     self$setBRefType("ref")
+           #   }
+           # }
+           #
+           # ## merge consensus sequences
+           # if (length(refs) == 2) {
+           #   message("  Merging the consensus sequences ...")
+           #
+           #   mseqpathA <- sub("\\.reference\\.", ".merged.", self$map1$A$seqpath$reference)
+           #   mconseqA <- self$mergeMap1Conseqs(group = "A")
+           #   self$map1$A$conseq$merged = mconseqA
+           #   self$map1$A$seqpath$merged = mseqpathA
+           #   Biostrings::writeXStringSet(mconseqA, mseqpathA)
+           #   rtag <- strsplit(self$map1$A$tag$reference, " ")[[1]]
+           #   atag <- strsplit(self$map1$A$tag$alternate, " ")[[1]]
+           #   mtag <- intersect(rtag, atag)
+           #   self$map1$A$tag$merged <-
+           #     paste0(c(mtag[1],
+           #              c(setdiff(rtag, atag), setdiff(atag, rtag)),
+           #              mtag[2:length(mtag)]), collapse = " ")
+           #
+           #   mseqpathB <- sub("\\.reference\\.", ".merged.", self$map1$B$seqpath$reference)
+           #   mconseqB <- self$mergeMap1Conseqs("B")
+           #   self$map1$B$conseq$merged = mconseqB
+           #   self$map1$B$seqpath$merged = mseqpathB
+           #   Biostrings::writeXStringSet(mconseqB, mseqpathB)
+           #   rtag <- strsplit(self$map1$B$tag$reference, " ")[[1]]
+           #   atag <- strsplit(self$map1$B$tag$alternate, " ")[[1]]
+           #   mtag <- intersect(rtag, atag)
+           #   self$map1$B$tag$merged <-
+           #     paste0(c(mtag[1],
+           #              c(setdiff(rtag, atag), setdiff(atag, rtag)),
+           #              mtag[2:length(mtag)]), collapse = " ")
+           # }
+           # }
            if (plot) {
              message("  Plotting ...")
              hptypes <- self$getHapTypes()
@@ -742,6 +744,8 @@ map2.DR2S <- function(x,
   invisible(x)
 }
 
+# debug
+# self <- dedk.map1
 DR2S_$set("public", "runMap2",
          function(opts = list(),
                   pct = 100,
@@ -755,6 +759,21 @@ DR2S_$set("public", "runMap2",
                   force = FALSE,
                   fullname = TRUE,
                   plot = TRUE) {
+
+         # # debug
+         # opts = list()
+         # pct = 100
+         # min_base_quality = 3
+         # min_mapq = 0
+         # max_depth = 1e4
+         # min_nucleotide_depth = 3
+         # include_deletions = TRUE
+         # include_insertions = TRUE
+         # pruning_cutoff = 0.75
+         # force = FALSE
+         # fullname = TRUE
+         # plot = TRUE
+         # ##
 
            ## Overide default arguments
            args <- self$getOpts("map2")
@@ -775,21 +794,22 @@ DR2S_$set("public", "runMap2",
            }
            # group = "A"
            # group = "B"
-           for (group in c("A", "B")) {
-             outdir   <- self$map1[[group]]$dir
-             readpath <- self$map1[[group]]$reads
-             refpath  <- self$map1[[group]]$seqpath[[reftag]]
+           hptypes <- self$getHapTypes()
+           for (hptype in hptypes) {
+             outdir   <- self$map1[[hptype]]$dir
+             readpath <- self$map1[[hptype]]$reads
+             refpath  <- self$map1[[hptype]]$seqpath[[reftag]]
 
-             nreads <- if (!is.null(attr(self$getHapList(group), "n"))) {
-               attr(self$getHapList(group), "n")
+             nreads <- if (!is.null(attr(self$getHapList(hptype), "n"))) {
+               attr(self$getHapList(hptype), "n")
              } else {
-               length(self$getHapList(group))
+               length(self$getHapList(hptype))
              }
-             optsname <- sprintf("%s [%s]", group, nreads)
+             optsname <- sprintf("%s [%s]", hptype, nreads)
              mapfmt  <- "map2 <%s> <%s> <%s> <%s>"
-             maptag  <- sprintf(mapfmt, group, self$getLrdType(), self$getMapper(), optstring(opts, optsname))
+             maptag  <- sprintf(mapfmt, hptype, self$getLrdType(), self$getMapper(), optstring(opts, optsname))
 
-             self$map2[[group]] = structure(
+             self$map2[[hptype]] = structure(
                list(
                  dir     = outdir,
                  reads   = readpath,
@@ -805,7 +825,7 @@ DR2S_$set("public", "runMap2",
              )
 
              ## Run mapper
-             message("  Mapping allele group ", dQuote(group), " against merged consensus ...")
+             message("  Mapping Haplotype ", dQuote(hptype), " against merged consensus ...")
              samfile <- map_fun(
                reffile  = refpath,
                readfile = readpath,
@@ -826,9 +846,11 @@ DR2S_$set("public", "runMap2",
                pct / 100,
                min_mapq,
                force = force,
-               clean = TRUE
+               clean = FALSE
+               # debug
+               # clean = TRUE
              )
-             self$map2[[group]]$bamfile = bamfile
+             self$map2[[hptype]]$bamfile = bamfile
 
              ## Calculate pileup from graphmap produced SAM file
              message("  Piling up ...")
@@ -845,7 +867,7 @@ DR2S_$set("public", "runMap2",
              if (include_insertions && is.null(ins(pileup$consmat))) {
                pileup <- pileup_include_insertions(x = pileup, threshold = 0.15)
              }
-             self$map2[[group]]$pileup = pileup
+             self$map2[[hptype]]$pileup = pileup
 
              ## Construct consensus sequence
              message("  Constructing a consensus ...")
@@ -854,15 +876,15 @@ DR2S_$set("public", "runMap2",
                                    exclude_gaps = TRUE, prune_matrix = TRUE,
                                    cutoff = pruning_cutoff)
              seqpath     <- file.path(outdir, paste0(conseq_name, ".fa"))
-             self$map2[[group]]$seqpath = seqpath
-             self$map2[[group]]$conseq = conseq
+             self$map2[[hptype]]$seqpath = seqpath
+             self$map2[[hptype]]$conseq = conseq
              Biostrings::writeXStringSet(
                Biostrings::DNAStringSet(gsub("[-+]", "", conseq)),
                seqpath
              )
 
              ## Set maptag
-             self$map2[[group]]$tag[[reftag]] = maptag
+             self$map2[[hptype]]$tag[[reftag]] = maptag
            }
 
            if (plot) {
@@ -872,7 +894,7 @@ DR2S_$set("public", "runMap2",
                self$getOutdir(),
                paste("plot2", self$getLrdType(), self$getMapper(), "pdf", sep = ".")
              )
-             pdf(file = gfile, width = 16, height = 8, onefile = TRUE)
+             pdf(file = gfile, width = 8 * length(hptypes), height = 8, onefile = TRUE)
              self$plotMap2Summary(thin = 0.1, width = 10)
              dev.off()
              ## Consensus sequence probability
@@ -880,10 +902,14 @@ DR2S_$set("public", "runMap2",
                self$getOutdir(),
                paste("plot2.conseq", self$getLrdType(), self$getMapper(), "pdf", sep = ".")
              )
-             pdf(file = gfile, width = 16, height = 8, onefile = TRUE)
+             pdf(file = gfile, width = 16, height = 4*length(hptypes), onefile = TRUE)
              self$plotMap2SummaryConseqProb(text_size = 1.75,
                                             point_size = 0.75,
                                             threshold = 0.75)
+             # debug
+             # text_size = 1.75
+             #                                point_size = 0.75
+             #                                threshold = 0.75
              dev.off()
            }
 
@@ -935,6 +961,22 @@ map3.DR2S <- function(x,
   invisible(x)
 }
 
+# debug
+# self <- dedk.map2
+# opts = list()
+# pct = 100
+# min_base_quality = 3
+# min_mapq = 0
+# max_depth = 1e5
+# min_nucleotide_depth = 3
+# include_deletions = TRUE
+# include_insertions = TRUE
+# include_read_ids = TRUE
+# force = FALSE
+# fullname = TRUE
+# plot = TRUE
+# clip = TRUE
+
 DR2S_$set("public", "runMap3",
          function(opts = list(),
                   pct = 100,
@@ -966,37 +1008,46 @@ DR2S_$set("public", "runMap3",
            reftag    <- "merged"
            outdir    <- dir_create_if_not_exists(file.path(self$getOutdir(), reftag))
            sreadpath <- self$getShortreads()
-           areadpath <- self$map1$A$reads
-           breadpath <- self$map1$B$reads
-           arefpath  <- self$map2$A$seqpath
-           brefpath  <- self$map2$B$seqpath
+           hptypes   <- self$getHapTypes()
+           readpath  <- foreach(hptype = hptypes) %do% self$map1[[hptype]]$reads
+           names(readpath) <- hptypes
+           refpath   <- foreach(hptype = hptypes) %do% self$map1[[hptype]]$seqpath
+           names(refpath) <- hptypes
+
+           # RM
+           # areadpath <- self$map1$A$reads
+           # breadpath <- self$map1$B$reads
+           # arefpath  <- self$map2$A$seqpath
+           # brefpath  <- self$map2$B$seqpath
+
 
            ## Mapper
            map_fun <- self$getMapFun()
 
            self$map3 = structure(
-             list(
+             a <- list(
                dir     = outdir,
                sreads  = sreadpath,
-               areads  = areadpath,
-               breads  = breadpath,
-               aref    = arefpath,
-               bref    = brefpath,
+               # areads  = areadpath,
+               # breads  = breadpath,
+               # aref    = arefpath,
+               # bref    = brefpath,
+               reads   = readpath,
+               ref     = refpath,
                bamfile = list(),
                pileup  = list(),
                tag     = list()
-             ),
-             class = c("map3", "list")
+             ), class = c("map3", "list")
            )
 
            ## Remap long reads to the same reference sequences as short reads
            ## group = "B"
-           for (group in c("A", "B")) {
-             mapgroup <- paste0("LR", group)
+           for (hptype in hptypes) {
+             mapgroup <- paste0("LR", hptype)
              maptag   <- paste("map3", mapgroup, self$getLrdType(), self$getMapper(),
                                optstring(opts), sep = ".")
-             refpath  <- self$map2[[group]]$seqpath
-             lreadpath <- self$map1[[group]]$read
+             refpath  <- self$map2[[hptype]]$seqpath
+             lreadpath <- self$map1[[hptype]]$read
 
              ## Run mapper
              message("  Mapping long reads against Map2 consensus ...")
@@ -1006,7 +1057,7 @@ DR2S_$set("public", "runMap3",
                allele   = mapgroup,
                readtype = self$getLrdType(),
                opts     = opts,
-               refname  = group,
+               refname  = hptype,
                optsname = optstring(opts),
                force    = force,
                outdir   = outdir
@@ -1020,7 +1071,9 @@ DR2S_$set("public", "runMap3",
                pct / 100,
                min_mapq,
                force = force,
-               clean = TRUE
+               clean = FALSE
+               # debug
+               # clean = TRUE
              )
              self$map3$bamfile[[mapgroup]] = bamfile
 
@@ -1044,11 +1097,11 @@ DR2S_$set("public", "runMap3",
 
            ## Map short reads
            ## group = "A"
-           for (group in c("A", "B")) {
-             mapgroup <- paste0("SR", group)
+           for (hptype in hptypes) {
+             mapgroup <- paste0("SR", hptype)
              maptag   <- paste("map3", mapgroup, self$getLrdType(), self$getMapper(),
                                optstring(opts), sep = ".")
-             refpath  <- self$map2[[group]]$seqpath
+             refpath  <- self$map2[[hptype]]$seqpath
              ## Run mapper
              message("  Mapping short reads against Map2 consensus ...")
              samfile <- map_fun(
@@ -1060,7 +1113,7 @@ DR2S_$set("public", "runMap3",
                allele   = paste0(mapgroup, ".", self$getLrdType()),
                readtype = self$getSrdType(),
                opts     = opts,
-               refname  = group,
+               refname  = hptype,
                optsname = optstring(opts),
                force    = force,
                outdir   = outdir
@@ -1076,7 +1129,7 @@ DR2S_$set("public", "runMap3",
                fq <- trim_polymorphic_ends(fq)
                ## Write new shortread file to disc
                fqdir  <- dir_create_if_not_exists(file.path(self$getOutdir(), "merged"))
-               fqfile <- paste("sread", group, self$getMapper(), "trimmed", "fastq", "gz", sep = ".")
+               fqfile <- paste("sread", hptype, self$getMapper(), "trimmed", "fastq", "gz", sep = ".")
                fqout  <- file_delete_if_exists(file.path(fqdir, fqfile))
                ShortRead::writeFastq(fq, fqout, compress = TRUE)
                file_delete_if_exists(bamfile)
@@ -1088,7 +1141,7 @@ DR2S_$set("public", "runMap3",
                  allele   = paste0(mapgroup, ".", self$getLrdType()),
                  readtype = self$getSrdType(),
                  opts     = list(A = 1, B = 4, O = 2),
-                 refname  = group,
+                 refname  = hptype,
                  optsname = optstring(opts),
                  force    = force,
                  outdir   = outdir
@@ -1105,7 +1158,9 @@ DR2S_$set("public", "runMap3",
                pct / 100,
                min_mapq,
                force = force,
-               clean = TRUE
+               clean = FALSE
+               # debug
+               # clean = TRUE
              )
              self$map3$bamfile[[mapgroup]] = bamfile
 
@@ -1136,15 +1191,12 @@ DR2S_$set("public", "runMap3",
            if (plot) {
              message("  Plotting ...")
              ## Coverage and base frequency
-             gfile <- file.path(self$getOutdir(), paste("plot3", "LR", self$getLrdType(), self$getMapper(), "pdf", sep = "."))
-             pdf(file = gfile, width = 16, height = 8, onefile = TRUE)
-             self$plotMap3SummaryLR(thin = 0.25, width = 20)
-             dev.off()
-
-             gfile <- file.path(self$getOutdir(), paste("plot3", "SR", self$getLrdType(), self$getMapper(), "pdf", sep = "."))
-             pdf(file = gfile, width = 16, height = 8, onefile = TRUE)
-             self$plotMap3SummarySR(thin = 0.25, width = 20)
-             dev.off()
+             for (readtype in c("LR", "SR")){
+               gfile <- file.path(self$getOutdir(), paste("plot3", readtype, self$getLrdType(), self$getMapper(), "pdf", sep = "."))
+               pdf(file = gfile, width = 8 * length(hptypes), height = 8, onefile = TRUE)
+               self$plotMap3Summary(readtype = readtype, thin = 0.25, width = 20)
+               dev.off()
+             }
            }
 
            return(invisible(self))
@@ -1155,12 +1207,13 @@ print.map3 <- function(x, ...) {
   msg  <- sprintf("An object of class '%s'.\n", class(x)[1])
   bamf <- paste0(basename(unlist(x$bamfile) %||% ""), collapse = ", ")
   seqp <- paste0(basename(unlist(x$seqpath) %||% ""), collapse = ", ")
+
   msg <- sprintf(
-    "%s [Dir] %s\n [Longreads] %s\n [Shortreads] %s\n [References] %s, %s\n [Bamfile] %s\n [Seqpath] %s\n",
+    "%s [Dir] %s\n [Longreads] %s\n [Shortreads] %s\n [References] %s\n [Bamfile] %s\n [Seqpath] %s\n",
     msg, x$dir,
-    paste(basename(x$areads), basename(x$breads), sep = ", "),
+    paste0(basename(unlist(x$reads)), collapse = ", "),
     paste0(basename(x$sreads), collapse = ", "),
-    basename(x$aref), basename(x$bref),
+    paste0(basename(unlist(x$ref)), collapse = ", "),
     bamf, seqp
   )
   cat(msg)
