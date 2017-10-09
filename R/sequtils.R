@@ -208,8 +208,8 @@ merge_conseqs_ <- function(seqs, scores, verbose = TRUE) {
   metadata(conseq) <- list(zscores = refscr)
   conseq
 }
-
-multialign <- function(x, haplo, n, align = list(
+#x <- self
+multialign <- function(x, hptype, n, align = list(
   iterations = 0,
   refinements = 0,
   gapOpening = -2,
@@ -220,12 +220,12 @@ multialign <- function(x, haplo, n, align = list(
   gapPower = 0,
   normPower = 1
 )) {
-  stopifnot(is(x$map1[[haplo]], "map1"))
-  haplo <- match.arg(haplo, x$getHapTypes())
-  readfile <- x$map1[[haplo]]$reads
+  stopifnot(is(x$map1[[hptype]], "map1"))
+  hptype <- match.arg(hptype, x$getHapTypes())
+  readfile <- x$map1[[hptype]]$reads
   fq <- ShortRead::readFastq(readfile)
   ids  <- as.character(ShortRead::id(fq))
-  q    <- as.numeric(strsplitN(strsplitN(ids, " ", 2, fixed = TRUE), "=", 2, fixed = TRUE))
+  q    <- as.numeric(DR2S:::strsplitN(DR2S:::strsplitN(ids, " ", 2, fixed = TRUE), "=", 2, fixed = TRUE))
   w    <- Biostrings::width(fq)
   wq   <- (w/max(w)) * q^2
   n    <- if (length(wq) > n) n else length(wq)
@@ -241,10 +241,13 @@ multialign <- function(x, haplo, n, align = list(
                       terminalGap  = align$terminalGap,
                       gapPower     = align$gapPower,
                       normPower    = align$normPower,
-                      processors   = 4)
+                      processors   = 8
+                      )
+
 }
 
 multialign_consensus <- function(aln) {
+  aln
   n      <- length(aln)
   mat    <- t(Biostrings::consensusMatrix(aln))[, c(1:4, 16)]
   ## always accept the first and last base irrespective of how many gaps there are
@@ -317,3 +320,21 @@ trim_polymorphic_ends <- function(fq, min_len = 50) {
   fq[Biostrings::width(fq) >= min_len]
 }
 
+writeStockholm <- function(msa, fCon, onlyGaps = FALSE){
+ name = names(msa)
+ msa = msa[[1]]
+ if (!onlyGaps){
+   msa = msa[which(!nchar(gsub("-", "", msa)) == 0)]
+ }
+ if (is(fCon, "connection")){
+     if (!isOpen(fCon)){
+       open(fCon, "w")
+     }
+ }else if (is.character(fCon)) {
+   fCon <- base::file(fCon, "w")
+ }
+ msg <- "# STOCKHOLM 1.0\n#=GF ID "
+ writeLines(paste0(msg, name), fCon)
+ writeLines(paste(names(msa), as.character(msa), sep = "\t"), fCon)
+ writeLines("//", fCon)
+}

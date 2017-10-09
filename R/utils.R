@@ -21,9 +21,11 @@ CODE_MAP <- function() {
 }
 
 PARTCOL <- function() {
-  c(A = "#f1a340", B = "#998ec3", `-` = "#f7f7f7")
+  # colors from https://rdrr.io/cran/igraph/src/R/palette.R; extendable
+  c(C = "#B35806", A = "#F1A340", E = "#FEE0B6", `-` = "#F7F7F7", F = "#D8DAEB", B = "#998EC3",
+  D  = "#542788", N = "#9F9F9F" )
+  # c(A = "#f1a340", B = "#998ec3", `-` = "#f7f7f7")
 }
-
 NUCCOL <- function() {
   c(
     A = "#0087bd", ## BLUE
@@ -327,35 +329,35 @@ browse_align <- function(seq,
 }
 
 #' @export
-plot_diagnostic_alignment <- function(x) {
+plot_diagnostic_alignment <- function(x, onlyFinal = FALSE) {
+  # deug rm
   if (x$hasMultialign()) {
-    A1 <- x$map1$A$ref$refseq
-    names(A1) <- paste("A", x$getLrdType(), "multialign")
-    A2 <- x$map1$A$conseq$multialign
-    names(A2) <- paste("A", x$getLrdType(), "map1")
-    B1 <- x$map1$B$ref$refseq
-    names(B1) <- paste("B", x$getLrdType(), "multialign")
-    B2 <- x$map1$B$conseq$multialign
-    names(B2) <- paste("B", x$getLrdType(), "map1")
+    # reference
+    seqs1 <- Biostrings::DNAStringSet(lapply(x$map1, function(x) unlist(x$ref$refseq)))
+    names(seqs1) <- paste0(names(seqs1), " 1",  x$getLrdType(), "refseq")
+    # after map1
+    seqs2 <- Biostrings::DNAStringSet( lapply(x$map1, function(x) unlist(x$conseq$multialign))  )
+    names(seqs2) <- paste0(names(seqs2), " 2", x$getLrdType(), "multialign")
   } else {
-    A1 <- B1 <- x$getRefSeq()
-    names(A1) <- strsplitN(names(A1), "~", 1, fixed = TRUE)
-    names(B1) <- strsplitN(names(B1), "~", 1, fixed = TRUE)
-    A2 <- x$map1$A$conseq$reference
-    names(A2) <- paste("A", x$getLrdType(), "map1")
-    B2 <- x$map1$B$conseq$reference
-    names(B2) <- paste("B", x$getLrdType(), "map1")
+    seqs1 <- list()
+    seqs1[x$getHapTypes()] <- Biostrings::DNAStringSet(x$getRefSeq())
+    names(seqs1) <- paste0("1 ", strsplitN(names(seqs1), "~", 1, fixed = TRUE))
+    seqs2 <- Biostrings::DNAStringSet( lapply(x$map1, function(x) unlist(x$conseq$reference))  )
+    names(seqs2) <- paste0(names(seqs2), " 2", x$getLrdType(), "map1")
   }
-  A3 <- Biostrings::BStringSet(x$map2$A$conseq[[1]])
-  names(A3) <- paste("A", x$getLrdType(), "map2")
-  A4 <- Biostrings::BStringSet(x$consensus$seq$HapA)
-  names(A4) <- paste("A", x$getSrdType(), "map3")
+  # after map2
+  seqs3 <- Biostrings::DNAStringSet(lapply(x$map2, function(x) Biostrings::DNAString(x$conseq[[1]])))
+  names(seqs3) <- paste(names(seqs3), "3 map2")
+  # final reference
+  seqs4 <- Biostrings::DNAStringSet(lapply(x$consensus$seq, function(x) Biostrings::DNAString(x[[1]])))
+  names(seqs4) <- paste(names(seqs4), "4 map3")
 
-  B3 <- Biostrings::BStringSet(x$map2$B$conseq[[1]])
-  names(B3) <- paste("B", x$getLrdType(), "map2")
-  B4 <- Biostrings::BStringSet(x$consensus$seq$HapB)
-  names(B4) <- paste("B", x$getSrdType(), "map3")
-  seqs <- Biostrings::DNAStringSet(c(A1, A2, A3, A4, B1, B2, B3, B4))
-  DECIPHER::BrowseSeqs(DECIPHER::AlignSeqs(seqs), colWidth = 120)
+  seqs <- c(seqs1, seqs2, seqs3, seqs4)
+  seqs <- seqs[order(names(seqs))]
+  if (onlyFinal){
+    DECIPHER::BrowseSeqs(DECIPHER::AlignSeqs(seqs4), colWidth = 120)
+  }else {
+    DECIPHER::BrowseSeqs(DECIPHER::AlignSeqs(seqs), colWidth = 120)
+  }
 }
 

@@ -2,10 +2,10 @@
 # Generator token: 10BE3573-1514-4C36-9D1C-5A225CD40393
 
 cpp_polymorphic_positions <- function(x, threshold) {
-    .Call('DR2S_cpp_polymorphic_positions', PACKAGE = 'DR2S', x, threshold)
+    .Call('_DR2S_cpp_polymorphic_positions', PACKAGE = 'DR2S', x, threshold)
 }
 
 cpp_top2_cols <- function(x) {
-    .Call('DR2S_cpp_top2_cols', PACKAGE = 'DR2S', x)
+    .Call('_DR2S_cpp_top2_cols', PACKAGE = 'DR2S', x)
 }
 

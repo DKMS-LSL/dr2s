@@ -214,7 +214,7 @@ DR2S_ <- R6::R6Class(
           private$conf$ref_path  = normalizePath(ref_path, mustWork = TRUE)
         } else {
           private$conf$reference = expand_hla_allele(conf$reference, conf$locus)
-          private$conf$ref_path  = generate_reference_sequence(private$ipd, private$conf$reference, private$conf$outdir, fullname = TRUE)
+          private$conf$ref_path  = generate_reference_sequence(private$ipd, private$conf$reference, private$conf$outdir, fullname = FALSE)
         }
       }
       if (is.null(private$conf$alternate)) {
@@ -424,14 +424,14 @@ DR2S_ <- R6::R6Class(
     },
     ##
     getRefSeq = function() {
-      if (!is.null(self$getIPD())) {
+      if (!is.null(self$getRefPath())) {
+        Biostrings::readDNAStringSet(self$getRefPath())
+      } else  if (!is.null(self$getIPD())) {
         if (self$getReference() == "consensus") {
           self$getIPD()$cons
         } else {
-          self$getIPD()$get_reference_sequence(self$getReference())
+          self$getIPD()$get_reference_sequence(self$getReference(),)
         }
-      } else {
-        Biostrings::readDNAStringSet(self$getRefPath())
       }
     },
     ##
@@ -726,11 +726,19 @@ DR2S_ <- R6::R6Class(
     ##
     plotPartitionHistogram = function(label = "") {
       tag <- self$getMapTag()
-      plot_partition_histogram(x = self$getPartition(), label %|ch|% tag)
+      if (length(self$getHapTypes()) == 2) {
+         plot_partition_histogram(x = self$getPartition(), label %|ch|% tag)
+      }else {
+         plot_partition_histogram_multi(x = self$getPartition(), limits = self$getLimits(), label %|ch|% tag)
+      }
     },
     ##
     plotPartitionTree = function() {
       plot_partition_tree(x = self$getPartition())
+    },
+    ##
+    plotPartitionRadar = function() {
+      plot_radar_partition(x = self$getPartition())
     },
     ##
     plotPartitionHaplotypes = function(thin = 1, label = "") {
@@ -772,7 +780,12 @@ DR2S_ <- R6::R6Class(
       if (missing(threshold)) {
         threshold <- self$getThreshold()
       }
-      polymorphic_positions(self$getPileup(), threshold)
+      if (!is.null(self$map0$SR)){
+        pileup <- self$map0$SR$pileup
+      } else {
+        pileup <- self$getPileup()
+      }
+        polymorphic_positions(pileup, threshold)
     },
     ##
     summarisePartitions = function() {
@@ -795,27 +808,17 @@ DR2S_ <- R6::R6Class(
     ##
     plotPartitionSummary = function(label = "", limits = NULL) {
       tag <- self$getMapTag()
-      p1 <- ifelse(length(self$getHapTypes()) == 2,
-                   self$plotPartitionHistogram(label = label %||% tag) +
-                    ggplot2::theme(legend.position = "none"),
-                   self$plotPartitionTree())
-
-      p2  <- self$plotPartitionHaplotypes(thin = 1, label = " ") +
-        ggplot2::theme(legend.position = "bottom")
-      if (!is.null(limits)) {
-        df <- dplyr::filter(p2$data, snp == 1)
-        lims <- c(
-          min(which(df$mcoef >= max(limits))),
-          max(which(df$mcoef <= min(limits)))
-        )
-        p1 <- p1 +
-          geom_vline(xintercept = limits, colour = "grey40",
-                     linetype = "dashed", size = 1)
-        p2 <- p2 +
-          geom_hline(yintercept = lims, colour = "grey40",
-                     linetype = "dashed", size = 1)
-      }
-      multiplot(p1, p2, layout = matrix(c(1, 2, 2, 2), ncol = 1))
+      p1 <-  self$plotPartitionHistogram(label = label %||% tag) +
+                    ggplot2::theme(legend.position = "none")
+      # p2  <- self$plotPartitionHaplotypes(thin = 1, label = " ") +
+      #plot(p1)
+      p2  <- self$plotPartitionTree()
+      p3 <- self$plotPartitionRadar()
+          #p2 <- p2 +
+          #geom_hline(yintercept = lims, colour = "grey40",
+          #           linetype = "dashed", size = 1)
+      #}
+      multiplot(p1, p2, p3, layout = matrix(c(1, 2, 2, 2, 3), ncol = 1))
     },
     ##
     plotMap1Summary = function(group = NULL, thin = 0.2, width = 10) {

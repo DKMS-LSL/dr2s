@@ -56,9 +56,9 @@ MergeEnv_ <- R6::R6Class(
       self$x = x
     },
 
-    isIntialised = function(hapEnv) {
+    isInitialised = function(hapEnv) {
       hapEnv <- match.arg(hapEnv, self$x$getHapTypes())
-      !is.null(self$hptypes[[hptype]]$init)
+      !is.null(self$hptypes[[hapEnv]]$init)
     },
     getHapEnv = function(hapEnv) {
       hapEnv <- match.arg(hapEnv, self$x$getHapTypes())
@@ -101,7 +101,7 @@ MergeEnv_$set("public", "init", function(hapEnv) {
 ## self$walk_one() ####
 MergeEnv_$set("public", "walk_one", function(hapEnv, verbose = FALSE) {
   hapEnv <- match.arg(hapEnv, self$x$getHapTypes())
-  if (!self$isIntialised(hapEnv)) {
+  if (!self$isInitialised(hapEnv)) {
     self$init(hapEnv)
   }
 
@@ -120,7 +120,7 @@ MergeEnv_$set("public", "walk_one", function(hapEnv, verbose = FALSE) {
 # hapEnv <- "A"
 MergeEnv_$set("public", "walk", function(hapEnv, verbose = FALSE) {
   hapEnv <- match.arg(hapEnv, self$x$getHapTypes())
-  if (!self$isIntialised(hapEnv)) {
+  if (!self$isInitialised(hapEnv)) {
     self$init(hapEnv)
   }
   envir <- self$getHapEnv(hapEnv)

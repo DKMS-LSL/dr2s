@@ -1,8 +1,8 @@
 #' @export
 
 # debug
-x <- dedk.bla
-block_width = 80
+#x <- dedk.bla
+#block_width = 80
 report.DR2S <- function(x, which, block_width = 80, ...) {
 
   args <- x$getOpts("report")

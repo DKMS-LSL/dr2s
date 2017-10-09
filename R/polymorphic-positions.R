@@ -9,7 +9,6 @@
 #' @examples
 #' ##
 polymorphic_positions <- function(x, theshold, ...) UseMethod("polymorphic_positions")
-
 #' @export
 polymorphic_positions.consmat <- function(x, threshold = 0.20) {
   if (!is.freq(x)) {
@@ -27,7 +26,8 @@ polymorphic_positions.consmat <- function(x, threshold = 0.20) {
     f2 = rs$v2
   )
 }
-
+#x <- self$map0$SR$pileup
+#x <- consmat(x, freq = T)
 #' @export
 polymorphic_positions.pileup <- function(x, threshold = NULL, ...) {
   if (is.null(threshold)) {
