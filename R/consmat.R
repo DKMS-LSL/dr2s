@@ -239,7 +239,7 @@ prune_consensus_matrix <- function(cm, n_look_behind = 36, cutoff = 0.5, verbose
 #' @export
 # Create position weight matrix
 create_PWM <- function(msa){
-  cmat <- Biostrings::consensusMatrix(msa, as.prob = TRUE)[VALID_DNA(),]
+  cmat <- as.matrix(Biostrings::consensusMatrix(msa, as.prob = TRUE)[VALID_DNA(),])
   ## Add pseudocount
   cmat <- cmat + 1/length(msa)
   ## Multiply with DNA_PROBABILITIES

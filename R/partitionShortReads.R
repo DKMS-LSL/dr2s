@@ -105,6 +105,7 @@ write_part_fq <- function(fq, srFastqHap, dontUseReads = dontUseReads) {
     sr <- sr[which(!fqnames %in% dontUseReads)]
     ShortRead::writeFastq(sr, srFastqHap, mode="a", compress = TRUE)
   }
+  close(fqstream)
 }
 # --- Helper ---
 part_read <- function(a, mats, pos){

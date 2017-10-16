@@ -331,7 +331,7 @@ plot_pileup_coverage <- function(x, threshold = 0.2, range = NULL, thin = 0.1, w
   ggplot(dtbg, aes(x = pos, y = count)) +
     geom_bar(stat = "identity", position = position_identity(), fill = "grey80") +
     geom_bar(data = dtpoly, stat = "identity", position = position_stack(),
-             aes(fill = nucleotide, order = nucleotide), width = width) +
+             aes(fill = nucleotide), width = width) +
     scale_fill_manual(values = NUCCOL(), limits = c("A", "C", "G", "T", "-", "+")) +
     guides(fill = guide_legend(reverse = TRUE, title = "Bases")) +
     labs(x = "Position [bp]", y = "Count", fill = "Nucleotide", title = label) +
@@ -342,7 +342,6 @@ plot_pileup_coverage <- function(x, threshold = 0.2, range = NULL, thin = 0.1, w
       axis.line = element_line(colour = "grey50")
     )
 }
-
 
 
 #' Plot basecall frequency

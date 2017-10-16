@@ -34,7 +34,9 @@ phasebreaks <- function(mat) {
 
 phasematrix <- function(var) {
   if ((n <- length(var)) == 0) {
-    return(NULL)
+    df <- data.frame(matrix(ncol = 8, nrow = 0))
+    names(df) <- c("x", "y", "posx", "posy", "posy_lower", "posy_upper", "linkage", "phase")
+    return(tibble::as_tibble(df))
   }
   mat <- matrix(rep(0, 5*((n*n) - n)/2), ncol = 5)
   for (i in seq_len(n - 1)) {

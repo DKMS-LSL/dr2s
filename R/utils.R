@@ -350,24 +350,6 @@ browse_align <- function(seq,
 #' @export
 plot_diagnostic_alignment <- function(x, onlyFinal = FALSE) {
 
-  # ToDo RM
-  # # deug rm
-  # if (x$hasMultialign()) {
-  #   # reference
-  #   seqs1 <- Biostrings::DNAStringSet(lapply(x$map1, function(x) unlist(x$ref$refseq)))
-  #   names(seqs1) <- paste0(names(seqs1), " 1",  x$getLrdType(), "refseq")
-  #   # after map1
-  #   seqs2 <- Biostrings::DNAStringSet( lapply(x$map1, function(x) unlist(x$conseq$multialign))  )
-  #   names(seqs2) <- paste0(names(seqs2), " 2", x$getLrdType(), "multialign")
-  # } else {
-  #   seqs1 <- list()
-  #   seqs1[x$getHapTypes()] <- Biostrings::DNAStringSet(x$getRefSeq())
-  #   names(seqs1) <- paste0("1 ", strsplitN(names(seqs1), "~", 1, fixed = TRUE))
-  #   seqs2 <- Biostrings::DNAStringSet( lapply(x$map1, function(x) unlist(x$conseq$reference))  )
-  #   names(seqs2) <- paste0(names(seqs2), " 2", x$getLrdType(), "map1")
-  # }
-  # after mapIter
-
   # Given Ref
   seqs1 <- x$getRefSeq()
   names(seqs1) <- paste0("0 ", names(seqs1))

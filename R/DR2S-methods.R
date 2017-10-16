@@ -11,7 +11,7 @@ mapInit.DR2S <- function(x,
                       min_mapq = 0,
                       max_depth = 1e4,
                       min_nucleotide_depth = 3,
-                      include_deletions = FALSE,
+                      include_deletions = TRUE,
                       include_insertions = FALSE,
                       force = FALSE,
                       fullname = TRUE,
@@ -27,7 +27,6 @@ mapInit.DR2S <- function(x,
   message("  Done!\n")
   invisible(x)
 }
-# self <- hla
 DR2S_$set("public", "runMapInit",
          function(opts = list(),
                   optsname = "",
@@ -38,7 +37,7 @@ DR2S_$set("public", "runMapInit",
                   min_mapq = 0,
                   max_depth = 1e4,
                   min_nucleotide_depth = 3,
-                  include_deletions = FALSE,
+                  include_deletions = TRUE,
                   include_insertions = FALSE,
                   force = FALSE,
                   fullname = TRUE,
@@ -55,8 +54,9 @@ DR2S_$set("public", "runMapInit",
            # min_base_quality = 3
            # min_mapq = 0
            # max_depth = 1e4
-           # min_nucleotide_depth = 3,
+           # min_nucleotide_depth = 3
            # include_insertions = FALSE
+           # include_deletions = FALSE
            # force = FALSE
            # fullname = TRUE
            # plot = TRUE
@@ -73,6 +73,64 @@ DR2S_$set("public", "runMapInit",
                recode_fastq_header(self$getLongreads()),
                recode_fastq_header(self$getShortreads()[1]),
                recode_fastq_header(self$getShortreads()[2])
+             )
+           }
+           if (partSR){
+             mapfmt  <- "mapInit <%s> <%s> <%s> <%s>"
+             maptag  <- sprintf(mapfmt, self$getReference(), self$getSrdType(), self$getMapper(), optstring(opts, optsname))
+             if (threshold != self$getThreshold()) {
+               self$setThreshold(threshold)
+             }
+             ## Fetch mapper
+             map_fun <- self$getMapFun()
+             ## Run mapper
+             message("  Mapping short reads against provided reference...\n")
+             samfile <- map_fun(
+               reffile  = self$getRefPath(),
+               readfile = self$getShortreads(),
+               allele   = self$getReference(),
+               readtype = self$getSrdType(),
+               opts     = opts,
+               refname  = "",
+               optsname = optsname,
+               force    = force,
+               outdir   = self$getOutdir()
+             )
+
+             ## Run bam - sort - index pipeline
+             message("  Indexing ...")
+             bamfile <- bam_sort_index(
+               samfile = samfile,
+               reffile = self$getRefPath(),
+               sample = pct / 100,
+               min_mapq = min_mapq,
+               force = force,
+               # clean = TRUE
+               # debug
+               clean = FALSE
+             )
+
+             ## Calculate pileup from graphmap produced SAM file
+             message("  Piling up ...")
+             pileup <- Pileup(
+               bamfile,
+               self$getThreshold(),
+               max_depth,
+               min_base_quality = min_base_quality,
+               min_mapq = min_mapq,
+               min_nucleotide_depth = min_nucleotide_depth,
+               include_deletions = include_deletions,
+               include_insertions = include_insertions
+             )
+
+             self$mapInit$SR = structure(
+               list(
+                 reads   = self$getShortreads(),
+                 bamfile = bamfile,
+                 pileup  = pileup,
+                 tag     = maptag
+               ),
+               class  = c("mapInit", "list")
              )
            }
            mapfmt  <- "mapInit <%s> <%s> <%s> <%s>"
@@ -132,69 +190,11 @@ DR2S_$set("public", "runMapInit",
              ),
              class  = c("mapInit", "list")
            )
-           if (partSR){
-             mapfmt  <- "mapInit <%s> <%s> <%s> <%s>"
-             maptag  <- sprintf(mapfmt, self$getReference(), self$getSrdType(), self$getMapper(), optstring(opts, optsname))
-             if (threshold != self$getThreshold()) {
-               self$setThreshold(threshold)
-             }
-             ## Fetch mapper
-             map_fun <- self$getMapFun()
-             ## Run mapper
-             message("  Mapping short reads against provided reference...\n")
-             samfile <- map_fun(
-               reffile  = self$getRefPath(),
-               readfile = self$getShortreads(),
-               allele   = self$getReference(),
-               readtype = self$getSrdType(),
-               opts     = opts,
-               refname  = "",
-               optsname = optsname,
-               force    = force,
-               outdir   = self$getOutdir()
-             )
-
-             ## Run bam - sort - index pipeline
-             message("  Indexing ...")
-             bamfile <- bam_sort_index(
-               samfile = samfile,
-               reffile = self$getRefPath(),
-               sample = pct / 100,
-               min_mapq = min_mapq,
-               force = force,
-               # clean = TRUE
-               # debug
-               clean = FALSE
-             )
-
-             ## Calculate pileup from graphmap produced SAM file
-             message("  Piling up ...")
-             pileup <- Pileup(
-               bamfile,
-               self$getThreshold(),
-               max_depth,
-               min_base_quality = min_base_quality,
-               min_mapq = min_mapq,
-               min_nucleotide_depth = min_nucleotide_depth,
-               include_deletions = include_deletions,
-               include_insertions = FALSE#include_insertions
-             )
-
-             self$mapInit$SR = structure(
-               list(
-                 reads   = self$getShortreads(),
-                 bamfile = bamfile,
-                 pileup  = pileup,
-                 tag     = maptag
-               ),
-               class  = c("mapInit", "list")
-             )
-           }
            if (plot) {
              message("  Plotting ...")
              ## Coverage and frequency of minor alleles
              gfile <- file.path(self$getOutdir(), paste0("plot.MapInit.LR.", sub("bam$", "pdf", usc(basename(self$mapInit$bamfile)))))
-             pdf(file = gfile, width = 12, height = 10, onefile = TRUE)
+             pdf(file = gfile, width = 12, height = 10, onefile = TRUE, title = paste(self$getLocus(), self$getSampleId(), sep = "." ))
              self$plotmapInitSummary(
                thin = 0.25,
                width = 2,
@@ -205,7 +205,7 @@ DR2S_$set("public", "runMapInit",
 
              if (partSR){
                gfile <- file.path(self$getOutdir(), paste0("plot.MapInit.SR.", sub("bam$", "pdf", usc(basename(self$mapInit$SR$bamfile)))))
-               pdf(file = gfile, width = 12, height = 10, onefile = TRUE)
+               pdf(file = gfile, width = 12, height = 10, onefile = TRUE, title = paste(self$getLocus(), self$getSampleId(), sep = "." ))
                self$plotmapInitSummary(
                  thin = 0.25,
                  width = 2,
@@ -252,15 +252,15 @@ partition_haplotypes.DR2S <- function(x,
   invisible(x)
 
 }
-#self <- hla
+#self <- sls
 DR2S_$set("public", "runHaplotypePartitioning", function(max_depth = 1e4,
                   skip_gap_freq = 2/3,
                   plot = TRUE) {
 
                   # debug
-                  max_depth = 1e4
-                  skip_gap_freq = 2/3
-                  plot = TRUE
+                  # max_depth = 1e4
+                  # skip_gap_freq = 2/3
+                  # plot = TRUE
            stopifnot(self$hasPileup())
 
            ## Overide default arguments
@@ -280,8 +280,8 @@ DR2S_$set("public", "runHaplotypePartitioning", function(max_depth = 1e4,
           }
            ppos <- self$polymorphicPositions(useSR = useSR)
 
-           if (NROW(ppos) < 2){
-             stop("Less than two polymorphic positions")
+           if (NROW(ppos) == 0){
+             stop("No polymorphic position!")
            }
            message("  Generating SNP matrix ...")
            mat <- if (tryCatch(
@@ -295,6 +295,7 @@ DR2S_$set("public", "runHaplotypePartitioning", function(max_depth = 1e4,
            } else {
              self$partition$mat
            }
+
            ## expdev: try seqlogo
            # mat <- hla$partition$mat
            # seqs <- lapply(rownames(mat), function(x) paste(mat[x, ], collapse = ""))#paste0(self$partition$mat[x,])))
@@ -320,16 +321,17 @@ DR2S_$set("public", "runHaplotypePartitioning", function(max_depth = 1e4,
              lmt = NULL
            ),
            class = c("PartList", "list"))
-
            # if (plot) {
            if (FALSE) {
              message("  Plotting ...")
              bnm   <- basename(self$mapInit$bamfile)
              outf  <- file.path(self$getOutdir(), paste0("plot0.partition.", sub("bam$", "pdf", usc(bnm))))
-             pdf(file = outf, width = 10, height = 12, onefile = TRUE)
+             pdf(file = outf, width = 10, height = 12, onefile = TRUE, title = paste(self$getLocus(), self$getSampleId(), sep = "." ))
              self$plotPartitionSummary(label = tag)
              dev.off()
            }
+
+
 
            return(invisible(self))
          })
@@ -405,7 +407,7 @@ DR2S_$set("public", "splitReadsByHaplotype", function(limits,
              tag   <- self$getMapTag("init", "LR")
              bnm   <- basename(self$mapInit$bamfile)
              outf  <- file.path(self$getOutdir(), paste0("plot.partition.", sub("bam$", "pdf", usc(bnm))))
-             pdf(file = outf, width = 10, height = 12, onefile = TRUE)
+             pdf(file = outf, width = 10, height = 12, onefile = TRUE, title = paste(self$getLocus(), self$getSampleId(), sep = "." ))
              self$plotPartitionSummary(label = tag, limits = unlist(self$getLimits()))
              # debug
              # label = tag
@@ -455,7 +457,7 @@ extract_fastq.DR2S <- function(x, nreads = NULL, replace = FALSE, nalign = 40, .
   invisible(x)
 }
 # debug
-#self <- hla.split
+# self <- sls.part
 DR2S_$set("public", "extractFastq",
           function(nreads = NULL, replace = FALSE, nalign = 40) {
 
@@ -749,7 +751,7 @@ DR2S_$set("public", "runMapIter",
                  self$getOutdir(),
                  paste("plot.MapIter", iteration, self$getLrdType(), self$getMapper(), "pdf", sep = ".")
                )
-               pdf(file = gfile, width = 8 * length(hptypes), height = 8, onefile = TRUE)
+               pdf(file = gfile, width = 8 * length(hptypes), height = 8, onefile = TRUE, title = paste(self$getLocus(), self$getSampleId(), sep = "." ))
                self$plotmapIterSummary(thin = 0.1, width = 4, iteration = iteration, drop.indels = TRUE)
                ## map1: 0.1; 4
                dev.off()
@@ -758,7 +760,7 @@ DR2S_$set("public", "runMapIter",
                  self$getOutdir(),
                  paste("plot.MapIter.conseq", iteration, self$getLrdType(), self$getMapper(), "pdf", sep = ".")
                )
-               pdf(file = gfile, width = 16, height = 4*length(hptypes), onefile = TRUE)
+               pdf(file = gfile, width = 16, height = 4*length(hptypes), onefile = TRUE, title = paste(self$getLocus(), self$getSampleId(), sep = "." ))
                self$plotmapIterSummaryConseqProb(text_size = 1.75,
                                               iteration = iteration,
                                               point_size = 0.75,
@@ -806,7 +808,6 @@ partitionShortReads.DR2S <- function(x,
   message("  Done!\n")
   invisible(x)
 }
-#self <- dl3.map
 DR2S_$set("public", "runPartitionShortReads",
          function(opts = list(),
                   force = FALSE,
@@ -829,15 +830,13 @@ DR2S_$set("public", "runPartitionShortReads",
            ref <- self$getRefSeq()
            refname <- names(ref)
            hptypes <- self$getHapTypes()
-           #' dont use the first matrix, but use only the high scoring
-           #' reads form split_reads_by_haplotype
-           # mats <- mats(self$partition$prt)
+
            prt_mat <- self$partition$mat
-           seqs <- lapply(self$partition$hpl, function(x) get_seqs_from_mat(prt_mat[x,]))
+           seqs <- lapply(self$partition$hpl, function(x) get_seqs_from_mat(as.matrix(prt_mat[x,])))
            names(seqs) <- hptypes
-           mats <-  lapply(seqs,  function(x) Biostrings::consensusMatrix(x,  as.prob = TRUE)[VALID_DNA(),])
+
+           mats <-  lapply(seqs,  function(x) as.matrix(Biostrings::consensusMatrix(x,  as.prob = TRUE)[VALID_DNA(),] + 1/length(x)))
            mats <- foreach(m = mats) %do% {
-             m[m == 0] <- 0.001
              colnames(m) <- colnames(prt_mat)
              m
            }
@@ -850,14 +849,9 @@ DR2S_$set("public", "runPartitionShortReads",
            ##' Assign read to haplotype with highest probability,
            ##' i.e. prod over probabilities of each haplotype and choose max
            message("get highest scoring haplotype for each read")
-           # debug
-           #srpartition <- self$srpartition
-           # srpartition <- srpartition$A$srpartition
-           # srpartition
            srpartition$haplotypes <- score_highest_SR(srpartition$srpartition)
 
            # Write fastqs
-           #hptype = "B"
            foreach(hptype = hptypes ) %do% {
              srfilenames <- c()
              message("Write shortread fastq for haplotype ", hptype, " ...")
@@ -866,7 +860,7 @@ DR2S_$set("public", "runPartitionShortReads",
              #fq <- fqs[1]
              # write fastq's
              foreach(fq = fqs) %do% {
-               srFastqHap = file.path(self$getOutdir(), hptype, paste0(c(strsplit(basename(fq), "\\.")[[1]][1], hptype, ".fastq.gz"), collapse = "."))
+               srFastqHap = file.path(self$getOutdir(), hptype, paste0(c(strsplit(basename(fq), "\\.")[[1]][1], hptype, "fastq.gz"), collapse = "."))
                write_part_fq(fq = fq, srFastqHap = srFastqHap, dontUseReads = dontUseReads)
                srfilenames <- c(srfilenames, srFastqHap)
                self$srpartition[[hptype]]$srpartition <- srpartition
@@ -1160,7 +1154,7 @@ DR2S_$set("public", "runMapFinal",
 
              for (readtype in c("LR", "SR")){
                gfile <- file.path(self$getOutdir(), paste("plotFinal", readtype, self$getLrdType(), self$getMapper(), "pdf", sep = "."))
-               pdf(file = gfile, width = 8 * length(hptypes), height = 8, onefile = TRUE)
+               pdf(file = gfile, width = 8 * length(hptypes), height = 8, onefile = TRUE, title = paste(self$getLocus(), self$getSampleId(), sep = "." ))
                self$plotmapFinalSummary(iteration = "final", readtype = readtype, thin = 0.25, width = 20)
                dev.off()
              }

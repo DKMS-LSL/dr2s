@@ -1,7 +1,7 @@
 #' @export
 
 #debug
-# x <- dl1_2
+# x <- sls.mapFinal
 # threshold <- x$getThreshold()
 # lower_limit <- 0.6
 # cache = TRUE
@@ -26,12 +26,13 @@ polish.DR2S <- function(x, threshold = x$getThreshold(), lower_limit = 0.60, cac
   hptypes <- x$getHapTypes()
 
   # debug
-  #hptype = "A"
+  hptype = "A"
   menv <- MergeEnv(x, threshold)
   for (hptype in hptypes){
     menv$init(hptype)
     menv$walk(hptype)
   }
+
 
   ## Short read phasing
   ## phasing.R
@@ -39,6 +40,7 @@ polish.DR2S <- function(x, threshold = x$getThreshold(), lower_limit = 0.60, cac
     menv$hptypes[[hptype]]$phasemat    <- phasematrix(compact(menv$hptypes[[hptype]]$variants))
     menv$hptypes[[hptype]]$phasebreaks <- phasebreaks(menv$hptypes[[hptype]]$phasemat)
   }
+
   ## phasing plots
   for (hptype in hptypes){
     if (!is.null(menv$hptypes[[hptype]]$phasemat)){
@@ -84,7 +86,7 @@ collect_variants <- function(x) {
   hvars <- foreach(hptype = hptypes) %do% {x$consensus[[hptype]]$variants}
   names(hvars) <- hptypes
 
-  if (all(unlist(lapply(hvars, function(x) length(x) == 0)))){
+  if (all(sapply(hvars, function(x) length(x) == 0))){
     return(
       dplyr::data_frame(
         haplotype = character(0), pos = integer(0), ref = character(0),
@@ -92,6 +94,7 @@ collect_variants <- function(x) {
       )
     )
   }
+
 
   phasebreaks <- lapply(hptypes, function(t) dplyr::filter(x$consensus[[t]]$phasebreaks, breakpos)$posx)
   names(phasebreaks) <- hptypes

@@ -34,7 +34,7 @@ SNPmatrix <- function(bamfile,
   assertthat::assert_that(is.numeric(polymorphic_positions))
   mat <- msa_from_bam(bamfile, refseq)
   mat <- as.matrix(mat)
-  mat <- mat[,polymorphic_positions]
+  mat <- as.matrix(mat[,polymorphic_positions])
   colnames(mat) <- polymorphic_positions
   mat
 }

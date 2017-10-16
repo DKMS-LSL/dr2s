@@ -319,29 +319,8 @@ trim_polymorphic_ends <- function(fq, min_len = 50) {
   fq@quality@quality <- Biostrings::subseq(fq@quality@quality, start, end)
   fq[Biostrings::width(fq) >= min_len]
 }
-
 get_seqs_from_mat <- function(mat){
   seqs <- apply(mat, 1, function(t) c(unlist(paste(t, collapse = ""))))
   seqs <- seqs[nchar(gsub("-", "",seqs))>0]
   Biostrings::DNAStringSet(seqs)
 }
-
-# ToDO ToRM??
-# writeStockholm <- function(msa, fCon, onlyGaps = FALSE){
-#  name = names(msa)
-#  msa = msa[[1]]
-#  if (!onlyGaps){
-#    msa = msa[which(!nchar(gsub("-", "", msa)) == 0)]
-#  }
-#  if (is(fCon, "connection")){
-#      if (!isOpen(fCon)){
-#        open(fCon, "w")
-#      }
-#  }else if (is.character(fCon)) {
-#    fCon <- base::file(fCon, "w")
-#  }
-#  msg <- "# STOCKHOLM 1.0\n#=GF ID "
-#  writeLines(paste0(msg, name), fCon)
-#  writeLines(paste(names(msa), as.character(msa), sep = "\t"), fCon)
-#  writeLines("//", fCon)
-# }

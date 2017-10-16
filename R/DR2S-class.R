@@ -172,7 +172,7 @@ DR2S_ <- R6::R6Class(
       }
       # unlink(file.path(self$getOutdir(), "A"), recursive = TRUE)
       # unlink(file.path(self$getOutdir(), "B"), recursive = TRUE)
-      unlink(file.path(self$getOutdir(), "merged"), recursive = TRUE)
+      unlink(file.path(self$getOutdir(), "final"), recursive = TRUE)
       invisible(self)
     },
     print = function() {

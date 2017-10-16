@@ -15,27 +15,19 @@
 #' ###
 
 # debug
- # x <- mat
+ # x <- hla.part$partition$mat
  # cl_method="ward.D"
  # min_len = 0.8
  # skip_gap_freq = 2/3
  # deepSplit = 1
 
-#   x <- dedk$partition
-#x <-   dedk.part$partition$mat
-#x <- matLR
-#nrow(matLR)
-#nrow(matSR)
-#x <- dedk.split$partition$mat
-#x <- dl1_2$partition$mat
-
 
 partition_reads <- function(x, cl_method="ward.D", min_len = 0.8, skip_gap_freq = 2/3, deepSplit = 1, outdir = "./outdir"){
   # get SNPs
   ppos <- colnames(x)
-  xm <- x[order(rownames(x)),]
+  xm <- as.matrix(x[order(rownames(x)),])
   bad_ppos <- apply(xm, 2, function(x) NROW(x[x == "-"])/NROW(x) > skip_gap_freq )
-  xm <- xm[,!bad_ppos]
+  xm <- as.matrix(xm[,!bad_ppos])
   bad_ppos <- ppos[bad_ppos]
 
   ## Get the SNP matrix as sequences
@@ -71,9 +63,11 @@ partition_reads <- function(x, cl_method="ward.D", min_len = 0.8, skip_gap_freq 
   mats <- lapply(msa, function(x) create_PWM(x))
 
   # ToDo refine chimera finding
-  seqs <- Biostrings::DNAStringSet(sapply(msa, function(x) unlist(simple_consensus(t(Biostrings::consensusMatrix(x)[c(VALID_DNA(), "-", "+"),])))))
-  rC <- sort(find_chimeric(seqs))
-  mats <- mats[rC]
+  if (length(hptypes)> 2) {
+    seqs <- Biostrings::DNAStringSet(sapply(msa, function(x) unlist(simple_consensus(t(Biostrings::consensusMatrix(x)[c(VALID_DNA(), "-", "+"),])))))
+    rC <- sort(find_chimeric(seqs))
+    mats <- mats[rC]
+  }
 
   scores <- dplyr::bind_rows(lapply(1:length(xseqs),function(s) get_scores(s, xseqs, mats)))
 
@@ -201,8 +195,8 @@ get_clusts <- function(xseqs, xmat, min_len = 0.80, cl_method = "ward.D", deepSp
   x_sub <- xseqs[Biostrings::width(gsub("-", "", xseqs)) > min_len*Biostrings::width(xseqs[1])]
 
   ## Consensus matrix with pseudocount
-  message("  Constructing a Position Specific Distance Matrix of ", length(xseqs), " sequences ...")
-  consmat  <- Biostrings::consensusMatrix(x_sub, as.prob = TRUE)[VALID_DNA(),] + 1/length(xseqs)
+  message("  Constructing a Position Specific Distance Matrix of ", length(x_sub), " sequences ...")
+  consmat  <- as.matrix(Biostrings::consensusMatrix(x_sub, as.prob = TRUE)[VALID_DNA(),] + 1/length(x_sub))
   ## Create seq matrix as input for cpp_PSDM
   x_sub_tmp <- as.matrix(x_sub)
   x_sub_mat<- plyr::revalue(x_sub_tmp, c("G" = 1, "A" = 2, "T" = 3, "C" = 4, "-" = 5))
@@ -548,6 +542,7 @@ HTR.HapPart <- function(x) {
 #' @examples
 #' ###
 plot_partition_histogram <- function(x, label = "", limits = NULL) {
+  #  x <- self$getPartition()
   stopifnot(is(x, "HapPart"))
   if (is.null(limits)){
     limits <- self$getLimits()
@@ -559,7 +554,7 @@ plot_partition_histogram <- function(x, label = "", limits = NULL) {
   ggplot(data) +
     geom_histogram(aes(x = mcoef, fill = haplotype), bins = 100) +
     scale_fill_manual(values = PARTCOL()) +
-    geom_vline(xintercept = c(limits["A"], -limits["B"]), linetype = "dashed", colour = "grey80") +
+    geom_vline(xintercept = c(limits[1], -limits[2]), linetype = "dashed", colour = "grey80") +
     # geom_vline(xintercept = c(-0.75, -0.5, -0.25, 0.25, 0.5, 0.75),
     #            linetype = "dashed", size = 0.5, colour = "grey80") +
     # xlim(c(-1.1, 1.1)) +
