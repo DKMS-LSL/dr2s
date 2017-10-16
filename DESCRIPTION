@@ -48,7 +48,7 @@ Imports:
 SystemRequirements: C++11, samtools, bwa (>= 0.7.11)
 VignetteBuilder: knitr
 RoxygenNote: 6.0.1
-Collate:
+Collate: 
     'DR2S-class.R'
     'DR2S-methods.R'
     'DR2S-package.r'
@@ -62,8 +62,11 @@ Collate:
     'conseq.R'
     'consmat.R'
     'errors.R'
+    'hmm.R'
+    'hmmer.R'
     'multiplot.R'
     'partition-reads.R'
+    'partitionShortReads.R'
     'phasing.R'
     'pileup.R'
     'polish-utils.R'

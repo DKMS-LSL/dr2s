@@ -7,6 +7,7 @@ create_dr2s_conf <- function(sample,
                              reference = NULL,
                              consensus = NULL,
                              threshold = 0.20,
+                             iterations = 1,
                              fullname = TRUE,
                              ...) {
   conf0 <- list(...)
@@ -24,12 +25,13 @@ create_dr2s_conf <- function(sample,
     datadir    = normalizePath(datadir, mustWork = TRUE),
     outdir     = outdir,
     threshold  = threshold,
+    iterations = iterations,
     mapper     = conf0$mapper   %||% "bwamem",
     # limitA     = conf0$limitA   %||% NULL,
     # limitB     = conf0$limitB   %||% NULL,
     limits     = conf0$limits   %||% NULL,
     haptypes   = conf0$haptypes   %||% NULL,
-    pipeline   = conf0$pipeline %||% c("clear", "map0", "partition", "split", "extract", "map1", "map2", "map3", "polish", "report"),
+    pipeline   = conf0$pipeline %||% c("clear", "mapInit", "partition", "split", "extract", "mapIter", "mapFinal", "polish", "report"),
     longreads  = longreads,
     shortreads = shortreads,
     nreads     = conf0$nreads   %||% NULL,
@@ -49,12 +51,13 @@ read_dr2s_conf <- function(config_file) {
   conf$datadir    <- conf$datadir    %||% normalizePath(".", mustWork = TRUE)
   conf$outdir     <- conf$outdir     %||% file.path(conf$datadir, "output")
   conf$threshold  <- conf$threshold  %||% 0.2
+  conf$iterations <- conf$iterations %||% 1
   conf$mapper     <- conf$mapper     %||% "bwamem"
   # conf["limitA"]  <- conf$limitA     %||% list(NULL)
   # conf["limitB"]  <- conf$limitN     %||% list(NULL)
   conf$limits     <- conf$limits     %||% list(NULL)
   conf$haptypes   <- conf$haptypes   %||% list(NULL)
-  conf$pipeline   <- conf$pipeline   %||% c("clear", "map0", "partition", "split", "extract", "map1", "map2", "map3", "polish", "report")
+  conf$pipeline   <- conf$pipeline   %||% c("clear", "mapInit", "partition", "split", "extract", "mapIter", "mapFinal", "polish", "report")
   conf$longreads  <- conf$longreads  %||% list(type = "pacbio", dir = "pacbio")
   conf$shortreads <- conf$shortreads %||% list(type = "illumina", dir = "illumina")
 
@@ -128,7 +131,7 @@ initialise_dr2s <- function(conf, create_outdir = TRUE) {
 }
 
 validate_dr2s_conf <- function(conf) {
-  fields <- c("datadir", "outdir", "threshold", "mapper", "limits", "haptypes",
+  fields <- c("datadir", "outdir", "threshold", "iterations", "mapper", "limits", "haptypes",
               "pipeline", "longreads", "shortreads", "nreads", "opts",
               "sample_id", "locus", "reference", "alternate", "consensus")#"limitA", "limitB",
   if (!all(fields %in% names(conf))) {
@@ -140,10 +143,14 @@ validate_dr2s_conf <- function(conf) {
   if (!is.numeric(conf$threshold) || (conf$threshold <= 0 || conf$threshold >= 1)) {
     stop("The polymorphism threshold must be a number between 0 ans 1", call. = FALSE)
   }
+  # check iterations
+  if (!is.numeric(conf$iterations) || !conf$iterations&&1 ==  0 || conf$iterations > 10) {
+    stop("The number of iterations must be integers between 1 and 10", call. = FALSE)
+  }
   ## Check mapper
   conf$mapper <- match.arg(conf$mapper, c("bwamem", "graphmap"))
   ## Check pipeline
-  pipesteps <- c("clear", "cache", "map0", "map1", "map2", "map3",
+  pipesteps <- c("clear", "cache", "mapInit", "mapIter", "mapFinal",
                  "partition", "split", "extract", "polish", "report")
   if (!all(conf$pipeline %in% pipesteps)) {
     stop("Invalid pipeline step <", comma(conf$pipeline[!conf$pipeline %in% pipesteps]), ">", call. = FALSE)

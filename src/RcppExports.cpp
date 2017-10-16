@@ -28,10 +28,23 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// cpp_PSDM
+NumericMatrix cpp_PSDM(NumericMatrix consMat, NumericMatrix sequences);
+RcppExport SEXP _DR2S_cpp_PSDM(SEXP consMatSEXP, SEXP sequencesSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< NumericMatrix >::type consMat(consMatSEXP);
+    Rcpp::traits::input_parameter< NumericMatrix >::type sequences(sequencesSEXP);
+    rcpp_result_gen = Rcpp::wrap(cpp_PSDM(consMat, sequences));
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_DR2S_cpp_polymorphic_positions", (DL_FUNC) &_DR2S_cpp_polymorphic_positions, 2},
     {"_DR2S_cpp_top2_cols", (DL_FUNC) &_DR2S_cpp_top2_cols, 1},
+    {"_DR2S_cpp_PSDM", (DL_FUNC) &_DR2S_cpp_PSDM, 2},
     {NULL, NULL, 0}
 };
 

@@ -235,3 +235,60 @@ prune_consensus_matrix <- function(cm, n_look_behind = 36, cutoff = 0.5, verbose
   }
   cm
 }
+
+#' @export
+# Create position weight matrix
+create_PWM <- function(msa){
+  cmat <- Biostrings::consensusMatrix(msa, as.prob = TRUE)[VALID_DNA(),]
+  ## Add pseudocount
+  cmat <- cmat + 1/length(msa)
+  ## Multiply with DNA_PROBABILITIES
+  cmat <- cmat / DNA_PROB(include = "del")
+  ## Get log2likelihood ratio
+  cmat <- log2(cmat)
+  cmat["-",] <- 0
+  cmat
+}
+
+
+
+
+# Position specific distance matrix
+## Better use cpp_PSDM
+PSDM <- function(xseqs, xcons){
+  xseqsmat <- as.matrix(x_sub[1:4])
+  # upper <- unlist(sapply(1:nrow(xseqsmat), function(r) callPSDM(xcons, xseqsmat, r)))
+  upper <- unlist(sapply(1:3, function(r) callPSDM(xcons, xseqsmat, r)))
+  upper <- unlist(sapply(1:nrow(xseqsmat), function(r) callPSDM(xcons, xseqsmat, r)))
+  dist <- matrix(NA, nrow(xseqsmat), nrow(xseqsmat))
+  dist[lower.tri(dist, diag <- TRUE)] <- upper
+  rownames(dist) <- rownames(xseqsmat)
+  colnames(dist) <- rownames(xseqsmat)
+  as.dist(dist)
+}
+
+callPSDM <- function(xcons, xseqsmat, r){
+  l <- r:nrow(xseqsmat)
+  sapply(l, function(a) PSDM_cell(xcons, xseqsmat, r, a))
+}
+
+PSDM_cell <- function(xcons, xseqsmat, r, a){
+  xr <- xseqsmat[r,]
+  xa <- xseqsmat[a,]
+  b <- sapply(1:length(xr), function(x) PSDM_score(x, xcons, xr[x], xa[x]))
+  n <- length(xr) - sum(b == 1)
+  b[b == 1] <- 0
+  sum(b)/n
+}
+
+PSDM_score <- function(x, xcons, r, a){
+   if (r == a){
+     return(0)
+   }
+  else if(r == "-" || a == "-"){
+    return(1)
+  }
+  else {
+    return(xcons[r,x]*xcons[a,x])
+   }
+}

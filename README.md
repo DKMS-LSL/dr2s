@@ -71,26 +71,25 @@ An analysis proceeds in a number of steps that can be chained together using the
 
 ``` r
 x %>% 
-  map0() %>% 
+  mapInit() %>% 
   partition_haplotypes() %>% 
   split_reads_by_haplotype() %>% 
   extract_fastq() %>% 
-  map1() %>% 
-  map2() %>% 
-  map3() %>% 
+  mapIter() %>% 
+  mapFinal() %>% 
   polish() %>% 
   report()
 ```
 
 The individual steps perform the following analyses:
 
--   **map0:** Map the long reads against a reference sequence constructed from `reference` using `bwa`.
+-   **mapInit:** Map the long and short reads against a reference sequence constructed from `reference` using `bwa`.
 -   **partition\_haplotypes:** Identify variants in the long-read mapping and cluster reads into the two allele haplotypes based on these variants.
 -   **split\_reads\_by\_haplotype:** Pick reads that best represent the two allele haplotypes based on a *haplotype membership score*.
 -   **extract\_fastq:** Extract the chosen reads from the alignment file and write the data as FASTQs into two subdirectories `A` and `B`
 -   **map1:** Pick a maximum of 40 long reads per allele haplotype and perform a multiple alignment to generate inital haplotype consensus sequences.
--   **map2:** Refine the long read consensus sequences by remapping *all* long reads per allele haplotype to the inital consensus.
--   **map3:** Map the short reads against the refined long read consensus sequences.
+-   **mapIter:** Refine the long read consensus sequences by remapping *all* long reads per allele haplotype to the inital consensus.
+-   **mapFinal:** Map the short reads against the refined long read consensus sequences.
 -   **polish:** Use the long read consensus sequences to disambiguate polymorphic positions in the short read mapping. Check for inconsistencies, insertions, deletions along the way.
 -   **report:** Report the finalised short-read-based consensus sequences as FASTA files. Provide a tsv file with suspicious positions that may warrant manual inspection.
 

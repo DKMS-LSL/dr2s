@@ -220,9 +220,9 @@ multialign <- function(x, hptype, n, align = list(
   gapPower = 0,
   normPower = 1
 )) {
-  stopifnot(is(x$map1[[hptype]], "map1"))
+  stopifnot(is(x$mapIter[["0"]][[hptype]], "mapIter"))
   hptype <- match.arg(hptype, x$getHapTypes())
-  readfile <- x$map1[[hptype]]$reads
+  readfile <- x$mapIter[["0"]][[hptype]]$reads
   fq <- ShortRead::readFastq(readfile)
   ids  <- as.character(ShortRead::id(fq))
   q    <- as.numeric(DR2S:::strsplitN(DR2S:::strsplitN(ids, " ", 2, fixed = TRUE), "=", 2, fixed = TRUE))
@@ -320,21 +320,28 @@ trim_polymorphic_ends <- function(fq, min_len = 50) {
   fq[Biostrings::width(fq) >= min_len]
 }
 
-writeStockholm <- function(msa, fCon, onlyGaps = FALSE){
- name = names(msa)
- msa = msa[[1]]
- if (!onlyGaps){
-   msa = msa[which(!nchar(gsub("-", "", msa)) == 0)]
- }
- if (is(fCon, "connection")){
-     if (!isOpen(fCon)){
-       open(fCon, "w")
-     }
- }else if (is.character(fCon)) {
-   fCon <- base::file(fCon, "w")
- }
- msg <- "# STOCKHOLM 1.0\n#=GF ID "
- writeLines(paste0(msg, name), fCon)
- writeLines(paste(names(msa), as.character(msa), sep = "\t"), fCon)
- writeLines("//", fCon)
+get_seqs_from_mat <- function(mat){
+  seqs <- apply(mat, 1, function(t) c(unlist(paste(t, collapse = ""))))
+  seqs <- seqs[nchar(gsub("-", "",seqs))>0]
+  Biostrings::DNAStringSet(seqs)
 }
+
+# ToDO ToRM??
+# writeStockholm <- function(msa, fCon, onlyGaps = FALSE){
+#  name = names(msa)
+#  msa = msa[[1]]
+#  if (!onlyGaps){
+#    msa = msa[which(!nchar(gsub("-", "", msa)) == 0)]
+#  }
+#  if (is(fCon, "connection")){
+#      if (!isOpen(fCon)){
+#        open(fCon, "w")
+#      }
+#  }else if (is.character(fCon)) {
+#    fCon <- base::file(fCon, "w")
+#  }
+#  msg <- "# STOCKHOLM 1.0\n#=GF ID "
+#  writeLines(paste0(msg, name), fCon)
+#  writeLines(paste(names(msa), as.character(msa), sep = "\t"), fCon)
+#  writeLines("//", fCon)
+# }

@@ -4,19 +4,18 @@
 \alias{partition_haplotypes}
 \title{Partition mapped long reads into haplotypes}
 \usage{
-partition_haplotypes(x, max_depth = 10000, shuffle = TRUE, plot = TRUE,
-  ...)
+partition_haplotypes(x, max_depth = 10000, plot = TRUE, ...)
 }
 \arguments{
 \item{x}{A \code{\link[=DR2S_]{DR2S}} object.}
 
 \item{max_depth}{Maximum number of alignments considered for partitioning.}
 
-\item{shuffle}{Randomly shuffle polymorphic positions.}
-
 \item{plot}{Produce diagnostic plots.}
 
 \item{...}{Further arguments passed to methods.}
+
+\item{shuffle}{Randomly shuffle polymorphic positions.}
 }
 \value{
 A \code{\link[=DR2S_]{DR2S}} object.

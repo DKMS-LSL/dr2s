@@ -4,12 +4,11 @@
 \alias{partition_reads}
 \title{Partition a SNP matrix into two haplotype groups}
 \usage{
-partition_reads(x, shuffle = TRUE, skip_gap_freq = 2/3)
+partition_reads(x, cl_method = "ward.D", min_len = 0.8,
+  skip_gap_freq = 2/3, deepSplit = 0)
 }
 \arguments{
 \item{x}{A \code{[read x position]} SNP matrix.}
-
-\item{shuffle}{Shuffle positions.}
 
 \item{skip_gap_freq}{Skip a badly behaved polymorphic position if the
 frequency of gaps within a haplotype group exceeds \code{skip_gap_freq}.}

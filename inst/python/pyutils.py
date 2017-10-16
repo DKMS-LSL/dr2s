@@ -110,52 +110,6 @@ def py_get_insertions(bamfile, inpos):
     return out
 
 
-def py_get_snp_matrix(bamfile, outfile, max_depth, polymorphic_positions):
-    max_depth = int(max_depth)
-    if isinstance(polymorphic_positions, list):
-        polymorphic_positions = [int(x) for x in polymorphic_positions]
-    else:
-        polymorphic_positions = [int(polymorphic_positions)]
-
-    out = open(outfile, "w")
-    out.write("qname,%s\n" % (",".join([str(i + 1) for i in polymorphic_positions])))
-    bam = bam_open(bamfile)
-    refname = bam.references[0]
-    dict_ = {"A":"1", "C":"2", "G":"3", "T":"4", "N":"0", "-":"0", "+":"0", "=":"0"}
-    ### Remove only using some reads
-    ## for hopefully optimal coverage move to the medium pileup column
-    pileup = bam.pileup(reference = refname, start = 0, max_depth = max_depth)
-    # nsegments = [col.nsegments for col in pileup]
-    # medcol = nsegments.index(int(statistics.median(nsegments)))
-    finreads = []
-    for pileupCol in pileup:#bam.pileup(reference = refname, start = 0, max_depth = max_depth):
-        if not pileupCol.pos in polymorphic_positions:
-            continue
-        # if pileupCol.pos == medcol:
-        for read in pileupCol.pileups:
-            readname = read.alignment.query_name
-            if readname in finreads:
-                continue
-            finreads.append(readname)
-            # pdb.set_trace()
-            out.write(readname)
-            refpos = read.alignment.get_reference_positions(full_length = True)
-            aln = read.alignment.query_sequence
-            for pos in polymorphic_positions:
-                try:
-                    out.write(",%s" % (dict_[aln[refpos.index(pos)]]))
-                except ValueError:
-                    out.write(",0")
-            out.write("\n")
-        # break
-        # else:
-        #     pass
-
-    out.close()
-    bam.close()
-    return True
-
-
 def prune_read(read):
     if read.is_unmapped:
         return 1
@@ -231,5 +185,3 @@ def py_bam_prune_clipping(infile, outfile):
     sys.stderr.write('Wrote %s reads\nAltered: %s\nUnmapped: %s\n' % (total, count, unmapped))
 
 # if __name__=='__main__':
-#     pm = [152, 424, 891, 1007, 2130, 2323, 2653, 3049, 3095, 3307, 3483, 3497, 4121, 4127, 4374,  4607,  5175,  5207, 5428,  5467,  5634,  5645,  6014,  6563,  7087,  7370,  7970,  8500,  8501,  8579,  8583,  8600,  8644,  8659,  8700,  8792, 10341, 10405, 11153, 11562, 11649, 12084, 12087, 12265, 12267]
-#     py_get_snp_matrix("/home/sklas/project/KIRproject/fresh_kirdr2s/testdata/DEDKM3406760/outputTest/DEDKM3406760/pacbio/KIR3DL3.pacbio.ref.multialign/KIR3DL3#00103.pacbio.bwamem.default.sorted.bam", "./test.csv", 10000, pm)

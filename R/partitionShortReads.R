@@ -31,6 +31,11 @@
 #' @examples
 #' ###
 get_SR_partition_scores <- function(ppos, refname, bamfile, mats, cores = "auto"){
+  stopifnot(
+    requireNamespace("parallel", quietly = TRUE),
+    requireNamespace("doParallel", quietly = TRUE),
+    requireNamespace("GenomicAlignments", quietly = TRUE)
+  )
 
   # Register parallel worker
   if (cores == "auto") {
@@ -60,7 +65,7 @@ get_SR_partition_scores <- function(ppos, refname, bamfile, mats, cores = "auto"
 ##' Get the highest scoring haplotype for each read
 #'
 #' @param srpartition srpartition dataframe with scores per read and haplotype.
-#'
+#' @param diffThreshold report reads which scores differ only below threshold to both haplotypes
 #' @details
 #' Returns a \code{data.frame} object with columns:
 #' \describe{
@@ -72,19 +77,24 @@ get_SR_partition_scores <- function(ppos, refname, bamfile, mats, cores = "auto"
 #' @export
 #' @examples
 #' ### Score
-
-score_highest_SR <- function(srpartition) {
+#
+score_highest_SR <- function(srpartition, diffThreshold = 0.2) {
   srpartition %>%
     dplyr::group_by(read, haplotype) %>%
     dplyr::mutate(clade = prod(prob)) %>%
     dplyr::ungroup() %>%
     dplyr::group_by(read) %>%
-    dplyr::select(read, haplotype, clade) %>%
-    dplyr::slice(which.max(clade)) %>%
-    dplyr::rename(score = clade)
+    dplyr::mutate(max = max(clade)) %>%
+    dplyr::group_by(read, haplotype) %>%
+    dplyr::select(read, haplotype, clade, max) %>%
+    dplyr::distinct() %>%
+    dplyr::group_by(read) %>%
+    dplyr::filter(abs(1-(clade/max)) < diffThreshold) %>%
+    dplyr::mutate(exclusive = n() == 1) %>%
+    dplyr::ungroup()
 }
 
-write_part_fq <- function(fqs, srFastqHap, dontUseReads = dontUseReads) {
+write_part_fq <- function(fq, srFastqHap, dontUseReads = dontUseReads) {
   file_delete_if_exists(srFastqHap)
   fqstream = ShortRead::FastqStreamer(fq)
   repeat {
@@ -93,7 +103,7 @@ write_part_fq <- function(fqs, srFastqHap, dontUseReads = dontUseReads) {
     fqnames <- as.character(ShortRead::id(sr))
     fqnames <- sub(" .*$", "", fqnames)
     sr <- sr[which(!fqnames %in% dontUseReads)]
-    ShortRead::writeFastq(sr, srFastaHap, mode="a", compress = TRUE)
+    ShortRead::writeFastq(sr, srFastqHap, mode="a", compress = TRUE)
   }
 }
 # --- Helper ---

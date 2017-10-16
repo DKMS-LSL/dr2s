@@ -38,12 +38,12 @@ run_igv <- function(x, position, ...) {
   igv1 <- igv_batch_files[1]
   igv2 <- igv_batch_files[2]
 
-  refA   <- file.path(basedir, "A", basename(x$map3$aref))
-  bamALR <- file.path(basedir, "merged", basename(x$map3$bamfile$LRA))
-  bamASR <- file.path(basedir, "merged", basename(x$map3$bamfile$SRA))
-  refB   <- file.path(basedir, "B", basename(x$map3$bref))
-  bamBLR <- file.path(basedir, "merged", basename(x$map3$bamfile$LRB))
-  bamBSR <- file.path(basedir, "merged", basename(x$map3$bamfile$SRB))
+  refA   <- file.path(basedir, "A", basename(x$mapFinal$aref))
+  bamALR <- file.path(basedir, "merged", basename(x$mapFinal$bamfile$LRA))
+  bamASR <- file.path(basedir, "merged", basename(x$mapFinal$bamfile$SRA))
+  refB   <- file.path(basedir, "B", basename(x$mapFinal$bref))
+  bamBLR <- file.path(basedir, "merged", basename(x$mapFinal$bamfile$LRB))
+  bamBSR <- file.path(basedir, "merged", basename(x$mapFinal$bamfile$SRB))
   chrA <- sub(">", "", readLines(refA, 1))
   chrB <- sub(">", "", readLines(refB, 1))
 

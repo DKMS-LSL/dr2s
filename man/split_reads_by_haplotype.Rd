@@ -4,17 +4,12 @@
 \alias{split_reads_by_haplotype}
 \title{Partition mapped long reads into haplotypes}
 \usage{
-split_reads_by_haplotype(x, limitA = NULL, limitB = limitA, scale = 2,
-  ...)
+split_reads_by_haplotype(x, limits, ...)
 }
 \arguments{
 \item{x}{A \code{\link[=DR2S_]{DR2S}} object.}
 
-\item{limitA}{Cutoff value for haplotype A.}
-
-\item{limitB}{Cutoff value for haplotype B.}
-
-\item{scale}{TODO}
+\item{limits}{List of Cutoff values for haplotypes.}
 
 \item{...}{Further arguments passed to methods.}
 }

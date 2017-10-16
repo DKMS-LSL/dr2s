@@ -44,32 +44,34 @@ conseq.pileup <- function(x, name = "conseq", type = c("prob", "freq", "ambig"),
   conseq(x, name = name, type = type, threshold = threshold,
          exclude_gaps = exclude_gaps, prune_matrix = prune_matrix, ... )
 }
-conseq.hmm <- function(x, name = NULL, outdir = getwd()) {
-  # debug
-  # x <- model
-  cons <- run_hmmer("hmmemit", x$outfile, outdir, force = TRUE)
-  seq <- Biostrings::readDNAStringSet(cons$outfile)
-  logo <- run_hmmer("hmmlogo", x$outfile, outdir, force = TRUE)
-  scores <- readr::read_table2(logo$outfile , skip = 2, col_names = FALSE)
-  scores <- scores %>%
-    dplyr::select(-X6) %>%
-    dplyr::mutate(X7 = as.numeric(gsub(")", "", X7)))
-  names(scores) <- c("Position", "A", "C", "G", "T", "height")
-  scores <- scores %>%
-    dplyr::select(A, C, G, T, height) %>%
-    dplyr::rowwise() %>%
-    dplyr::mutate(score = max(c(A, C, G, T))/ height)
 
-  metadata(seq) <- list(
-    zscore     = NULL,
-    freq       = scores$score,
-    ambigs     = NULL,
-    insertions = NULL,
-    deletions  = NULL,
-    consmat    = NULL
-  )
-  seq
-}
+# ToDo: RM
+# conseq.hmm <- function(x, name = NULL, outdir = getwd()) {
+#   # debug
+#   # x <- model
+#   cons <- run_hmmer("hmmemit", x$outfile, outdir, force = TRUE)
+#   seq <- Biostrings::readDNAStringSet(cons$outfile)
+#   logo <- run_hmmer("hmmlogo", x$outfile, outdir, force = TRUE)
+#   scores <- readr::read_table2(logo$outfile , skip = 2, col_names = FALSE)
+#   scores <- scores %>%
+#     dplyr::select(-X6) %>%
+#     dplyr::mutate(X7 = as.numeric(gsub(")", "", X7)))
+#   names(scores) <- c("Position", "A", "C", "G", "T", "height")
+#   scores <- scores %>%
+#     dplyr::select(A, C, G, T, height) %>%
+#     dplyr::rowwise() %>%
+#     dplyr::mutate(score = max(c(A, C, G, T))/ height)
+#
+#   metadata(seq) <- list(
+#     zscore     = NULL,
+#     freq       = scores$score,
+#     ambigs     = NULL,
+#     insertions = NULL,
+#     deletions  = NULL,
+#     consmat    = NULL
+#   )
+#   seq
+# }
 
 #' @export
 conseq.matrix <- function(x, name = NULL, type = c("prob", "freq", "ambig"),
@@ -260,9 +262,8 @@ plot_conseq_probability <- function(cseqs,
                                     threshold = "auto",
                                     text_size = 3,
                                     point_size = 1) {
-  labels <- unlist(lapply(cseqs, function(x) x$label), recursive = FALSE)
-  seqs <- unlist(lapply(cseqs, function(x) x$cseq))
-
+  labels <- sapply(cseqs, function(x) x$label)
+  seqs <- sapply(cseqs, function(x) x$cseq)
   # get labels and tags
   if (all(nzchar(labels))){
     tags <- lapply(labels, function(x) gsub("[<>]", "", strsplit(x, " ", fixed = TRUE)[[1]]))
@@ -281,11 +282,6 @@ plot_conseq_probability <- function(cseqs,
   df <- dplyr::bind_rows(
     foreach(hp = names(cseqs)) %do% {
       seq <- seqs[[hp]]
-      # debug
-      # groups[[hp]]
-      # length(seq_len(Biostrings::width(seq)))
-      # length(strsplit(as.character(seq), split = "")[[1]])
-      # length(as.numeric(pnorm(metadata(seq)$zscore)))
       dplyr::data_frame(
         group = groups[[hp]],
         pos   = seq_len(Biostrings::width(seq)),

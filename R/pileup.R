@@ -280,13 +280,14 @@ pileup_include_insertions <- function(x, threshold = NULL) {
 
 #refseq <- hla.map1$map1$A$ref$refseq
 ## get msa from bam file
+# debug
+#bamfile <- self$mapInit$bamfile
+#refseq <- self$getRefSeq()
 msa_from_bam <- function(bamfile, refseq){
   nRefseq <- names(refseq)
   lRefseq <- length(refseq[[1]])
   region <- paste0(nRefseq, ":1-", lRefseq)
-  aln <- GenomicAlignments::stackStringsFromBam(bamfile, param=region, Lpadding.letter = "-", Rpadding.letter = "-")
-  names(aln) <- 1:length(aln)
-  aln
+  GenomicAlignments::stackStringsFromBam(bamfile, param=region, Lpadding.letter = "-", Rpadding.letter = "-", use.names = TRUE)
 }
 
 # Summarise and plot ------------------------------------------------------

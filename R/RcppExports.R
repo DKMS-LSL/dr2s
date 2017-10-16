@@ -9,3 +9,7 @@ cpp_top2_cols <- function(x) {
     .Call('_DR2S_cpp_top2_cols', PACKAGE = 'DR2S', x)
 }
 
+cpp_PSDM <- function(consMat, sequences) {
+    .Call('_DR2S_cpp_PSDM', PACKAGE = 'DR2S', consMat, sequences)
+}
+

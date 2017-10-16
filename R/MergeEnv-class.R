@@ -81,8 +81,8 @@ MergeEnv_ <- R6::R6Class(
 MergeEnv_$set("public", "init", function(hapEnv) {
   hapEnv <- match.arg(hapEnv, self$x$getHapTypes())
   envir <- self$hptypes[[hapEnv]]
-  envir$SR <- self$x$map3$pileup[[paste0("SR", hapEnv)]]$consmat ## consmat short reads
-  lr <- self$x$map3$pileup[[paste0("LR", hapEnv)]]$consmat ## consmat long reads
+  envir$SR <- self$x$mapFinal$pileup[[paste0("SR", hapEnv)]]$consmat ## consmat short reads
+  lr <- self$x$mapFinal$pileup[[paste0("LR", hapEnv)]]$consmat ## consmat long reads
 
   envir$LR = expand_longread_consmat(lrm = lr, srm = envir$SR)
   envir$variants = list()

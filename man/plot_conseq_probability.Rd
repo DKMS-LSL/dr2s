@@ -4,17 +4,17 @@
 \alias{plot_conseq_probability}
 \title{Plot probability of consensus bases.}
 \usage{
-plot_conseq_probability(seqA, seqB, threshold = "auto", text_size = 3,
-  point_size = 1, labelA = "", labelB = "")
+plot_conseq_probability(cseqs, threshold = "auto", text_size = 3,
+  point_size = 1)
 }
 \arguments{
-\item{seqA}{consensus sequence A.}
-
-\item{seqB}{consensus sequence B.}
-
 \item{text_size}{Text size.}
 
 \item{point_size}{Point size.}
+
+\item{seqA}{consensus sequence A.}
+
+\item{seqB}{consensus sequence B.}
 
 \item{labelA}{Label A.}
 

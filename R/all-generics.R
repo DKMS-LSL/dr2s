@@ -58,6 +58,7 @@
 #' from the long reads. One of \dQuote{\code{multialign}} or \dQuote{\code{mapping}}
 #' (See Note).
 #' @param threshold Threshold frequency for polymorphisms.
+#' @param iterations Number of iterations of the mapIter step.
 #' @param fullname Truncate allele names.
 #'
 #' @return A \code{\link[=DR2S_]{DR2S}} object.
@@ -75,13 +76,12 @@
 #'   consensus = "multialign"
 #'   ) %>%
 #'   clear() %>%
-#'   map0() %>%
+#'   mapInit() %>%
 #'   partition_haplotypes() %>%
 #'   split_reads_by_haplotype() %>%
 #'   extract_fastq() %>%
-#'   map1() %>%
-#'   map2() %>%
-#'   map3() %>%
+#'   mapIter() %>%
+#'   mapFinal() %>%
 #'   cache() %>%
 #'   polish() %>%
 #'   report(block_width = 60)
@@ -95,6 +95,7 @@ DR2Smap <- function(sample,
                     reference = NULL,
                     consensus = "multialign",
                     threshold = 0.20,
+                    iterations = 1,
                     fullname = TRUE,
                     ...) {
   UseMethod("DR2Smap")
@@ -145,18 +146,17 @@ DR2Smap <- function(sample,
 #'   consensus = "multialign"
 #'   ) %>%
 #'   clear() %>%
-#'   map0() %>%
+#'   mapInit() %>%
 #'   partition_haplotypes() %>%
 #'   split_reads_by_haplotype(limitA = 0.5, limitB = 0.25) %>%
 #'   extract_fastq() %>%
-#'   map1() %>%
-#'   map2() %>%
-#'   map3() %>%
+#'   mapIter() %>%
+#'   mapFinal() %>%
 #'   cache() %>%
 #'   polish() %>%
 #'   report(block_width = 60)
 #' }
-map0 <- function(x,
+mapInit <- function(x,
                  opts = list(),
                  refname = "ref",
                  optsname = "",
@@ -172,13 +172,13 @@ map0 <- function(x,
                  fullname = TRUE,
                  plot = TRUE,
                  ...) {
-  UseMethod("map0")
+  UseMethod("mapInit")
 }
 
-#' Second mapping step (long reads).
+#' Iterative mapping step (long reads).
 #'
-#' Partitioned long reads are mapped against the reference and alternate
-#' sequences. Indels are \strong{excluded} from pileup. New consensus sequences
+#' Partitioned long reads are mapped against the consensus sequence from MSA of the best 40
+#' sequences for each haplotype. Indels are \strong{excluded} from pileup. New consensus sequences
 #' for both alleles are inferred.
 #'
 #' @param x A \code{\link[=DR2S_]{DR2S}} object.
@@ -214,18 +214,17 @@ map0 <- function(x,
 #'   consensus = "multialign"
 #'   ) %>%
 #'   clear() %>%
-#'   map0() %>%
+#'   mapInit() %>%
 #'   partition_haplotypes() %>%
 #'   split_reads_by_haplotype(limitA = 0.5, limitB = 0.25) %>%
 #'   extract_fastq() %>%
-#'   map1() %>%
-#'   map2() %>%
-#'   map3() %>%
+#'   mapIter() %>%
+#'   mapFinal() %>%
 #'   cache() %>%
 #'   polish() %>%
 #'   report(block_width = 60)
 #' }
-map1 <- function(x,
+mapIter <- function(x,
                  opts = list(),
                  pct = 100,
                  min_base_quality = 7,
@@ -239,80 +238,13 @@ map1 <- function(x,
                  fullname = TRUE,
                  plot = TRUE,
                  ...) {
-  UseMethod("map1")
+  UseMethod("mapIter")
 }
 
-#' Third mapping step (long reads).
+#' Final mapping step (long reads and short reads).
 #'
-#' Partitioned long reads are mapped against the consensus sequences inferred
-#' at \code{map1}. Indels are \strong{included} in pileup. New consensus
-#' sequences for both alleles are inferred.
-#'
-#' @param x A \code{\link[=DR2S_]{DR2S}} object.
-#' @param opts Mapper options.
-#' @param pct Percentage of templates to subsample (before sorting the bam file).
-#' @param min_base_quality Minimum \sQuote{QUAL} value for each nucleotide in an
-#' alignment.
-#' @param min_mapq Minimum \sQuote{MAPQ} value for an alignment to be included
-#' in pileup.
-#' @param max_depth Maximum number of overlapping alignments considered for
-#' each position in the pileup.
-#' @param min_nucleotide_depth Minimum count of each nucleotide at a given
-#' position required for that nucleotide to appear in the result.
-#' @param include_deletions If \code{TRUE}, include deletions in pileup.
-#' @param include_insertions If \code{TRUE}, include insertions in pileup.
-#' @param pruning_cutoff TODO
-#' @param force If \code{TRUE}, overwrite existing bam file.
-#' @param fullname If \code{TRUE}, use the full name in reference fasta.
-#' @param plot Plot diagnostics.
-#' @param ... Further arguments passed to methods.
-#'
-#' @return A \code{\link[=DR2S_]{DR2S}} object.
-#' @family DR2S mapper functions
-#' @export
-#' @examples
-#' \dontrun{
-#' x <- DR2Smap(
-#'   sample = "ID12300527",
-#'   locus = "DPB1",
-#'   datadir = "/path/to/data",
-#'   outdir = "/path/to/output",
-#'   reference = "04:01:01:01",
-#'   consensus = "multialign"
-#'   ) %>%
-#'   clear() %>%
-#'   map0() %>%
-#'   partition_haplotypes() %>%
-#'   split_reads_by_haplotype(limitA = 0.5, limitB = 0.25) %>%
-#'   extract_fastq() %>%
-#'   map1() %>%
-#'   map2() %>%
-#'   map3() %>%
-#'   cache() %>%
-#'   polish() %>%
-#'   report(block_width = 60)
-#' }
-map2 <- function(x,
-                 opts = list(),
-                 pct = 100,
-                 min_base_quality = 7,
-                 min_mapq = 0,
-                 max_depth = 1e4,
-                 min_nucleotide_depth = 3,
-                 include_deletions = TRUE,
-                 include_insertions = TRUE,
-                 pruning_cutoff = 0.75,
-                 force = FALSE,
-                 fullname = TRUE,
-                 plot = TRUE,
-                 ...) {
-  UseMethod("map2")
-}
-
-#' Fourth mapping step (long reads and short reads).
-#'
-#' Partitioned long reads and unpartitioned short reads are mapped against the
-#' consensus sequences inferred at \code{map2}. Indels are \strong{included}
+#' Partitioned long reads and partitioned or unpartitioned short reads are mapped against the
+#' consensus sequences inferred at \code{mapIter}. Indels are \strong{included}
 #' in pileup.
 #'
 #' @param x A \code{\link[=DR2S_]{DR2S}} object.
@@ -350,18 +282,17 @@ map2 <- function(x,
 #'   consensus = "multialign"
 #'   ) %>%
 #'   clear() %>%
-#'   map0() %>%
+#'   mapInit() %>%
 #'   partition_haplotypes() %>%
 #'   split_reads_by_haplotype(limitA = 0.5, limitB = 0.25) %>%
 #'   extract_fastq() %>%
-#'   map1() %>%
-#'   map2() %>%
-#'   map3() %>%
+#'   mapIter() %>%
+#'   mapFinal() %>%
 #'   cache() %>%
 #'   polish() %>%
 #'   report(block_width = 60)
 #' }
-map3 <- function(x,
+mapFinal <- function(x,
                  opts = list(),
                  pct = 100,
                  min_base_quality = 7,
@@ -376,7 +307,7 @@ map3 <- function(x,
                  plot = TRUE,
                  clip = TRUE,
                  ...) {
-  UseMethod("map3")
+  UseMethod("mapFinal")
 }
 
 
@@ -405,13 +336,12 @@ map3 <- function(x,
 #'   consensus = "multialign"
 #'   ) %>%
 #'   clear() %>%
-#'   map0() %>%
+#'   mapInit() %>%
 #'   partition_haplotypes() %>%
 #'   split_reads_by_haplotype(limitA = 0.5, limitB = 0.25) %>%
 #'   extract_fastq() %>%
-#'   map1() %>%
-#'   map2() %>%
-#'   map3() %>%
+#'   mapIter() %>%
+#'   mapFinal() %>%
 #'   cache() %>%
 #'   polish() %>%
 #'   report(block_width = 60)
@@ -443,13 +373,12 @@ partition_haplotypes <- function(x,
 #'   consensus = "multialign"
 #'   ) %>%
 #'   clear() %>%
-#'   map0() %>%
+#'   mapInit() %>%
 #'   partition_haplotypes() %>%
 #'   split_reads_by_haplotype() %>%
 #'   extract_fastq() %>%
-#'   map1() %>%
-#'   map2() %>%
-#'   map3() %>%
+#'   mapIter() %>%
+#'   mapFinal() %>%
 #'   cache() %>%
 #'   polish() %>%
 #'   report(block_width = 60)
@@ -479,19 +408,58 @@ split_reads_by_haplotype <- function(x,
 #'   consensus = "multialign"
 #'   ) %>%
 #'   clear() %>%
-#'   map0() %>%
+#'   mapInit() %>%
 #'   partition_haplotypes() %>%
 #'   split_reads_by_haplotype(limitA = 0.5, limitB = 0.25) %>%
 #'   extract_fastq() %>%
-#'   map1() %>%
-#'   map2() %>%
-#'   map3() %>%
+#'   mapIter() %>%
+#'   mapFinal() %>%
 #'   cache() %>%
 #'   polish() %>%
 #'   report(block_width = 60)
 #' }
 extract_fastq <- function(x, ...) {
   UseMethod("extract_fastq")
+}
+
+#' Assign short reads from mapInit to haplotypes
+#'
+#' @param x A \code{\link[=DR2S_]{DR2S}} object.
+#' @param force force the creation of new fastq files if they already exist
+#' @param shuffle Randomly shuffle polymorphic positions.
+#' @param plot Produce diagnostic plots.
+#' @param ... Further arguments passed to methods.
+#'
+#' @return A \code{\link[=DR2S_]{DR2S}} object.
+#' @family DR2S mapper functions
+#' @export
+#' @examples
+#' \dontrun{
+#' x <- DR2Smap(
+#'   sample = "ID12300527",
+#'   locus = "DPB1",
+#'   datadir = "/path/to/data",
+#'   outdir = "/path/to/output",
+#'   reference = "04:01:01:01",
+#'   consensus = "multialign"
+#'   ) %>%
+#'   clear() %>%
+#'   mapInit() %>%
+#'   partition_haplotypes() %>%
+#'   split_reads_by_haplotype(limitA = 0.5, limitB = 0.25) %>%
+#'   extract_fastq() %>%
+#'   mapIter() %>%
+#'   partitionShortReads() %>%
+#'   mapFinal() %>%
+#'   cache() %>%
+#'   polish() %>%
+#'   report(block_width = 60)
+#' }
+partitionShortReads <- function(x,
+                                force = TRUE,
+                                 plot = TRUE,
+                                 ...) {
+  UseMethod("partitionShortReads")
 }
 
 # polishing and reporting ------------------------------------------------
@@ -520,13 +488,12 @@ extract_fastq <- function(x, ...) {
 #'   consensus = "multialign"
 #'   ) %>%
 #'   clear() %>%
-#'   map0() %>%
+#'   mapInit() %>%
 #'   partition_haplotypes() %>%
 #'   split_reads_by_haplotype(limitA = 0.5, limitB = 0.25) %>%
 #'   extract_fastq() %>%
-#'   map1() %>%
-#'   map2() %>%
-#'   map3() %>%
+#'   mapIter() %>%
+#'   mapFinal() %>%
 #'   cache() %>%
 #'   polish() %>%
 #'   report(block_width = 60)
@@ -539,8 +506,8 @@ polish <- function(x, threshold = x$getThreshold(), lower_limit = 0.6, cache = T
 #' Report the final haplotype sequences.
 #'
 #' @param x A \code{\link[=DR2S_]{DR2S}} object.
-#' @param which Which mapping do we want to report. Will choose \code{map3},
-#' \code{map2}, \code{map1} in this order if available.
+#' @param which Which mapping do we want to report. Will choose \code{mapFinal},
+#' \code{mapIter} in this order if available.
 #' @param block_width Maximum number of sequence letters per line in pairwise alignment.
 #' @param ... Additional arguments passed to methods.
 #' @details
@@ -571,13 +538,12 @@ polish <- function(x, threshold = x$getThreshold(), lower_limit = 0.6, cache = T
 #'   consensus = "multialign"
 #'   ) %>%
 #'   clear() %>%
-#'   map0() %>%
+#'   mapInit() %>%
 #'   partition_haplotypes() %>%
 #'   split_reads_by_haplotype() %>%
 #'   extract_fastq() %>%
-#'   map1() %>%
-#'   map2() %>%
-#'   map3() %>%
+#'   mapIter() %>%
+#'   mapFinal() %>%
 #'   cache() %>%
 #'   polish() %>%
 #'   report(block_width = 60)
@@ -609,13 +575,12 @@ report <- function(x, which, block_width = 80, ...) {
 #'   consensus = "multialign"
 #'   ) %>%
 #'   clear() %>%
-#'   map0() %>%
+#'   mapInit() %>%
 #'   partition_haplotypes() %>%
 #'   split_reads_by_haplotype(limitA = 0.5, limitB = 0.25) %>%
 #'   extract_fastq() %>%
-#'   map1() %>%
-#'   map2() %>%
-#'   map3() %>%
+#'   mapIter() %>%
+#'   mapFinal() %>%
 #'   cache() %>%
 #'   polish() %>%
 #'   report(block_width = 60)
@@ -643,13 +608,12 @@ clear <- function(x, ...) {
 #'   consensus = "multialign"
 #'   ) %>%
 #'   clear() %>%
-#'   map0() %>%
+#'   mapInit() %>%
 #'   partition_haplotypes() %>%
 #'   split_reads_by_haplotype(limitA = 0.5, limitB = 0.25) %>%
 #'   extract_fastq() %>%
-#'   map1() %>%
-#'   map2() %>%
-#'   map3() %>%
+#'   mapIter() %>%
+#'   mapFinal() %>%
 #'   cache() %>%
 #'   polish() %>%
 #'   report(block_width = 60)

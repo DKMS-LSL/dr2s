@@ -59,6 +59,10 @@ print.variant_list <- function(x, threshold = 0.2, ...) {
 #' @keywords internal
 #' @examples
 #' ###
+#' 
+                                 # min_overrep_lr = 1.5
+                                 # max_overrep_sr = 2
+# x <- bla
 disambiguate_variant <- function(x,
                                  threshold,
                                  min_overrep_lr = 1.5,
@@ -98,12 +102,12 @@ disambiguate_variant <- function(x,
     x$variant <- variant(bases, NA, NA, warning_msg, x)
     return(x)
   }
-
   ## Insertions missing in short reads give rise to spurious deletion signal
   if (!is.na(match(rownames(x$sr), ins(x$sr)))) {
     gaps <- sr[, vars][["-"]]
-    base <- sr[, vars][[which(!names(vars) %in% "-")]]
-    if (base/gaps > x$balance_upper_confint) {
+    # problem: two bases and gap. Need to use list
+    base <- sr[, vars][which(!names(vars) %in% "-")]
+    if (max(base)/gaps > x$balance_upper_confint) {
       # fewer gaps than insertion bases -> assume all reads carry the insertion
       warning_msg <- warning_msg %<<% "|Check insertion in short reads!"
       sr[, vars]["-"] <- 0

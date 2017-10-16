@@ -14,7 +14,7 @@ x <- DR2Smap(
 ##run_igv(x, 100)
 
 y1 <- x %>%
-  map0() %>%
+  mapInit() %>%
   partition_haplotypes() %>%
   split_reads_by_haplotype() %>%
   extract_fastq()
@@ -23,10 +23,10 @@ y2 <- y1 %>%
   map1()
 
 y3 <- y2 %>%
-  map2()
+  mapIter()
 
 y4 <- y3 %>%
-  map3()
+  mapFinal()
 
 y5 <- y4 %>%
   polish() %>%
@@ -50,14 +50,14 @@ xx <- DR2Smap(
 )
 
 yy1 <- xx %>%
-  map0() %>%
+  mapInit() %>%
   partition_haplotypes() %>%
   split_reads_by_haplotype() %>%
   extract_fastq()
 
 yy2  <- yy1 %>% map1()
-yy3  <- yy2 %>% map2()
-yy4  <- yy3 %>% map3()
+yy3  <- yy2 %>% mapIter()
+yy4  <- yy3 %>% mapFinal()
 yy5  <- yy4 %>%
   polish() %>%
   report()
@@ -79,14 +79,14 @@ se1 <- DR2Smap(
 )
 
 y_se1 <- se1 %>%
-  map0(min_base_quality = 0) %>%
+  mapInit(min_base_quality = 0) %>%
   partition_haplotypes() %>%
   split_reads_by_haplotype() %>%
   extract_fastq()
 
 yy2_se1  <- y_se1 %>% map1(min_base_quality = 0)
-yy3_se1  <- yy2_se1 %>% map2(min_base_quality = 0)
-yy4_se1  <- yy3_se1 %>% map3(min_base_quality = 0)
+yy3_se1  <- yy2_se1 %>% mapIter(min_base_quality = 0)
+yy4_se1  <- yy3_se1 %>% mapFinal(min_base_quality = 0)
 yy5_se1  <- yy4_se1 %>%
   polish() %>%
   report()
@@ -106,14 +106,14 @@ se2 <- DR2Smap(
 )
 
 y_se2 <- se2 %>%
-  map0(min_base_quality = 0) %>%
+  mapInit(min_base_quality = 0) %>%
   partition_haplotypes() %>%
   split_reads_by_haplotype() %>%
   extract_fastq()
 
 yy2_se2  <- y_se2 %>% map1(min_base_quality = 0)
-yy3_se2  <- yy2_se2 %>% map2(min_base_quality = 0)
-yy4_se2  <- yy3_se2 %>% map3(min_base_quality = 0)
+yy3_se2  <- yy2_se2 %>% mapIter(min_base_quality = 0)
+yy4_se2  <- yy3_se2 %>% mapFinal(min_base_quality = 0)
 yy5_se2  <- yy4_se2 %>%
   polish() %>%
   report()
@@ -132,14 +132,14 @@ se3 <- DR2Smap(
 )
 
 y_se3 <- se3 %>%
-  map0(min_base_quality = 0) %>%
+  mapInit(min_base_quality = 0) %>%
   partition_haplotypes() %>%
   split_reads_by_haplotype() %>%
   extract_fastq()
 
 yy2_se3  <- y_se3 %>% map1(min_base_quality = 0)
-yy3_se3  <- yy2_se3 %>% map2(min_base_quality = 0)
-yy4_se3  <- yy3_se3 %>% map3(min_base_quality = 0)
+yy3_se3  <- yy2_se3 %>% mapIter(min_base_quality = 0)
+yy4_se3  <- yy3_se3 %>% mapFinal(min_base_quality = 0)
 yy5_se3  <- yy4_se3 %>% polish() %>% report()
 
 
@@ -154,10 +154,10 @@ mapfun <- y2$getMapFun()
 
 
 maptag   <- "xxx"
-refpath  <- y3$map2[["B"]]$seqpath
+refpath  <- y3$mapIter[["B"]]$seqpath
 sreadpath <- y3$getShortreads()
 ## Run mapper
-message("  Mapping short reads against Map2 consensus ...")
+message("  Mapping short reads against mapIter consensus ...")
 samfile <- mapfun(
   reffile  = refpath,
   readfile = sreadpath,
@@ -203,7 +203,7 @@ x2 <- DR2Smap(
 )
 
 x2_r <- x2 %>%
-  map0(min_base_quality = 0)## %>%
+  mapInit(min_base_quality = 0)## %>%
   ##partition_haplotypes()## %>%
   ##split_reads_by_haplotype() %>%
   ##extract_fastq()
@@ -211,8 +211,8 @@ x2_r <- x2 %>%
 #y2 <- y1 %>% map1()
 
 #y3 <- y2 %>%
-#  map2() %>%
-#  map3() %>%
+#  mapIter() %>%
+#  mapFinal() %>%
 #  polish() %>%
 #  report()
 
@@ -229,7 +229,7 @@ x3 <- DR2Smap(
 )
 
 y11 <- x3 %>%
-  map0() %>%
+  mapInit() %>%
   partition_haplotypes() %>%
   split_reads_by_haplotype() %>%
   extract_fastq()
@@ -237,8 +237,8 @@ y11 <- x3 %>%
 y21 <- y11 %>% map1()
 
 y31 <- y21 %>%
-  map2() %>%
-  map3() %>%
+  mapIter() %>%
+  mapFinal() %>%
   polish() %>%
   report()
 

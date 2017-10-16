@@ -1,5 +1,7 @@
 #' @export
 
+#report(i
+# x <-hla.mapFinal
 # debug
 #x <- dedk.bla
 #block_width = 80
@@ -13,55 +15,55 @@ report.DR2S <- function(x, which, block_width = 80, ...) {
 
   outdir <- dir_create_if_not_exists(file.path(x$getOutdir(), "report"))
   if (missing(which)) {
-    ## if `which` is unspecified choose `map3` if available,
-    ## otherwise try `map2`, then try `map1`
-    if (is(x$consensus, "ConsList")) {
-      report_map_(x, map = "map3", outdir = outdir, block_width = block_width, ...)
-    } else if (all(sapply(x$map2, is, "map2"))) {
-      report_map_(x, map = "map2", outdir = outdir, block_width = block_width, ...)
-    } else if (all(sapply(x$map1, is, "map1"))) {
-      report_map_(x, map = "map1", outdir = outdir, block_width = block_width, ...)
+    ## if `which` is unspecified choose `mapFinal` if available,
+    ## otherwise try `mapIter`, then try `map1`
+    if (is(x$mapFinal, "mapFinal")) {
+      report_map_(x, map = "mapFinal", outdir = outdir, block_width = block_width, ...)
+    } else if (all(is(object = x$mapIter$`0`$A, class2 = "mapIter"))) {
+      report_map_(x, map = "mapIter", outdir = outdir, block_width = block_width, ...)
     } else
       stop("Nothing to report")
   } else {
-    which <- match.arg(tolower(which), c("map3", "map2", "map1"))
+    which <- match.arg(tolower(which), c("mapFinal", "mapIter"))
     report_map_(x, which, outdir, block_width = block_width, ...)
   }
 }
+# debug
+#map = "mapFinal"
 report_map_ <- function(x, map, outdir, block_width, ...) {
-  map <- match.arg(tolower(map), c("map3", "map2", "map1"))
+  map <- match.arg(tolower(map), c("mapfinal", "mapiter"))
   ref <-  Biostrings::BStringSet(x$getRefSeq())
   names(ref) <- strsplitN(names(ref), "~", 1, fixed = TRUE)
-  alt <-  Biostrings::BStringSet(x$getAltSeq())
-  if (length(alt) > 0) {
-    names(alt) <- strsplitN(names(alt), "~", 1, fixed = TRUE)
-  }
-
-  # debug
-  #addins <- list()
   addins <- list(...)$addins
   if (!is.null(addins)) {
     addins <- Biostrings::readBStringSet(addins)
     names(addins) <- strsplitN(names(addins), "~", 1, fixed = TRUE)
   }
-
-  haps <- switch(
-    map,
-    "map1" = ifelse(
-      x$hasMap1Alternate(),
-      foreach(hptype = x$getHapTypes()) %do% {x$map1[[hptype]]$conseq$merged},
-      foreach(hptype = x$getHapTypes()) %do% {x$map1[[hptype]]$conseq$reference}
-    ),
-    "map2" = foreach(hptype = x$getHapTypes(), .final = function(h) setNames(h, x$getHapTypes())) %do% {x$map2[[hptype]]$conseq},
-    "map3" = unlist(foreach(hptype = x$getHapTypes()) %do% {x$consensus$seq[hptype]})
-  )
-
+  haps <- x$getLatestRef()
+  # switch(
+  #   map,
+  #   "map1" = ifelse(
+  #     x$hasMap1Alternate(),
+  #     foreach(hptype = x$getHapTypes()) %do% {x$map1[[hptype]]$conseq$merged},
+  #     foreach(hptype = x$getHapTypes()) %do% {x$map1[[hptype]]$conseq$reference}
+  #   ),
+  #   "mapIter" = sapply(x$mapIter[x$getHapTypes()], function(a) a$conseq),
+  #   "mapFinal" = unlist(foreach(hptype = x$getHapTypes()) %do% {x$consensus[[hptype]]})
+  # )
+  #
+  # microbenchmark::microbenchmark(
+  #   foreach(hptype = x$getHapTypes(), .final = function(h) setNames(h, x$getHapTypes())) %do% { x$mapIter[[hptype]]$conseq},
+  #   times = 100L)
   ## Write html alignment file
   aln_file <-  paste(map, "aln", x$getLrdType(), x$getMapper(), "unchecked", sep = ".")
   # get all seqs as stringset
   seqs <- unlist(Biostrings::BStringSetList(haps))
   names(seqs) <- names(haps)
-  seqs <- c(ref, seqs, alt, addins)
+  # if (is.null(addins)){
+    # seqs <- c(ref, seqs, alt )
+  # } else {
+    seqs <- c(ref, seqs, addins)
+  # }
   browse_align(seqs, file = file.path(outdir, aln_file), openURL = FALSE)
 
   ## Write consensus FASTA files
@@ -93,12 +95,12 @@ report_map_ <- function(x, map, outdir, block_width, ...) {
   ## Write Pairwise Alignment
   if (length(x$getHapTypes()) == 2){
     pair_file <- paste(map, "aln", x$getLrdType(), x$getMapper(), "unchecked.pair", sep = ".")
-    aln <- Biostrings::pairwiseAlignment(pattern = hap[["A"]], subject = hap[["B"]], type = "global")
+    aln <- Biostrings::pairwiseAlignment(pattern = haps[[x$getHapTypes()[[1]]]], subject = haps[[x$getHapTypes()[[2]]]], type = "global")
     Biostrings::writePairwiseAlignments(aln, file.path(outdir, pair_file), block.width = block_width)
   }
 
   ## CHECK HERE
-  if (map == "map3") {
+  if (map == "mapFinal") {
     ## Report problematic Variants
     probvar_file <- paste("problems", x$getLrdType(), x$getMapper(), "tsv", sep = ".")
     vars <- x$consensus$problematic_variants %>%
@@ -120,8 +122,8 @@ report_map_ <- function(x, map, outdir, block_width, ...) {
 #' and a html alignment file \code{aln.\{readtype\}.\{mapper\}.checked.html}.
 #' @family DR2S mapper functions
 #' @export
-report_checked_consensus <- function(x, which = "map3") {
-  map <- match.arg(tolower(which), c("map3", "map2", "map1"))
+report_checked_consensus <- function(x, which = "mapFinal") {
+  map <- match.arg(tolower(which), c("mapFinal", "mapIter", "map1"))
   pairfile_unchecked <- paste(map, "aln", x$getLrdType(), x$getMapper(), "unchecked.pair", sep = ".")
   pairfile_checked   <- paste(map, "aln", x$getLrdType(), x$getMapper(), "checked.pair", sep = ".")
   pairfile_checked   <- normalizePath(file.path(x$getOutdir(), "report", pairfile_checked), mustWork = FALSE)
@@ -165,8 +167,8 @@ report_checked_consensus <- function(x, which = "map3") {
 }
 
 #' @export
-check_alignment_file <- function(x, which = "map3", where = 0) {
-  which <- match.arg(tolower(which), c("map3", "map2", "map1"))
+check_alignment_file <- function(x, which = "mapFinal", where = 0) {
+  which <- match.arg(tolower(which), c("mapFinal", "mapIter", "map1"))
   pairfile_unchecked <- paste(which, "aln", x$getLrdType(), x$getMapper(), "unchecked", "pair", sep = ".")
   pairfile_unchecked <- normalizePath(file.path(x$getOutdir(), "report", pairfile_unchecked), mustWork = FALSE)
   assertthat::assert_that(
@@ -288,18 +290,18 @@ extract_consensus <- function(x) {
       lrdtype <- paste0(lrdtype, "_2D")
     }
   }
-  map2_A_cons <- x$map2$A$conseq
-  names(map2_A_cons) <- name_map2(names(map2_A_cons), reftype, lrdtype, haprefA, sample, locus)
-  map2_B_cons <- x$map2$B$conseq
-  names(map2_B_cons) <- name_map2(names(map2_B_cons), reftype, lrdtype, haprefB, sample, locus)
-  map3_A_cons <- x$consensus$seq["HapA"]
-  names(map3_A_cons) <- name_map3(names(map3_A_cons), reftype, lrdtype, haprefA, sample, locus, nlreadsA)
-  map3_B_cons <- x$consensus$seq["HapB"]
-  names(map3_B_cons) <- name_map3(names(map3_B_cons), reftype, lrdtype, haprefB, sample, locus, nlreadsB)
-  names(c(map2_A_cons, map2_B_cons, map3_A_cons, map3_B_cons))
+  mapIter_A_cons <- x$mapIter$A$conseq
+  names(mapIter_A_cons) <- name_mapIter(names(mapIter_A_cons), reftype, lrdtype, haprefA, sample, locus)
+  mapIter_B_cons <- x$mapIter$B$conseq
+  names(mapIter_B_cons) <- name_mapIter(names(mapIter_B_cons), reftype, lrdtype, haprefB, sample, locus)
+  mapFinal_A_cons <- x$consensus$seq["HapA"]
+  names(mapFinal_A_cons) <- name_mapFinal(names(mapFinal_A_cons), reftype, lrdtype, haprefA, sample, locus, nlreadsA)
+  mapFinal_B_cons <- x$consensus$seq["HapB"]
+  names(mapFinal_B_cons) <- name_mapFinal(names(mapFinal_B_cons), reftype, lrdtype, haprefB, sample, locus, nlreadsB)
+  names(c(mapIter_A_cons, mapIter_B_cons, mapFinal_A_cons, mapFinal_B_cons))
 }
 
-name_map2 <- function(name, reftype, lrdtype, hapref, sample, locus) {
+name_mapIter <- function(name, reftype, lrdtype, hapref, sample, locus) {
   reftype <- switch(reftype,
                     cons = "cons",
                     ref  = "ref1",
@@ -314,7 +316,7 @@ name_map2 <- function(name, reftype, lrdtype, hapref, sample, locus) {
   paste0(paste(paste(names(parts), parts, sep = "="), collapse = "|"), "|")
 }
 
-name_map3 <- function(name, reftype, lrdtype, hapref, sample, locus, nlreads) {
+name_mapFinal <- function(name, reftype, lrdtype, hapref, sample, locus, nlreads) {
   reftype <- switch(reftype,
                     cons = "cons",
                     ref  = "ref1",

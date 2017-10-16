@@ -1,13 +1,16 @@
 #' @export
 
-# b_self <- self
-# x <- b_self
-# x <- dedk.map3
+#debug
+# x <- dl1_2
+# threshold <- x$getThreshold()
+# lower_limit <- 0.6
+# cache = TRUE
+# library(foreach)
 polish.DR2S <- function(x, threshold = x$getThreshold(), lower_limit = 0.60, cache = TRUE) {
 
   assertthat::assert_that(
-    is(x$map3, "map3"),
-    all(unlist(foreach(rtype = x$map3$pileup) %do% {
+    is(x$mapFinal, "mapFinal"),
+    all(unlist(foreach(rtype = x$mapFinal$pileup) %do% {
       is(rtype$consmat, "consmat")
     }))
   )
@@ -19,9 +22,11 @@ polish.DR2S <- function(x, threshold = x$getThreshold(), lower_limit = 0.60, cac
   }
 
   # get read types and haplotypes
-  rtypes <- names(x$map3$pileup)
+  rtypes <- names(x$mapFinal$pileup)
   hptypes <- x$getHapTypes()
 
+  # debug
+  #hptype = "A"
   menv <- MergeEnv(x, threshold)
   for (hptype in hptypes){
     menv$init(hptype)
@@ -31,10 +36,9 @@ polish.DR2S <- function(x, threshold = x$getThreshold(), lower_limit = 0.60, cac
   ## Short read phasing
   ## phasing.R
   for (hptype in hptypes){
-    menv$hptypes[[hptype]]$phasemat     <- phasematrix(compact(menv$hptypes[[hptype]]$variants))
+    menv$hptypes[[hptype]]$phasemat    <- phasematrix(compact(menv$hptypes[[hptype]]$variants))
     menv$hptypes[[hptype]]$phasebreaks <- phasebreaks(menv$hptypes[[hptype]]$phasemat)
   }
-
   ## phasing plots
   for (hptype in hptypes){
     if (!is.null(menv$hptypes[[hptype]]$phasemat)){
@@ -48,6 +52,7 @@ polish.DR2S <- function(x, threshold = x$getThreshold(), lower_limit = 0.60, cac
   }
 
   rs <- menv$export()
+
 
   ## Problematic Variants
   vars <- get_problematic_variants(x = rs, lower_limit = lower_limit)

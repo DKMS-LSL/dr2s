@@ -5,7 +5,7 @@
 \title{Fourth mapping step (long reads and short reads).}
 \usage{
 map3(x, opts = list(), pct = 100, min_base_quality = 7, min_mapq = 0,
-  max_depth = 100000, min_nucleotide_depth = 3, include_deletions = TRUE,
+  max_depth = 1e+05, min_nucleotide_depth = 3, include_deletions = TRUE,
   include_insertions = TRUE, include_read_ids = TRUE, force = FALSE,
   fullname = TRUE, plot = TRUE, clip = TRUE, ...)
 }
