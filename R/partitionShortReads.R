@@ -45,7 +45,7 @@ get_SR_partition_scores <- function(ppos, refname, bamfile, mats, cores = "auto"
   stopifnot(is.numeric(cores))
   doParallel::registerDoParallel(cores = cores)
 
-  message("Partition shortreads on ", length(ppos), " positions")
+  flog.info("  Partition shortreads on %s positions ...", length(ppos),  name = "info")
   res <- foreach (pos = ppos, .combine = "rbind") %dopar% {
     param <- paste(paste(refname, pos, sep = ":"), pos, sep = "-")
     stack <- GenomicAlignments::stackStringsFromBam(bamfile, param = param, use.names = TRUE)
@@ -120,7 +120,9 @@ write_part_fq <- function(fq, srFastqHap, dontUseReads = dontUseReads) {
     if (length(sr) == 0) break
     fqnames <- as.character(ShortRead::id(sr))
     fqnames <- sub(" .*$", "", fqnames)
-    sr <- sr[which(!fqnames %in% dontUseReads)]
+    useReads <- which(!fqnames %in% dontUseReads)
+    flog.info("  Using %s of %s reads", length(useReads), length(fqnames), name = "info")
+    sr <- sr[useReads]
     ShortRead::writeFastq(sr, srFastqHap, mode="a", compress = TRUE)
   }
   close(fqstream)

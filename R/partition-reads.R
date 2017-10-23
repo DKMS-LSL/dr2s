@@ -20,7 +20,7 @@
 # min_len = 0.3
 # skip_gap_freq = 2/3
 # deepSplit = 1
-# x <- mat
+#x <- dpb1_3.map$partition$mat
 
 partition_reads <- function(x, cl_method="ward.D", min_len = 0.5, skip_gap_freq = 2/3, deepSplit = 1){
   # get SNPs
@@ -29,6 +29,7 @@ partition_reads <- function(x, cl_method="ward.D", min_len = 0.5, skip_gap_freq 
   bad_ppos <- apply(xm, 2, function(x) NROW(x[x == "+"])/NROW(x) > skip_gap_freq )
   xm <- as.matrix(xm[,!bad_ppos])
   bad_ppos <- ppos[bad_ppos]
+  flog.info("  %s SNP are covered by less than %g %% sequences and discarded. Using the remaining %s SNPs for clustering", length(bad_ppos), skip_gap_freq, ncol(xm), name = "info")
 
   ## Get the SNP matrix as sequences
   xseqs <- get_seqs_from_mat(xm)
@@ -56,6 +57,7 @@ partition_reads <- function(x, cl_method="ward.D", min_len = 0.5, skip_gap_freq 
   # plot(tree, labels = F)
   hptypes <- levels(subclades)
 
+  flog.info("  Initial clustering results in %s haplotypes %s", length(hptypes), paste(hptypes, collapse = ", "), name = "info")
   # Get scores and assign clades by freq mat
   ## Position Weight Matrix: Use frequency plus pseudocount/ basefrequency (here 0.25 for each).
   msa <- lapply(levels(subclades), function(x) xseqs[names(subclades[subclades == x])])
@@ -69,10 +71,12 @@ partition_reads <- function(x, cl_method="ward.D", min_len = 0.5, skip_gap_freq 
 
   hpseqs <- Biostrings::DNAStringSet(sapply(msa, function(x) unlist(simple_consensus(t(Biostrings::consensusMatrix(x)[c(VALID_DNA(), "+"),])))))
   if (length(hptypes)> 2) {
+    flog.info("  Trying to identify chimeric reads/haplotypes ...", name = "info")
     rC <- sort(find_chimeric(hpseqs))
-    message("Use only clusters ", rC, " ...")
+    flog.info("  Use only clusters %s ...", paste(rC, collapse = ", "), name = "info")
     mats <- mats[rC]
   }
+  hptypes <- names(mats)
 
   scores <- dplyr::bind_rows(lapply(1:length(xseqs),function(s) get_scores(s, xseqs, mats)))
 
@@ -128,7 +132,10 @@ partition_reads <- function(x, cl_method="ward.D", min_len = 0.5, skip_gap_freq 
 
   ## Correctly classified clades in the initial clustering
   falseClassified <- NROW(dplyr::filter(clades, correct==FALSE))/NROW(dplyr::filter(clades, correct == TRUE))
-  message(sprintf( " Corrected classification of %.2f%% reads", 100*falseClassified))
+  flog.info("  Corrected classification of %.2f%% reads ...", 100*falseClassified, name = "info")
+  foreach(hp = hptypes) %do% {
+    flog.info("  %s read in haplotype %s ...", table(clades$clade)[hp], hp, name = "info")
+  }
 
   # Create the partition table
   part_ <- HapPart(read_name = clades$read, snp_pos = colnames(x))
@@ -183,7 +190,7 @@ partition_reads <- function(x, cl_method="ward.D", min_len = 0.5, skip_gap_freq 
 # partn <- partition_reads(x)
 #length(partn[mcoef(partn)>1])
 #length(partn)
-#min_reads_frac <- 1/3
+# min_reads_frac <- 1/3
 
 # Helpers -----------------------------------------------------------------
 
@@ -193,16 +200,16 @@ get_clusts <- function(xseqs, xmat, min_len = 0.80, cl_method = "ward.D", deepSp
   # Need more sequences for more snps
   adjusted_min_reads_frac <- min_reads_frac + (0.03*Biostrings::width(xseqs[1])/50) * 1500^2/length(xseqs)^2
   adjusted_min_reads_frac <- min(0.8, adjusted_min_reads_frac)
+  flog.info("  Adjusting minimal fraction of reads used for clustering from %g to %g ...", min_reads_frac, adjusted_min_reads_frac, name = "info")
   # get long reads
   min_lens <- seq(1, 0, -0.01)
   len_counts <- sapply(min_lens, function(minl) length(xseqs[Biostrings::width(gsub("\\+", "", xseqs)) > minl*Biostrings::width(xseqs[1])])/length(xseqs))
   names(len_counts) <- min_lens
   min_len <- max(as.numeric(names(len_counts[which(len_counts>adjusted_min_reads_frac)][1])), min_len)
-
-  message("Using only long reads containing ", min_len*100, "% of all SNPs")
+  flog.info("  Using only long reads containing at least %s %% of all SNPs ...", min_len*100, name = "info")
   x_sub <- xseqs[Biostrings::width(gsub("\\+", "", xseqs)) > min_len*Biostrings::width(xseqs[1])]
   ## Consensus matrix with pseudocount
-  message("  Constructing a Position Specific Distance Matrix of ", length(x_sub), " sequences ...")
+  flog.info("  Constructing a Position Specific Distance Matrix of the reamaining %s sequences ...", length(x_sub), name = "info")
   consmat  <- as.matrix(Biostrings::consensusMatrix(x_sub, as.prob = TRUE)[c(VALID_DNA(),"+"),] + 1/length(x_sub))
   ## Create seq matrix as input for cpp_PSDM
   x_sub_tmp <- as.matrix(x_sub)
@@ -222,7 +229,7 @@ get_clusts <- function(xseqs, xmat, min_len = 0.80, cl_method = "ward.D", deepSp
   ## Perform a hierarchical clustering
   hcc <-  hclust(dist, method = cl_method)
   ## do a dynamic cut. Need to be evaluated
-  clusts <- dynamicTreeCut::cutreeHybrid(hcc, distM = as.matrix(dist), deepSplit = deepSplit)
+  clusts <- dynamicTreeCut::cutreeHybrid(hcc, distM = as.matrix(dist), deepSplit = deepSplit, verbose = FALSE)
   # extract the clusters for each sequence
   clades <- as.factor(sapply(unname(clusts$labels), function(i) rawToChar(as.raw(as.integer(i)+64))))
   names(clades) <- hcc$labels

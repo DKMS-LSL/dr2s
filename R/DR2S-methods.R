@@ -18,7 +18,7 @@ mapInit.DR2S <- function(x,
                       force = FALSE,
                       fullname = TRUE,
                       plot = TRUE) {
-  message("\nStep 0: Initial mapping of long reads ... \n")
+  flog.info("Step 0: Initial mapping of long reads ... ", name = "info")
   Sys.sleep(1)
   x$runMapInit(opts = opts, optsname = optsname, partSR = partSR, pct = pct, threshold = threshold,
             min_base_quality = min_base_quality, min_mapq = min_mapq,
@@ -95,7 +95,7 @@ DR2S_$set("public", "runMapInit",
              ## Fetch mapper
              map_fun <- self$getMapFun()
              ## Run mapper
-             message("  Mapping short reads against provided reference...\n")
+             flog.info(" First mapping of shortreads to provided reference", name = "info")
              samfile <- map_fun(
                reffile  = self$getRefPath(),
                readfile = self$getShortreads(),
@@ -109,7 +109,7 @@ DR2S_$set("public", "runMapInit",
              )
 
              ## Run bam - sort - index pipeline
-             message("  Indexing ...")
+             flog.info("  Indexing ...", name = "info")
              bamfile <- bam_sort_index(
                samfile = samfile,
                reffile = self$getRefPath(),
@@ -122,7 +122,7 @@ DR2S_$set("public", "runMapInit",
              )
 
              ## Calculate pileup from graphmap produced SAM file
-             message("  Piling up ...")
+             flog.info("  Piling up ...", name = "info")
              pileup <- Pileup(
                bamfile,
                self$getThreshold(),
@@ -138,7 +138,7 @@ DR2S_$set("public", "runMapInit",
              }
 
              # calc initial consensus
-             message(" Construct initial consensus from shortreads ...")
+             flog.info("  Construct initial consensus from shortreads", name = "info")
              conseq <- conseq(pileup$consmat, "mapInit", "freq", exclude_gaps = TRUE, threshold = self$getThreshold())
              conseq_name <- paste0("Init.consensus.", sub(".sam.gz", "", basename(samfile)))
              conseqpath     <- file.path(self$getOutdir(), paste0(conseq_name, ".fa"))
@@ -155,7 +155,8 @@ DR2S_$set("public", "runMapInit",
                ## Fetch mapper
                map_fun <- self$getMapFun()
                ## Run mapper
-               message("  Mapping short reads against provided reference...\n")
+               flog.info(" Refine microsatellites or repeats by extending reference ", name = "info")
+               flog.info("  Second mapping of shortreads to reference from first mapping ", name = "info")
                samfile <- map_fun(
                  reffile  = conseqpath,
                  readfile = self$getShortreads(),
@@ -169,7 +170,7 @@ DR2S_$set("public", "runMapInit",
                )
 
                ## Run bam - sort - index pipeline
-               message("  Indexing ...")
+               flog.info("   Indexing ...", name = "info")
                bamfile <- bam_sort_index(
                  samfile = samfile,
                  reffile = conseqpath,
@@ -182,7 +183,7 @@ DR2S_$set("public", "runMapInit",
                )
 
                ## Calculate pileup from graphmap produced SAM file
-               message("  Piling up ...")
+               flog.info("   Piling up ...", name = "info")
                pileup <- Pileup(
                  bamfile,
                  self$getThreshold(),
@@ -202,7 +203,7 @@ DR2S_$set("public", "runMapInit",
                }
 
                # calc initial consensus
-               message(" Construct initial consensus from shortreads; Refine microsatellites ...")
+               flog.info("   Construct second consensus from shortreads with refined repeats ...", name = "info")
                # debug
                #cs <- conseq
                conseq <- conseq(pileup$consmat, "mapInit1.2", "freq", force_exclude_gaps = TRUE, threshold = 0.2)#self$getThreshold())
@@ -235,7 +236,7 @@ DR2S_$set("public", "runMapInit",
              ## Fetch mapper
              map_fun <- self$getMapFun()
              ## Run mapper
-             message("  Mapping short reads against mapInit1 reference...\n")
+             flog.info(" Mapping shortreads against mapInit reference for calling SNPs ...", name = "info")
              samfile <- map_fun(
                reffile  = mapInitSR1$seqpath,
                readfile = self$getShortreads(),
@@ -249,7 +250,7 @@ DR2S_$set("public", "runMapInit",
              )
 
              ## Run bam - sort - index pipeline
-             message("  Indexing ...")
+             flog.info("  Indexing ...", name = "info")
              bamfile <- bam_sort_index(
                samfile = samfile,
                reffile = mapInitSR1$seqpath,
@@ -262,7 +263,7 @@ DR2S_$set("public", "runMapInit",
              )
 
              ## Calculate pileup from graphmap produced SAM file
-             message("  Piling up ...")
+             flog.info("  Piling up ...", name = "info")
              pileup <- Pileup(
                bamfile,
                self$getThreshold(),
@@ -289,6 +290,8 @@ DR2S_$set("public", "runMapInit",
            }
 
 
+
+           flog.info(" Map longreads against MapInit reference for clustering ...", name = "info")
            ref <- ifelse(partSR, mapInitSR1$seqpath, self$getRefPath())
            allele <- ifelse(partSR, mapInitSR1$ref, self$getReference())
 
@@ -300,7 +303,7 @@ DR2S_$set("public", "runMapInit",
            ## Fetch mapper
            map_fun <- self$getMapFun()
            ## Run mapper
-           message("  Mapping ...\n")
+           flog.info("  Mapping ...", name = "info")
            samfile <- map_fun(
              reffile  = ref,
              readfile = self$getLongreads(),
@@ -314,7 +317,7 @@ DR2S_$set("public", "runMapInit",
            )
 
            ## Run bam - sort - index pipeline
-           message("  Indexing ...")
+           flog.info("  Indexing ...", name = "info")
            bamfile <- bam_sort_index(
              samfile = samfile,
              reffile = ref,
@@ -327,7 +330,7 @@ DR2S_$set("public", "runMapInit",
            )
 
            ## Calculate pileup from graphmap produced SAM file
-           message("  Piling up ...")
+           flog.info("  Piling up ...", name = "info")
            pileup <- Pileup(
              bamfile,
              self$getThreshold(),
@@ -356,7 +359,7 @@ DR2S_$set("public", "runMapInit",
              self$mapInit$SR2 <- mapInitSR2
            }
            if (plot) {
-             message("  Plotting ...")
+             flog.info(" Plotting MapInit Summary ...", name = "info")
              ## Coverage and frequency of minor alleles
              gfile <- file.path(self$getOutdir(), paste0("plot.MapInit.LR.", sub("bam$", "pdf", usc(basename(self$mapInit$bamfile)))))
              pdf(file = gfile, width = 12, height = 10, onefile = TRUE, title = paste(self$getLocus(), self$getSampleId(), sep = "." ))
@@ -407,7 +410,7 @@ partition_haplotypes.DR2S <- function(x,
                                       skip_gap_freq = 2/3,
                                       plot = TRUE,
                                       ...) {
-  message("\nStep 1: Partition reads into haplotypes ...")
+  flog.info("Step 1: Partition reads into haplotypes ...", name = "info")
   Sys.sleep(1)
   x$runHaplotypePartitioning(max_depth = max_depth,
                              # shuffle = shuffle,
@@ -417,7 +420,7 @@ partition_haplotypes.DR2S <- function(x,
   invisible(x)
 
 }
-#self <- b
+#self <- dpb1_3.map
 DR2S_$set("public", "runHaplotypePartitioning", function(max_depth = 1e4,
                   skip_gap_freq = 2/3,
                   plot = TRUE) {
@@ -438,25 +441,22 @@ DR2S_$set("public", "runHaplotypePartitioning", function(max_depth = 1e4,
            tag  <- self$getMapTag("init", "LR")
            th   <- self$getThreshold()
 
-          if (!is.null(self$mapInit$SR1)){
-            useSR <- TRUE
-          } else {
-            useSR <- FALSE
-          }
-           # fullname = TRUE
-           # plot = TRUE
-           ppos <- self$polymorphicPositions(useSR = useSR)
-           if (is.null(self$mapInit$SR1$conseq)){
-             refseq <- self$getRefSeq()
-           } else {
+           if (!is.null(self$mapInit$SR1)){
+             useSR <- TRUE
              refseq <- self$mapInit$SR1$conseq
+             flog.info(" Generating SNP matrix from shortreads ...", name = "info")
+           } else {
+             useSR <- FALSE
+             refseq <- self$getRefSeq()
+             flog.info(" Generating SNP matrix from longreads ...", name = "info")
            }
+           ppos <- self$polymorphicPositions(useSR = useSR)
 
            if (NROW(ppos) == 0){
 
              stop("No polymorphic position!")
            }
-           message("  Generating SNP matrix ...")
+
            mat <- if (tryCatch(
              !is(self$partition, "PartList"),
              error = function(e)
@@ -481,7 +481,7 @@ DR2S_$set("public", "runHaplotypePartitioning", function(max_depth = 1e4,
            # ggsave(filename = "tset.pdf", plot= p, width = 15)
            # ggseqlogo(unlist(seqs), seqtype = "DNA")
 
-           message(sprintf("  Partitioning %s reads over %s SNPs ...", NROW(mat), NCOL(mat)))
+           flog.info(" Partitioning %s reads over %s SNPs ...", NROW(mat), NCOL(mat), name = "info")
            prt <- partition_reads(x = mat, skip_gap_freq = skip_gap_freq, deepSplit = 1)
            browse_seqs(SQS(prt), file = file.path(self$getOutdir(), "partition.fa.html"), openURL = FALSE)
 
@@ -527,6 +527,7 @@ print.PartList <- function(x, ...) {
 split_reads_by_haplotype.DR2S <- function(x,
                                           limits,
                                           ...) {
+  flog.info(" Split partitioned reads by score ...", name = "info")
   x$splitReadsByHaplotype( limits)
   invisible(x)
 }
@@ -564,6 +565,7 @@ DR2S_$set("public", "splitReadsByHaplotype", function(limits,
            # Get only reads within the limit
            reads <- lapply(names(self$getLimits()), function(x) dplyr::filter(prt, haplotype == x, mcoef >= self$getLimits()[x]))
            names(reads) <- names(self$getLimits())
+           for (hp in haplotypes) flog.info("  %s: Using %s longreads with score > %s ...", hp, nrow(reads[[hp]]), plainlmts[hp], name = "info")
 
            # results Structure
            resStruct <- lapply(names(reads), function(x) {
@@ -623,7 +625,7 @@ summary.HapList <- function(object, ....) {
 
 #' @export
 extract_fastq.DR2S <- function(x, nreads = NULL, replace = FALSE, nalign = 40, ...) {
-  message("\nStep2: Extracting haplotyped reads ...")
+  flog.info("Step2: Extracting haplotyped reads ...", name = "info")
   Sys.sleep(1)
   x$extractFastq(nreads = nreads, replace = replace, nalign = nalign)
   message("  Done!\n")
@@ -733,7 +735,7 @@ mapIter.DR2S <- function(x,
                       force = FALSE,
                       fullname = TRUE,
                       plot = TRUE) {
-  message("\nStep 4: Mapping partitioned long reads against inferred consensus sequences ... \n")
+  flog.info("Step 3: Iteratively mapping partitioned long reads against consensus sequences from initial mapping using only partitioned reads... ", name = "info")
   Sys.sleep(1)
   x$runMapIter(opts = opts, iterations = 1, pct = pct, min_base_quality = min_base_quality,
             min_mapq = min_mapq, max_depth = max_depth,
@@ -795,7 +797,7 @@ DR2S_$set("public", "runMapIter",
            iterations <- self$getIterations()
 
            # Construct consensus from initial mapping with the clustered reads
-           message("  Constructing a consensus from initial mapping ...")
+           flog.info(" Constructing a consensus from initial mapping ...", name = "info")
            bamfile <- self$mapInit$bamfile
            if (self$getPartSR()){
              ref <- self$mapInit$SR1$conseq
@@ -805,6 +807,7 @@ DR2S_$set("public", "runMapIter",
            mat <- msa_from_bam(bamfile, ref, paddingLetter = "-")
 
            foreach(hptype = hptypes) %do% {
+             flog.info("  Constructing a consensus from initial mapping for haplotype %s ...", hptype, name = "info")
              readIds <- self$getHapList(hptype)
              cmat <- Biostrings::consensusMatrix(mat[readIds], as.prob = TRUE)[VALID_DNA(include = "indel"),]
              conseq_name <- paste0("consensus.mapIter.0.", hptype)
@@ -824,7 +827,7 @@ DR2S_$set("public", "runMapIter",
 
            #iteration = 1
            for (iteration in 1:iterations) {
-             message("Iteration ", iteration, " of ", iterations)
+             flog.info(" Iteration %s ", iteration, " of ", iterations, name = "info")
 
              iterationC = as.character(iteration)
              prevIteration <- self$mapIter[[as.character(as.numeric(iteration-1))]]
@@ -866,7 +869,7 @@ DR2S_$set("public", "runMapIter",
                 # self$mapIter[["0"]][[hptype]]$tag <- "multialign"
 
                ## Run mapper
-               message("  Mapping Haplotype ", dQuote(hptype), " against merged consensus ...")
+               flog.info("  Mapping of partitioned longreads of haplotype %s ...", hptype, name = "info")
                samfile <- map_fun(
                  reffile  = refpath,
                  readfile = readpath,
@@ -892,7 +895,7 @@ DR2S_$set("public", "runMapIter",
 
                # samfile
                ## Run bam - sort - index pipeline
-               message("  Indexing ...")
+               flog.info("   Indexing ...", name = "info")
                bamfile <- bam_sort_index(
                  samfile,
                  refpath,
@@ -906,7 +909,7 @@ DR2S_$set("public", "runMapIter",
                self$mapIter[[iterationC]][[hptype]]$bamfile = bamfile
 
                ## Calculate pileup from graphmap produced SAM file
-               message("  Piling up ...")
+               flog.info("   Piling up ...", name = "info")
                pileup <- Pileup(
                  bamfile,
                  self$getThreshold(),
@@ -923,7 +926,7 @@ DR2S_$set("public", "runMapIter",
                self$mapIter[[iterationC]][[hptype]]$pileup = pileup
 
                # ## Construct consensus sequence
-               message("  Constructing a consensus ...")
+               flog.info("   Constructing a consensus ...", name = "info")
                conseq_name <- paste0("consensus.", sub(".sam.gz", "", basename(samfile)))
                conseq      <- conseq(x = pileup, name = conseq_name, type = "prob",
                                      exclude_gaps = TRUE, prune_matrix = TRUE,
@@ -942,7 +945,7 @@ DR2S_$set("public", "runMapIter",
              }
 
              if (plot) {
-               message("  Plotting ...")
+               flog.info(" Plotting MapIter Summary ...", name = "info")
                ## Coverage and base frequency
                gfile <- file.path(
                  self$getOutdir(),
@@ -997,7 +1000,7 @@ print.mapIter <- function(x, ...) {
 partitionShortReads.DR2S <- function(x,
                       opts = list(),
                       force = FALSE) {
-  message("\nStep 5: Partition shortreads ... \n")
+  flog.info("Step 4: Partition shortreads based on initial mapping and longread clustering ... ", name = "info")
   Sys.sleep(1)
   x$runPartitionShortReads(opts = opts,
             force = force)
@@ -1015,12 +1018,12 @@ DR2S_$set("public", "runPartitionShortReads",
 
 
                   ## debug
-                  # opts = list()
-                  # force = FALSE
-                  # optsname = ""
-                  # pct = 100
-                  # threshold = 0.20
-                  # min_mapq = 0
+                    # opts = list()
+                    # force = FALSE
+                    # optsname = ""
+                    # pct = 100
+                    # threshold = 0.20
+                    # min_mapq = 0
 
            ## Overide default arguments
            args <- self$getOpts("partitionSR")
@@ -1031,11 +1034,12 @@ DR2S_$set("public", "runPartitionShortReads",
 
            ## stop if no shortreads provided
            if (is.null(self$getConfig("shortreads"))) {
-             message("Cannot partition shortreads. No shortreads provided")
+             flog.warn(" Cannot partition shortreads. No shortreads provided", name = "info")
              return(invisible(self))
            }
 
            if (self$getPartSR()){
+             flog.info(" Found shortread mapping from MapInit ...", name = "info")
              bamfile <- self$mapInit$SR2$bamfile
            } else {
              mapfmt  <- "mapPartSR <%s> <%s> <%s> <%s>"
@@ -1046,7 +1050,8 @@ DR2S_$set("public", "runPartitionShortReads",
              ## Fetch mapper
              map_fun <- self$getMapFun()
              ## Run mapper
-             message("  Mapping short reads against provided reference...\n")
+             flog.warn(" Found no shortread mapping from MapInit ...", name = "info")
+             flog.info(" Mapping short reads against provided reference ...", name = "info")
              samfile <- map_fun(
                reffile  = self$mapInit$SR1$seqpath,
                readfile = self$getShortreads(),
@@ -1059,7 +1064,7 @@ DR2S_$set("public", "runPartitionShortReads",
                outdir   = self$getOutdir()
              )
              ## Run bam - sort - index pipeline
-             message("  Indexing ...")
+             flog.info("  Indexing ...", name = "info")
              bamfile <- bam_sort_index(
                samfile = samfile,
                reffile = self$mapInit$SR1$seqpath,
@@ -1093,12 +1098,13 @@ DR2S_$set("public", "runPartitionShortReads",
 
            ##' Assign read to haplotype with highest probability,
            ##' i.e. prod over probabilities of each haplotype and choose max
-           message("get highest scoring haplotype for each read")
+           flog.info(" Get highest scoring haplotype for each read", name = "info")
            srpartition$haplotypes <- score_highest_SR(srpartition$srpartition, diffThreshold = 0.05)
+
            # Write fastqs
            foreach(hptype = hptypes ) %do% {
              srfilenames <- c()
-             message("Write shortread fastq for haplotype ", hptype, " ...")
+             flog.info(" Write shortread fastq for haplotype %s ...", hptype, name = "info")
              fqs <- self$getShortreads()
              dontUseReads <- srpartition$haplotypes$read[!srpartition$haplotypes$read %in% dplyr::filter(srpartition$haplotypes, haplotype == hptype)$read]
              #fq <- fqs[1]
@@ -1149,7 +1155,7 @@ mapFinal.DR2S <- function(x,
                       fullname = TRUE,
                       plot = TRUE,
                       clip = TRUE) {
-  message("\nStep 5: Mapping short and long reads against refined consensus sequences ... \n")
+  flog.info("Step 5: Mapping short and long reads against refined consensus sequences ...", name = "info")
   Sys.sleep(1)
   x$runMapFinal(opts = opts, pct = pct, min_base_quality = min_base_quality,
             min_mapq = min_mapq, max_depth = max_depth,
@@ -1202,7 +1208,7 @@ DR2S_$set("public", "runMapFinal",
 
            ## stop if no shortreads provided
            if (is.null(self$getConfig("shortreads"))) {
-             message("Cannot run mapFinal. No shortreads provided")
+             flog.warn(" Cannot run mapFinal. No shortreads provided", name = "info")
              return(invisible(self))
            }
 
@@ -1237,6 +1243,7 @@ DR2S_$set("public", "runMapFinal",
            # debug
            # hptype = "A"
            for (hptype in hptypes) {
+             flog.info(" Run mapFinal for haplotype %s ...", hptype, name = "info" )
              refpath  <- refpaths[[hptype]]
 
              mapgroupLR <- paste0("LR", hptype)
@@ -1244,7 +1251,7 @@ DR2S_$set("public", "runMapFinal",
                                optstring(opts), sep = ".")
              readpathLR <- readpathsLR[[hptype]]
              ## Run mapper
-             message("  Mapping long reads against latest consensus ...")
+             flog.info("   Mapping long reads against latest consensus ...", name = "info")
              samfile <- map_fun(
                reffile  = refpath,
                readfile = readpathLR,
@@ -1258,7 +1265,7 @@ DR2S_$set("public", "runMapFinal",
              )
 
              ## Run bam - sort - index pipeline
-             message("  Indexing ...")
+             flog.info("  Indexing ...", name = "info")
              bamfile <- bam_sort_index(
                samfile,
                refpath,
@@ -1272,7 +1279,7 @@ DR2S_$set("public", "runMapFinal",
              self$mapFinal$bamfile[[mapgroupLR]] = bamfile
 
              ## Calculate pileup from graphmap produced SAM file
-             message("  Piling up ...")
+             flog.info("  Piling up ...", name = "info")
              pileup <- Pileup(
                bamfile,
                self$getThreshold(),
@@ -1299,7 +1306,7 @@ DR2S_$set("public", "runMapFinal",
              #readfiles <- self$getShortreads()
 
              ## Run mapper
-             message("  Mapping short reads against latest consensus ...")
+             flog.info("  Mapping short reads against latest consensus ...", name = "info")
 
              samfile <- map_fun(
                reffile  = refpath,
@@ -1317,7 +1324,7 @@ DR2S_$set("public", "runMapFinal",
              )
 
              if (clip) {
-               message("  Trimming softclips and polymorphic ends ...")
+               flog.info(" Trimming softclips and polymorphic ends ...", name = "info")
                ## Run bam - sort - index pipeline
                bamfile <- bam_sort_index(samfile, refpath, pct / 100, min_mapq, force = force, clean = TRUE)
                ## Trim softclips
@@ -1331,7 +1338,7 @@ DR2S_$set("public", "runMapFinal",
                ShortRead::writeFastq(fq, fqout, compress = TRUE)
                file_delete_if_exists(bamfile)
                ## Rerun mapper
-               message("  Mapping trimmed short reads against latest consensus ... ")
+               flog.info("  Mapping trimmed short reads against latest consensus ... ", name = "info")
                samfile <- map_fun(
                  reffile  = refpath,
                  readfile = fqout,
@@ -1348,7 +1355,7 @@ DR2S_$set("public", "runMapFinal",
              }
 
              ## Run bam - sort - index pipeline
-             message("  Indexing ...")
+             flog.info("  Indexing ...", name = "info")
              bamfile <- bam_sort_index(
                samfile,
                refpath,
@@ -1363,7 +1370,7 @@ DR2S_$set("public", "runMapFinal",
              self$mapFinal$bamfile[[mapgroupSR]] = bamfile
 
              ## Calculate pileup from graphmap produced SAM file
-             message("  Piling up ...")
+             flog.info("  Piling up ...", name = "info")
              pileup <- Pileup(
                bamfile,
                self$getThreshold(),
@@ -1393,7 +1400,7 @@ DR2S_$set("public", "runMapFinal",
 
 
            if (plot) {
-             message("  Plotting ...")
+             flog.info(" Plotting final summary figures ...", name = "info")
              ## Coverage and base frequency
 
              for (readtype in c("LR", "SR")){
