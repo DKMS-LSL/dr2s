@@ -29,7 +29,7 @@ partition_reads <- function(x, cl_method="ward.D", min_len = 0.5, skip_gap_freq 
   bad_ppos <- apply(xm, 2, function(x) NROW(x[x == "+"])/NROW(x) > skip_gap_freq )
   xm <- as.matrix(xm[,!bad_ppos])
   bad_ppos <- ppos[bad_ppos]
-  flog.info("%s SNP are covered by less than %g %% sequences and discarded. Using the remaining %s SNPs for clustering", length(bad_ppos), skip_gap_freq, ncol(xm), name = "info")
+  flog.info("  %s SNP are covered by less than %g %% sequences and discarded. Using the remaining %s SNPs for clustering", length(bad_ppos), skip_gap_freq, ncol(xm), name = "info")
 
   ## Get the SNP matrix as sequences
   xseqs <- get_seqs_from_mat(xm)
@@ -57,7 +57,7 @@ partition_reads <- function(x, cl_method="ward.D", min_len = 0.5, skip_gap_freq 
   # plot(tree, labels = F)
   hptypes <- levels(subclades)
 
-  flog.info("Initial clustering results in %s haplotypes %s", length(hptypes), paste(hptypes, collapse = ", "), name = "info")
+  flog.info("  Initial clustering results in %s haplotypes %s", length(hptypes), paste(hptypes, collapse = ", "), name = "info")
   # Get scores and assign clades by freq mat
   ## Position Weight Matrix: Use frequency plus pseudocount/ basefrequency (here 0.25 for each).
   msa <- lapply(levels(subclades), function(x) xseqs[names(subclades[subclades == x])])
@@ -76,6 +76,7 @@ partition_reads <- function(x, cl_method="ward.D", min_len = 0.5, skip_gap_freq 
     flog.info("  Use only clusters %s ...", paste(rC, collapse = ", "), name = "info")
     mats <- mats[rC]
   }
+  hptypes <- names(mats)
 
   scores <- dplyr::bind_rows(lapply(1:length(xseqs),function(s) get_scores(s, xseqs, mats)))
 
@@ -131,7 +132,10 @@ partition_reads <- function(x, cl_method="ward.D", min_len = 0.5, skip_gap_freq 
 
   ## Correctly classified clades in the initial clustering
   falseClassified <- NROW(dplyr::filter(clades, correct==FALSE))/NROW(dplyr::filter(clades, correct == TRUE))
-  message(sprintf( " Corrected classification of %.2f%% reads", 100*falseClassified))
+  flog.info("  Corrected classification of %.2f%% reads ...", 100*falseClassified, name = "info")
+  foreach(hp = hptypes) %do% {
+    flog.info("  %s read in haplotype %s ...", table(clades$clade)[hp], hp, name = "info")
+  }
 
   # Create the partition table
   part_ <- HapPart(read_name = clades$read, snp_pos = colnames(x))
@@ -196,13 +200,13 @@ get_clusts <- function(xseqs, xmat, min_len = 0.80, cl_method = "ward.D", deepSp
   # Need more sequences for more snps
   adjusted_min_reads_frac <- min_reads_frac + (0.03*Biostrings::width(xseqs[1])/50) * 1500^2/length(xseqs)^2
   adjusted_min_reads_frac <- min(0.8, adjusted_min_reads_frac)
-  flog.info("Adjusting minimal fraction of reads used for clustering from %g to %g ...", min_reads_frac, adjusted_min_reads_frac, name = "info")
+  flog.info("  Adjusting minimal fraction of reads used for clustering from %g to %g ...", min_reads_frac, adjusted_min_reads_frac, name = "info")
   # get long reads
   min_lens <- seq(1, 0, -0.01)
   len_counts <- sapply(min_lens, function(minl) length(xseqs[Biostrings::width(gsub("\\+", "", xseqs)) > minl*Biostrings::width(xseqs[1])])/length(xseqs))
   names(len_counts) <- min_lens
   min_len <- max(as.numeric(names(len_counts[which(len_counts>adjusted_min_reads_frac)][1])), min_len)
-  flog.info("Using only long reads containing at least %s %% of all SNPs ...", min_len*100, name = "info")
+  flog.info("  Using only long reads containing at least %s %% of all SNPs ...", min_len*100, name = "info")
   x_sub <- xseqs[Biostrings::width(gsub("\\+", "", xseqs)) > min_len*Biostrings::width(xseqs[1])]
   ## Consensus matrix with pseudocount
   flog.info("  Constructing a Position Specific Distance Matrix of the reamaining %s sequences ...", length(x_sub), name = "info")
