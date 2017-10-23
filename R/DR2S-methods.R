@@ -710,7 +710,7 @@ DR2S_$set("public", "extractFastq",
               #   self$mapIter[["0"]][[hptype]]$seqpath <- consout
               #   self$mapIter[["0"]][[hptype]]$tag <- "multialign"
               # } else {
-              }
+              #}
             }
 
             return(invisible(self))
@@ -747,7 +747,7 @@ mapIter.DR2S <- function(x,
 }
 
 # self <- hla.fq
-#self <- pdb1_6
+#self <- pdb1_3
 DR2S_$set("public", "runMapIter",
          function(opts = list(),
                   iterations = 1,
@@ -794,7 +794,7 @@ DR2S_$set("public", "runMapIter",
            hptypes <- self$getHapTypes()
            iterations <- self$getIterations()
 
-           # Construc consensus from initial mapping with the clustered reads
+           # Construct consensus from initial mapping with the clustered reads
            message("  Constructing a consensus from initial mapping ...")
            bamfile <- self$mapInit$bamfile
            if (self$getPartSR()){
@@ -816,6 +816,10 @@ DR2S_$set("public", "runMapIter",
              self$mapIter[["0"]][[hptype]]$conseq <- conseq
              self$mapIter[["0"]][[hptype]]$seqpath <- seqpath
              self$mapIter[["0"]][[hptype]]$tag <- "mapIter0"
+             Biostrings::writeXStringSet(
+               Biostrings::DNAStringSet(gsub("[-+]", "", conseq)),
+               seqpath
+             )
            }
 
            #iteration = 1
@@ -1031,8 +1035,8 @@ DR2S_$set("public", "runPartitionShortReads",
              return(invisible(self))
            }
 
-           if (self$getPartSR){
-             bamfile <- self$mapInit$SR2
+           if (self$getPartSR()){
+             bamfile <- self$mapInit$SR2$bamfile
            } else {
              mapfmt  <- "mapPartSR <%s> <%s> <%s> <%s>"
              maptag  <- sprintf(mapfmt, self$mapInit$SR1$ref, self$getSrdType(), self$getMapper(), optstring(opts, optsname))
@@ -1082,6 +1086,7 @@ DR2S_$set("public", "runPartitionShortReads",
            }
            names(mats) <- names(seqs)
            ppos <- colnames(mats[[1]])
+
 
            # Run partitioning
            srpartition <- get_SR_partition_scores(ppos, refname, bamfile, mats, cores = "auto")

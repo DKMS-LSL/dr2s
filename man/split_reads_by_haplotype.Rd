@@ -30,13 +30,12 @@ x <- DR2Smap(
   consensus = "multialign"
   ) \%>\%
   clear() \%>\%
-  map0() \%>\%
+  mapInit() \%>\%
   partition_haplotypes() \%>\%
   split_reads_by_haplotype() \%>\%
   extract_fastq() \%>\%
-  map1() \%>\%
-  map2() \%>\%
-  map3() \%>\%
+  mapIter() \%>\%
+  mapFinal() \%>\%
   cache() \%>\%
   polish() \%>\%
   report(block_width = 60)
@@ -45,10 +44,10 @@ x <- DR2Smap(
 \seealso{
 Other DR2S mapper functions: \code{\link{DR2Smap}},
   \code{\link{cache}}, \code{\link{clear}},
-  \code{\link{extract_fastq}}, \code{\link{map0}},
-  \code{\link{map1}}, \code{\link{map2}},
-  \code{\link{map3}}, \code{\link{partition_haplotypes}},
-  \code{\link{polish}},
+  \code{\link{extract_fastq}}, \code{\link{mapFinal}},
+  \code{\link{mapInit}}, \code{\link{mapIter}},
+  \code{\link{partitionShortReads}},
+  \code{\link{partition_haplotypes}}, \code{\link{polish}},
   \code{\link{report_checked_consensus}},
   \code{\link{report}}
 }
