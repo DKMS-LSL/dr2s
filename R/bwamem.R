@@ -68,7 +68,7 @@ generate_mapping_commands <- function(mapper,
   mapper   <- match.arg(mapper, c("graphmap", "bwamem"))
   readtype <- match.arg(readtype, c("pacbio", "nanopore", "illumina"))
   mapfun <- match.fun(paste0(mapper, "_cmd"))
-  outdir <- dkms::dir_create_if_not_exists(outdir)
+  outdir <- dir_create_if_not_exists(outdir)
 
   reffile <- normalizePath(reffile, mustWork = TRUE)
   ref <- file.path(outdir, basename(reffile))

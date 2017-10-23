@@ -134,7 +134,7 @@ report_checked_consensus <- function(x, which = "mapFinal") {
     stop(msg, call. = FALSE)
   }
 
-  outdir <- dkms::dir_create_if_not_exists(file.path(x$getOutdir(), "checked"))
+  outdir <- dir_create_if_not_exists(file.path(x$getOutdir(), "checked"))
   rs <- readPairFile(pairfile_checked)
   hapA <- Biostrings::DNAStringSet(gsub("-", "", rs["HapA"]))
   hapB <- Biostrings::DNAStringSet(gsub("-", "", rs["HapB"]))

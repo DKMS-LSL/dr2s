@@ -243,10 +243,8 @@ recode_fastq_header <- function(fqpath) {
   }
   read_id <- sub("(;|\\s+).+$", "", ids)
   mdata <- sub("^[^; ]+[; ]+", "", ids)
-  #mdata <- dkms::strsplitN(mdata, " ", 1)
-  #mdata <- sub("MD:Z:", "", mdata)
   mdata <- if (all(grepl(";", mdata))) {
-    paste0(dkms::strsplitN(mdata, " ", 1), paste0(";BARCODE=", gsub("(\\]|\\[)", "", dkms::strsplitN(mdata, " ", 2))))
+    paste0(strsplitN(mdata, " ", 1), paste0(";BARCODE=", gsub("(\\]|\\[)", "", strsplitN(mdata, " ", 2))))
   } else if (all(grepl("ONBC", mdata))) {
     paste0("BARCODE=", gsub("(\\]|\\[)", "", mdata))
   } else {
