@@ -59,7 +59,7 @@ print.variant_list <- function(x, threshold = 0.2, ...) {
 #' @keywords internal
 #' @examples
 #' ###
-#' 
+#'
                                  # min_overrep_lr = 1.5
                                  # max_overrep_sr = 2
 # x <- bla

@@ -4,16 +4,14 @@
 \alias{SNPmatrix}
 \title{Construct a SNP matrix.}
 \usage{
-SNPmatrix(bamfile, max_depth, polymorphic_positions, cleanup = TRUE)
+SNPmatrix(bamfile, refseq, polymorphic_positions)
 }
 \arguments{
 \item{bamfile}{A BAM file}
 
-\item{max_depth}{How many reads do we consider.}
+\item{refseq}{Reference sequence as DNAString}
 
 \item{polymorphic_positions}{SNP positions.}
-
-\item{cleanup}{Remove temporary files.}
 }
 \value{
 A \code{[read x position]} matrix.

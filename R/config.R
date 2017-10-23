@@ -8,6 +8,8 @@ create_dr2s_conf <- function(sample,
                              consensus = NULL,
                              threshold = 0.20,
                              iterations = 1,
+                             microsatellite = FALSE,
+                             partSR = TRUE,
                              fullname = TRUE,
                              ...) {
   conf0 <- list(...)
@@ -26,6 +28,8 @@ create_dr2s_conf <- function(sample,
     outdir     = outdir,
     threshold  = threshold,
     iterations = iterations,
+    microsatellite = microsatellite,
+    partSR = partSR,
     mapper     = conf0$mapper   %||% "bwamem",
     # limitA     = conf0$limitA   %||% NULL,
     # limitB     = conf0$limitB   %||% NULL,
@@ -52,6 +56,8 @@ read_dr2s_conf <- function(config_file) {
   conf$outdir     <- conf$outdir     %||% file.path(conf$datadir, "output")
   conf$threshold  <- conf$threshold  %||% 0.2
   conf$iterations <- conf$iterations %||% 1
+  conf$microsatellite <- conf$microsatellite %||% FALSE
+  conf$partSR <- conf$partSR %||% TRUE
   conf$mapper     <- conf$mapper     %||% "bwamem"
   # conf["limitA"]  <- conf$limitA     %||% list(NULL)
   # conf["limitB"]  <- conf$limitN     %||% list(NULL)
@@ -131,7 +137,7 @@ initialise_dr2s <- function(conf, create_outdir = TRUE) {
 }
 
 validate_dr2s_conf <- function(conf) {
-  fields <- c("datadir", "outdir", "threshold", "iterations", "mapper", "limits", "haptypes",
+  fields <- c("datadir", "outdir", "threshold", "iterations", "microsatellite", "partSR", "mapper", "limits", "haptypes",
               "pipeline", "longreads", "shortreads", "nreads", "opts",
               "sample_id", "locus", "reference", "alternate", "consensus")#"limitA", "limitB",
   if (!all(fields %in% names(conf))) {
@@ -146,6 +152,14 @@ validate_dr2s_conf <- function(conf) {
   # check iterations
   if (!is.numeric(conf$iterations) || !conf$iterations&&1 ==  0 || conf$iterations > 10) {
     stop("The number of iterations must be integers between 1 and 10", call. = FALSE)
+  }
+  # check partSR
+  if (!is.logical(conf$partSR)){
+    stop("partSR must be logical", call. = FALSE)
+  }
+  # check microsatellite
+  if (!is.logical(conf$microsatellite)){
+    stop("microsatellite must be logical", call. = FALSE)
   }
   ## Check mapper
   conf$mapper <- match.arg(conf$mapper, c("bwamem", "graphmap"))

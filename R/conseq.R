@@ -36,12 +36,14 @@ conseq <- function(x, ...) UseMethod("conseq")
 #' @export
 conseq.pileup <- function(x, name = "conseq", type = c("prob", "freq", "ambig"),
                           threshold = NULL, exclude_gaps = FALSE,
+                          force_exclude_gaps = FALSE,
                           prune_matrix = FALSE, ...) {
   if (is.null(threshold)) {
     threshold <- x$threshold
   }
   x <- consmat(x, freq = FALSE)
   conseq(x, name = name, type = type, threshold = threshold,
+         force_exclude_gaps = FALSE,
          exclude_gaps = exclude_gaps, prune_matrix = prune_matrix, ... )
 }
 
@@ -76,6 +78,7 @@ conseq.pileup <- function(x, name = "conseq", type = c("prob", "freq", "ambig"),
 #' @export
 conseq.matrix <- function(x, name = NULL, type = c("prob", "freq", "ambig"),
                           threshold = NULL, exclude_gaps = FALSE,
+                          force_exclude_gaps = FALSE,
                           prune_matrix = FALSE, ...) {
   type <- match.arg(type, c("prob", "freq", "ambig"))
   if (type == "ambig" && is.null(threshold)) {
@@ -86,8 +89,8 @@ conseq.matrix <- function(x, name = NULL, type = c("prob", "freq", "ambig"),
     x <- prune_consensus_matrix(cm = x, ...)
   }
   conseq <- switch(type,
-    prob  = make_prob_consensus_(x, exclude_gaps),
-    freq  = make_freq_consensus_(x, exclude_gaps),
+    prob  = make_prob_consensus_(x, exclude_gaps, force_exclude_gaps),
+    freq  = make_freq_consensus_(x, exclude_gaps, force_exclude_gaps),
     ambig = make_ambig_consensus_(x, threshold, exclude_gaps)
   )
   names(conseq) <- name
@@ -139,12 +142,16 @@ make_prob_consensus_ <- function(x, exclude_gaps, as_string = FALSE) {
 }
 
 ## strict majority rule consensus
-make_freq_consensus_ <- function(x, exclude_gaps, as_string = FALSE) {
+make_freq_consensus_ <- function(x, exclude_gaps, force_exclude_gaps, as_string = FALSE) {
   x_ori <- x
   if (exclude_gaps && length(ins_ <- ins(x)) > 0) {
     x[ins_, "-"] <- 0
   }
+  if (force_exclude_gaps){
+    x[,"-"] <- 0
+  }
   cmf <- consmat(x, freq = TRUE)
+  cmf[702:712,]
   ## remove rows which have been set to zero
   if (length(i <- which(n(cmf) == 0L)) > 0) {
     cmf <- cmf[-i, ]

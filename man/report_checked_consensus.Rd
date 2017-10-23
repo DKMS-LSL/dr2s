@@ -4,7 +4,7 @@
 \alias{report_checked_consensus}
 \title{Report haplotype consensus files as verified}
 \usage{
-report_checked_consensus(x, which = "map3")
+report_checked_consensus(x, which = "mapFinal")
 }
 \arguments{
 \item{x}{A \code{\link[=DR2S_]{DR2S}} object.}
@@ -25,9 +25,10 @@ and a html alignment file \code{aln.\{readtype\}.\{mapper\}.checked.html}.
 \seealso{
 Other DR2S mapper functions: \code{\link{DR2Smap}},
   \code{\link{cache}}, \code{\link{clear}},
-  \code{\link{extract_fastq}}, \code{\link{map0}},
-  \code{\link{map1}}, \code{\link{map2}},
-  \code{\link{map3}}, \code{\link{partition_haplotypes}},
-  \code{\link{polish}}, \code{\link{report}},
+  \code{\link{extract_fastq}}, \code{\link{mapFinal}},
+  \code{\link{mapInit}}, \code{\link{mapIter}},
+  \code{\link{partitionShortReads}},
+  \code{\link{partition_haplotypes}}, \code{\link{polish}},
+  \code{\link{report}},
   \code{\link{split_reads_by_haplotype}}
 }

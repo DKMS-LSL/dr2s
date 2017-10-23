@@ -94,9 +94,8 @@ MergeEnv_$set("public", "init", function(hapEnv) {
     tmp <- sort(x, decreasing = TRUE)[1:2]
     tmp[1] / tmp[2]
   })
-  envir$balance_upper_confint <- mean(envir$balance, na.rm = TRUE) + 1.96*sd(envir$balance, na.rm = TRUE)
+  envir$balance_upper_confint <- sum(mean(envir$balance, na.rm = TRUE), 1.96*sd(envir$balance, na.rm = TRUE) , na.rm = TRUE)
 })
-
 
 ## self$walk_one() ####
 MergeEnv_$set("public", "walk_one", function(hapEnv, verbose = FALSE) {
@@ -142,6 +141,8 @@ MergeEnv_$set("private", "step_through", function(envir) {
     return(FALSE)
   }
   envir$pos <- iterators::nextElem(envir$POSit) + offset(envir$SR)
+  # debug
+  envir$balance_upper_confint
   rs <- disambiguate_variant(yield(envir), threshold = self$threshold)
   update(envir) <- rs
   TRUE

@@ -16,10 +16,13 @@ DNA_BASES_UPPER <- function() {
 
 
 
-VALID_DNA <- function(){
-  c("G", "A", "T", "C", "-")#, "+")
+VALID_DNA <- function(include = "del"){
+  include <- match.arg(include, c("none", "del", "ins", "indel"))
+  if (include == "indel") return(c("G", "A", "T", "C", "-", "+"))
+  if (include == "ins") return(c("G", "A", "T", "C", "+"))
+  if (include == "del") return(c("G", "A", "T", "C", "-"))
+  if (include == "none") return(c("G", "A", "T", "C"))
 }
-
 CODE_MAP <- function() {
   c(
     A =  "A",  C = "C",   G = "G",   T = "T",    M = "AC",   R = "AG",   W = "AT",
@@ -31,7 +34,7 @@ CODE_MAP <- function() {
 
 DNA_PROB <- function(include = "indels"){
   if (include == "indels") {
-    return(c(A = 0.25, C = 0.25, G = 0.25, T = 0.25, `+` = 0.001, `-` = 0.001))
+    return(c(A = 0.2, C = 0.2, G = 0.2, T = 0.2, `-` = 0.20, `+` = 0.001))
   } else if (include == "ins"){
     return(c(A = 0.25, C = 0.25, G = 0.25, T = 0.25, `+` = 0.001))
   } else if (include == "del"){

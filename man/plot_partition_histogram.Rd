@@ -4,7 +4,7 @@
 \alias{plot_partition_histogram}
 \title{Plot distribution of haplotype partitioned reads}
 \usage{
-plot_partition_histogram(x, label = "")
+plot_partition_histogram(x, label = "", limits = NULL)
 }
 \arguments{
 \item{x}{A \code{HapPart} object.}

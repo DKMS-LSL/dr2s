@@ -9,6 +9,8 @@ DR2Smap.default <- function(sample,
                             consensus = "multialign",
                             threshold = 0.20,
                             iterations = 1,
+                            microsatellite = FALSE,
+                            partSR = TRUE,
                             fullname = TRUE,
                             create_outdir = TRUE,
                             ...) {
@@ -23,6 +25,8 @@ DR2Smap.default <- function(sample,
     consensus = consensus,
     threshold = threshold,
     iterations = iterations,
+    microsatellite = microsatellite,
+    partSR = partSR,
     fullname = fullname,
     ...
   )
@@ -57,7 +61,7 @@ clear.DR2S <- function(x, ...) {
 #' @usage DR2Smap(sample, locus, longreads = list(type = "pacbio", dir = "pacbio"),
 #' shortreads = list(type = "illumina", dir = "illumina"), datadir = ".",
 #' outdir = "./output", reference = NULL, consensus = "multialign",
-#' threshold = 0.20, iterations = 1, fullname = TRUE, create_outdir = TRUE, ...)
+#' threshold = 0.20, iterations = 1, microsatellite = FALSE, partSR = TRUE, fullname = TRUE, create_outdir = TRUE, ...)
 #' @field mapInit \code{[mapInit]}; the mapping of long reads to \code{reference}.
 #' @field partition \code{[PartList]}; the partitioning of full-length mapped
 #'   long reads into different haplotypes.
@@ -72,7 +76,7 @@ clear.DR2S <- function(x, ...) {
 #' @section Public Methods:
 #' \describe{
 #' \item{\code{x$runMapInit(opts = list(), optsname = "", pct = 100, threshold = 0.20, iterations = 1,
-#' min_base_quality = 3, min_mapq = 0, max_depth = 1e4, min_nucleotide_depth = 3,
+#' microsatellite = FALSE, partSR = TRUE, min_base_quality = 3, min_mapq = 0, max_depth = 1e4, min_nucleotide_depth = 3,
 #' include_deletions = FALSE, include_insertions = FALSE, force = FALSE,
 #' fullname = TRUE, plot = TRUE)}}{
 #' Run the inital mapping step (long reads against the reference allele)}
@@ -227,6 +231,26 @@ DR2S_ <- R6::R6Class(
     setIterations = function(iterations) {
       stopifnot(iterations < 10 && iterations > 0 && iterations%%1 == 0)
       self$setConfig("iterations", iterations)
+      invisible(self)
+    },
+    ##
+    getPartSR = function() {
+      self$getConfig("partSR")
+    },
+    ##
+    setPartSR = function(partSR) {
+      stopifnot(is.logical(partSR))
+      self$setConfig("partSR", partSR)
+      invisible(self)
+    },
+    ##
+    getMicrosatellite = function() {
+      self$getConfig("microsatellite")
+    },
+    ##
+    setMicrosatellite = function(microsatellite) {
+      stopifnot(is.logical(microsatellite))
+      self$setConfig("microsatellite", microsatellite)
       invisible(self)
     },
     ##
@@ -460,7 +484,7 @@ DR2S_ <- R6::R6Class(
       if (iter == "init"){
         ref <- match.arg(ref, c("LR", "SR"))
         if (ref == "SR"){
-          return(self$mapInit$SR$tag)
+          return(self$mapInit$SR1$tag)
         }
         return(self$mapInit$tag)
       }
@@ -538,7 +562,7 @@ DR2S_ <- R6::R6Class(
       pileup <- switch(
         readtype,
         LR = self$getPileup(),
-        SR = self$mapInit$SR$pileup
+        SR = self$mapInit$SR2$pileup
       )
       plot_pileup_coverage(
         pileup,
@@ -662,7 +686,7 @@ DR2S_ <- R6::R6Class(
         threshold <- self$getThreshold()
       }
       if (useSR){
-        pileup <- self$mapInit$SR$pileup
+        pileup <- self$mapInit$SR2$pileup
       } else {
         pileup <- self$getPileup()
       }

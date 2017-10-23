@@ -18,6 +18,8 @@ read_dr2s <- function(path) {
 }
 
 #' @export
+# x <- dedk.report
+#position = 5000
 run_igv <- function(x, position, ...) {
   assertthat::assert_that(
     is(x, "DR2S"),
@@ -34,54 +36,53 @@ run_igv <- function(x, position, ...) {
   } else {
     fsep <- "/"
   }
-  igv_batch_files <- file.path(basedir, paste0("igv", c("A", "B"), ".txt"), fsep = )
-  igv1 <- igv_batch_files[1]
-  igv2 <- igv_batch_files[2]
-
-  refA   <- file.path(basedir, "A", basename(x$mapFinal$aref))
-  bamALR <- file.path(basedir, "merged", basename(x$mapFinal$bamfile$LRA))
-  bamASR <- file.path(basedir, "merged", basename(x$mapFinal$bamfile$SRA))
-  refB   <- file.path(basedir, "B", basename(x$mapFinal$bref))
-  bamBLR <- file.path(basedir, "merged", basename(x$mapFinal$bamfile$LRB))
-  bamBSR <- file.path(basedir, "merged", basename(x$mapFinal$bamfile$SRB))
-  chrA <- sub(">", "", readLines(refA, 1))
-  chrB <- sub(">", "", readLines(refB, 1))
-
   if (missing(position)) {
     position <- as.integer(x$consensus$problematic_variants[1, "pos"])
   }
-
-  batchA <- list(
-    new = "",
-    genome = refA,
-    load   = bamALR,
-    load   = bamASR,
-    goto   = paste0(chrA, ":", position - 50, "-", position + 50),
-    sort   = "position"
-  )
-
-  batchB <- list(
-    new = "",
-    genome = refB,
-    load   = bamBLR,
-    load   = bamBSR,
-    goto   = paste0(chrB, ":", position - 50, "-", position + 50),
-    sort   = "position"
-  )
-
-  if (.Platform$OS.type != "windows") {
-    cat(sprintf("%s %s", names(batchA), batchA), sep = "\n", file = igv1)
-    system(paste0(shQuote(exe_path), " -b ", shQuote(igv1), " &"), ...)
-    cat(sprintf("%s %s", names(batchB), batchB), sep = "\n", file = igv2)
-    system(paste0(shQuote(exe_path), " -b ", shQuote(igv2), " &"), ...)
-  } else if (.Platform$OS.type == "windows") {
-    cat(sprintf("%s %s", names(batchA), batchA), sep = "\n", file = igv1)
-    cat(sprintf("%s %s", names(batchB), batchB), sep = "\n", file = igv2)
-    msg <- sprintf(
-      "\nOpen two instances of the command prompt and paste in the commands:\n%s\n%s\n",
-      paste0(shQuote(exe_path), " -b ", shQuote(igv1)),
-      paste0(shQuote(exe_path), " -b ", shQuote(igv2))
+  for (hp in x$getHapTypes()){
+    igv <- file.path(basedir, paste0("igv", hp, ".txt"), fsep = )
+    ref   <- file.path(basedir, hp, basename(x$mapIter[[as.character(x$getIterations())]][[hp]]$seqpath))
+    bamLR <- file.path(basedir, "final", basename(x$mapFinal$bamfile[[paste0("LR", hp)]]))
+    bamSR <- file.path(basedir, "final", basename(x$mapFinal$bamfile[[paste0("SR", hp)]]))
+    chr <- sub(">", "", readLines(ref, 1))
+    batch <- list(
+      new = "",
+      genome = ref,
+      load   = bamLR,
+      load   = bamSR,
+      goto   = paste0(chr, ":", position - 50, "-", position + 50),
+      sort   = "position"
     )
-    message(msg)
+    if (.Platform$OS.type != "windows") {
+      cat(sprintf("%s %s", names(batch), batch), sep = "\n", file = igv)
+      system(paste0(shQuote(exe_path), " -b ", shQuote(igv), " &"), ...)
+    } else if (.Platform$OS.type == "windows") {
+      cat(sprintf("%s %s", names(batch), batch), sep = "\n", file = igv)
+      msg <- sprintf(
+        "\nOpen an instances of the command prompt and paste in the command:\n%s\n",
+        paste0(shQuote(exe_path), " -b ", shQuote(igv))
+      )
+      message(msg)
+    }
   }
+
+
+  # batchA <- list(
+  #   new = "",
+  #   genome = refA,
+  #   load   = bamALR,
+  #   load   = bamASR,
+  #   goto   = paste0(chrA, ":", position - 50, "-", position + 50),
+  #   sort   = "position"
+  # )
+  #
+  # batchB <- list(
+  #   new = "",
+  #   genome = refB,
+  #   load   = bamBLR,
+  #   load   = bamBSR,
+  #   goto   = paste0(chrB, ":", position - 50, "-", position + 50),
+  #   sort   = "position"
+  # )
+
 }

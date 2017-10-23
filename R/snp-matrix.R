@@ -16,13 +16,11 @@
 SNPmatrix <- function(bamfile,
                       refseq,
                       polymorphic_positions) {
-
   assertthat::assert_that(requireNamespace("readr", quietly = TRUE))
   if (is(polymorphic_positions, "tbl_df") &&
       all(colnames(polymorphic_positions) %in% c("position", "a1", "f1", "a2", "f2"))) {
-    DNA <- c("A", "C", "G", "T")
     polymorphic_positions <- polymorphic_positions %>%
-      dplyr::filter_(~a1 %in% DNA, ~a2 %in% DNA) %>%
+      dplyr::filter_(~a1 %in% VALID_DNA(), ~a2 %in% VALID_DNA()) %>%
       dplyr::select_(~position) %>%
       unlist(use.names = FALSE) %>%
       as.integer()

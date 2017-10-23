@@ -220,7 +220,7 @@ is.freq.consmat <- function(x) attr(x, "freq")
 
 #' @keywords internal
 #' @export
-prune_consensus_matrix <- function(cm, n_look_behind = 36, cutoff = 0.5, verbose = TRUE) {
+prune_consensus_matrix <- function(cm, n_look_behind = 36, cutoff = 0.6, verbose = TRUE) {
   rowsum <- rowSums(cm[, 1:4]) ## only consider bases
   m0 <- do.call(cbind, Map(function(n) dplyr::lag(rowsum, n), n_look_behind:1))
   wquant <- suppressWarnings(apply(m0, 1, quantile, probs = 0.75, na.rm = TRUE))
@@ -239,14 +239,14 @@ prune_consensus_matrix <- function(cm, n_look_behind = 36, cutoff = 0.5, verbose
 #' @export
 # Create position weight matrix
 create_PWM <- function(msa){
-  cmat <- as.matrix(Biostrings::consensusMatrix(msa, as.prob = TRUE)[VALID_DNA(),])
+  cmat <- as.matrix(Biostrings::consensusMatrix(msa, as.prob = TRUE)[c(VALID_DNA(), "+"),])
   ## Add pseudocount
   cmat <- cmat + 1/length(msa)
   ## Multiply with DNA_PROBABILITIES
-  cmat <- cmat / DNA_PROB(include = "del")
+  cmat <- cmat / DNA_PROB(include = "indels")
   ## Get log2likelihood ratio
   cmat <- log2(cmat)
-  cmat["-",] <- 0
+  cmat["+",] <- 0
   cmat
 }
 

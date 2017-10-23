@@ -9,8 +9,8 @@ report(x, which, block_width = 80, ...)
 \arguments{
 \item{x}{A \code{\link[=DR2S_]{DR2S}} object.}
 
-\item{which}{Which mapping do we want to report. Will choose \code{map3},
-\code{map2}, \code{map1} in this order if available.}
+\item{which}{Which mapping do we want to report. Will choose \code{mapFinal},
+\code{mapIter} in this order if available.}
 
 \item{block_width}{Maximum number of sequence letters per line in pairwise alignment.}
 
@@ -47,13 +47,12 @@ x <- DR2Smap(
   consensus = "multialign"
   ) \%>\%
   clear() \%>\%
-  map0() \%>\%
+  mapInit() \%>\%
   partition_haplotypes() \%>\%
   split_reads_by_haplotype() \%>\%
   extract_fastq() \%>\%
-  map1() \%>\%
-  map2() \%>\%
-  map3() \%>\%
+  mapIter() \%>\%
+  mapFinal() \%>\%
   cache() \%>\%
   polish() \%>\%
   report(block_width = 60)
@@ -62,10 +61,10 @@ x <- DR2Smap(
 \seealso{
 Other DR2S mapper functions: \code{\link{DR2Smap}},
   \code{\link{cache}}, \code{\link{clear}},
-  \code{\link{extract_fastq}}, \code{\link{map0}},
-  \code{\link{map1}}, \code{\link{map2}},
-  \code{\link{map3}}, \code{\link{partition_haplotypes}},
-  \code{\link{polish}},
+  \code{\link{extract_fastq}}, \code{\link{mapFinal}},
+  \code{\link{mapInit}}, \code{\link{mapIter}},
+  \code{\link{partitionShortReads}},
+  \code{\link{partition_haplotypes}}, \code{\link{polish}},
   \code{\link{report_checked_consensus}},
   \code{\link{split_reads_by_haplotype}}
 }

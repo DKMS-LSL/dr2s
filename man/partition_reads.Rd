@@ -4,8 +4,8 @@
 \alias{partition_reads}
 \title{Partition a SNP matrix into two haplotype groups}
 \usage{
-partition_reads(x, cl_method = "ward.D", min_len = 0.8,
-  skip_gap_freq = 2/3, deepSplit = 0)
+partition_reads(x, cl_method = "ward.D", min_len = 0.5,
+  skip_gap_freq = 2/3, deepSplit = 1)
 }
 \arguments{
 \item{x}{A \code{[read x position]} SNP matrix.}

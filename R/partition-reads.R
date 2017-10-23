@@ -15,18 +15,18 @@
 #' ###
 
 # debug
- # x <- hla.part$partition$mat
- # cl_method="ward.D"
- # min_len = 0.8
- # skip_gap_freq = 2/3
- # deepSplit = 1
+#x <- dpb1_3$partition$mat
+# cl_method="ward.D"
+# min_len = 0.3
+# skip_gap_freq = 2/3
+# deepSplit = 1
+# x <- mat
 
-
-partition_reads <- function(x, cl_method="ward.D", min_len = 0.8, skip_gap_freq = 2/3, deepSplit = 1, outdir = "./outdir"){
+partition_reads <- function(x, cl_method="ward.D", min_len = 0.5, skip_gap_freq = 2/3, deepSplit = 1){
   # get SNPs
   ppos <- colnames(x)
   xm <- as.matrix(x[order(rownames(x)),])
-  bad_ppos <- apply(xm, 2, function(x) NROW(x[x == "-"])/NROW(x) > skip_gap_freq )
+  bad_ppos <- apply(xm, 2, function(x) NROW(x[x == "+"])/NROW(x) > skip_gap_freq )
   xm <- as.matrix(xm[,!bad_ppos])
   bad_ppos <- ppos[bad_ppos]
 
@@ -61,11 +61,16 @@ partition_reads <- function(x, cl_method="ward.D", min_len = 0.8, skip_gap_freq 
   msa <- lapply(levels(subclades), function(x) xseqs[names(subclades[subclades == x])])
   names(msa) <- hptypes
   mats <- lapply(msa, function(x) create_PWM(x))
+  #dpb1_6$polymorphicPositions(useSR = TRUE)$position
+  #unname(xm[,1 ])
+  #run_igv(dpb1_6.r)
 
   # ToDo refine chimera finding
+
+  hpseqs <- Biostrings::DNAStringSet(sapply(msa, function(x) unlist(simple_consensus(t(Biostrings::consensusMatrix(x)[c(VALID_DNA(), "+"),])))))
   if (length(hptypes)> 2) {
-    seqs <- Biostrings::DNAStringSet(sapply(msa, function(x) unlist(simple_consensus(t(Biostrings::consensusMatrix(x)[c(VALID_DNA(), "-", "+"),])))))
-    rC <- sort(find_chimeric(seqs))
+    rC <- sort(find_chimeric(hpseqs))
+    message("Use only clusters ", rC, " ...")
     mats <- mats[rC]
   }
 
@@ -134,6 +139,7 @@ partition_reads <- function(x, cl_method="ward.D", min_len = 0.8, skip_gap_freq 
   oc(part_) <-as.character(unique(subclades))
   mcoef(part_) <- clades$score
   scores(part_) <- scores
+  SQS(part_) <- hpseqs
 #  mats(part_) <- mats
 
 
@@ -165,15 +171,15 @@ partition_reads <- function(x, cl_method="ward.D", min_len = 0.8, skip_gap_freq 
 # # #self$getPartition()
 #  x <- run$partition$mat
 #  x <- dedk$partition$mat
-#x <- hla.part$partition$mat
+# x <- dpb1_6.r$partition$mat
 
 #x
 #class(x)
 #  cl_method="ward.D"
-#  min_len = 0.8
+# min_len = 0.8
 # skip_gap_freq = 2/3
 # min_reads_frac = 1/3
-#deepSplit = 1
+# deepSplit = 1
 # partn <- partition_reads(x)
 #length(partn[mcoef(partn)>1])
 #length(partn)
@@ -183,23 +189,24 @@ partition_reads <- function(x, cl_method="ward.D", min_len = 0.8, skip_gap_freq 
 
 get_clusts <- function(xseqs, xmat, min_len = 0.80, cl_method = "ward.D", deepSplit = 1, min_reads_frac = 1/3){
 
+  # min_len <- 0.8
   # Need more sequences for more snps
-  adjusted_min_reads_frac <- min_reads_frac + (0.03*Biostrings::width(xseqs[1])/50)
+  adjusted_min_reads_frac <- min_reads_frac + (0.03*Biostrings::width(xseqs[1])/50) * 1500^2/length(xseqs)^2
+  adjusted_min_reads_frac <- min(0.8, adjusted_min_reads_frac)
   # get long reads
-  min_lens <- seq(1, .7, -0.01)
-  len_counts <- sapply(min_lens, function(minl) length(xseqs[Biostrings::width(gsub("-", "", xseqs)) > minl*Biostrings::width(xseqs[1])])/length(xseqs))
+  min_lens <- seq(1, 0, -0.01)
+  len_counts <- sapply(min_lens, function(minl) length(xseqs[Biostrings::width(gsub("\\+", "", xseqs)) > minl*Biostrings::width(xseqs[1])])/length(xseqs))
   names(len_counts) <- min_lens
   min_len <- max(as.numeric(names(len_counts[which(len_counts>adjusted_min_reads_frac)][1])), min_len)
 
   message("Using only long reads containing ", min_len*100, "% of all SNPs")
-  x_sub <- xseqs[Biostrings::width(gsub("-", "", xseqs)) > min_len*Biostrings::width(xseqs[1])]
-
+  x_sub <- xseqs[Biostrings::width(gsub("\\+", "", xseqs)) > min_len*Biostrings::width(xseqs[1])]
   ## Consensus matrix with pseudocount
   message("  Constructing a Position Specific Distance Matrix of ", length(x_sub), " sequences ...")
-  consmat  <- as.matrix(Biostrings::consensusMatrix(x_sub, as.prob = TRUE)[VALID_DNA(),] + 1/length(x_sub))
+  consmat  <- as.matrix(Biostrings::consensusMatrix(x_sub, as.prob = TRUE)[c(VALID_DNA(),"+"),] + 1/length(x_sub))
   ## Create seq matrix as input for cpp_PSDM
   x_sub_tmp <- as.matrix(x_sub)
-  x_sub_mat<- plyr::revalue(x_sub_tmp, c("G" = 1, "A" = 2, "T" = 3, "C" = 4, "-" = 5))
+  x_sub_mat<- plyr::revalue(x_sub_tmp, c("G" = 1, "A" = 2, "T" = 3, "C" = 4, "-" = 5, "+" = 6))
   x_sub_mat<- sapply(x_sub_mat, as.numeric)
   dim(x_sub_mat) <- dim(x_sub_tmp)
   rm(x_sub_tmp)
@@ -209,6 +216,8 @@ get_clusts <- function(xseqs, xmat, min_len = 0.80, cl_method = "ward.D", deepSp
   colnames(dist) <- names(x_sub)
   rownames(dist) <- names(x_sub)
   dist <- as.dist(dist)
+
+  dist[is.na(dist)] <- mean(dist,na.rm = T)
 
   ## Perform a hierarchical clustering
   hcc <-  hclust(dist, method = cl_method)
@@ -220,10 +229,12 @@ get_clusts <- function(xseqs, xmat, min_len = 0.80, cl_method = "ward.D", deepSp
   return(list(clades = clades, tree = hcc))
 }
 
+
 get_scores <- function(s, xseqs, mats){
   seq <- as.character(xseqs[[s]])
   seq <- unlist(strsplit(seq, split = ""))
   read <- names(xseqs[s])
+
 
   b <- sapply(mats, function(t) sum( sapply(1:length(seq), function(x) t[seq[x],x] ) ) )
   t <- data.frame(read, b, names(b))#, max(b), names(which(b == max(b)))))
@@ -231,13 +242,13 @@ get_scores <- function(s, xseqs, mats){
   names(t) <- c("read", "score", "clade")
   t
 }
-
 find_chimeric <- function(seqs) {
+  # Use only non empty seqs
+  seqs <- seqs[sapply(seqs, function(x) !nchar(gsub("\\+|-","", as.character(x))) == 0)]
   forward <- lapply(1:(Biostrings::width(seqs[1])/2), function(x) DECIPHER::DistanceMatrix(Biostrings::DNAStringSet(seqs, start = 1, width = x), verbose = FALSE))
   reverse <- lapply(1:(Biostrings::width(seqs[1])/2), function(x) DECIPHER::DistanceMatrix(Biostrings::DNAStringSet(Biostrings::reverse(seqs), start = 1, width = x), verbose = FALSE))
   f <- DECIPHER::DistanceMatrix(Biostrings::DNAStringSet(seqs, start = 1, width = Biostrings::width(seqs)/2), verbose = FALSE)
   r <- DECIPHER::DistanceMatrix(Biostrings::DNAStringSet(Biostrings::reverse(seqs), start = 1, width = Biostrings::width(seqs)/2), verbose = FALSE)
-  seqs
   dm <- foreach(h = names(seqs), .combine = 'cbind') %:%
    foreach(hp = names(seqs)) %do% {
     f <- sapply(forward, function(x) x[h,hp])
@@ -246,7 +257,7 @@ find_chimeric <- function(seqs) {
    }
   rownames(dm) <- names(seqs)
   colnames(dm) <- names(seqs)
-  addC <- names(dm[1,][dm[1,]>1])
+  addC <- names(dm[1,][dm[1,]>1.5])
   c("A", addC)
 
   #rC <-arrayInd(which(dm == unlist(dm[dm > 1])), dim(dm))
@@ -482,6 +493,17 @@ K.HapPart <- function(x) {
 `K<-` <- function(x, value) UseMethod("K<-")
 `K<-.HapPart` <- function(x, value) {
   attr(x, "k") <- value
+  x
+}
+
+SQS <- function(x) UseMethod("SQS")
+SQS.HapPart <- function(x) {
+  attr(x, "seqs")
+}
+
+`SQS<-` <- function(x, value) UseMethod("SQS<-")
+`SQS<-.HapPart` <- function(x, value) {
+  attr(x, "seqs") <- value
   x
 }
 
@@ -763,13 +785,12 @@ coord_radar <- function (theta = "x", start = 0, direction = 1)  {
 
 # Optimal partitioning ----------------------------------------------------
 
-
+#f = 0.6
 optimal_partition_limits <- function(scores, f = 0.3) {
   coeff_cuts <- seq(0, max(unlist(scores)), length.out = 100)
   rHap <- lapply(scores, function(x) sapply(coeff_cuts, function(cutoff) sum(x >= cutoff)))
   df <- dplyr::data_frame()
 
-  f <- 0.3
   df <- data.frame()
   for(hapType in names(rHap)){
     l <- f * length(unlist(scores[!names(rHap) == hapType]))/ length(scores[[hapType]])
@@ -791,3 +812,4 @@ optimal_partition_limits <- function(scores, f = 0.3) {
       theme_bw()
   )
 }
+

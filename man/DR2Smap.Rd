@@ -7,7 +7,7 @@
 DR2Smap(sample, locus, longreads = list(type = "pacbio", dir = "pacbio"),
   shortreads = list(type = "illumina", dir = "illumina"), datadir = ".",
   outdir = "./output", reference = NULL, consensus = "multialign",
-  threshold = 0.2, fullname = TRUE, ...)
+  threshold = 0.2, iterations = 1, fullname = TRUE, ...)
 }
 \arguments{
 \item{sample}{A unique sample identifier used to locate the long and short
@@ -35,6 +35,8 @@ from the long reads. One of \dQuote{\code{multialign}} or \dQuote{\code{mapping}
 (See Note).}
 
 \item{threshold}{Threshold frequency for polymorphisms.}
+
+\item{iterations}{Number of iterations of the mapIter step.}
 
 \item{fullname}{Truncate allele names.}
 }
@@ -97,13 +99,12 @@ x <- DR2Smap(
   consensus = "multialign"
   ) \%>\%
   clear() \%>\%
-  map0() \%>\%
+  mapInit() \%>\%
   partition_haplotypes() \%>\%
   split_reads_by_haplotype() \%>\%
   extract_fastq() \%>\%
-  map1() \%>\%
-  map2() \%>\%
-  map3() \%>\%
+  mapIter() \%>\%
+  mapFinal() \%>\%
   cache() \%>\%
   polish() \%>\%
   report(block_width = 60)
@@ -112,8 +113,8 @@ x <- DR2Smap(
 \seealso{
 Other DR2S mapper functions: \code{\link{cache}},
   \code{\link{clear}}, \code{\link{extract_fastq}},
-  \code{\link{map0}}, \code{\link{map1}},
-  \code{\link{map2}}, \code{\link{map3}},
+  \code{\link{mapFinal}}, \code{\link{mapInit}},
+  \code{\link{mapIter}}, \code{\link{partitionShortReads}},
   \code{\link{partition_haplotypes}}, \code{\link{polish}},
   \code{\link{report_checked_consensus}},
   \code{\link{report}},

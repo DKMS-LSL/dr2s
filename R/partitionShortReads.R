@@ -78,8 +78,9 @@ get_SR_partition_scores <- function(ppos, refname, bamfile, mats, cores = "auto"
 #' @examples
 #' ### Score
 #
-score_highest_SR <- function(srpartition, diffThreshold = 0.2) {
-  srpartition %>%
+score_highest_SR <- function(srpartition, diffThreshold = 0.05) {
+
+  sr <- srpartition %>%
     dplyr::group_by(read, haplotype) %>%
     dplyr::mutate(clade = prod(prob)) %>%
     dplyr::ungroup() %>%
@@ -87,11 +88,28 @@ score_highest_SR <- function(srpartition, diffThreshold = 0.2) {
     dplyr::mutate(max = max(clade)) %>%
     dplyr::group_by(read, haplotype) %>%
     dplyr::select(read, haplotype, clade, max) %>%
-    dplyr::distinct() %>%
+    dplyr::distinct()
+
+  sr2 <- sr %>%
     dplyr::group_by(read) %>%
     dplyr::filter(abs(1-(clade/max)) < diffThreshold) %>%
     dplyr::mutate(exclusive = n() == 1) %>%
     dplyr::ungroup()
+
+  correctScoring <- unlist(sapply(unique(srpartition$pos), function(position) check_SR_scoring(position, sr2, srpartition)))
+
+  while(!all(correctScoring)){
+    diffThreshold <- diffThreshold + 0.02
+    message(" Calculate shortread scoring with cutoff: ", diffThreshold)
+    sr2 <- sr %>%
+      dplyr::group_by(read) %>%
+      dplyr::filter(abs(1-(clade/max)) < diffThreshold) %>%
+      dplyr::mutate(exclusive = n() == 1) %>%
+      dplyr::ungroup()
+    correctScoring <- unlist(sapply(unique(srpartition$pos), function(position) check_SR_scoring(position, sr2, srpartition)))
+  }
+  message(" Use overlap cutoff of ", diffThreshold, "for shortread scoring ...")
+  return(sr2)
 }
 
 write_part_fq <- function(fq, srFastqHap, dontUseReads = dontUseReads) {
@@ -114,3 +132,12 @@ part_read <- function(a, mats, pos){
   list(prob = l,  haplotype = names(l), pos = rep(pos, length(l)))
 }
 
+check_SR_scoring <- function(position, sr2, srpartition){
+  reads_at_pos <- unique(dplyr::filter(srpartition, pos == position)$read)
+  score_ok <- c()
+  foreach(hp = unique(sr2$haplotype)) %do% {
+    countOwn <- sum(reads_at_pos %in% dplyr::filter(sr2, haplotype == hp)$read)
+    score_ok <- c(score_ok, countOwn/length(reads_at_pos) > 0.01)
+  }
+  return(score_ok)
+}

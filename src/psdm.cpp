@@ -19,7 +19,7 @@ NumericMatrix cpp_PSDM(NumericMatrix consMat, NumericMatrix sequences) {
         if (xs == ys){
          r[s] = 0.0;
           ++n;
-        } else if (xs == 4 || ys == 4){
+        } else if (xs == 5 || ys == 5){
           r[s] = 0.0;
         } else{
           r[s] = consMat(xs,s) * consMat(ys,s);
