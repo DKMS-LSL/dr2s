@@ -16,7 +16,7 @@ Workflow
 
 As input, we expect long-read and short-read FASTQ files to be placed in separate subdirectories within a working directory and to follow the naming convention `SAMPLEID_LOCUS_.*.fastq(.gz)?`..
 
-`SAMPLEID` can be any arbitrary unique identification code and `LOCUS` should be one of `A`, `B`, `C`, `DQB1`, `DRB1`, or `DPB1`
+`SAMPLEID` can be any arbitrary unique identification code and `LOCUS` should be one of `A`, `B`, `C`, `DQB1`, `DRB1`, `DPB1` or `KIR` 
 
 All output is placed in a directory tree `output\SAMPLEID\READTYPE\LOCUS`.
 
