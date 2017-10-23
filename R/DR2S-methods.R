@@ -194,19 +194,14 @@ DR2S_$set("public", "runMapInit",
                  include_deletions = include_deletions,
                  include_insertions = include_insertions
                )
-               if (include_read_ids && is.null(ids(pileup$consmat))) {
-                 pileup <- pileup_include_read_ids(pileup)
-               }
 
                if (include_insertions && is.null(ins(pileup$consmat))) {
                  pileup <- pileup_include_insertions(pileup)
                }
 
-               # calc initial consensus
+               # Infer initial consensus
                flog.info("   Construct second consensus from shortreads with refined repeats ...", name = "info")
-               # debug
-               #cs <- conseq
-               conseq <- conseq(pileup$consmat, "mapInit1.2", "freq", force_exclude_gaps = TRUE, threshold = 0.2)#self$getThreshold())
+               conseq <- conseq(pileup$consmat, "mapInit1.2", "freq", force_exclude_gaps = TRUE, threshold = 0.2)
                conseq_name <- paste0("Init.consensus.2", sub(".sam.gz", "", basename(samfile)))
                conseqpath     <- file.path(self$getOutdir(), paste0(conseq_name, ".fa"))
                Biostrings::writeXStringSet(
