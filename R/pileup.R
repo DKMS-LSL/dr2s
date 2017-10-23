@@ -325,9 +325,10 @@ plot_pileup_coverage <- function(x, threshold = 0.2, range = NULL, thin = 0.1, w
   dt <- x[, list(count = sum(count)), by = list(pos, nucleotide)]
   dtbg <- dt[pos %in% nonpoly_thin]
   dtpoly <- dt[!pos %in% nonpoly][order(pos, nucleotide)]
-  dtpoly[, nucleotide := factor(nucleotide, levels = c("A", "C", "G", "T", "-", " ", "+"),
-                                labels = c("A", "C", "G", "T", "-", " ", "+"), ordered = TRUE)]
+  dtpoly[, nucleotide := factor(nucleotide, levels = c("+", "-", "A", "C", "G", "T", " "),
+                                labels = c("+", "-", "A", "C", "G", "T", " "), ordered = TRUE)]
   setkeyv(dtpoly, c("pos", "nucleotide"))
+
   ggplot(dtbg, aes(x = pos, y = count)) +
     geom_bar(stat = "identity", position = position_identity(), fill = "grey80") +
     geom_bar(data = dtpoly, stat = "identity", position = position_stack(),
