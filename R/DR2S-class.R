@@ -144,6 +144,8 @@ DR2S_ <- R6::R6Class(
           private$conf$alt_path  = generate_reference_sequence(private$ipd, private$conf$alternate, private$conf$outdir, fullname = TRUE)
         }
       }
+      conf_log(outdir = private$conf$outdir, logName = "info")
+      flog.info("Creating DR2S Object", name = "info")
       # # ToDo: If still used rm A,B
       # private$conf$A_reftype = NA
       # private$conf$B_reftype = NA
