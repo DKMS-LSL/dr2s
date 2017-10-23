@@ -12,7 +12,7 @@ Workflow
 
 ### Input and output
 
-`DR2S` is designed to integrate long-read HLA data (e.g., PacBio or Oxford Nanopore sequences) and short-read shotgun data (Illumina).
+`DR2S` is designed to integrate long-read HLA data (e.g., PacBio or Oxford Nanopore sequences) and short-read shotgun data (Illumina)..
 
 As input, we expect long-read and short-read FASTQ files to be placed in separate subdirectories within a working directory and to follow the naming convention `SAMPLEID_LOCUS_.*.fastq(.gz)?`.
 
