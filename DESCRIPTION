@@ -61,6 +61,7 @@ Collate:
     'config.R'
     'conseq.R'
     'consmat.R'
+    'dists.R'
     'errors.R'
     'hmm.R'
     'hmmer.R'

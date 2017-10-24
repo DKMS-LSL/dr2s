@@ -5,6 +5,17 @@
 
 using namespace Rcpp;
 
+// cpp_hamming
+NumericMatrix cpp_hamming(NumericMatrix sequences);
+RcppExport SEXP _DR2S_cpp_hamming(SEXP sequencesSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< NumericMatrix >::type sequences(sequencesSEXP);
+    rcpp_result_gen = Rcpp::wrap(cpp_hamming(sequences));
+    return rcpp_result_gen;
+END_RCPP
+}
 // cpp_polymorphic_positions
 Rcpp::IntegerVector cpp_polymorphic_positions(Rcpp::NumericMatrix x, const double threshold);
 RcppExport SEXP _DR2S_cpp_polymorphic_positions(SEXP xSEXP, SEXP thresholdSEXP) {
@@ -42,6 +53,7 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
+    {"_DR2S_cpp_hamming", (DL_FUNC) &_DR2S_cpp_hamming, 1},
     {"_DR2S_cpp_polymorphic_positions", (DL_FUNC) &_DR2S_cpp_polymorphic_positions, 2},
     {"_DR2S_cpp_top2_cols", (DL_FUNC) &_DR2S_cpp_top2_cols, 1},
     {"_DR2S_cpp_PSDM", (DL_FUNC) &_DR2S_cpp_PSDM, 2},

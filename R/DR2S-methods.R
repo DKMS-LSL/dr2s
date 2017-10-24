@@ -401,23 +401,23 @@ print.mapInit <- function(x, ...) {
 #' @export
 partition_haplotypes.DR2S <- function(x,
                                       max_depth = 1e4,
-                                      # shuffle = TRUE,
                                       skip_gap_freq = 2/3,
                                       plot = TRUE,
                                       ...) {
   flog.info("Step 1: Partition reads into haplotypes ...", name = "info")
   Sys.sleep(1)
   x$runHaplotypePartitioning(max_depth = max_depth,
-                             # shuffle = shuffle,
+                             threshold = NULL,
                              skip_gap_freq = skip_gap_freq,
                              plot = plot)
   message("  Done!\n")
   invisible(x)
 
 }
-#self <- dpb1_3.map
+#self <- dpb1_3
 DR2S_$set("public", "runHaplotypePartitioning", function(max_depth = 1e4,
                   skip_gap_freq = 2/3,
+                  threshold = NULL,
                   plot = TRUE) {
 
                   # debug
@@ -431,6 +431,9 @@ DR2S_$set("public", "runHaplotypePartitioning", function(max_depth = 1e4,
            if (!is.null(args)) {
              env  <- environment()
              list2env(args, envir = env)
+           }
+           if (is.null(threshold)){
+             threshold <- self$getThreshold()
            }
 
            tag  <- self$getMapTag("init", "LR")
@@ -477,7 +480,7 @@ DR2S_$set("public", "runHaplotypePartitioning", function(max_depth = 1e4,
            # ggseqlogo(unlist(seqs), seqtype = "DNA")
 
            flog.info(" Partitioning %s reads over %s SNPs ...", NROW(mat), NCOL(mat), name = "info")
-           prt <- partition_reads(x = mat, skip_gap_freq = skip_gap_freq, deepSplit = 1)
+           prt <- partition_reads(x = mat, skip_gap_freq = skip_gap_freq, deepSplit = 1, threshold = threshold)
            browse_seqs(SQS(prt), file = file.path(self$getOutdir(), "partition.fa.html"), openURL = FALSE)
 
            self$setHapTypes(levels(as.factor(PRT(prt))))
@@ -744,7 +747,7 @@ mapIter.DR2S <- function(x,
 }
 
 # self <- hla.fq
-#self <- pdb1_3
+#self <- dpb1_3
 DR2S_$set("public", "runMapIter",
          function(opts = list(),
                   iterations = 1,
@@ -807,7 +810,7 @@ DR2S_$set("public", "runMapIter",
              cmat <- Biostrings::consensusMatrix(mat[readIds], as.prob = TRUE)[VALID_DNA(include = "indel"),]
              conseq_name <- paste0("consensus.mapIter.0.", hptype)
              conseq <- conseq(x = t(cmat), name = conseq_name, type = "prob",
-                    exclude_gaps = TRUE, prune_matrix = TRUE,
+                    force_exclude_gaps = TRUE, prune_matrix = TRUE,
                     cutoff = pruning_cutoff)
              seqpath     <- file.path(self$mapIter[["0"]][[hptype]]$dir, paste0(conseq_name, ".fa"))
              self$mapIter[["0"]][[hptype]]$ref <- "mapIter0"
