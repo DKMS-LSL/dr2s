@@ -79,10 +79,9 @@ get_SR_partition_scores <- function(ppos, refname, bamfile, mats, cores = "auto"
 #' @examples
 #' ### Score
 #
-score_highest_SR <- function(srpartition, diffThreshold = 0.01) {
+score_highest_SR <- function(srpartition, diffThreshold = 0.001) {
 # srpartition <- srpartitionbc$srpartition
 # srpartitionbc <- srpartition
-
   sr <- srpartition %>%
     dplyr::group_by(read, haplotype) %>%
     dplyr::mutate(clade = sum(prob)) %>%

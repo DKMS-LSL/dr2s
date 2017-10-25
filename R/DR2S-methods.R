@@ -1098,7 +1098,7 @@ DR2S_$set("public", "runPartitionShortReads",
            ##' Assign read to haplotype with highest probability,
            ##' i.e. prod over probabilities of each haplotype and choose max
            flog.info(" Get highest scoring haplotype for each read", name = "info")
-           srpartition$haplotypes <- score_highest_SR(srpartition$srpartition, diffThreshold = 0.01)
+           srpartition$haplotypes <- score_highest_SR(srpartition$srpartition, diffThreshold = 0.001)
 
            # Write fastqs
            foreach(hptype = hptypes ) %do% {
