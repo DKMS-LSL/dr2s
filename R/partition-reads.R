@@ -20,7 +20,7 @@
 # min_len = 0.3
 # skip_gap_freq = 2/3
 # deepSplit = 1
-#x <- dpb1_3.map$partition$mat
+# x <- dpb1_3$partition$mat
 # x <- mat
 
 partition_reads <- function(x, cl_method="ward.D", min_len = 0.5, skip_gap_freq = 2/3, deepSplit = 1, threshold = 0.2){
@@ -38,10 +38,9 @@ partition_reads <- function(x, cl_method="ward.D", min_len = 0.5, skip_gap_freq 
   ## Get only the fraction of reads that contain at least min_len of total SNPs
   clustres <- get_clusts(xseqs, cl_method = cl_method, min_len = min_len, deepSplit = deepSplit, threshold = threshold)
   subclades <- clustres$clades
-  table(subclades)
   tree <- clustres$tree
   # debug
-   plot(tree, labels = F)
+   # plot(tree, labels = F)
   hptypes <- levels(subclades)
 
   flog.info("  Initial clustering results in %s haplotypes %s", length(hptypes), paste(hptypes, collapse = ", "), name = "info")
@@ -50,7 +49,6 @@ partition_reads <- function(x, cl_method="ward.D", min_len = 0.5, skip_gap_freq 
   msa <- lapply(levels(subclades), function(x) xseqs[names(subclades[subclades == x])])
   names(msa) <- hptypes
   mats <- lapply(msa, function(x) create_PWM(x))
-
   hpseqs <- Biostrings::DNAStringSet(sapply(msa, function(x) unlist(simple_consensus(t(Biostrings::consensusMatrix(x)[c(VALID_DNA(), "+"),])))))
   # debug
   #browse_seqs(hpseqs)
@@ -104,19 +102,20 @@ get_clusts <- function(xseqs, xmat, min_len = 0.80, cl_method = "ward.D", deepSp
   # min_len <- 0.8
   # Need more sequences for more snps
   adjusted_min_reads_frac <- min_reads_frac + (0.03*Biostrings::width(xseqs[1])/50) * 1500^2/length(xseqs)^2
-  adjusted_min_reads_frac <- min(0.8, adjusted_min_reads_frac)
-  flog.info("  Adjusting minimal fraction of reads used for clustering from %g to %g ...", min_reads_frac, adjusted_min_reads_frac, name = "info")
-  # get long reads
+  adjusted_min_reads_frac <- min(0.5, adjusted_min_reads_frac)
+  flog.info("  Adjusting minimal fraction of reads used for clustering from %g %% to %g %% ...", min_reads_frac*100, adjusted_min_reads_frac*100, name = "info")
+  # get long reads containing sufficient number of SNPs
   min_lens <- seq(1, 0, -0.01)
   len_counts <- sapply(min_lens, function(minl) length(xseqs[Biostrings::width(gsub("\\+", "", xseqs)) > minl*Biostrings::width(xseqs[1])])/length(xseqs))
   names(len_counts) <- min_lens
   min_len <- max(as.numeric(names(len_counts[which(len_counts>adjusted_min_reads_frac)][1])), min_len)
   flog.info("  Using only long reads containing at least %s %% of all SNPs ...", min_len*100, name = "info")
   x_sub <- xseqs[Biostrings::width(gsub("\\+", "", xseqs)) > min_len*Biostrings::width(xseqs[1])]
+
   ## Consensus matrix with pseudocount
   flog.info("  Constructing a Position Specific Distance Matrix of the reamaining %s sequences ...", length(x_sub), name = "info")
   consmat  <- as.matrix(Biostrings::consensusMatrix(x_sub, as.prob = TRUE)[c(VALID_DNA(),"+"),] + 1/length(x_sub))
-  # Remove gaps below a threshold as they are probably artifacts
+  # Remove gaps below a threshold as they are probably sequencing artifacts
   consmat <- foreach(col = 1:ncol(consmat), .combine = cbind)%do% {
     a <- consmat[,col]
     a["-"] <- ifelse(a["-"] < threshold, min(a), a["-"])
@@ -124,8 +123,6 @@ get_clusts <- function(xseqs, xmat, min_len = 0.80, cl_method = "ward.D", deepSp
   }
   ## Get Position Specific Distance Matrix
   dist <- PSDM(x_sub, consmat)
-  colnames(dist) <- names(x_sub)
-  rownames(dist) <- names(x_sub)
   dist <- as.dist(dist)
 
   dist[is.na(dist)] <- mean(dist,na.rm = T)
@@ -607,11 +604,9 @@ coord_radar <- function (theta = "x", start = 0, direction = 1)  {
 # Optimal partitioning ----------------------------------------------------
 
 #f = 0.6
-optimal_partition_limits <- function(scores, f = 0.3) {
+optimal_partition_limits <- function(scores, f = 0.4) {
   coeff_cuts <- seq(0, max(unlist(scores)), length.out = 100)
   rHap <- lapply(scores, function(x) sapply(coeff_cuts, function(cutoff) sum(x >= cutoff)))
-  df <- dplyr::data_frame()
-
   df <- data.frame()
   for(hapType in names(rHap)){
     l <- f * length(unlist(scores[!names(rHap) == hapType]))/ length(scores[[hapType]])

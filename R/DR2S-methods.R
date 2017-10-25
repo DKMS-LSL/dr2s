@@ -421,8 +421,8 @@ DR2S_$set("public", "runHaplotypePartitioning", function(max_depth = 1e4,
                   plot = TRUE) {
 
                   # debug
-                  # max_depth = 1e4
                   # skip_gap_freq = 2/3
+                  # threshold = NULL
                   # plot = TRUE
            stopifnot(self$hasPileup())
 
@@ -1005,7 +1005,7 @@ partitionShortReads.DR2S <- function(x,
   message("  Done!\n")
   invisible(x)
 }
-# self <- dedk.mapIter
+#self <- dpb1_3.map
 DR2S_$set("public", "runPartitionShortReads",
          function(opts = list(),
                   force = FALSE,
@@ -1082,12 +1082,13 @@ DR2S_$set("public", "runPartitionShortReads",
            seqs <- lapply(self$partition$hpl, function(x) get_seqs_from_mat(as.matrix(prt_mat[x,])))
            names(seqs) <- hptypes
 
-           mats <-  lapply(seqs,  function(x) as.matrix(Biostrings::consensusMatrix(x,  as.prob = TRUE)[VALID_DNA(),] + 1/length(x)))
+           mats <- lapply(seqs, function(x) create_PWM(x))
            mats <- foreach(m = mats) %do% {
              colnames(m) <- colnames(prt_mat)
              m
            }
            names(mats) <- names(seqs)
+
            ppos <- colnames(mats[[1]])
 
 
@@ -1097,7 +1098,7 @@ DR2S_$set("public", "runPartitionShortReads",
            ##' Assign read to haplotype with highest probability,
            ##' i.e. prod over probabilities of each haplotype and choose max
            flog.info(" Get highest scoring haplotype for each read", name = "info")
-           srpartition$haplotypes <- score_highest_SR(srpartition$srpartition, diffThreshold = 0.05)
+           srpartition$haplotypes <- score_highest_SR(srpartition$srpartition, diffThreshold = 0.01)
 
            # Write fastqs
            foreach(hptype = hptypes ) %do% {

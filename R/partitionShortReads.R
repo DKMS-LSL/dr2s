@@ -47,6 +47,7 @@ get_SR_partition_scores <- function(ppos, refname, bamfile, mats, cores = "auto"
 
   flog.info("  Partition shortreads on %s positions ...", length(ppos),  name = "info")
   res <- foreach (pos = ppos, .combine = "rbind") %dopar% {
+    message("Get reads on position ", pos)
     param <- paste(paste(refname, pos, sep = ":"), pos, sep = "-")
     stack <- GenomicAlignments::stackStringsFromBam(bamfile, param = param, use.names = TRUE)
     dplyr::bind_cols(read = rep(names(stack), each = length(mats)), dplyr::bind_rows(lapply(stack, function(x) part_read(x, mats, pos))))
@@ -78,11 +79,13 @@ get_SR_partition_scores <- function(ppos, refname, bamfile, mats, cores = "auto"
 #' @examples
 #' ### Score
 #
-score_highest_SR <- function(srpartition, diffThreshold = 0.05) {
+score_highest_SR <- function(srpartition, diffThreshold = 0.01) {
+# srpartition <- srpartitionbc$srpartition
+# srpartitionbc <- srpartition
 
   sr <- srpartition %>%
     dplyr::group_by(read, haplotype) %>%
-    dplyr::mutate(clade = prod(prob)) %>%
+    dplyr::mutate(clade = sum(prob)) %>%
     dplyr::ungroup() %>%
     dplyr::group_by(read) %>%
     dplyr::mutate(max = max(clade)) %>%
@@ -96,11 +99,16 @@ score_highest_SR <- function(srpartition, diffThreshold = 0.05) {
     dplyr::mutate(exclusive = n() == 1) %>%
     dplyr::ungroup()
 
+
+
+  flog.info(" Calculate shortread scoring with cutoff: %s ...", diffThreshold, name = "info")
   correctScoring <- unlist(sapply(unique(srpartition$pos), function(position) check_SR_scoring(position, sr2, srpartition)))
+  if (!all(correctScoring))
+    flog.info(" Scoring not meeting proper clustering, refine diffThreshold ...", diffThreshold, name = "info")
 
   while(!all(correctScoring)){
-    diffThreshold <- diffThreshold + 0.02
-    message(" Calculate shortread scoring with cutoff: ", diffThreshold)
+    diffThreshold <- diffThreshold + 0.01
+    flog.info(" Calculate shortread scoring with cutoff: ", diffThreshold, name = "info")
     sr2 <- sr %>%
       dplyr::group_by(read) %>%
       dplyr::filter(abs(1-(clade/max)) < diffThreshold) %>%
@@ -108,7 +116,7 @@ score_highest_SR <- function(srpartition, diffThreshold = 0.05) {
       dplyr::ungroup()
     correctScoring <- unlist(sapply(unique(srpartition$pos), function(position) check_SR_scoring(position, sr2, srpartition)))
   }
-  message(" Use overlap cutoff of ", diffThreshold, "for shortread scoring ...")
+  flog.info(" Use overlap cutoff of %s for shortread scoring ...", diffThreshold, name = "info")
   return(sr2)
 }
 
@@ -128,10 +136,10 @@ write_part_fq <- function(fq, srFastqHap, dontUseReads = dontUseReads) {
   close(fqstream)
 }
 # --- Helper ---
+
 part_read <- function(a, mats, pos){
   l <- sapply(mats, function(x) x[,pos][as.character(a)])
-  names(l) <- names(mats)
-  list(prob = l,  haplotype = names(l), pos = rep(pos, length(l)))
+  list(prob = l,  haplotype = names(mats), pos = rep(pos, length(l)))
 }
 
 check_SR_scoring <- function(position, sr2, srpartition){

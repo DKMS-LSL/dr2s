@@ -239,14 +239,16 @@ prune_consensus_matrix <- function(cm, n_look_behind = 36, cutoff = 0.6, verbose
 #' @export
 # Create position weight matrix
 create_PWM <- function(msa){
-  cmat <- as.matrix(Biostrings::consensusMatrix(msa, as.prob = TRUE)[c(VALID_DNA(), "+"),])
+  # Need to calc first a count based consensus matrix, while removing "+". Prob is calculated afterwards.
+  cmat <- as.matrix(Biostrings::consensusMatrix(msa, as.prob = FALSE))[VALID_DNA(include = "del"),]
+  cmat <- sweep(cmat, 2, colSums(cmat), "/")
   ## Add pseudocount
   cmat <- cmat + 1/length(msa)
-  ## Multiply with DNA_PROBABILITIES
-  cmat <- cmat / DNA_PROB(include = "indels")
+  ## Divide by DNA_PROBABILITIES
+  cmat <- cmat / DNA_PROB(include = "del")
   ## Get log2likelihood ratio
   cmat <- log2(cmat)
-  cmat["+",] <- 0
+  cmat <- rbind(cmat, "+" = 0)
   cmat
 }
 
