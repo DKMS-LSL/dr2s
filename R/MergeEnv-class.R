@@ -78,6 +78,11 @@ MergeEnv_ <- R6::R6Class(
   )
 )
 
+#self$init("A")
+#self$init("B")
+#self$hptypes$B$SR[478,]
+# hapEnv <- "A"
+#self <- menv
 MergeEnv_$set("public", "init", function(hapEnv) {
   hapEnv <- match.arg(hapEnv, self$x$getHapTypes())
   envir <- self$hptypes[[hapEnv]]
@@ -116,7 +121,11 @@ MergeEnv_$set("public", "walk_one", function(hapEnv, verbose = FALSE) {
 
 ## self$walk() ####
 # self <- menv
-# hapEnv <- "A"
+hapEnv <- "A"
+#self$init(hapEnv)
+#self$walk(hapEnv, TRUE)
+# self$walk("B", TRUE)
+# self$hptypes$B$SR[478,]
 MergeEnv_$set("public", "walk", function(hapEnv, verbose = FALSE) {
   hapEnv <- match.arg(hapEnv, self$x$getHapTypes())
   if (!self$isInitialised(hapEnv)) {
@@ -133,21 +142,22 @@ MergeEnv_$set("public", "walk", function(hapEnv, verbose = FALSE) {
 
   invisible(self)
 })
-
-
 ## private$step_through() ####
 MergeEnv_$set("private", "step_through", function(envir) {
+##step_through <- function(envir) {
   if (!hlatools::hasNext(envir$POSit)) {
     return(FALSE)
   }
   envir$pos <- iterators::nextElem(envir$POSit) + offset(envir$SR)
   # debug
-  envir$balance_upper_confint
+  #envir$pos <- 478
+  #envir$balance_upper_confint
+  #a <- yield(envir)
   rs <- disambiguate_variant(yield(envir), threshold = self$threshold)
   update(envir) <- rs
   TRUE
-})
-
+}
+)
 
 ## self$showConsensus() ####
 MergeEnv_$set("public", "showConsensus", function(envir, pos, left = 6, right = left, offset = 0) {
@@ -206,11 +216,12 @@ MergeEnv_$set("public", "export", function() {
         variants     = compact(envir$variants),
         phasemat     = envir$phasemat,
         phasebreaks  = envir$phasebreaks
-      )},
+        )
+        },
       seq = list(foreach(hptype = self$x$getHapTypes(),
                             .final = function(x) setNames(x, self$x$getHapTypes())) %do% {
         sr <- self$hptypes[[hptype]]$SR
-        cseq <- conseq(sr, paste0("HAP", hptype), "ambig", exclude_gaps = TRUE, threshold = self$threshold)
+        cseq <- conseq(sr, paste0("hap", hptype), "ambig", exclude_gaps = TRUE, threshold = 0.3)
         metadata(cseq) <- list()
         cseq
       })
@@ -218,6 +229,7 @@ MergeEnv_$set("public", "export", function() {
     class = c("ConsList", "list")
     )
 
+  cons
   self$x$setConsensus(cons)
   return(invisible(self$x))
 })

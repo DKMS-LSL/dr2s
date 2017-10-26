@@ -62,7 +62,7 @@ print.variant_list <- function(x, threshold = 0.2, ...) {
 #'
                                  # min_overrep_lr = 1.5
                                  # max_overrep_sr = 2
-# x <- bla
+#x <- a
 disambiguate_variant <- function(x,
                                  threshold,
                                  min_overrep_lr = 1.5,
@@ -153,43 +153,39 @@ disambiguate_variant <- function(x,
   ## Variant allele frequency
   vaf_lr <- sort(vlr/N_lr, decreasing = TRUE)
   vaf_sr <- sort(vsr/N_sr, decreasing = TRUE)
-
   if (length(vaf_sr) > 2) {
     warning_msg <- warning_msg %<<% "|More than two short read variants"
     vaf_lr <- vaf_lr[1:2]
     vaf_sr <- vaf_lr[1:2]
   }
+  ## Error margins
+  standard_error <- sqrt(prod(vaf_sr)/N_sr)
+  margin_of_error <- 1.96*standard_error + (0.5/N_lr)
 
   overrep_sr <- vaf_sr[1]/vaf_sr[2]
-  if (overrep_sr > max_overrep_sr) {
-    fmt <- "|Variant [%s] is %s-fold overrepresented in short reads"
+  # if (overrep_sr > max_overrep_sr) {
+  #   fmt <- "|Variant [%s] is %s-fold overrepresented in short reads"
+  #   warning_msg <- warning_msg %<<% sprintf(fmt, names(overrep_sr), round(overrep_sr, 1))
+  # }
+  if (overrep_sr < min_overrep_lr){
+    fmt <- "|Variant [%s] is only %s-fold overrepresented in short reads; Keep it ambiguous"
     warning_msg <- warning_msg %<<% sprintf(fmt, names(overrep_sr), round(overrep_sr, 1))
-  }
 
+  }
   overrep_lr <- vaf_lr[1]/vaf_lr[2]
   if (overrep_lr < min_overrep_lr) {
     fmt <- "|Variant [%s] is only %s-fold overrepresented in long reads"
     warning_msg <- warning_msg %<<% sprintf(fmt, names(overrep_lr), round(overrep_lr, 1))
   }
 
-  standard_error <- sqrt(prod(vaf_lr)/N_lr)
-  margin_of_error <- 1.96*standard_error + (0.5/N_lr)
-
-  major <- vaf_lr[1L] ## major variant
-  minor <- vaf_lr[2L] ## minor variant
-  if (major - margin_of_error > 0.2) {
-    sr[, names(minor)] <- 0
-  } else {
-    warning_msg <- warning_msg %<<% "|Variants retained in short reads"
-  }
-
   ## build variant
-  bases <- names(vsr)
-  names(bases) <- ifelse(bases != names(minor), "ref", "alt")
+  bases <- names(vaf_sr)
+  names(bases) <- c("ref", "alt")
   warning_msg <- sub("|", "", trimws(warning_msg), fixed = TRUE)
   x$lr_ <- lr
   x$sr_ <- sr
-  x$variant <- variant(bases, unname(1 - minor), margin_of_error, warning_msg, x)
+
+  x$variant <- variant(bases, unname(1 - vaf_sr[2]), margin_of_error, warning_msg, x)
   x
 }
 
@@ -240,7 +236,7 @@ print.variant <- function(x, ...) {
 
   cat("\nReference: ", sQuote(x[["ref"]]), "; #Sreads: ", length(attr(x, "reads_ref")), "\n", sep = "")
   cat("Alternate: ", sQuote(x[["alt"]]), "; #Sreads: ", length(attr(x, "reads_alt")), "\n", sep = "")
-  cat("Lreads reference frequency: ", round(attr(x, "proportion"), 2), "\n", sep = "")
+  cat("Shortreads reference frequency: ", round(attr(x, "proportion"), 2), "\n", sep = "")
   cat("Lower 95% limit: ", round(attr(x, "proportion") - attr(x, "margin_of_error"), 2), "\n", sep = "")
 
   if (nzchar(attr(x, "warning"))) {

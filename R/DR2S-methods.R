@@ -139,7 +139,7 @@ DR2S_$set("public", "runMapInit",
 
              # calc initial consensus
              flog.info("  Construct initial consensus from shortreads", name = "info")
-             conseq <- conseq(pileup$consmat, "mapInit", "freq", exclude_gaps = TRUE, threshold = self$getThreshold())
+             conseq <- conseq(pileup$consmat, "mapInit", "prob", exclude_gaps = TRUE, threshold = self$getThreshold())
              conseq_name <- paste0("Init.consensus.", sub(".sam.gz", "", basename(samfile)))
              conseqpath     <- file.path(self$getOutdir(), paste0(conseq_name, ".fa"))
              Biostrings::writeXStringSet(
@@ -201,7 +201,7 @@ DR2S_$set("public", "runMapInit",
 
                # Infer initial consensus
                flog.info("   Construct second consensus from shortreads with refined repeats ...", name = "info")
-               conseq <- conseq(pileup$consmat, "mapInit1.2", "freq", force_exclude_gaps = TRUE, threshold = 0.2)
+               conseq <- conseq(pileup$consmat, "mapInit1.2", "prob", force_exclude_gaps = TRUE, threshold = 0.2)
                conseq_name <- paste0("Init.consensus.2", sub(".sam.gz", "", basename(samfile)))
                conseqpath     <- file.path(self$getOutdir(), paste0(conseq_name, ".fa"))
                Biostrings::writeXStringSet(
@@ -812,6 +812,7 @@ DR2S_$set("public", "runMapIter",
              conseq <- conseq(x = t(cmat), name = conseq_name, type = "prob",
                     force_exclude_gaps = TRUE, prune_matrix = TRUE,
                     cutoff = pruning_cutoff)
+
              seqpath     <- file.path(self$mapIter[["0"]][[hptype]]$dir, paste0(conseq_name, ".fa"))
              self$mapIter[["0"]][[hptype]]$ref <- "mapIter0"
              self$mapIter[["0"]][[hptype]]$conseq <- conseq
@@ -1331,7 +1332,7 @@ DR2S_$set("public", "runMapFinal",
                ## Trim polymorphic ends
                fq <- trim_polymorphic_ends(fq)
                ## Write new shortread file to disc
-               fqdir  <- dir_create_if_not_exists(file.path(self$getOutdir(), "merged"))
+               fqdir  <- dir_create_if_not_exists(file.path(self$getOutdir(), "final"))
                fqfile <- paste("sread", hptype, self$getMapper(), "trimmed", "fastq", "gz", sep = ".")
                fqout  <- file_delete_if_exists(file.path(fqdir, fqfile))
                ShortRead::writeFastq(fq, fqout, compress = TRUE)
@@ -1439,3 +1440,35 @@ DR2S_$set("public", "runPipeline", function() {
   }
   self
 })
+
+
+#' ## Method:  polish ####
+#'
+#' #' @export
+#' polish.DR2S <- function(x) {
+#'   flog.info("Step 6: Infer problematic positions and consensus sequence ...", name = "info")
+#'   Sys.sleep(1)
+#'   x$polish()
+#'   message("  Done!\n")
+#'   invisible(x)
+#' }
+#'
+#' DR2S_$set("public", "polish", function() {
+#'   self <- polish(self)
+#'   return(invisible(self))
+#' }
+#' ## Method: report  ####
+#'
+#' #' @export
+#' mapFinal.DR2S <- function(x) {
+#'   flog.info("Step 7: report consensus sequences and problematic positions ...", name = "info")
+#'   Sys.sleep(1)
+#'   x$report()
+#'   message("  Done!\n")
+#'   invisible(x)
+#' }
+#'
+#' DR2S_$set("public", "report", function() {
+#'   self <- report(self)
+#'   return(invisible(self))
+#' }

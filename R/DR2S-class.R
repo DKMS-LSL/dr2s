@@ -432,7 +432,9 @@ DR2S_ <- R6::R6Class(
     },
     ##
     getLatestRef = function() {
-      if (length(self$mapFinal) > 0){
+      if (!is.null(self$consensus$seq)){
+        return(self$consensus$seq)
+      }else if (length(self$mapFinal) > 0){
         return(self$mapFinal$seq)
       } else if (length(self$mapIter) > 0){
         return(sapply(self$mapIter[max(names(self$mapIter))][self$getHapTypes()], function(x) x$conseq))

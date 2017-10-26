@@ -77,30 +77,19 @@ report_map_ <- function(x, map, outdir, block_width, ...) {
     )
   }
 
-  # to RM
-  # hapA_file <- paste(map, "A", x$getLrdType(), x$getMapper(), "unchecked.fa", sep = ".")
-  # Biostrings::writeXStringSet(
-  #   hapA,
-  #   filepath = file.path(outdir, hapA_file),
-  #   format = "fasta"
-  # )
-  #
-  # hapB_file <- paste(map, "B", x$getLrdType(), x$getMapper(), "unchecked.fa", sep = ".")
-  # Biostrings::writeXStringSet(
-  #   hapB,
-  #   filepath = file.path(outdir, hapB_file),
-  #   format = "fasta"
-  # )
-
   ## Write Pairwise Alignment
   if (length(x$getHapTypes()) == 2){
-    pair_file <- paste(map, "aln", x$getLrdType(), x$getMapper(), "unchecked.pair", sep = ".")
+    pair_file <- paste(map, "aln", x$getLrdType(), x$getMapper(), "unchecked", "psa", sep = ".")
     aln <- Biostrings::pairwiseAlignment(pattern = haps[[x$getHapTypes()[[1]]]], subject = haps[[x$getHapTypes()[[2]]]], type = "global")
     Biostrings::writePairwiseAlignments(aln, file.path(outdir, pair_file), block.width = block_width)
+
+  } else if (x$getHapTypes() > 2){
+    aln_file <- paste(map, "aln", x$getLrdType(), x$getMapper(), "unchecked", "msa", sep = ".")
+    aln <- DECIPHER::AlignSeqs(unlist(Biostrings::DNAStringSetList(haps)), verbose = FALSE)
+    Biostrings::write.phylip(Biostrings::DNAMultipleAlignment(aln), file.path(outdir, aln_file))
   }
 
-  ## CHECK HERE
-  if (map == "mapFinal") {
+  if (map == "mapfinal") {
     ## Report problematic Variants
     probvar_file <- paste("problems", x$getLrdType(), x$getMapper(), "tsv", sep = ".")
     vars <- x$consensus$problematic_variants %>%
@@ -124,8 +113,9 @@ report_map_ <- function(x, map, outdir, block_width, ...) {
 #' @export
 report_checked_consensus <- function(x, which = "mapFinal") {
   map <- match.arg(tolower(which), c("mapFinal", "mapIter", "map1"))
-  pairfile_unchecked <- paste(map, "aln", x$getLrdType(), x$getMapper(), "unchecked.pair", sep = ".")
-  pairfile_checked   <- paste(map, "aln", x$getLrdType(), x$getMapper(), "checked.pair", sep = ".")
+  ending <- ifelse(length(self$getHapTypes()) == 2, "psa", "msa")
+  pairfile_unchecked <- paste(map, "aln", x$getLrdType(), x$getMapper(), "unchecked", ending, sep = ".")
+  pairfile_checked   <- paste(map, "aln", x$getLrdType(), x$getMapper(), "checked", ending, sep = ".")
   pairfile_checked   <- normalizePath(file.path(x$getOutdir(), "report", pairfile_checked), mustWork = FALSE)
 
   if (!file.exists(pairfile_checked)) {
@@ -136,8 +126,8 @@ report_checked_consensus <- function(x, which = "mapFinal") {
 
   outdir <- dir_create_if_not_exists(file.path(x$getOutdir(), "checked"))
   rs <- readPairFile(pairfile_checked)
-  hapA <- Biostrings::DNAStringSet(gsub("-", "", rs["HapA"]))
-  hapB <- Biostrings::DNAStringSet(gsub("-", "", rs["HapB"]))
+  hapA <- Biostrings::DNAStringSet(gsub("-", "", rs["hapA"]))
+  hapB <- Biostrings::DNAStringSet(gsub("-", "", rs["hapB"]))
 
   ## Alignment
   ref <- x$getRefSeq()
@@ -168,20 +158,21 @@ report_checked_consensus <- function(x, which = "mapFinal") {
 
 #' @export
 check_alignment_file <- function(x, which = "mapFinal", where = 0) {
-  which <- match.arg(tolower(which), c("mapFinal", "mapIter", "map1"))
-  pairfile_unchecked <- paste(which, "aln", x$getLrdType(), x$getMapper(), "unchecked", "pair", sep = ".")
+  which <- match.arg(tolower(which), c("mapfinal", "mapiter"))
+  ending <- ifelse(length(self$getHapTypes()) == 2, "psa", "msa")
+  pairfile_unchecked <- paste(which, "aln", x$getLrdType(), x$getMapper(), "unchecked", ending, sep = ".")
   pairfile_unchecked <- normalizePath(file.path(x$getOutdir(), "report", pairfile_unchecked), mustWork = FALSE)
   assertthat::assert_that(
     file.exists(pairfile_unchecked),
     assertthat::is.readable(pairfile_unchecked)
   )
-  pairfile_checked <- paste(which, "aln", x$getLrdType(), x$getMapper(), "checked", "pair", sep = ".")
+  pairfile_checked <- paste(which, "aln", x$getLrdType(), x$getMapper(), "checked", ending, sep = ".")
   pairfile_checked <- normalizePath(file.path(x$getOutdir(), "report", pairfile_checked), mustWork = FALSE)
   if (!file.exists(pairfile_checked)) {
     file.copy(pairfile_unchecked, pairfile_checked, overwrite = FALSE)
   }
   where <- 23 + 4*floor((where - 1)/80)
-  subl(pairfile_checked, where)
+  editor(pairfile_checked, where, use_editor = "gvim")
 }
 
 
@@ -189,14 +180,21 @@ check_alignment_file <- function(x, which = "mapFinal", where = 0) {
 
 
 readPairFile <- function(pairfile) {
-  rs <- readLines(pairfile)
-  rsA <- rs[grepl("^HapA", rs)]
-  rsB <- rs[grepl("^HapB", rs)]
-  hap <- c(
-    Biostrings::DNAStringSet(collapse_pair_lines_(rsA)),
-    Biostrings::DNAStringSet(collapse_pair_lines_(rsB))
-  )
-  names(hap) <- c("HapA", "HapB")
+
+  Biostrings::writePairwiseAlignments()
+  if (endsWith(pairfile, "psa")){
+    rs <- readLines(pairfile)
+    rsA <- rs[grepl("^mapFinalA", rs)]
+    rsB <- rs[grepl("^mapFinalB", rs)]
+    hap <- c(
+      Biostrings::DNAStringSet(collapse_pair_lines_(rsA)),
+      Biostrings::DNAStringSet(collapse_pair_lines_(rsB))
+    )
+    names(hap) <- c("hapA", "hapB")
+  } else if (endsWith(pairfile, "msa")){
+    rs <- Biostrings::readDNAMultipleAlignment(pairfile, format = "phylip")
+    hap <- Biostrings::DNAStringSet(rs)
+  }
   hap
 }
 

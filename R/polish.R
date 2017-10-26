@@ -1,7 +1,7 @@
 #' @export
 
 #debug
-# x <- sls.mapFinal
+# x <- dpb1_3.p
 # threshold <- x$getThreshold()
 # lower_limit <- 0.6
 # cache = TRUE
@@ -25,14 +25,11 @@ polish.DR2S <- function(x, threshold = x$getThreshold(), lower_limit = 0.60, cac
   rtypes <- names(x$mapFinal$pileup)
   hptypes <- x$getHapTypes()
 
-  # debug
-  hptype = "A"
   menv <- MergeEnv(x, threshold)
   for (hptype in hptypes){
     menv$init(hptype)
     menv$walk(hptype)
   }
-
 
   ## Short read phasing
   ## phasing.R
@@ -55,11 +52,11 @@ polish.DR2S <- function(x, threshold = x$getThreshold(), lower_limit = 0.60, cac
 
   rs <- menv$export()
 
-
   ## Problematic Variants
   vars <- get_problematic_variants(x = rs, lower_limit = lower_limit)
   vars <- dplyr::ungroup(vars)
   rs$consensus$problematic_variants = dplyr::arrange(vars, pos, haplotype)
+  vars
 
   if (cache)
     rs$cache()
@@ -70,6 +67,7 @@ polish.DR2S <- function(x, threshold = x$getThreshold(), lower_limit = 0.60, cac
 # Helpers -----------------------------------------------------------------
 
 # x <- rs
+
 get_problematic_variants <- function(x, lower_limit) {
   stopifnot(is(x, "DR2S"))
   vars <- collect_variants(x = x)
@@ -81,9 +79,7 @@ get_problematic_variants <- function(x, lower_limit) {
 
 collect_variants <- function(x) {
   hptypes <- x$getHapTypes()
-  # hvars <- x$A$variants
-  # bvars <- x$B$variants
-  hvars <- foreach(hptype = hptypes) %do% {x$consensus[[hptype]]$variants}
+  hvars <- sapply(hptypes, function(t) x$consensus[[t]]$variants)
   names(hvars) <- hptypes
 
   if (all(sapply(hvars, function(x) length(x) == 0))){
@@ -100,7 +96,8 @@ collect_variants <- function(x) {
   names(phasebreaks) <- hptypes
 
   df <- do.call("rbind",
-                  lapply(hptypes, function(x) do.call("rbind", lapply(hvars[[x]],  extract_variant_, h = x))))
+                  lapply(hptypes, function(h) do.call("rbind", lapply(list(hvars[[h]]),  extract_variant_, h = h))))
+
 
   df <- df %>%
       dplyr::group_by(haplotype) %>%

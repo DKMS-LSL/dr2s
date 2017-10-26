@@ -89,9 +89,9 @@ conseq.matrix <- function(x, name = NULL, type = c("prob", "freq", "ambig"),
     x <- prune_consensus_matrix(cm = x, ...)
   }
   conseq <- switch(type,
-    prob  = make_prob_consensus_(x, exclude_gaps, force_exclude_gaps),
-    freq  = make_freq_consensus_(x, exclude_gaps, force_exclude_gaps),
-    ambig = make_ambig_consensus_(x, threshold, exclude_gaps)
+    prob  = (make_prob_consensus_(x, exclude_gaps = exclude_gaps, force_exclude_gaps = force_exclude_gaps)),
+    freq  = Biostrings::DNAString(make_freq_consensus_(x, exclude_gaps = exclude_gaps, force_exclude_gaps = force_exclude_gaps)),
+    ambig = make_ambig_consensus_(x, threshold, exclude_gaps = exclude_gaps)
   )
   names(conseq) <- name
   conseq
@@ -109,24 +109,28 @@ simple_consensus <- function(x) {
 }
 
 ## strict consensus based on z-scores
-make_prob_consensus_ <- function(x, exclude_gaps, as_string = FALSE) {
+make_prob_consensus_ <- function(x, exclude_gaps, force_exclude_gaps = FALSE, as_string = FALSE) {
   x_ori <- x
   if (exclude_gaps && length(ins_ <- as.character(ins(x))) > 0) {
     x[dimnames(x)$pos %in% ins_, "-"] <- 0
   }
-
-  # don't allow gaps at beginning and start
-  maxbases <- names(unlist(apply(x, 1, function(a) list(which(a == max(a))[1]))))
-  maxbase <- which(maxbases != "-")
-  maxgap <- which(maxbases == "-")
-  if (min(maxgap) < min(maxbase)){
-    exclude_from_start <- min(which(maxbases == "-")):(min(which(maxbases != "-"))-1)
-    x[exclude_from_start,"-"] <- 0
+  if (force_exclude_gaps){
+    x[,"-"] <- 0
   }
-  if (max(maxgap) > max(maxbase)) {
-    exclude_from_end <- (max(which(maxbases != "-"))+1):max(which(maxbases == "-"))
-    x[exclude_from_end,"-"] <- 0
-  }
+    # don't allow gaps at beginning and start
+    maxbases <- names(unlist(unname(apply(x, 1, function(a) list(which(a == max(a))[1])))))
+    maxbase <- which(maxbases != "-")
+    maxgap <- which(maxbases == "-")
+    if (!length(maxgap) == 0){
+      if (min(maxgap) < min(maxbase)){
+        exclude_from_start <- min(which(maxbases == "-")):(min(which(maxbases != "-"))-1)
+        x[exclude_from_start,"-"] <- 0
+      }
+      if (max(maxgap) > max(maxbase)) {
+        exclude_from_end <- (max(which(maxbases != "-"))+1):max(which(maxbases == "-"))
+        x[exclude_from_end,"-"] <- 0
+      }
+    }
 
   ## remove rows which have been set to zero
   if (length(i <- which(n(x) == 0L)) > 0) {
@@ -152,7 +156,7 @@ make_prob_consensus_ <- function(x, exclude_gaps, as_string = FALSE) {
     deletions  = unname(which(dels)),
     consmat    = x_ori
   )
-  seq
+  return(seq)
 }
 
 ## strict majority rule consensus

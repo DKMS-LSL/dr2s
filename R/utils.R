@@ -277,18 +277,19 @@ has_command <- function(cmd) {
   unname(Sys.which(cmd) != "")
 }
 
-subl <- function(x, pos = NULL) {
-  assertthat::assert_that(has_command('subl'))
+editor <- function(x, pos = NULL, use_editor = "xdg-open") {
+  use_editor <- match.arg(use_editor, c("xdg-open", "subl", "gvim", "gedit"))
+  assertthat::assert_that(has_command(use_editor))
   if (tryCatch(assertthat::is.readable(x), assertError = function(e) FALSE)) {
     x <- normalizePath(x, mustWork = TRUE)
-    if (!is.null(pos)) {
+    if (!is.null(pos) && use_editor == "subl") {
       x <- paste0(x, ":", pos)
     }
-    system(paste0("subl ", x))
+    system(paste(use_editor, x, sep = " "))
   } else {
     tmp <- tempfile()
     write(x, file = tmp)
-    system(paste0("subl ", tmp))
+    system(paste(use_editor, tmp, sep = " "))
   }
 }
 
@@ -332,9 +333,10 @@ browse_align <- function(seq,
     dna_seq,
     verbose = FALSE,
     gapOpening = gapOpening,
-    gapExtension = gapExtension,
-    ...
+    gapExtension = gapExtension#,
+    # ...
   )
+
   Biostrings::writeXStringSet(aln, paste0(file, ".fa"))
   DECIPHER::BrowseSeqs(
     aln,
