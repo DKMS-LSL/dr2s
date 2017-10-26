@@ -1,7 +1,7 @@
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
-DR2S - Dual redundant reference sequencing
-==========================================
+gDR2S - generic Dual redundant reference sequencing
+===================================================
 
 An R package designed to facilitate generating reliable, full-length phase-defined reference sequences for novel HLA and KIR alleles.
 
@@ -12,11 +12,11 @@ Workflow
 
 ### Input and output
 
-`DR2S` is designed to integrate long-read HLA data (e.g., PacBio or Oxford Nanopore sequences) and short-read shotgun data (Illumina)..
+`gDR2S` is designed to integrate long-read HLA data (e.g., PacBio or Oxford Nanopore sequences) and short-read shotgun data (Illumina).
 
 As input, we expect long-read and short-read FASTQ files to be placed in separate subdirectories within a working directory and to follow the naming convention `SAMPLEID_LOCUS_.*.fastq(.gz)?`.
 
-`SAMPLEID` can be any arbitrary unique identification code and `LOCUS` should be one of `A`, `B`, `C`, `DQB1`, `DRB1`, `DPB1` or `KIR` 
+`SAMPLEID` can be any arbitrary unique identification code and `LOCUS` should be one of `A`, `B`, `C`, `DQB1`, `DRB1`, or `DPB1`
 
 All output is placed in a directory tree `output\SAMPLEID\READTYPE\LOCUS`.
 
@@ -43,7 +43,7 @@ An example:
 
 ### Usage
 
-Once all input files are put in place a DR2S analysis is started with a call to the function `DR2Smap`:
+Once all input files are put in place a gDR2S analysis is started with a call to the function `DR2Smap`:
 
 ``` r
 x <- DR2Smap(
@@ -55,6 +55,8 @@ x <- DR2Smap(
   outdir = "~/dr2s_data/output",
   reference = "04:02:01:01",
   consensus = "multialign",
+  iterations = 1,
+  microsatellites = TRUE,
   threshold = 0.2
 )
 ```
@@ -71,12 +73,13 @@ An analysis proceeds in a number of steps that can be chained together using the
 
 ``` r
 x %>% 
-  mapInit() %>% 
+  map0() %>% 
   partition_haplotypes() %>% 
   split_reads_by_haplotype() %>% 
   extract_fastq() %>% 
-  mapIter() %>% 
-  mapFinal() %>% 
+  map1() %>% 
+  map2() %>% 
+  map3() %>% 
   polish() %>% 
   report()
 ```
@@ -84,20 +87,36 @@ x %>%
 The individual steps perform the following analyses:
 
 -   **mapInit:** Map the long and short reads against a reference sequence constructed from `reference` using `bwa`.
--   **partition\_haplotypes:** Identify variants in the long-read mapping and cluster reads into the two allele haplotypes based on these variants.
--   **split\_reads\_by\_haplotype:** Pick reads that best represent the two allele haplotypes based on a *haplotype membership score*.
--   **extract\_fastq:** Extract the chosen reads from the alignment file and write the data as FASTQs into two subdirectories `A` and `B`
--   **map1:** Pick a maximum of 40 long reads per allele haplotype and perform a multiple alignment to generate inital haplotype consensus sequences.
--   **mapIter:** Refine the long read consensus sequences by remapping *all* long reads per allele haplotype to the inital consensus.
+
+1.  Map the shortreads against the provided reference. Construct the consensus.
+2.  A second mapping of shortreads to the consensus of first Mapping if microsatellites is true. This expands the reference and is necessary of you know that there are repeats like in microsatellites. Construct the consensus.
+3.  A third mapping of shortreads to infer polymorphic positions and and read IDs at the polymorphic positions.
+4.  Map the longreads to the consensus latest consensus.
+
+-   **partition\_haplotypes:**
+
+1.  Construct a SNP matrix from the longreads at polymorphic positions in shortreads.
+2.  Perform hierarchical clustering,
+3.  chimera detection and
+4.  assign a haplotype and score to each read.
+
+-   **split\_reads\_by\_haplotype:** Pick longreads that best represent the allele haplotypes based on a *haplotype score* from the previous step.
+-   **extract\_fastq:** Extract the chosen longreads from the alignment file and write the data as FASTQs into subdirectories for each haplotype.
+-   **mapIter:**
+
+1.  Construct a consensus sequence for each haplotype from the initial mapping while using only reads that are assigned to a haplotype.
+2.  Iteratively refine the long read consensus sequences by remapping long reads per haplotype to the latest haplotype consensus.
+
+-   **partitionShortReads** Partition the shortreads into haplotypes using the inferred longread haplotypes and initial mapping.
 -   **mapFinal:** Map the short reads against the refined long read consensus sequences.
--   **polish:** Use the long read consensus sequences to disambiguate polymorphic positions in the short read mapping. Check for inconsistencies, insertions, deletions along the way.
--   **report:** Report the finalised short-read-based consensus sequences as FASTA files. Provide a tsv file with suspicious positions that may warrant manual inspection.
+-   **polish:** Disambiguate polymorphic positions in the short read mapping. Check and report inconsistencies, insertions, deletions along the way. This should not be that much with okayish seuence data
+-   **report:** Report the finalised short-read-based consensus sequences as FASTA files. Provide a tsv file with suspicious positions that may warrant manual inspection. Report the alignment of all haplotypes.
 
 Throughout this process a number of diagnostic plots are produced and placed in the output directory for later inspection.
 
 While this process works remarkably well, there are situations where alignment artefacts or plain bad luck may introduce errors in the final consensus sequences. You should **never** accept the result as ground truth without some manual and visual consistency checks!
 
-`DR2S` provides some facilities to aid checking and signing-off of finalised consensus sequences.
+`gDR2S` provides some facilities to aid checking and signing-off of finalised consensus sequences.
 
 A typical post-processing workflow may look as follows:
 
@@ -108,13 +127,15 @@ check_alignment_file(x)
 report_checked_consensus(x)
 ```
 
--   **plot\_diagnostic\_alignment:** Displays an alignment of three preliminary long-read-based consensus sequences and the final short-read-based consensus sequence for both alleles in your browser. This can be used to spot inconsistencies between the long-read and the short-read evidence.
+-   **plot\_diagnostic\_alignment:** Displays an alignment of three preliminary long-read-based consensus sequences and the final short-read-based consensus sequence for all alleles in your browser. This can be used to spot inconsistencies between the long-read and the short-read evidence.
 
--   **run\_igv:** Opens two instances of the IGV Genome Browser at a specified position (one for each allele) displaying both the long read and short read data for manual inspection.
+-   **run\_igv:** Opens an instance of the IGV Genome Browser for each haplotype at a specified position (one for each allele) displaying both the long read and short read data for manual inspection.
 
--   **check\_alignment\_file:** Opens a pairwise alignment of the final consensus sequences in your text editor. Use this to perform any manual edits on the consensus sequences.
+-   **check\_alignment\_file :**
 
--   **report\_checked\_consensus:** Export final consensus sequences from the edited pairwise alignment as FASTAs into a separate subdirectory `./checked` in the output directory.
+    Opens a pairwise alignment of the final consensus sequences in your text editor. Use this to perform any manual edits on the consensus sequences.
+
+-   **report\_checked\_consensus:** Export final consensus sequences from the edited pairwise or multiple alignment as FASTAs into a separate subdirectory `./checked` in the output directory.
 
 Installation
 ------------
@@ -125,6 +146,6 @@ This package is ony available via github. It depends on a local installation of 
 install.packages("devtools")  # if not already installed
 library("devtools")
 install_github("gschofl/hlatools")
-install_github("gschofl/IBDdata")
-install_github("gschofl/DR2S")
+install_github("gschofl/IPDdata")
+install_git("srvddgit01.labor.local/sklas/gdr2s.git")
 ```

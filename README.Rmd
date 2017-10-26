@@ -12,7 +12,7 @@ knitr::opts_chunk$set(
 )
 ```
 
-# DR2S - Dual redundant reference sequencing
+# gDR2S - generic Dual redundant reference sequencing
 
 An R package designed to facilitate generating reliable, full-length
 phase-defined reference sequences for novel HLA and KIR alleles.
@@ -24,7 +24,7 @@ the API or the under-the-hood workings of the package won't change substantially
 
 ### Input and output
 
-`DR2S` is designed to integrate long-read HLA data (e.g., PacBio or Oxford
+`gDR2S` is designed to integrate long-read HLA data (e.g., PacBio or Oxford
 Nanopore sequences) and short-read shotgun data (Illumina).
 
 As input, we expect long-read and short-read FASTQ files to be placed in 
@@ -58,7 +58,7 @@ An example:
                      
 ### Usage
 
-Once all input files are put in place a DR2S analysis is started with a call
+Once all input files are put in place a gDR2S analysis is started with a call
 to the function `DR2Smap`:
 
 ```{r, eval=FALSE}
@@ -71,6 +71,8 @@ x <- DR2Smap(
   outdir = "~/dr2s_data/output",
   reference = "04:02:01:01",
   consensus = "multialign",
+  iterations = 1,
+  microsatellites = TRUE,
   threshold = 0.2
 )
 ```
@@ -101,34 +103,29 @@ x %>%
 
 The individual steps perform the following analyses:
 
-* __map0:__
-    Map the long reads against a reference sequence constructed from `reference`
-    using `bwa`.
-* __partition_haplotypes:__
-    Identify variants in the long-read mapping and cluster reads into the two
-    allele haplotypes based on these variants.
-* __split_reads_by_haplotype:__
-    Pick reads that best represent the two allele haplotypes based on a
-    _haplotype membership score_.
-* __extract_fastq:__
-    Extract the chosen reads from the alignment file and write the data as FASTQs
-    into two subdirectories `A` and `B`
-* __map1:__
-    Pick a maximum of 40 long reads per allele haplotype and perform a multiple
-    alignment to generate inital haplotype consensus sequences.
-* __map2:__
-    Refine the long read consensus sequences by remapping _all_ long reads
-    per allele haplotype to the inital consensus.
-* __map3:__
-    Map the short reads against the refined long read consensus sequences.
-* __polish:__
-    Use the long read consensus sequences to disambiguate polymorphic positions
-    in the short read mapping. Check for inconsistencies, insertions, deletions
-    along the way.
-* __report:__
-    Report the finalised short-read-based consensus sequences as FASTA files.
-    Provide a tsv file with suspicious positions that may warrant manual
-    inspection.
+* __mapInit:__ Map the long and short reads against a reference sequence constructed from `reference` using `bwa`.
+ 1. Map the shortreads against the provided reference. Construct the consensus.
+ 2. A second mapping of shortreads to the consensus of first Mapping if microsatellites is true. 
+This expands the reference and is necessary of you know that there are repeats  like in microsatellites. 
+Construct the consensus.
+3. A third mapping of shortreads to infer polymorphic positions and and read IDs at the polymorphic positions.
+4. Map the longreads to the consensus latest consensus.
+*  __partition_haplotypes:__
+1. Construct a SNP matrix from the longreads at polymorphic positions in shortreads. 
+2. Perform hierarchical clustering, 
+3. chimera detection and 
+4. assign a haplotype and score to each read.
+*   __split_reads_by_haplotype:__ Pick longreads that best represent the allele haplotypes based on a _haplotype score_ from the previous step.
+*   __extract_fastq:__ Extract the chosen longreads from the alignment file and write the data as FASTQs into subdirectories for each haplotype.
+*   __mapIter:__ 
+1. Construct a consensus sequence for each haplotype from the initial mapping while using only reads that are assigned to a haplotype.
+2. Iteratively refine the long read consensus sequences by remapping long reads per haplotype to the latest haplotype consensus.
+*   __partitionShortReads__ Partition the shortreads into haplotypes using the inferred longread haplotypes and initial mapping.
+*   __mapFinal:__ Map the short reads against the refined long read consensus sequences.
+*   __polish:__ Disambiguate polymorphic positions in the short read mapping. Check and report inconsistencies, insertions, deletions along the way.
+  This should not be that much with okayish seuence data 
+*   __report:__ Report the finalised short-read-based consensus sequences as FASTA files. Provide a tsv file with suspicious positions that may warrant manual inspection.
+  Report the alignment of all haplotypes.
 
 
 Throughout this process a number of diagnostic plots are produced and placed
@@ -139,7 +136,7 @@ artefacts or plain bad luck may introduce errors in the final consensus
 sequences. You should **never** accept the result as ground truth without
 some manual and visual consistency checks!
 
-`DR2S` provides some facilities to aid checking and signing-off of finalised
+`gDR2S` provides some facilities to aid checking and signing-off of finalised
 consensus sequences.
 
 A typical post-processing workflow may look as follows:
@@ -152,23 +149,24 @@ report_checked_consensus(x)
 ```
 
 
-- **plot_diagnostic_alignment:**
+- __plot_diagnostic_alignment:__
     Displays an alignment of three preliminary long-read-based consensus sequences
-    and the final short-read-based consensus sequence for both alleles in your browser.
+    and the final short-read-based consensus sequence for all alleles in your browser.
     This can be used to spot inconsistencies between the long-read and the short-read
     evidence. 
     
-- **run_igv:**
-    Opens two instances of the IGV Genome Browser at a specified position
+- __run_igv:__
+    Opens an instance of the IGV Genome Browser for each haplotype at a specified position
     (one for each allele) displaying both the long read and short read data
     for manual inspection.
     
-- **check_alignment_file:**
+- __check_alignment_file :__
+
     Opens a pairwise alignment of the final consensus sequences in your text
     editor. Use this to perform any manual edits on the consensus sequences.
     
-- **report_checked_consensus:**
-    Export final consensus sequences from the edited pairwise alignment
+- __report_checked_consensus:__
+    Export final consensus sequences from the edited pairwise or multiple alignment
     as FASTAs into a separate subdirectory `./checked` in the output
     directory.
 
@@ -183,14 +181,5 @@ install.packages("devtools")  # if not already installed
 library("devtools")
 install_github("gschofl/hlatools")
 install_github("gschofl/IPDdata")
-install_github("gschofl/DR2S")
+install_git("srvddgit01.labor.local/sklas/gdr2s.git")
 ```
-
-
-
-
-
-
-
-
-
