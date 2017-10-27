@@ -6,6 +6,7 @@
 # lower_limit <- 0.6
 # cache = TRUE
 # library(foreach)
+#x <- a
 polish.DR2S <- function(x, threshold = x$getThreshold(), lower_limit = 0.60, cache = TRUE) {
 
   assertthat::assert_that(
@@ -106,16 +107,15 @@ collect_variants <- function(x) {
                                      warning))
   df
 }
-
 extract_variant_ <- function(v, h) {
-  data.frame(
-    haplotype = h,
-    pos = attr(v, "position"),
-    ref = v[["ref"]],
-    alt = v[["alt"]],
-    freq = attr(v, "proportion"),
-    lower = attr(v, "proportion") - attr(v, "margin_of_error"),
-    warning = attr(v, "warning"),
-    stringsAsFactors = FALSE
-  )
+    data.frame(
+      haplotype = h,
+      pos = attr(v, "position") %||% NA,
+      ref = v[["ref"]] %||% NA,
+      alt = v[["alt"]] %||% NA,
+      freq = attr(v, "proportion") %||% NA,
+      lower = (attr(v, "proportion") - attr(v, "margin_of_error")) %||% NA,
+      warning = attr(v, "warning") %||% NA,
+      stringsAsFactors = FALSE
+    )
 }
