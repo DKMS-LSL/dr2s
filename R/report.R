@@ -111,9 +111,12 @@ report_map_ <- function(x, map, outdir, block_width, ...) {
 #' and a html alignment file \code{aln.\{readtype\}.\{mapper\}.checked.html}.
 #' @family DR2S mapper functions
 #' @export
+#x <- dpb1_3.r
+
+
 report_checked_consensus <- function(x, which = "mapFinal") {
-  map <- match.arg(tolower(which), c("mapFinal", "mapIter", "map1"))
-  ending <- ifelse(length(self$getHapTypes()) == 2, "psa", "msa")
+  map <- match.arg(tolower(which), c("mapfinal", "mapiter"))
+  ending <- ifelse(length(x$getHapTypes()) == 2, "psa", "msa")
   pairfile_unchecked <- paste(map, "aln", x$getLrdType(), x$getMapper(), "unchecked", ending, sep = ".")
   pairfile_checked   <- paste(map, "aln", x$getLrdType(), x$getMapper(), "checked", ending, sep = ".")
   pairfile_checked   <- normalizePath(file.path(x$getOutdir(), "report", pairfile_checked), mustWork = FALSE)
@@ -132,11 +135,8 @@ report_checked_consensus <- function(x, which = "mapFinal") {
   ## Alignment
   ref <- x$getRefSeq()
   names(ref) <- strsplitN(names(ref), "~", 1, fixed = TRUE)
-  alt <- x$getAltSeq()
-  if (!is.null(alt)) {
-    names(alt) <- strsplitN(names(alt), "~", 1, fixed = TRUE)
-  }
-  seqs <- c(ref, Biostrings::BStringSet(hapA), alt, Biostrings::BStringSet(hapB))
+
+  seqs <- c(ref, hapA, hapB)
   aln_file <-  paste("aln", x$getLrdType(), x$getMapper(), "html", sep = ".")
   browse_align(seqs, file = file.path(outdir, aln_file), openURL = FALSE)
 
@@ -159,7 +159,7 @@ report_checked_consensus <- function(x, which = "mapFinal") {
 #' @export
 check_alignment_file <- function(x, which = "mapFinal", where = 0) {
   which <- match.arg(tolower(which), c("mapfinal", "mapiter"))
-  ending <- ifelse(length(self$getHapTypes()) == 2, "psa", "msa")
+  ending <- ifelse(length(x$getHapTypes()) == 2, "psa", "msa")
   pairfile_unchecked <- paste(which, "aln", x$getLrdType(), x$getMapper(), "unchecked", ending, sep = ".")
   pairfile_unchecked <- normalizePath(file.path(x$getOutdir(), "report", pairfile_unchecked), mustWork = FALSE)
   assertthat::assert_that(
@@ -181,11 +181,10 @@ check_alignment_file <- function(x, which = "mapFinal", where = 0) {
 
 readPairFile <- function(pairfile) {
 
-  Biostrings::writePairwiseAlignments()
   if (endsWith(pairfile, "psa")){
     rs <- readLines(pairfile)
-    rsA <- rs[grepl("^mapFinalA", rs)]
-    rsB <- rs[grepl("^mapFinalB", rs)]
+    rsA <- rs[grepl("^hapA", rs)]
+    rsB <- rs[grepl("^hapB", rs)]
     hap <- c(
       Biostrings::DNAStringSet(collapse_pair_lines_(rsA)),
       Biostrings::DNAStringSet(collapse_pair_lines_(rsB))
