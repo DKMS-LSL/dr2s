@@ -17,7 +17,7 @@ run_bwamem <- function(reffile,
   if (!is.null(optsname)) {
     optsname <- gsub("[[:punct:][:space:]]", "", optstring(opts, optsname))
   }
-  opts <- merge_list(opts, list(t = parallel::detectCores()))
+  opts <- merge_list(opts, list(t = parallel::detectCores()/2))
   cmd <- generate_mapping_commands("bwamem", readtype, reffile, readfile,
                                    allele, opts, refname, optsname,
                                    outdir = outdir)

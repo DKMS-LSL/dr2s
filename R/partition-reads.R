@@ -122,7 +122,7 @@ get_clusts <- function(xseqs, xmat, min_len = 0.80, cl_method = "ward.D", deepSp
     a
   }
   ## Get Position Specific Distance Matrix
-  dist <- PSDM(x_sub, consmat)
+  dist <- PSDM(x_sub, as.matrix(consmat))
   dist <- as.dist(dist)
 
   dist[is.na(dist)] <- mean(dist,na.rm = T)
