@@ -79,12 +79,29 @@ generate_mapping_commands <- function(mapper,
   reads <- paste0(wrap(normalizePath(readfile, mustWork = TRUE), "'"), collapse = " ")
 
   if (mapper == "bwamem") {
-    opts <- compact(merge_list(opts, list(x = switch(
-      readtype,
-      pacbio = "pacbio",
-      nanopore = "ont2d",
-      illumina = NULL
-    ))))
+    opts <- compact(merge_list(opts, list(
+      x = switch(
+        readtype,
+        pacbio = "pacbio",
+        nanopore = "ont2d",
+        illumina = NULL
+      ),
+      ##  Penalty for introducing Softclipping. Our read quality is usually
+      ## quite good and clipping results mostly from bad mapping.
+      L = switch(
+        readtype,
+        pacbio = 5,
+        nanopore = 5,
+        illumina = 15
+      ),
+      ## Use only reads above this mapping quality. Maximum is 60
+      T = switch(
+        readtype,
+        pacbio = 50,
+        nanopore = 30,
+        illumina = 50
+      )
+    )))
     zip <- ".gz"
   } else {
     zip <- ""
