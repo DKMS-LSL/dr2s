@@ -1169,7 +1169,7 @@ mapFinal.DR2S <- function(x,
 }
 
 # debug
-# self <- dedk.partSR
+# self <- dpb1_3.map
 # opts = list()
 # pct = 100
 # min_base_quality = 3
@@ -1297,101 +1297,103 @@ DR2S_$set("public", "runMapFinal",
 
 
            ## Map short reads
-             mapgroupSR <- paste0("SR", hptype)
-             maptagSR   <- paste("mapFinal", mapgroupSR, self$getLrdType(), self$getMapper(),
-                               optstring(opts), sep = ".")
+             if (!is.null(readpathsSR[[hptype]])){
+               mapgroupSR <- paste0("SR", hptype)
+               maptagSR   <- paste("mapFinal", mapgroupSR, self$getLrdType(), self$getMapper(),
+                                 optstring(opts), sep = ".")
 
-             readfiles <- readpathsSR[[hptype]]
-             # debug:
-             #readfiles <- self$getShortreads()
+               readfiles <- readpathsSR[[hptype]]
+               # debug:
+               #readfiles <- self$getShortreads()
 
-             ## Run mapper
-             flog.info("  Mapping short reads against latest consensus ...", name = "info")
+               ## Run mapper
+               flog.info("  Mapping short reads against latest consensus ...", name = "info")
 
-             samfile <- map_fun(
-               reffile  = refpath,
-               readfile = readfiles,
-               # if we run shortreads against both pacbio and nanopore data
-               # this hack makes sure that we can distinguish the bam files ->
-               # we get pacbio.illumina.bwamem.A...bam and nanopore.illumina.bwamem.A...bam
-               allele   = paste0(mapgroupSR, ".", self$getLrdType()),
-               readtype = self$getSrdType(),
-               opts     = opts,
-               refname  = hptype,
-               optsname = optstring(opts),
-               force    = force,
-               outdir   = outdir
-             )
-
-             if (clip) {
-               flog.info(" Trimming softclips and polymorphic ends ...", name = "info")
-               ## Run bam - sort - index pipeline
-               bamfile <- bam_sort_index(samfile, refpath, pct / 100, min_mapq, force = force, clean = TRUE)
-               ## Trim softclips
-               fq <- trim_softclipped_ends(bam = Rsamtools::scanBam(bamfile)[[1]], preserve_ref_ends = TRUE)
-               ## Trim polymorphic ends
-               fq <- trim_polymorphic_ends(fq)
-               ## Write new shortread file to disc
-               fqdir  <- dir_create_if_not_exists(file.path(self$getOutdir(), "final"))
-               fqfile <- paste("sread", hptype, self$getMapper(), "trimmed", "fastq", "gz", sep = ".")
-               fqout  <- file_delete_if_exists(file.path(fqdir, fqfile))
-               ShortRead::writeFastq(fq, fqout, compress = TRUE)
-               file_delete_if_exists(bamfile)
-               ## Rerun mapper
-               flog.info("  Mapping trimmed short reads against latest consensus ... ", name = "info")
                samfile <- map_fun(
                  reffile  = refpath,
-                 readfile = fqout,
+                 readfile = readfiles,
+                 # if we run shortreads against both pacbio and nanopore data
+                 # this hack makes sure that we can distinguish the bam files ->
+                 # we get pacbio.illumina.bwamem.A...bam and nanopore.illumina.bwamem.A...bam
                  allele   = paste0(mapgroupSR, ".", self$getLrdType()),
                  readtype = self$getSrdType(),
-                 opts     = list(A = 1, B = 4, O = 2),
+                 opts     = opts,
                  refname  = hptype,
                  optsname = optstring(opts),
                  force    = force,
                  outdir   = outdir
                )
-               # cleanup
-               file_delete_if_exists(fqout)
+
+               if (clip) {
+                 flog.info(" Trimming softclips and polymorphic ends ...", name = "info")
+                 ## Run bam - sort - index pipeline
+                 bamfile <- bam_sort_index(samfile, refpath, pct / 100, min_mapq, force = force, clean = TRUE)
+                 ## Trim softclips
+                 fq <- trim_softclipped_ends(bam = Rsamtools::scanBam(bamfile)[[1]], preserve_ref_ends = TRUE)
+                 ## Trim polymorphic ends
+                 fq <- trim_polymorphic_ends(fq)
+                 ## Write new shortread file to disc
+                 fqdir  <- dir_create_if_not_exists(file.path(self$getOutdir(), "final"))
+                 fqfile <- paste("sread", hptype, self$getMapper(), "trimmed", "fastq", "gz", sep = ".")
+                 fqout  <- file_delete_if_exists(file.path(fqdir, fqfile))
+                 ShortRead::writeFastq(fq, fqout, compress = TRUE)
+                 file_delete_if_exists(bamfile)
+                 ## Rerun mapper
+                 flog.info("  Mapping trimmed short reads against latest consensus ... ", name = "info")
+                 samfile <- map_fun(
+                   reffile  = refpath,
+                   readfile = fqout,
+                   allele   = paste0(mapgroupSR, ".", self$getLrdType()),
+                   readtype = self$getSrdType(),
+                   opts     = list(A = 1, B = 4, O = 2),
+                   refname  = hptype,
+                   optsname = optstring(opts),
+                   force    = force,
+                   outdir   = outdir
+                 )
+                 # cleanup
+                 file_delete_if_exists(fqout)
+               }
+
+               ## Run bam - sort - index pipeline
+               flog.info("  Indexing ...", name = "info")
+               bamfile <- bam_sort_index(
+                 samfile,
+                 refpath,
+                 pct / 100,
+                 min_mapq,
+                 force = force,
+                 clean = FALSE
+
+                 # debug
+                 # clean = TRUE
+               )
+               self$mapFinal$bamfile[[mapgroupSR]] = bamfile
+
+               ## Calculate pileup from graphmap produced SAM file
+               flog.info("  Piling up ...", name = "info")
+               pileup <- Pileup(
+                 bamfile,
+                 self$getThreshold(),
+                 max_depth = max_depth,
+                 min_base_quality = min_base_quality + 10,
+                 min_mapq = min_mapq,
+                 min_nucleotide_depth = min_nucleotide_depth,
+                 include_deletions = include_deletions,
+                 include_insertions = include_insertions
+               )
+               if (include_read_ids && is.null(ids(pileup$consmat))) {
+                 pileup <- pileup_include_read_ids(pileup)
+               }
+
+               if (include_insertions && is.null(ins(pileup$consmat))) {
+                 pileup <- pileup_include_insertions(pileup)
+               }
+               self$mapFinal$pileup[[mapgroupSR]] = pileup
+
+               ## Set maptag
+               self$mapFinal$tag[[mapgroupSR]] = maptagSR
              }
-
-             ## Run bam - sort - index pipeline
-             flog.info("  Indexing ...", name = "info")
-             bamfile <- bam_sort_index(
-               samfile,
-               refpath,
-               pct / 100,
-               min_mapq,
-               force = force,
-               clean = FALSE
-
-               # debug
-               # clean = TRUE
-             )
-             self$mapFinal$bamfile[[mapgroupSR]] = bamfile
-
-             ## Calculate pileup from graphmap produced SAM file
-             flog.info("  Piling up ...", name = "info")
-             pileup <- Pileup(
-               bamfile,
-               self$getThreshold(),
-               max_depth = max_depth,
-               min_base_quality = min_base_quality + 10,
-               min_mapq = min_mapq,
-               min_nucleotide_depth = min_nucleotide_depth,
-               include_deletions = include_deletions,
-               include_insertions = include_insertions
-             )
-             if (include_read_ids && is.null(ids(pileup$consmat))) {
-               pileup <- pileup_include_read_ids(pileup)
-             }
-
-             if (include_insertions && is.null(ins(pileup$consmat))) {
-               pileup <- pileup_include_insertions(pileup)
-             }
-             self$mapFinal$pileup[[mapgroupSR]] = pileup
-
-             ## Set maptag
-             self$mapFinal$tag[[mapgroupSR]] = maptagSR
 
              # calc new consensus
              cseq <- conseq(pileup$consmat, paste0("mapFinal", hptype), "ambig", exclude_gaps = TRUE, threshold = self$getThreshold())
@@ -1403,10 +1405,17 @@ DR2S_$set("public", "runMapFinal",
              flog.info(" Plotting final summary figures ...", name = "info")
              ## Coverage and base frequency
 
-             for (readtype in c("LR", "SR")){
-               gfile <- file.path(self$getOutdir(), paste("plotFinal", readtype, self$getLrdType(), self$getMapper(), "pdf", sep = "."))
+             if (!is.null(self$mapFinal$sreads$A)){
+               for (readtype in c("LR", "SR")){
+                 gfile <- file.path(self$getOutdir(), paste("plotFinal", readtype, self$getLrdType(), self$getMapper(), "pdf", sep = "."))
+                 pdf(file = gfile, width = 8 * length(hptypes), height = 8, onefile = TRUE, title = paste(self$getLocus(), self$getSampleId(), sep = "." ))
+                 self$plotmapFinalSummary(iteration = "final", readtype = readtype, thin = 0.25, width = 20)
+                 dev.off()
+               }
+             } else {
+               gfile <- file.path(self$getOutdir(), paste("plotFinal.LR", self$getLrdType(), self$getMapper(), "pdf", sep = "."))
                pdf(file = gfile, width = 8 * length(hptypes), height = 8, onefile = TRUE, title = paste(self$getLocus(), self$getSampleId(), sep = "." ))
-               self$plotmapFinalSummary(iteration = "final", readtype = readtype, thin = 0.25, width = 20)
+               self$plotmapFinalSummary(iteration = "final", readtype = "LR", thin = 0.25, width = 20)
                dev.off()
              }
            }

@@ -86,19 +86,27 @@ MergeEnv_ <- R6::R6Class(
 MergeEnv_$set("public", "init", function(hapEnv) {
   hapEnv <- match.arg(hapEnv, self$x$getHapTypes())
   envir <- self$hptypes[[hapEnv]]
-  envir$SR <- self$x$mapFinal$pileup[[paste0("SR", hapEnv)]]$consmat ## consmat short reads
-  lr <- self$x$mapFinal$pileup[[paste0("LR", hapEnv)]]$consmat ## consmat long reads
 
-  envir$LR = expand_longread_consmat(lrm = lr, srm = envir$SR)
-  envir$variants = list()
-  envir$POSit = hlatools::ihasNext(iter(apos <- ambiguous_positions(envir$SR, self$threshold)))
-  envir$pos = 1L
-  envir$current_variant = NULL
-  envir$init = TRUE
-  envir$balance = apply(as.matrix(envir$SR[apos, ]), 1, function(x) {
+  readtype <- ifelse(!is.null(self$x$mapFinal$sreads[[hapEnv]]), "SR", "LR")
+
+  if (readtype == "SR"){
+    envir$SR <- self$x$mapFinal$pileup[[paste0("SR", hapEnv)]]$consmat ## consmat short reads
+    lr <- self$x$mapFinal$pileup[[paste0("LR", hapEnv)]]$consmat ## consmat long reads
+    envir$LR = expand_longread_consmat(lrm = lr, srm = envir$SR)
+  } else {
+    envir$LR <- self$x$mapFinal$pileup[[paste0("LR", hapEnv)]]$consmat ## consmat long reads
+    envir$SR <- NULL
+  }
+
+  envir$POSit = hlatools::ihasNext(iter(apos <- ambiguous_positions(envir[[readtype]], self$threshold)))
+  envir$balance = apply(as.matrix(envir[[readtype]][apos, ]), 1, function(x) {
     tmp <- sort(x, decreasing = TRUE)[1:2]
     tmp[1] / tmp[2]
   })
+  envir$variants = list()
+  envir$pos = 1L
+  envir$current_variant = NULL
+  envir$init = TRUE
   envir$balance_upper_confint <- sum(mean(envir$balance, na.rm = TRUE), 1.96*sd(envir$balance, na.rm = TRUE) , na.rm = TRUE)
 })
 
@@ -121,7 +129,7 @@ MergeEnv_$set("public", "walk_one", function(hapEnv, verbose = FALSE) {
 
 ## self$walk() ####
 # self <- menv
-hapEnv <- "A"
+# hapEnv <- "A"
 #self$init(hapEnv)
 #self$walk(hapEnv, TRUE)
 # self$walk("B", TRUE)
@@ -148,7 +156,10 @@ MergeEnv_$set("private", "step_through", function(envir) {
   if (!hlatools::hasNext(envir$POSit)) {
     return(FALSE)
   }
-  envir$pos <- iterators::nextElem(envir$POSit) + offset(envir$SR)
+
+  envir$pos <- ifelse(!is.null(envir$SR),
+                      iterators::nextElem(envir$POSit) + offset(envir$SR),
+                      iterators::nextElem(envir$POSit))
   # debug
   #envir$pos <- 478
   #envir$balance_upper_confint
@@ -205,14 +216,13 @@ MergeEnv_$set("public", "showMatrix", function(envir, pos, left = 6, right = lef
 
 ## self$export() ####
 MergeEnv_$set("public", "export", function() {
-
   cons <- structure(
     c(
       foreach (hptype = self$x$getHapTypes(),
                  .final = function(x) setNames(x, self$x$getHapTypes())) %do% {
         envir <- self$hptypes[[hptype]]
         list(
-        matrix       = envir$SR,
+        matrix       = ifelse(!is.null(envir$SR), envir$SR, envir$LR),
         variants     = compact(envir$variants),
         phasemat     = envir$phasemat,
         phasebreaks  = envir$phasebreaks
@@ -220,8 +230,13 @@ MergeEnv_$set("public", "export", function() {
         },
       seq = list(foreach(hptype = self$x$getHapTypes(),
                             .final = function(x) setNames(x, self$x$getHapTypes())) %do% {
-        sr <- self$hptypes[[hptype]]$SR
-        cseq <- conseq(sr, paste0("hap", hptype), "ambig", exclude_gaps = TRUE, threshold = 0.3)
+                              self$x$mapFinal$pileup
+        if(!is.null(self$hptypes[[hptype]]$SR)){
+          reads <- self$hptypes[[hptype]]$SR
+        } else {
+          reads <- self$x$mapFinal$pileup[[paste0("LR",hptype)]]$consmat
+        }
+        cseq <- conseq(reads, paste0("hap", hptype), "ambig", exclude_gaps = TRUE, threshold = 0.3)
         metadata(cseq) <- list()
         cseq
       })

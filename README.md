@@ -56,6 +56,7 @@ x <- DR2Smap(
   reference = "04:02:01:01",
   consensus = "multialign",
   iterations = 1,
+  partSR = TRUE,
   microsatellites = TRUE,
   threshold = 0.2
 )
@@ -65,23 +66,29 @@ This call generates an `R6` object of class `DR2S` that encapsulates all data an
 
 The argument `reference` is the name of the allele against which an initial mapping of the long reads will be performed. A suitable allele can typically be chosen from existing typing information.
 
-The argument `consensus` should be set to `multialign`.
+The argument `consensus` should be set to `mapping`.
 
 `threshold` is the frequency below which SNP variants are considered noise.
+
+`iterations` is the number of iterations to perform in the `mapIter` step.
+
+`microsatellites` decides whether to perform an expansion of the initial reference by an extra mapping step of short reads to the reference. Necessary/useful when you know you have repeats like microsatellites.
+
+`partSR` decides whether the partitioning is done using SNPs found in shortreads. Usually better to use if you have shortreads.
 
 An analysis proceeds in a number of steps that can be chained together using the pipe `%>%`:
 
 ``` r
 x %>% 
-  map0() %>% 
-  partition_haplotypes() %>% 
-  split_reads_by_haplotype() %>% 
-  extract_fastq() %>% 
-  map1() %>% 
-  map2() %>% 
-  map3() %>% 
-  polish() %>% 
-  report()
+  mapInit()
+  partition_haplotypes() %>%
+  split_reads_by_haplotype() %>%
+  extract_fastq()
+  mapIter()
+  partitionShortReads %>%
+  mapFinal()
+  polish() %>%
+  report
 ```
 
 The individual steps perform the following analyses:
@@ -134,6 +141,22 @@ report_checked_consensus(x)
 -   **check\_alignment\_file :** Opens a pairwise alignment of the final consensus sequences in your text editor. Use this to perform any manual edits on the consensus sequences. Editor options are: "subl", "gvim" and "gedit". Defaults to systems standard editor.
 
 -   **report\_checked\_consensus:** Export final consensus sequences from the edited pairwise or multiple alignment as FASTAs into a separate subdirectory `./checked` in the output directory.
+
+### Only longreads
+
+If you want to find allele sequences only based on longreads you need to skip the partitioning of shortreads. The longread partitioning in other steps is automatically done if `partSR` is set to `FALSE` and no shortreads are found in the datadir.
+
+``` r
+x %>% 
+  mapInit()
+  partition_haplotypes() %>%
+  split_reads_by_haplotype() %>%
+  extract_fastq()
+  mapIter()
+  mapFinal()
+  polish() %>%
+  report
+```
 
 Installation
 ------------

@@ -237,7 +237,19 @@ prune_consensus_matrix <- function(cm, n_look_behind = 36, cutoff = 0.6, verbose
 }
 
 #' @export
-# Create position weight matrix
+#' Create position weight matrix from multiple sequence alignment
+#'
+#' @param msa A \code{DNAStringSet} object of aligned sequences.
+#' @details
+#' \code{PWM}: a \code{matrix} with positions row names and nucleotides as
+#' column manes. Values are nucleotide weights at a position
+#' A ConsensusMatrix is calculated from the MSA using Biostrings::consensusMatrix and values are converted to probabilities.
+#' Pseudocounts are added and values are divided by DNA probabilities and log2 score is reported
+#'
+#' @return A \code{PWM} matrix.
+#' @export
+#' @examples
+#' ###
 create_PWM <- function(msa){
   # Need to calc first a count based consensus matrix, while removing "+". Prob is calculated afterwards.
   cmat <- as.matrix(as.matrix(Biostrings::consensusMatrix(msa, as.prob = FALSE))[VALID_DNA(include = "del"),])

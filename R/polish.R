@@ -1,7 +1,7 @@
 #' @export
 
 #debug
-# x <- dpb1_3.p
+#x <- dpb1_3.r
 # threshold <- x$getThreshold()
 # lower_limit <- 0.6
 # cache = TRUE
@@ -25,7 +25,6 @@ polish.DR2S <- function(x, threshold = x$getThreshold(), lower_limit = 0.60, cac
   # get read types and haplotypes
   rtypes <- names(x$mapFinal$pileup)
   hptypes <- x$getHapTypes()
-
   menv <- MergeEnv(x, threshold)
   for (hptype in hptypes){
     menv$init(hptype)
@@ -57,7 +56,6 @@ polish.DR2S <- function(x, threshold = x$getThreshold(), lower_limit = 0.60, cac
   vars <- get_problematic_variants(x = rs, lower_limit = lower_limit)
   vars <- dplyr::ungroup(vars)
   rs$consensus$problematic_variants = dplyr::arrange(vars, pos, haplotype)
-  vars
 
   if (cache)
     rs$cache()
