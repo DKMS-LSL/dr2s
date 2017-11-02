@@ -161,9 +161,9 @@ report_checked_consensus(x)
     for manual inspection.
     
 - __check_alignment_file :__
-
     Opens a pairwise alignment of the final consensus sequences in your text
     editor. Use this to perform any manual edits on the consensus sequences.
+    Editor options are: "subl", "gvim" and "gedit". Defaults to systems standard editor.
     
 - __report_checked_consensus:__
     Export final consensus sequences from the edited pairwise or multiple alignment
@@ -172,14 +172,16 @@ report_checked_consensus(x)
 
 ## Installation
 
-This package is ony available via github. It depends on a local installation
+This package is only available via gitlab now. It depends on a local installation
 of `samtools`, `bwa` (>= 0.7.11), python and the pysam library, and a C++11
 compliant compiler.
+For installation over git via SSH, you need to have installed libssh2-1 and libssh2-1-dev prior to install git2r/devtools or reinstall the package afterwards. You do also need to have set up your ssh key in gitlab.
+Otherwise you need to give your gitlab password in plain.
 
 ```r
 install.packages("devtools")  # if not already installed
 library("devtools")
-install_github("gschofl/hlatools")
-install_github("gschofl/IPDdata")
-install_git("srvddgit01.labor.local/sklas/gdr2s.git")
+install_git("git@srvddgit01.labor.local:rlib/IPDdata.git")
+install_git("git@srvddgit01.labor.local:rlib/hlatools.git")
+install_git("git@srvddgit01.labor.local:sklas/gDR2S.git")
 ```

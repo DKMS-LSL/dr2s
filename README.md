@@ -131,21 +131,19 @@ report_checked_consensus(x)
 
 -   **run\_igv:** Opens an instance of the IGV Genome Browser for each haplotype at a specified position (one for each allele) displaying both the long read and short read data for manual inspection.
 
--   **check\_alignment\_file :**
-
-    Opens a pairwise alignment of the final consensus sequences in your text editor. Use this to perform any manual edits on the consensus sequences.
+-   **check\_alignment\_file :** Opens a pairwise alignment of the final consensus sequences in your text editor. Use this to perform any manual edits on the consensus sequences. Editor options are: "subl", "gvim" and "gedit". Defaults to systems standard editor.
 
 -   **report\_checked\_consensus:** Export final consensus sequences from the edited pairwise or multiple alignment as FASTAs into a separate subdirectory `./checked` in the output directory.
 
 Installation
 ------------
 
-This package is ony available via github. It depends on a local installation of `samtools`, `bwa` (&gt;= 0.7.11), python and the pysam library, and a C++11 compliant compiler.
+This package is only available via gitlab now. It depends on a local installation of `samtools`, `bwa` (&gt;= 0.7.11), python and the pysam library, and a C++11 compliant compiler. For installation over git via SSH, you need to have installed libssh2-1 and libssh2-1-dev prior to install git2r/devtools or reinstall the package afterwards. You do also need to have set up your ssh key in gitlab. Otherwise you need to give your gitlab password in plain.
 
 ``` r
 install.packages("devtools")  # if not already installed
 library("devtools")
-install_github("gschofl/hlatools")
-install_github("gschofl/IPDdata")
-install_git("srvddgit01.labor.local/sklas/gdr2s.git")
+install_git("git@srvddgit01.labor.local:rlib/IPDdata.git")
+install_git("git@srvddgit01.labor.local:rlib/hlatools.git")
+install_git("git@srvddgit01.labor.local:sklas/gDR2S.git")
 ```
