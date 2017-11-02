@@ -146,7 +146,7 @@ check_SR_scoring <- function(position, sr2, srpartition){
   score_ok <- c()
   foreach(hp = unique(sr2$haplotype)) %do% {
     countOwn <- sum(reads_at_pos %in% dplyr::filter(sr2, haplotype == hp)$read)
-    score_ok <- c(score_ok, countOwn/length(reads_at_pos) > 0.01)
+    score_ok <- c(score_ok, countOwn/length(reads_at_pos) > 0.1)
   }
   return(score_ok)
 }
