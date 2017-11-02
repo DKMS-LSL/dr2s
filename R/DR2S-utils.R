@@ -55,7 +55,8 @@ run_igv <- function(x, position, ...) {
     )
     if (.Platform$OS.type != "windows") {
       cat(sprintf("%s %s", names(batch), batch), sep = "\n", file = igv)
-      system(paste0(shQuote(exe_path), " -b ", shQuote(igv), " &"), ...)
+      system(paste0(shQuote(exe_path), " -g ", shQuote(ref), " ", shQuote(bamSR), " &"))
+#      system(paste0(shQuote(exe_path), " -b ", shQuote(igv), " &"))#, ...)
     } else if (.Platform$OS.type == "windows") {
       cat(sprintf("%s %s", names(batch), batch), sep = "\n", file = igv)
       msg <- sprintf(
