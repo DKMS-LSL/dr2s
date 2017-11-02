@@ -80,8 +80,9 @@ get_problematic_variants <- function(x, lower_limit) {
 
 collect_variants <- function(x) {
   hptypes <- x$getHapTypes()
-  hvars <- sapply(hptypes, function(t) x$consensus[[t]]$variants)
+  hvars <- lapply(hptypes, function(t) x$consensus[[t]]$variants)
   names(hvars) <- hptypes
+
 
   if (all(sapply(hvars, function(x) length(x) == 0))){
     return(
@@ -92,13 +93,11 @@ collect_variants <- function(x) {
     )
   }
 
-
   phasebreaks <- lapply(hptypes, function(t) dplyr::filter(x$consensus[[t]]$phasebreaks, breakpos)$posx)
   names(phasebreaks) <- hptypes
 
   df <- do.call("rbind",
-                  lapply(hptypes, function(h) do.call("rbind", lapply(list(hvars[[h]]),  extract_variant_, h = h))))
-
+                  lapply(hptypes, function(h) do.call("rbind", lapply(hvars[[h]],  extract_variant_, h = h))))
 
   df <- df %>%
       dplyr::group_by(haplotype) %>%
@@ -107,15 +106,16 @@ collect_variants <- function(x) {
                                      warning))
   df
 }
+
 extract_variant_ <- function(v, h) {
-    data.frame(
-      haplotype = h,
-      pos = attr(v, "position") %||% NA,
-      ref = v[["ref"]] %||% NA,
-      alt = v[["alt"]] %||% NA,
-      freq = attr(v, "proportion") %||% NA,
-      lower = (attr(v, "proportion") - attr(v, "margin_of_error")) %||% NA,
-      warning = attr(v, "warning") %||% NA,
-      stringsAsFactors = FALSE
-    )
+  data.frame(
+    haplotype = h,
+    pos = attr(v, "position") %||% NA,
+    ref = v[["ref"]] %||% NA,
+    alt = v[["alt"]] %||% NA,
+    freq = attr(v, "proportion") %||% NA,
+    lower = (attr(v, "proportion") - attr(v, "margin_of_error")) %||% NA,
+    warning = attr(v, "warning") %||% NA,
+    stringsAsFactors = FALSE
+  )
 }

@@ -157,7 +157,7 @@ report_checked_consensus <- function(x, which = "mapFinal") {
 }
 
 #' @export
-check_alignment_file <- function(x, which = "mapFinal", where = 0) {
+check_alignment_file <- function(x, which = "mapFinal", where = 0, editor = "xdg-open") {
   which <- match.arg(tolower(which), c("mapfinal", "mapiter"))
   ending <- ifelse(length(x$getHapTypes()) == 2, "psa", "msa")
   pairfile_unchecked <- paste(which, "aln", x$getLrdType(), x$getMapper(), "unchecked", ending, sep = ".")
@@ -172,7 +172,7 @@ check_alignment_file <- function(x, which = "mapFinal", where = 0) {
     file.copy(pairfile_unchecked, pairfile_checked, overwrite = FALSE)
   }
   where <- 23 + 4*floor((where - 1)/80)
-  editor(pairfile_checked, where, use_editor = "gvim")
+  editor(pairfile_checked, where, use_editor = editor)
 }
 
 
