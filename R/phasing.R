@@ -44,6 +44,9 @@ phasematrix <- function(var) {
       mat[(i - 1)*n - ((i*i) - i)/2 + j - i, ] <- c(i, j, phasereads_(var[[i]], var[[j]]))
     }
   }
+  # Set phasebreaks with linkage < 0.001 to 0. Most cases are caused by the span between positions near readlength.
+  mat[,5][abs(mat[,5]) < 0.001] <- 0
+  
   df <- data.frame(mat)
   colnames(df) <- c("x", "y", "posx", "posy", "linkage")
   df <- dplyr::tbl_df(df) %>%

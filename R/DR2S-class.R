@@ -12,6 +12,7 @@ DR2Smap.default <- function(sample,
                             microsatellite = FALSE,
                             partSR = TRUE,
                             fullname = TRUE,
+                            forceBadMapping = FALSE,
                             create_outdir = TRUE,
                             ...) {
   conf <- create_dr2s_conf(
@@ -28,6 +29,7 @@ DR2Smap.default <- function(sample,
     microsatellite = microsatellite,
     partSR = partSR,
     fullname = fullname,
+    forceBadMapping = forceBadMapping,
     ...
   )
   DR2S_$new(conf, create_outdir = create_outdir)
@@ -246,6 +248,16 @@ DR2S_ <- R6::R6Class(
       invisible(self)
     },
     ##
+    getForceBadMapping = function(forceBadMapping){
+      self$getConfig("forceBadMapping")
+    },
+    ##
+    setForceBadMapping = function(forceBadMapping){
+      stopifnot(is.logical(forceBadMapping))
+      self$setConfig("forceBadMapping", forceBadMapping)
+      invisible(self)
+    },
+    ##
     getMicrosatellite = function() {
       self$getConfig("microsatellite")
     },
@@ -260,6 +272,7 @@ DR2S_ <- R6::R6Class(
       dir <- self$getLrdDir()
       readpath <- findReads(dir, self$getSampleId(), self$getLocus())
       if (is.null(readpath) || length(readpath) == 0) {
+        flog.error("No reads available for readtype <%s>", self$getSrdType(), name = "info")
         stop("No reads available for readtype <", self$getLrdType(), ">")
       }
       readpath
@@ -272,6 +285,7 @@ DR2S_ <- R6::R6Class(
       }
       readpath <- findReads(dir, self$getSampleId(), self$getLocus())
       if (is.null(readpath) || length(readpath) == 0) {
+        flog.error("No reads available for readtype <%s>", self$getSrdType(), name = "info")
         stop("No reads available for readtype <", self$getSrdType(), ">")
       }
       readpath
@@ -724,7 +738,11 @@ DR2S_ <- R6::R6Class(
                     ggplot2::theme(legend.position = "none")
       p2  <- self$plotPartitionTree()
       p3 <- self$plotPartitionRadar()
-      multiplot(p1, p2, p3, layout = matrix(c(1, 2, 2, 2, 3), ncol = 1))
+      if (!is.null(p2)){
+        multiplot(p1, p2, p3, layout = matrix(c(1, 2, 2, 2, 3), ncol = 1))
+      } else {
+        multiplot(p1,p3, layout = matrix(c(1,2)))
+      }
     },
     ##
     plotmapIterSummary = function(thin = 0.2, width = 10, iteration = 0, drop.indels = TRUE) {

@@ -17,7 +17,7 @@
 # debug
 #x <- dpb1_3$partition$mat
 # cl_method="ward.D"
-# min_len = 0.3
+#min_len = 0.5
 # skip_gap_freq = 2/3
 # deepSplit = 1
 # x <- dpb1_3$partition$mat
@@ -31,6 +31,10 @@ partition_reads <- function(x, cl_method="ward.D", min_len = 0.5, skip_gap_freq 
   xm <- as.matrix(xm[,!bad_ppos])
   bad_ppos <- ppos[bad_ppos]
   flog.info("  %s SNPs are covered by less than %g %% sequences and discarded. Using the remaining %s SNPs for clustering", length(bad_ppos), 1-skip_gap_freq, ncol(xm), name = "info")
+  if (NCOL(xm) == 0){
+    flog.error("  Aborting. No SNP remaining for clustering! Check your reads and reference and have a look at mapInit Plots!")
+    stop("No SNPs remaining for clustering. Check mapInit plots!")
+  }
 
   ## Get the SNP matrix as sequences
   xseqs <- get_seqs_from_mat(xm)
@@ -42,6 +46,11 @@ partition_reads <- function(x, cl_method="ward.D", min_len = 0.5, skip_gap_freq 
   # debug
    # plot(tree, labels = F)
   hptypes <- levels(subclades)
+  
+  if (length(hptypes) == 1 && hptypes == "@"){
+    flog.error("Two few longreads for clustering", name = "info")
+    stop("To few longreads for clustering")
+  }
 
   flog.info("  Initial clustering results in %s haplotypes %s", length(hptypes), paste(hptypes, collapse = ", "), name = "info")
   # Get scores and assign clades by freq mat
@@ -523,63 +532,70 @@ plot_radar_partition <- function(x){
 #' ###
 #x <- self$getPartition()
 plot_partition_tree <- function(x){
-  stopifnot(is(x, "HapPart"))
-  # ToDo: test if packages are loaded
+  stopifnot(
+    is(x, "HapPart"),
+    requireNamespace("ggdendro", quietly = TRUE)
+    )
   tree <- HTR(x)
   k <- length(oc(x))
-
-  dendr <- ggdendro::dendro_data(tree, type = "rectangle")
-  dendr$labels <- dendr$labels %>%
-    dplyr::mutate(label = as.character(label))
-
-  clust <- cutree(tree, k)
-  clust <- dplyr::data_frame(label = names(clust), haplotype = clust)
-  # clust <- partition(x) %>%
-  #   dplyr::rename(label = read) %>%
-  #   dplyr::select(-mcoef)
-  #
-  # clust <- scores(x) %>%
-  #   dplyr::filter(!is.na(clustclade)) %>%
-  #   dplyr::select(read, clustclade) %>%
-  #   dplyr::rename( haplotype = clustclade, label = read)
-  #
-  dendr$labels <- dplyr::left_join(dendr$labels, clust, by="label")
-
-  height <- unique(dendr$segments$y)[order(unique(dendr$segments$y), decreasing = TRUE)]
-  cut.height <- mean(c(height[k], height[k-1]))
-  dendr$segments <- dendr$segments %>%
-    dplyr::mutate(line =  dplyr::if_else(
-      y == yend & y > cut.height, 1, dplyr::if_else(
-        yend > cut.height,1, 2)))
-
-  dendr$segments$cluster <- c(-1, diff(dendr$segments$line))
-  change <- which(dendr$segments$cluster == 1)
-  for (i in 1:k) dendr$segments$cluster[change[i]] = i + 1
-  dendr$segments <- dendr$segments %>%
-    dplyr::mutate(cluster = dplyr::if_else( line == 1, 1, ifelse( cluster == 0, NA, cluster)))
-  dendr$segments$cluster <- sapply(1:NROW(dendr$segments$cluster), function(x) getCl(x, dendr$segments$cluster, change))
-
-  # Correct order
-
-  labs <- c("N", oc(x))#LETTERS[as.numeric(names(sort(table(clust$haplotype), decreasing = TRUE)))])
-  dendr$segments$cluster <- labs[dendr$segments$cluster]
-  # Make plot
-  p <- ggplot() +
-    geom_segment(data=ggdendro::segment(dendr), aes(x = x, y = y, xend = xend, yend = yend, color = factor(cluster)), size = 1.25) +
-    scale_color_manual(values = PARTCOL(),
-                          name = "Haplotype",
-                          breaks = LETTERS[1:k],
-                          labels =  LETTERS[1:k]) +
-    geom_hline(yintercept = cut.height, color = "blue") +
-    ggtitle("Initial clustering of haplotypes") +
-    # ggdendro::theme_dendro() +
-    theme_bw() +
-    theme(legend.position = "bottom",
-          axis.title = element_blank(),
-          axis.text  = element_blank(),
-          axis.ticks  = element_blank()
-          )
-  p
+  
+  tryCatch({
+    dendr <- ggdendro::dendro_data(tree, type = "rectangle")
+    dendr$labels <- dendr$labels %>%
+      dplyr::mutate(label = as.character(label))
+  
+    clust <- cutree(tree, k)
+    clust <- dplyr::data_frame(label = names(clust), haplotype = clust)
+    # clust <- partition(x) %>%
+    #   dplyr::rename(label = read) %>%
+    #   dplyr::select(-mcoef)
+    #
+    # clust <- scores(x) %>%
+    #   dplyr::filter(!is.na(clustclade)) %>%
+    #   dplyr::select(read, clustclade) %>%
+    #   dplyr::rename( haplotype = clustclade, label = read)
+    #
+    dendr$labels <- dplyr::left_join(dendr$labels, clust, by="label")
+  
+    height <- unique(dendr$segments$y)[order(unique(dendr$segments$y), decreasing = TRUE)]
+    cut.height <- mean(c(height[k], height[k-1]))
+    dendr$segments <- dendr$segments %>%
+      dplyr::mutate(line =  dplyr::if_else(
+        y == yend & y > cut.height, 1, dplyr::if_else(
+          yend > cut.height,1, 2)))
+  
+    dendr$segments$cluster <- c(-1, diff(dendr$segments$line))
+    change <- which(dendr$segments$cluster == 1)
+    for (i in 1:k) dendr$segments$cluster[change[i]] = i + 1
+    dendr$segments <- dendr$segments %>%
+      dplyr::mutate(cluster = dplyr::if_else( line == 1, 1, ifelse( cluster == 0, NA, cluster)))
+    dendr$segments$cluster <- sapply(1:NROW(dendr$segments$cluster), function(x) getCl(x, dendr$segments$cluster, change))
+  
+    # Correct order
+  
+    labs <- c("N", oc(x))#LETTERS[as.numeric(names(sort(table(clust$haplotype), decreasing = TRUE)))])
+    dendr$segments$cluster <- labs[dendr$segments$cluster]
+    # Make plot
+    p <- ggplot() +
+      geom_segment(data=ggdendro::segment(dendr), aes(x = x, y = y, xend = xend, yend = yend, color = factor(cluster)), size = 1.25) +
+      scale_color_manual(values = PARTCOL(),
+                            name = "Haplotype",
+                            breaks = LETTERS[1:k],
+                            labels =  LETTERS[1:k]) +
+      geom_hline(yintercept = cut.height, color = "blue") +
+      ggtitle("Initial clustering of haplotypes") +
+      # ggdendro::theme_dendro() +
+      theme_bw() +
+      theme(legend.position = "bottom",
+            axis.title = element_blank(),
+            axis.text  = element_blank(),
+            axis.ticks  = element_blank()
+            )
+    p
+  }, error = function(e){
+    flog.warn("Too many or too nested nodes for plotting a nice tree.", name = "info")
+    return(NULL)
+  })
 }
 
 

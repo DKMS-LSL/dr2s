@@ -10,6 +10,7 @@ create_dr2s_conf <- function(sample,
                              iterations = 1,
                              microsatellite = FALSE,
                              partSR = TRUE,
+                             forceBadMapping = FALSE,
                              fullname = TRUE,
                              ...) {
   conf0 <- list(...)
@@ -30,6 +31,7 @@ create_dr2s_conf <- function(sample,
     iterations = iterations,
     microsatellite = microsatellite,
     partSR = partSR,
+    forceBadMapping = forceBadMapping,
     mapper     = conf0$mapper   %||% "bwamem",
     # limitA     = conf0$limitA   %||% NULL,
     # limitB     = conf0$limitB   %||% NULL,
@@ -58,6 +60,7 @@ read_dr2s_conf <- function(config_file) {
   conf$iterations <- conf$iterations %||% 1
   conf$microsatellite <- conf$microsatellite %||% FALSE
   conf$partSR <- conf$partSR %||% TRUE
+  conf$forceBadMapping <- forceBadMapping %||% FALSE
   conf$mapper     <- conf$mapper     %||% "bwamem"
   # conf["limitA"]  <- conf$limitA     %||% list(NULL)
   # conf["limitB"]  <- conf$limitN     %||% list(NULL)
@@ -137,7 +140,7 @@ initialise_dr2s <- function(conf, create_outdir = TRUE) {
 }
 
 validate_dr2s_conf <- function(conf) {
-  fields <- c("datadir", "outdir", "threshold", "iterations", "microsatellite", "partSR", "mapper", "limits", "haptypes",
+  fields <- c("datadir", "outdir", "threshold", "iterations", "microsatellite", "partSR", "forceBadMapping", "mapper", "limits", "haptypes",
               "pipeline", "longreads", "shortreads", "nreads", "opts",
               "sample_id", "locus", "reference", "alternate", "consensus")#"limitA", "limitB",
   if (!all(fields %in% names(conf))) {
@@ -160,6 +163,10 @@ validate_dr2s_conf <- function(conf) {
   # check microsatellite
   if (!is.logical(conf$microsatellite)){
     stop("microsatellite must be logical", call. = FALSE)
+  }
+  # check forceBadMapping
+  if (!is.logical(conf$forceBadMapping)){
+    stop("forceBadMapping must be logical", call. = FALSE)
   }
   ## Check mapper
   conf$mapper <- match.arg(conf$mapper, c("bwamem", "graphmap"))

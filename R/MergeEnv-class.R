@@ -129,7 +129,7 @@ MergeEnv_$set("public", "walk_one", function(hapEnv, verbose = FALSE) {
 
 ## self$walk() ####
 # self <- menv
-# hapEnv <- "A"
+# hapEnv <- "B"
 #self$init(hapEnv)
 #self$walk(hapEnv, TRUE)
 # self$walk("B", TRUE)
@@ -159,7 +159,7 @@ MergeEnv_$set("private", "step_through", function(envir) {
 
   envir$pos <- ifelse(!is.null(envir$SR),
                       iterators::nextElem(envir$POSit) + offset(envir$SR),
-                      iterators::nextElem(envir$POSit))
+                      iterators::nextElem(envir$POSit) + offset(nevir$LR))
   # debug
   #envir$pos <- 478
   #envir$balance_upper_confint

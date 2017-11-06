@@ -1,5 +1,4 @@
 # Method: MapInit ####
-
 #' @export
 mapInit.DR2S <- function(x,
                       opts = list(),
@@ -18,7 +17,7 @@ mapInit.DR2S <- function(x,
                       force = FALSE,
                       fullname = TRUE,
                       plot = TRUE) {
-  flog.info("Step 0: Initial mapping of long reads ... ", name = "info")
+  flog.info("Step 0: Initial mapping ... ", name = "info")
   Sys.sleep(1)
   x$runMapInit(opts = opts, optsname = optsname, partSR = partSR, pct = pct, threshold = threshold,
             min_base_quality = min_base_quality, min_mapq = min_mapq,
@@ -45,6 +44,7 @@ DR2S_$set("public", "runMapInit",
                   force = FALSE,
                   fullname = TRUE,
                   microsatellite = FALSE,
+                  forceBadMapping = FALSE,
                   plot = TRUE) {
 
            # debug
@@ -64,6 +64,8 @@ DR2S_$set("public", "runMapInit",
            # fullname = TRUE
            # plot = TRUE
            # microsatellite = TRUE
+           # forceBadMapping = FALSE
+           # self <- DEDK
            # self <- dpb1_3
 
 
@@ -78,6 +80,7 @@ DR2S_$set("public", "runMapInit",
 
            microsatellite <- self$getMicrosatellite()
            partSR <- self$getPartSR()
+           forceBadMapping <- self$getForceBadMapping()
 
            if (recode_header) {
              stopifnot(
@@ -135,6 +138,32 @@ DR2S_$set("public", "runMapInit",
              )
              if (include_insertions && is.null(ins(pileup$consmat))) {
                pileup <- pileup_include_insertions(pileup)
+             }
+
+             if(max(rowSums(pileup$consmat))/quantile(rowSums(pileup$consmat), 0.75) > 5){
+               flog.warn("  Shortreads seems corrupted or the reference is bad!", name = "info")
+               maxCov <- max(rowSums(pileup$consmat))
+               q75Cov <- quantile(rowSums(pileup$consmat), .75)
+               flog.warn("   maximum of coverage %s / 75%% quantile %s: %s > 5.
+                         No equal distribution of coverage! Have a look at the mapInit Plot",
+                         maxCov, q75Cov, maxCov/q75Cov, name = "info")
+               if (!forceBadMapping) {
+                 gfile <- file.path(self$getOutdir(), paste0("plot.MapInit.SR.", sub("bam$", "pdf", usc(basename(bamfile)))))
+                 plt <- plot_pileup_coverage(
+                   x = pileup,
+                   thin = 0.25,
+                   width = 2,
+                   label = self$getMapTag("init", "SR"),
+                   drop.indels = TRUE
+                 )
+                 flog.error("  Aborting. If you want to force processing set forceBadMapping = TRUE in DR2S object initialisation",
+                            name = "info")
+                 suppressWarnings(ggsave(gfile, plt, width = 12, height = 10, onefile = TRUE, title = paste(self$getLocus(), self$getSampleId(), sep = ".")))
+
+                 stop("Shortreads probably of bad quality. Bad coverage distribution. Run with forceBadMapping = TRUE to force processing.")
+               } else {
+                 flog.warn("  Continue. Be aware that resulsts may not be correct!!", name = "info")
+               }
              }
 
              # calc initial consensus
@@ -451,6 +480,7 @@ DR2S_$set("public", "runHaplotypePartitioning", function(max_depth = 1e4,
            ppos <- self$polymorphicPositions(useSR = useSR)
 
            if (NROW(ppos) == 0){
+             flog.error("No polymorphic positions for clustering! Only single allele?", name = "info")
 
              stop("No polymorphic position!")
            }

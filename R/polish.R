@@ -7,7 +7,7 @@
 # cache = TRUE
 # library(foreach)
 #x <- a
-polish.DR2S <- function(x, threshold = x$getThreshold(), lower_limit = 0.60, cache = TRUE) {
+polish.DR2S <- function(x, threshold = x$getThreshold(), lower_limit = 0.80, cache = TRUE) {
 
   assertthat::assert_that(
     is(x$mapFinal, "mapFinal"),
@@ -53,10 +53,10 @@ polish.DR2S <- function(x, threshold = x$getThreshold(), lower_limit = 0.60, cac
   rs <- menv$export()
 
   ## Problematic Variants
-  vars <- get_problematic_variants(x = rs, lower_limit = lower_limit)
+  vars <- get_problematic_variants(x = rs, lower_limit = .6)
   vars <- dplyr::ungroup(vars)
   rs$consensus$problematic_variants = dplyr::arrange(vars, pos, haplotype)
-
+  
   if (cache)
     rs$cache()
   rs

@@ -24,14 +24,13 @@ yield.HapEnv <- function(envir, pos = NULL) {
     ##
   ), class = c("variant_list", "list"))
 }
-
 print.variant_list <- function(x, threshold = 0.2, ...) {
   if (!is.null(x$variant)) {
     print(x$variant)
   } else {
     m <- rbind(x$lr, x$sr)
     grp <- paste0("Pos [", colon(unique(rownames(m))), "]")
-    rownames(m) <- ifelse(NROW(m) == 2, c("LR", "SR"), "LR")
+    rownames(m) <- if(NROW(m) == 2) (c("LR", "SR")) else  ("LR")
 
     cat(sprintf("%+10s", grp), sep = "\n")
     print(m, right = TRUE, quote = FALSE)
@@ -65,9 +64,10 @@ print.variant_list <- function(x, threshold = 0.2, ...) {
 #x <- a
 disambiguate_variant <- function(x,
                                  threshold,
-                                 min_overrep_lr = 1.5,
+                                 min_overrep_lr =5, 
                                  max_overrep_sr = 2) {
   stopifnot(is(x, "variant_list"))
+
   warning_msg <- ""
   lr <- as.matrix(x$lr)
   varl <- filter_variant(cm = lr, threshold)
@@ -81,56 +81,6 @@ disambiguate_variant <- function(x,
       warning_msg <- warning_msg %<<% "|Insertion signal in short reads"
       vars <- vars[!names(vars) %in% "+"]
       sr[, "+"] <- 0
-    }
-
-    ## Variant only present in long reads.
-    if (length(vars) == 1) {
-      warning("Variant in long reads only at [", x$haplotype, ":", rownames(x$lr), "].",
-              call. = FALSE, immediate. = TRUE)
-      x$lr_ <- lr
-      x$sr_ <- sr
-      return(x)
-    }
-
-    ## Variant only present in short reads.
-    ## i.e. we see a gap in LR and two bases other than gap in SR
-    if (length(varl) == 1 && names(varl) == "-" && is.na(match("-", names(vars)))) {
-      warning_msg <- warning_msg %<<% "|Check unresolved polymorphism"
-      x$lr_ <- lr
-      x$sr_ <- sr
-      bases <- names(vars)
-      names(bases) <- c("ref", "alt")
-      warning_msg <- sub("|", "", trimws(warning_msg), fixed = TRUE)
-      x$variant <- variant(bases, NA, NA, warning_msg, x)
-      return(x)
-    }
-    ## Insertions missing in short reads give rise to spurious deletion signal
-    if (!is.na(match(rownames(x$sr), ins(x$sr)))) {
-      gaps <- sr[, vars][["-"]]
-      # problem: two bases and gap. Need to use list
-      base <- sr[, vars][which(!names(vars) %in% "-")]
-      if (max(base)/gaps > x$balance_upper_confint) {
-        # fewer gaps than insertion bases -> assume all reads carry the insertion
-        warning_msg <- warning_msg %<<% "|Check insertion in short reads!"
-        sr[, vars]["-"] <- 0
-        x$lr_ <- lr
-        x$sr_ <- sr
-        bases <- names(vars)
-        names(bases) <- c("ref", "alt")
-        warning_msg <- sub("|", "", trimws(warning_msg), fixed = TRUE)
-        x$variant <- variant(bases, NA, NA, warning_msg, x)
-        return(x)
-      }
-    }
-
-    ## Spurious deletion signal in long reads
-    if (length(varl) > 2 && "-" %in% names(varl)) {
-      lrm <- lr[, varl]
-      if (names(which.min(lrm/sum(lrm))) == "-") {
-        ## it should be safe to silently remove the deletion if the signal
-        ## for it is the weakest among the variants.
-        varl <- varl[!names(varl) %in% "-"]
-      }
     }
 
     ## Mismatch in variant bases between long and short reads
@@ -186,8 +136,8 @@ disambiguate_variant <- function(x,
     warning_msg <- sub("|", "", trimws(warning_msg), fixed = TRUE)
     x$lr_ <- lr
     x$sr_ <- sr
-
-    x$variant <- variant(bases, unname(1 - vaf_sr[2]), margin_of_error, warning_msg, x)
+    
+    x$variant <- variant(bases = bases, proportion = unname(1 - vaf_lr[2]), margin_of_error = margin_of_error, warning = warning_msg, vlist = x)
   } else {
     ## Spurious deletion signal in long reads
     if (length(varl) > 2 && "-" %in% names(varl)) {
@@ -242,6 +192,13 @@ variant <- function(bases, proportion, margin_of_error, warning, vlist) {
     cm <- rbind(as.matrix(vlist$lr), vlist$lr_)
     rownames(cm) <- c("LR1", "LR2")
   }
+  if(!is.null(vlist$sr)){
+   reads_ref = unlist(compact(ids(vlist$sr)[[as.character(pos - vlist$offset[["sr"]])]][base_ref_]))
+   reads_alt = unlist(compact(ids(vlist$sr)[[as.character(pos - vlist$offset[["sr"]])]][base_alt_]))
+  } else {
+    reads_ref = list()
+    reads_alt = list()
+  }
   structure(
     bases,
     class = "variant",
@@ -257,12 +214,8 @@ variant <- function(bases, proportion, margin_of_error, warning, vlist) {
     ## here we have to remove the offsets we incurred at previous
     ## ambiguous positions to match the original polymorhic positions
     ## in the pileup
-    reads_ref = ifelse(!is.null(vlist$sr),
-                       unlist(compact(ids(vlist$sr)[[as.character(pos - vlist$offset[["sr"]])]][base_ref_])),
-                       list()),
-    reads_alt = ifelse(!is.null(vlist$sr),
-                       unlist(compact(ids(vlist$sr)[[as.character(pos - vlist$offset[["sr"]])]][base_alt_])),
-                       list())
+    reads_ref =reads_ref, 
+    reads_alt = reads_alt
   )
 }
 

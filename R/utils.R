@@ -75,7 +75,7 @@ HLA_LOCI <- function() {
 }
 
 KIR_LOCI <- function() {
-  c("2DL1", "2DL2", "2DL3", "2DL3", "2DL4", "2DL5", "2DS1", "2DS2", "2DS3",
+  c("2DL1", "2DL2", "2DL3", "2DL3", "2DL4", "2DL5", "2DL5A", "2DL5B","2DS1", "2DS2", "2DS3",
     "2DS4", "2DS5", "2DP1", "3DL1", "3DL2", "3DL3", "3DS1", "3DP1")
 }
 
