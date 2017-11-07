@@ -47,34 +47,6 @@ conseq.pileup <- function(x, name = "conseq", type = c("prob", "freq", "ambig"),
          exclude_gaps = exclude_gaps, prune_matrix = prune_matrix, ... )
 }
 
-# ToDo: RM
-# conseq.hmm <- function(x, name = NULL, outdir = getwd()) {
-#   # debug
-#   # x <- model
-#   cons <- run_hmmer("hmmemit", x$outfile, outdir, force = TRUE)
-#   seq <- Biostrings::readDNAStringSet(cons$outfile)
-#   logo <- run_hmmer("hmmlogo", x$outfile, outdir, force = TRUE)
-#   scores <- readr::read_table2(logo$outfile , skip = 2, col_names = FALSE)
-#   scores <- scores %>%
-#     dplyr::select(-X6) %>%
-#     dplyr::mutate(X7 = as.numeric(gsub(")", "", X7)))
-#   names(scores) <- c("Position", "A", "C", "G", "T", "height")
-#   scores <- scores %>%
-#     dplyr::select(A, C, G, T, height) %>%
-#     dplyr::rowwise() %>%
-#     dplyr::mutate(score = max(c(A, C, G, T))/ height)
-#
-#   metadata(seq) <- list(
-#     zscore     = NULL,
-#     freq       = scores$score,
-#     ambigs     = NULL,
-#     insertions = NULL,
-#     deletions  = NULL,
-#     consmat    = NULL
-#   )
-#   seq
-# }
-
 #' @export
 conseq.matrix <- function(x, name = NULL, type = c("prob", "freq", "ambig"),
                           threshold = NULL, exclude_gaps = FALSE,
@@ -206,20 +178,6 @@ make_ambig_consensus_ <- function(x, threshold, exclude_gaps = FALSE, as_string 
     names(rs) <- names(m)[i]
     list(rs)
   })
-  #   baselist <- foreach(m = iter(consmat(x, freq = TRUE), by = "row")) %do% {
-  #     i <- m > threshold
-  #     rs <- m[i]
-  #     names(rs) <- nm[i]
-  #     rs
-  #   }
-  ## for each position return a BASE and a FREQ
-  ## b <- baselist[[4020]]
-  ## b <- baselist[ins(cmf)]
-  ## n(cmf)[ins(cmf)]
-  ## ins(cmf)
-  ## baselist2 <- baselist[sapply(baselist, length) > 1]
-  ## b <- baselist2[[1]]
-  ## b <- baselist[[68]]
   s <- lapply(baselist, function(b) {
     b <- unlist(b)
     if (length(b) == 1) {

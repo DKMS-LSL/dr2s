@@ -4,7 +4,7 @@
 \alias{disambiguate_variant}
 \title{Disambiguate a variant}
 \usage{
-disambiguate_variant(x, threshold, min_overrep_lr = 1.5, max_overrep_sr = 2)
+disambiguate_variant(x, threshold, min_overrep_lr = 5, max_overrep_sr = 2)
 }
 \arguments{
 \item{x}{A \code{variant_list}.}

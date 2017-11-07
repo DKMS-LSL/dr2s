@@ -66,24 +66,4 @@ run_igv <- function(x, position, ...) {
       message(msg)
     }
   }
-
-
-  # batchA <- list(
-  #   new = "",
-  #   genome = refA,
-  #   load   = bamALR,
-  #   load   = bamASR,
-  #   goto   = paste0(chrA, ":", position - 50, "-", position + 50),
-  #   sort   = "position"
-  # )
-  #
-  # batchB <- list(
-  #   new = "",
-  #   genome = refB,
-  #   load   = bamBLR,
-  #   load   = bamBSR,
-  #   goto   = paste0(chrB, ":", position - 50, "-", position + 50),
-  #   sort   = "position"
-  # )
-
 }

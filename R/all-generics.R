@@ -22,28 +22,19 @@
 #' @section Reference:
 #'
 #' References can be specified as allele codes or a path to a fasta file
-#' containing the reference sequence. Specifying both alleles as a character
-#' vector is possible but only takes effect if \code{consensus} is set to
-#' \dQuote{\code{mapping}}. If \code{reference = NULL} a global generic reference
+#' containing the reference sequence. If \code{reference = NULL} a global generic reference
 #' for a given locus will be used.
 #'
 #' @section Consensus:
-#' Two methods to generate initial consensus sequences from long reads are
-#' available: \dQuote{\bold{\code{multialign}}}: After partitioning long reads into
-#' haplotypes up to 30 "best" reads from each haplotype group are selected for
-#' multiple sequence alignment and a preliminary consensus sequences construction.
-#' All reads from each haplotype group are subsequently mapped against their
-#' respective preliminary consensus sequences and these mappings are used for
-#' constructing final long read consensus sequences.
-#' \dQuote{\bold{\code{mapping}}}: Reads from each haplotype group are mapped
-#' against the orignal reference sequence and these mappings are used for
-#' constructing final long read consensus sequences. Note, that the second
-#' approach is prone to introducing alignment artifacts if there is a lot of
-#' mismatch between the reference used and the actual allele sequences.
+#' Right now, the consensus method of multialign is removed. A de novo assembly of
+#' longreads, maybe supported by shortreads might be implemented.
+#' \dQuote{\bold{\code{mapping}}}: The reference is refined from the initial provided reference
+#' during the mapInit step using short reads. Individual references for each found haplotype are
+#' constructed from this reference using only longreads that are assigned to the haplotype.
 #'
 #' @param sample A unique sample identifier used to locate the long and short
 #' read FASTQ files.
-#' @param locus The HLA locus ("A", "B", "C", "DPB1", "DQB1", "DRB1")
+#' @param locus The HLA locus ("A", "B", "C", "DPB1", "DQB1", "DRB1") or KIR locus.
 #' @param longreads The type and location of the long reads as a named list
 #' with the fields \code{type} ("pacbio" or "nanopore") and \code{dir}.
 #' Additional optional fields: \code{name} and \code{opts}.
@@ -52,14 +43,19 @@
 #' \code{NULL} can be provided.
 #' @param datadir The data directory (See Note).
 #' @param outdir The output directory (See Note).
-#' @param reference (Optional) The reference allele(s). One or both alleles
-#' specified as a character vector (See Note).
-#' @param consensus How will the inital allele consensus sequences be generated
-#' from the long reads. One of \dQuote{\code{multialign}} or \dQuote{\code{mapping}}
-#' (See Note).
+#' @param reference The reference allele(s).
+#' @param consensus \dQuote{\code{mapping}} for now (See Note).
 #' @param threshold Threshold frequency for polymorphisms.
 #' @param iterations Number of iterations of the mapIter step.
 #' @param fullname Truncate allele names.
+#' @param partSR Use shortreads in the mapInit step for getting polymorphic positions and
+#' a first reference.
+#' @param microsatellite FALSE Perform a second mapping of shortreads to the inferred reference in
+#' mapInit. Set to TRUE if you know you have repeats like in microsatellites. Usually extends the
+#' reference to a maximum length and enables a better mapping.
+#' @param forceBadMapping FALSE set to TRUE if you want to force processing of bad shortreads, i.e.
+#' when the distribution of coverage is bad. Aborts the program if maximum coverage > 75 % quantile * 5.
+#'
 #'
 #' @return A \code{\link[=DR2S_]{DR2S}} object.
 #' @family DR2S mapper functions
@@ -73,7 +69,7 @@
 #'   datadir = "/path/to/data",
 #'   outdir = "/path/to/output",
 #'   reference = "04:01:01:01",
-#'   consensus = "multialign"
+#'   consensus = "mapping"
 #'   ) %>%
 #'   clear() %>%
 #'   mapInit() %>%
@@ -81,8 +77,8 @@
 #'   split_reads_by_haplotype() %>%
 #'   extract_fastq() %>%
 #'   mapIter() %>%
+#'   partitionShortReads() %>%
 #'   mapFinal() %>%
-#'   cache() %>%
 #'   polish() %>%
 #'   report(block_width = 60)
 #' }
@@ -93,9 +89,10 @@ DR2Smap <- function(sample,
                     datadir = ".",
                     outdir = "./output",
                     reference = NULL,
-                    consensus = "multialign",
+                    consensus = "mapping",
                     threshold = 0.20,
                     iterations = 1,
+                    partSR = TRUE,
                     fullname = TRUE,
                     ...) {
   UseMethod("DR2Smap")
@@ -143,16 +140,16 @@ DR2Smap <- function(sample,
 #'   datadir = "/path/to/data",
 #'   outdir = "/path/to/output",
 #'   reference = "04:01:01:01",
-#'   consensus = "multialign"
+#'   consensus = "mapping"
 #'   ) %>%
 #'   clear() %>%
 #'   mapInit() %>%
 #'   partition_haplotypes() %>%
-#'   split_reads_by_haplotype(limitA = 0.5, limitB = 0.25) %>%
+#'   split_reads_by_haplotype() %>%
 #'   extract_fastq() %>%
 #'   mapIter() %>%
+#'   partitionShortReads() %>%
 #'   mapFinal() %>%
-#'   cache() %>%
 #'   polish() %>%
 #'   report(block_width = 60)
 #' }
@@ -211,7 +208,7 @@ mapInit <- function(x,
 #'   datadir = "/path/to/data",
 #'   outdir = "/path/to/output",
 #'   reference = "04:01:01:01",
-#'   consensus = "multialign"
+#'   consensus = "mapping"
 #'   ) %>%
 #'   clear() %>%
 #'   mapInit() %>%
@@ -221,6 +218,27 @@ mapInit <- function(x,
 #'   mapIter() %>%
 #'   mapFinal() %>%
 #'   cache() %>%
+#'   polish() %>%
+#'   report(block_width = 60)
+#' }
+#' @examples
+#' \dontrun{
+#' x <- DR2Smap(
+#'   sample = "ID12300527",
+#'   locus = "DPB1",
+#'   datadir = "/path/to/data",
+#'   outdir = "/path/to/output",
+#'   reference = "04:01:01:01",
+#'   consensus = "mapping"
+#'   ) %>%
+#'   clear() %>%
+#'   mapInit() %>%
+#'   partition_haplotypes() %>%
+#'   split_reads_by_haplotype() %>%
+#'   extract_fastq() %>%
+#'   mapIter() %>%
+#'   partitionShortReads() %>%
+#'   mapFinal() %>%
 #'   polish() %>%
 #'   report(block_width = 60)
 #' }
@@ -279,16 +297,16 @@ mapIter <- function(x,
 #'   datadir = "/path/to/data",
 #'   outdir = "/path/to/output",
 #'   reference = "04:01:01:01",
-#'   consensus = "multialign"
+#'   consensus = "mapping"
 #'   ) %>%
 #'   clear() %>%
 #'   mapInit() %>%
 #'   partition_haplotypes() %>%
-#'   split_reads_by_haplotype(limitA = 0.5, limitB = 0.25) %>%
+#'   split_reads_by_haplotype() %>%
 #'   extract_fastq() %>%
 #'   mapIter() %>%
+#'   partitionShortReads() %>%
 #'   mapFinal() %>%
-#'   cache() %>%
 #'   polish() %>%
 #'   report(block_width = 60)
 #' }
@@ -333,7 +351,7 @@ mapFinal <- function(x,
 #'   datadir = "/path/to/data",
 #'   outdir = "/path/to/output",
 #'   reference = "04:01:01:01",
-#'   consensus = "multialign"
+#'   consensus = "mapping"
 #'   ) %>%
 #'   clear() %>%
 #'   mapInit() %>%
@@ -370,7 +388,7 @@ partition_haplotypes <- function(x,
 #'   datadir = "/path/to/data",
 #'   outdir = "/path/to/output",
 #'   reference = "04:01:01:01",
-#'   consensus = "multialign"
+#'   consensus = "mapping"
 #'   ) %>%
 #'   clear() %>%
 #'   mapInit() %>%
@@ -378,8 +396,8 @@ partition_haplotypes <- function(x,
 #'   split_reads_by_haplotype() %>%
 #'   extract_fastq() %>%
 #'   mapIter() %>%
+#'   partitionShortReads() %>%
 #'   mapFinal() %>%
-#'   cache() %>%
 #'   polish() %>%
 #'   report(block_width = 60)
 #' }
@@ -405,16 +423,16 @@ split_reads_by_haplotype <- function(x,
 #'   datadir = "/path/to/data",
 #'   outdir = "/path/to/output",
 #'   reference = "04:01:01:01",
-#'   consensus = "multialign"
+#'   consensus = "mapping"
 #'   ) %>%
 #'   clear() %>%
 #'   mapInit() %>%
 #'   partition_haplotypes() %>%
-#'   split_reads_by_haplotype(limitA = 0.5, limitB = 0.25) %>%
+#'   split_reads_by_haplotype() %>%
 #'   extract_fastq() %>%
 #'   mapIter() %>%
+#'   partitionShortReads() %>%
 #'   mapFinal() %>%
-#'   cache() %>%
 #'   polish() %>%
 #'   report(block_width = 60)
 #' }
@@ -441,17 +459,16 @@ extract_fastq <- function(x, ...) {
 #'   datadir = "/path/to/data",
 #'   outdir = "/path/to/output",
 #'   reference = "04:01:01:01",
-#'   consensus = "multialign"
+#'   consensus = "mapping"
 #'   ) %>%
 #'   clear() %>%
 #'   mapInit() %>%
 #'   partition_haplotypes() %>%
-#'   split_reads_by_haplotype(limitA = 0.5, limitB = 0.25) %>%
+#'   split_reads_by_haplotype() %>%
 #'   extract_fastq() %>%
 #'   mapIter() %>%
 #'   partitionShortReads() %>%
 #'   mapFinal() %>%
-#'   cache() %>%
 #'   polish() %>%
 #'   report(block_width = 60)
 #' }
@@ -477,7 +494,6 @@ partitionShortReads <- function(x,
 #' @family DR2S mapper functions
 #' @export
 #' @examples
-#' ## Run the full DR2S pipeline
 #' \dontrun{
 #' x <- DR2Smap(
 #'   sample = "ID12300527",
@@ -485,16 +501,16 @@ partitionShortReads <- function(x,
 #'   datadir = "/path/to/data",
 #'   outdir = "/path/to/output",
 #'   reference = "04:01:01:01",
-#'   consensus = "multialign"
+#'   consensus = "mapping"
 #'   ) %>%
 #'   clear() %>%
 #'   mapInit() %>%
 #'   partition_haplotypes() %>%
-#'   split_reads_by_haplotype(limitA = 0.5, limitB = 0.25) %>%
+#'   split_reads_by_haplotype() %>%
 #'   extract_fastq() %>%
 #'   mapIter() %>%
+#'   partitionShortReads() %>%
 #'   mapFinal() %>%
-#'   cache() %>%
 #'   polish() %>%
 #'   report(block_width = 60)
 #' }
@@ -527,7 +543,6 @@ polish <- function(x, threshold = x$getThreshold(), lower_limit = 0.6, cache = T
 #' @family DR2S mapper functions
 #' @export
 #' @examples
-#' ## Run the full DR2S pipeline
 #' \dontrun{
 #' x <- DR2Smap(
 #'   sample = "ID12300527",
@@ -535,7 +550,7 @@ polish <- function(x, threshold = x$getThreshold(), lower_limit = 0.6, cache = T
 #'   datadir = "/path/to/data",
 #'   outdir = "/path/to/output",
 #'   reference = "04:01:01:01",
-#'   consensus = "multialign"
+#'   consensus = "mapping"
 #'   ) %>%
 #'   clear() %>%
 #'   mapInit() %>%
@@ -543,8 +558,8 @@ polish <- function(x, threshold = x$getThreshold(), lower_limit = 0.6, cache = T
 #'   split_reads_by_haplotype() %>%
 #'   extract_fastq() %>%
 #'   mapIter() %>%
+#'   partitionShortReads() %>%
 #'   mapFinal() %>%
-#'   cache() %>%
 #'   polish() %>%
 #'   report(block_width = 60)
 #' }
@@ -572,19 +587,19 @@ report <- function(x, which, block_width = 80, ...) {
 #'   datadir = "/path/to/data",
 #'   outdir = "/path/to/output",
 #'   reference = "04:01:01:01",
-#'   consensus = "multialign"
+#'   consensus = "mapping"
 #'   ) %>%
 #'   clear() %>%
 #'   mapInit() %>%
 #'   partition_haplotypes() %>%
-#'   split_reads_by_haplotype(limitA = 0.5, limitB = 0.25) %>%
+#'   split_reads_by_haplotype() %>%
 #'   extract_fastq() %>%
 #'   mapIter() %>%
+#'   partitionShortReads() %>%
 #'   mapFinal() %>%
-#'   cache() %>%
 #'   polish() %>%
 #'   report(block_width = 60)
-#'   }
+#' }
 clear <- function(x, ...) {
   UseMethod("clear")
 }
@@ -605,19 +620,19 @@ clear <- function(x, ...) {
 #'   datadir = "/path/to/data",
 #'   outdir = "/path/to/output",
 #'   reference = "04:01:01:01",
-#'   consensus = "multialign"
+#'   consensus = "mapping"
 #'   ) %>%
 #'   clear() %>%
 #'   mapInit() %>%
 #'   partition_haplotypes() %>%
-#'   split_reads_by_haplotype(limitA = 0.5, limitB = 0.25) %>%
+#'   split_reads_by_haplotype() %>%
 #'   extract_fastq() %>%
 #'   mapIter() %>%
+#'   partitionShortReads() %>%
 #'   mapFinal() %>%
-#'   cache() %>%
 #'   polish() %>%
 #'   report(block_width = 60)
-#'   }
+#' }
 cache <- function(x, ...) {
   UseMethod("cache")
 }

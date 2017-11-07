@@ -4,7 +4,7 @@
 \alias{score_highest_SR}
 \title{Get the highest scoring haplotype for each read}
 \usage{
-score_highest_SR(srpartition, diffThreshold = 0.05)
+score_highest_SR(srpartition, diffThreshold = 0.001)
 }
 \arguments{
 \item{srpartition}{srpartition dataframe with scores per read and haplotype.}
