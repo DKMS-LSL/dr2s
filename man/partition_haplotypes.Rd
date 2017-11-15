@@ -31,7 +31,7 @@ x <- DR2Smap(
   datadir = "/path/to/data",
   outdir = "/path/to/output",
   reference = "04:01:01:01",
-  consensus = "multialign"
+  consensus = "mapping"
   ) \%>\%
   clear() \%>\%
   mapInit() \%>\%

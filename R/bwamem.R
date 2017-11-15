@@ -86,13 +86,29 @@ generate_mapping_commands <- function(mapper,
         nanopore = "ont2d",
         illumina = NULL
       ),
+      # ##  Penalty for introducing Softclipping. Our read quality is usually
+      # ## quite good and clipping results mostly from bad mapping.
+      O = switch(
+        readtype,
+        pacbio = "6,6",
+        nanopore = "6,6",
+        illumina = "10,10"
+      ),
+      # ##  Penalty for introducing Softclipping. Our read quality is usually
+      # ## quite good and clipping results mostly from bad mapping.
+      # O = switch(
+      #   readtype,
+      #   pacbio = "6,6",
+      #   nanopore = "6,6",
+      #   illumina = "10,10"
+      # ),
       ##  Penalty for introducing Softclipping. Our read quality is usually
       ## quite good and clipping results mostly from bad mapping.
       L = switch(
         readtype,
         pacbio = 5,
         nanopore = 5,
-        illumina = 15
+        illumina = 60
       ),
       ## Use only reads above this mapping quality. Maximum is 60
       T = switch(

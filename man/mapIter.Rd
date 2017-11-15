@@ -58,7 +58,7 @@ x <- DR2Smap(
   datadir = "/path/to/data",
   outdir = "/path/to/output",
   reference = "04:01:01:01",
-  consensus = "multialign"
+  consensus = "mapping"
   ) \%>\%
   clear() \%>\%
   mapInit() \%>\%
@@ -68,6 +68,26 @@ x <- DR2Smap(
   mapIter() \%>\%
   mapFinal() \%>\%
   cache() \%>\%
+  polish() \%>\%
+  report(block_width = 60)
+}
+\dontrun{
+x <- DR2Smap(
+  sample = "ID12300527",
+  locus = "DPB1",
+  datadir = "/path/to/data",
+  outdir = "/path/to/output",
+  reference = "04:01:01:01",
+  consensus = "mapping"
+  ) \%>\%
+  clear() \%>\%
+  mapInit() \%>\%
+  partition_haplotypes() \%>\%
+  split_reads_by_haplotype() \%>\%
+  extract_fastq() \%>\%
+  mapIter() \%>\%
+  partitionShortReads() \%>\%
+  mapFinal() \%>\%
   polish() \%>\%
   report(block_width = 60)
 }

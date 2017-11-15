@@ -26,7 +26,6 @@ populated.
 Polish final haplotype sequences.
 }
 \examples{
-## Run the full DR2S pipeline
 \dontrun{
 x <- DR2Smap(
   sample = "ID12300527",
@@ -34,16 +33,16 @@ x <- DR2Smap(
   datadir = "/path/to/data",
   outdir = "/path/to/output",
   reference = "04:01:01:01",
-  consensus = "multialign"
+  consensus = "mapping"
   ) \%>\%
   clear() \%>\%
   mapInit() \%>\%
   partition_haplotypes() \%>\%
-  split_reads_by_haplotype(limitA = 0.5, limitB = 0.25) \%>\%
+  split_reads_by_haplotype() \%>\%
   extract_fastq() \%>\%
   mapIter() \%>\%
+  partitionShortReads() \%>\%
   mapFinal() \%>\%
-  cache() \%>\%
   polish() \%>\%
   report(block_width = 60)
 }

@@ -32,6 +32,40 @@ extract_fastq.default <- function(x, qnames = NULL, n = 100, replace = TRUE) {
   trim_softclipped_ends(bam, qn)
 }
 
+filter_reads <- function(bam, qnames = NULL, preserve_ref_ends = FALSE) {
+  #message("Entering trim_softclipped_ends")
+  #on.exit(message("Exiting trim_softclipped_ends"))
+  i <- if (is.null(qnames)) {
+    seq_along(bam$qname)
+  } else {
+    match(qnames, bam$qname)
+  }
+  if (preserve_ref_ends) {
+    not_trim_starts <- which(bam$pos[i] == 1)
+    not_trim_ends   <- which(bam$pos[i] > max(bam$pos[i]) - 250)
+  }
+  cigar <- bam$cigar[i]
+  id    <- if (!is.null(attr(qnames, "q"))) {
+    paste0(bam$qname[i], " q=", round(attr(qnames, "q"), 4))
+  } else bam$qname[i]
+  sc <- map_softclip(cigar)
+  if (preserve_ref_ends) {
+    sc[not_trim_starts, "start"] <- NA_integer_
+    sc[not_trim_ends, "end"] <- NA_integer_
+  }
+
+  trim <- sc %>%
+    dplyr::transmute(keep = is.na(start) & is.na(end))
+
+  readlength <- 250
+  alignmentScoreThreshold = 0.4*readlength # Change to dynamic
+  badScore <- bam$qname[bam$tag$AS < alignmentScoreThreshold]
+  trim <- id[trim==FALSE]
+  flog.info(" Filter %s softclipping reads of %s total ...", length(trim), length(id), name = "info")
+  flog.info(" Filter %s reads with alignment score < %s ...", length(badScore), alignmentScoreThreshold, name = "info")
+  unique(c(trim, badScore))
+}
+
 trim_softclipped_ends <- function(bam, qnames = NULL, preserve_ref_ends = FALSE) {
   #message("Entering trim_softclipped_ends")
   #on.exit(message("Exiting trim_softclipped_ends"))

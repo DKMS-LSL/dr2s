@@ -236,8 +236,7 @@ prune_consensus_matrix <- function(cm, n_look_behind = 36, cutoff = 0.6, verbose
   cm
 }
 
-#' @export
-#' Create position weight matrix from multiple sequence alignment
+# Create position weight matrix from multiple sequence alignment
 #'
 #' @param msa A \code{DNAStringSet} object of aligned sequences.
 #' @details

@@ -332,6 +332,9 @@ DR2S_ <- R6::R6Class(
     },
     ##
     getSrdDir = function() {
+      if (!is.null(filtered <- self$getConfig("filteredShortreads"))){
+        return(filtered)
+      }
       if (!is.null(srddir <- self$getConfig("shortreads")$dir)) {
         file.path(self$getDatadir(), srddir)
       } else {
@@ -873,7 +876,8 @@ DR2S_ <- R6::R6Class(
 
 findReads <- function(datadir, sample_id, locus) {
   locus <- sub("^HLA-", "", toupper(locus))
-  file_pattern <- paste0("^", sample_id, "_", locus, ".+", "fastq(\\.gz)?$")
+  locus <- sub("^KIR-", "", toupper(locus))
+  file_pattern <- paste0(sample_id, ".+", "fastq(\\.gz)?$")
   read_path <- dir(datadir, pattern = file_pattern, full.names = TRUE)
   read_path <- read_path[grep(pattern = "^((?!_trimmed.fastq).)*$", read_path, perl = TRUE)]
   if (length(read_path) > 0) {

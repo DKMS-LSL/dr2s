@@ -12,5 +12,6 @@
 #' @import data.table
 #' @import foreach
 #' @import ggplot2
+#' @import futile.logger
 #' @importFrom iterators iter nextElem
 NULL

@@ -7,7 +7,7 @@ mapInit.DR2S <- function(x,
                       pct = 100,
                       threshold = 0.20,
                       min_base_quality = 3,
-                      min_mapq = 0,
+                      min_mapq = 50,
                       max_depth = 1e4,
                       min_nucleotide_depth = 3,
                       include_deletions = TRUE,
@@ -16,6 +16,7 @@ mapInit.DR2S <- function(x,
                       microsatellite = FALSE,
                       force = FALSE,
                       fullname = TRUE,
+                      clip = TRUE,
                       plot = TRUE) {
   flog.info("Step 0: Initial mapping ... ", name = "info")
   Sys.sleep(1)
@@ -23,7 +24,7 @@ mapInit.DR2S <- function(x,
             min_base_quality = min_base_quality, min_mapq = min_mapq,
             max_depth = max_depth, min_nucleotide_depth = min_nucleotide_depth,
             include_deletions = include_deletions, include_insertions = include_insertions,
-            include_read_ids = include_read_ids, microsatellite = microsatellite,
+            include_read_ids = include_read_ids, microsatellite = microsatellite, clip = clip,
             force = force, fullname = fullname, plot = plot)
   message("  Done!\n")
   invisible(x)
@@ -35,7 +36,7 @@ DR2S_$set("public", "runMapInit",
                   pct = 100,
                   threshold = 0.20,
                   min_base_quality = 3,
-                  min_mapq = 0,
+                  min_mapq = 50,
                   max_depth = 1e4,
                   min_nucleotide_depth = 3,
                   include_deletions = TRUE,
@@ -43,11 +44,12 @@ DR2S_$set("public", "runMapInit",
                   include_read_ids = TRUE,
                   force = FALSE,
                   fullname = TRUE,
+                  clip = TRUE,
                   microsatellite = FALSE,
                   forceBadMapping = FALSE,
                   plot = TRUE) {
 
-           # debug
+           # # debug
            # opts = list()
            # partSR = TRUE
            # optsname = ""
@@ -65,6 +67,7 @@ DR2S_$set("public", "runMapInit",
            # plot = TRUE
            # microsatellite = TRUE
            # forceBadMapping = FALSE
+           # clip = TRUE
            # self <- DEDK
            # self <- dpb1_3
 
@@ -110,6 +113,41 @@ DR2S_$set("public", "runMapInit",
                force    = force,
                outdir   = self$getOutdir()
              )
+             if (clip) {
+               flog.info(" Filter softclipped reads ...", name = "info")
+               ## Run bam - sort - index pipeline
+               bamfile <- bam_sort_index(samfile, self$getRefPath(), pct / 100, min_mapq, force = force, clean = TRUE)
+               ## Trim softclips
+               bam = Rsamtools::scanBam(bamfile, param = Rsamtools::ScanBamParam(tag="AS", what = c("qname", "pos", "cigar" )))[[1]]
+               readfilter <- filter_reads(bam = bam, preserve_ref_ends = TRUE)
+               file_delete_if_exists(bamfile)
+
+               flog.info(" Write new shortread fastqs to file ...", name = "info")
+               fqs <- self$getShortreads()
+               fqdir  <- dir_create_if_not_exists(file.path(self$getOutdir(), self$getSrdType()))
+               #fq <- fqs[1]
+               # write fastq's
+               foreach(fq = fqs) %do% {
+                 srFastqHap = file.path(fqdir, basename(fq))
+                 write_part_fq(fq = fq, srFastqHap = srFastqHap, dontUseReads = readfilter)
+               }
+               ## set new shortread directory
+               self$setConfig("filteredShortreads", fqdir)
+
+               ## Rerun mapper
+               flog.info("  Mapping filtered short reads against latest consensus ... ", name = "info")
+               samfile <- map_fun(
+                 reffile  = self$getRefPath(),
+                 readfile = self$getShortreads(),
+                 allele   = self$getReference(),
+                 readtype = self$getSrdType(),
+                 opts     = opts,
+                 refname  = "",
+                 optsname = optsname,
+                 force    = force,
+                 outdir   = self$getOutdir()
+               )
+             }
 
              ## Run bam - sort - index pipeline
              flog.info("  Indexing ...", name = "info")
@@ -197,6 +235,42 @@ DR2S_$set("public", "runMapInit",
                  force    = force,
                  outdir   = self$getOutdir()
                )
+             if (clip) {
+               flog.info(" Filter softclipped reads ...", name = "info")
+               ## Run bam - sort - index pipeline
+               bamfile <- bam_sort_index(samfile, self$getRefPath(), pct / 100, min_mapq, force = force, clean = TRUE)
+               ## Trim softclips
+               bam = Rsamtools::scanBam(bamfile, param = Rsamtools::ScanBamParam(tag="AS", what = c("qname", "pos", "cigar" )))[[1]]
+               readfilter <- filter_reads(bam = bam, preserve_ref_ends = TRUE)
+               file_delete_if_exists(bamfile)
+
+               flog.info(" Write new shortread fastqs to file ...", name = "info")
+               fqs <- self$getShortreads()
+               fqdir  <- dir_create_if_not_exists(file.path(self$getOutdir(), self$getSrdType()))
+               #fq <- fqs[1]
+               # write fastq's
+               foreach(fq = fqs) %do% {
+                 srFastqHap = file.path(fqdir, paste0("SR1", basename(fq)))
+                 write_part_fq(fq = fq, srFastqHap = srFastqHap, dontUseReads = readfilter)
+                 file_delete_if_exists(fq)
+               }
+               ## set new shortread directory
+               self$setConfig("filteredShortreads", fqdir)
+
+               ## Rerun mapper
+               flog.info("  Mapping filtered short reads against latest consensus ... ", name = "info")
+               samfile <- map_fun(
+                 reffile  = conseqpath,
+                 readfile = self$getShortreads(),
+                 allele   = conseq_name,
+                 readtype = self$getSrdType(),
+                 opts     = opts,
+                 refname  = "",
+                 optsname = optsname,
+                 force    = force,
+                 outdir   = self$getOutdir()
+               )
+             }
 
                ## Run bam - sort - index pipeline
                flog.info("   Indexing ...", name = "info")
@@ -272,6 +346,43 @@ DR2S_$set("public", "runMapInit",
                force    = force,
                outdir   = self$getOutdir()
              )
+             if (clip) {
+               flog.info(" Filter softclipped reads ...", name = "info")
+               ## Run bam - sort - index pipeline
+               bamfile <- bam_sort_index(samfile, self$getRefPath(), pct / 100, min_mapq, force = force, clean = TRUE)
+               ## Trim softclips
+               bam = Rsamtools::scanBam(bamfile, param = Rsamtools::ScanBamParam(tag="AS", what = c("qname", "pos", "cigar" )))[[1]]
+               readfilter <- filter_reads(bam = bam, preserve_ref_ends = TRUE)
+               file_delete_if_exists(bamfile)
+
+               flog.info(" Write new shortread fastqs to file ...", name = "info")
+               fqs <- self$getShortreads()
+               fqdir  <- dir_create_if_not_exists(file.path(self$getOutdir(), self$getSrdType()))
+               #fq <- fqs[1]
+               # write fastq's
+               foreach(fq = fqs) %do% {
+                 srFastqHap = file.path(fqdir, paste0("SR2.",basename(fq)))
+                 write_part_fq(fq = fq, srFastqHap = srFastqHap, dontUseReads = readfilter)
+                 file_delete_if_exists(fq)
+               }
+               ## set new shortread directory
+               self$setConfig("filteredShortreads", fqdir)
+
+               ## Rerun mapper
+               flog.info("  Mapping filtered short reads against latest consensus ... ", name = "info")
+               map_fun <- self$getMapFun()
+               samfile <- map_fun(
+                 reffile  = mapInitSR1$seqpath,
+                 readfile = self$getShortreads(),
+                 allele   = mapInitSR1$ref,
+                 readtype = self$getSrdType(),
+                 opts     = opts,
+                 refname  = "",
+                 optsname = optsname,
+                 force    = force,
+                 outdir   = self$getOutdir()
+               )
+             }
 
              ## Run bam - sort - index pipeline
              flog.info("  Indexing ...", name = "info")
@@ -312,8 +423,6 @@ DR2S_$set("public", "runMapInit",
                class  = c("mapInit", "list")
              )
            }
-
-
 
            flog.info(" Map longreads against MapInit reference for clustering ...", name = "info")
            ref <- ifelse(partSR, mapInitSR1$seqpath, self$getRefPath())
@@ -1175,7 +1284,7 @@ mapFinal.DR2S <- function(x,
                       opts = list(),
                       pct = 100,
                       min_base_quality = 3,
-                      min_mapq = 0,
+                      min_mapq = 50,
                       max_depth = 1e5,
                       min_nucleotide_depth = 3,
                       include_deletions = TRUE,
@@ -1203,7 +1312,7 @@ mapFinal.DR2S <- function(x,
 # opts = list()
 # pct = 100
 # min_base_quality = 3
-# min_mapq = 0
+# min_mapq = 50
 # max_depth = 1e5
 # min_nucleotide_depth = 3
 # include_deletions = TRUE
@@ -1218,7 +1327,7 @@ DR2S_$set("public", "runMapFinal",
          function(opts = list(),
                   pct = 100,
                   min_base_quality = 3,
-                  min_mapq = 0,
+                  min_mapq = 50,
                   max_depth = 1e5,
                   min_nucleotide_depth = 3,
                   include_deletions = TRUE,

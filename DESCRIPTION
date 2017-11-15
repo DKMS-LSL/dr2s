@@ -33,18 +33,19 @@ Imports:
     itertools,
     foreach,
     hlatools,
+    futile.logger,
     IPDdata,
     grid,
     assertthat,
     magrittr,
     memoise,
     digest,
-    doParallel,
     yaml,
+    doParallel,
     tibble,
     XRPython,
     kirtools,
-    methods
+    methods,
 SystemRequirements: C++11, samtools, bwa (>= 0.7.11)
 VignetteBuilder: knitr
 RoxygenNote: 6.0.1
