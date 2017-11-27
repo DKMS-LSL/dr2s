@@ -58,12 +58,15 @@ filter_reads <- function(bam, qnames = NULL, preserve_ref_ends = FALSE) {
     dplyr::transmute(keep = is.na(start) & is.na(end))
 
   readlength <- 250
-  alignmentScoreThreshold = 0.4*readlength # Change to dynamic
+  alignmentScoreThreshold = 0.2*readlength # Change to dynamic
   badScore <- bam$qname[bam$tag$AS < alignmentScoreThreshold]
   trim <- id[trim==FALSE]
   flog.info(" Filter %s softclipping reads of %s total ...", length(trim), length(id), name = "info")
   flog.info(" Filter %s reads with alignment score < %s ...", length(badScore), alignmentScoreThreshold, name = "info")
-  unique(c(trim, badScore))
+  # try only discrding by quality
+  # unique(c(trim, badScore))
+  unique(badScore)
+
 }
 
 trim_softclipped_ends <- function(bam, qnames = NULL, preserve_ref_ends = FALSE) {

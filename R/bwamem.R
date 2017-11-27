@@ -18,6 +18,13 @@ run_bwamem <- function(reffile,
     optsname <- gsub("[[:punct:][:space:]]", "", optstring(opts, optsname))
   }
   opts <- merge_list(opts, list(t = parallel::detectCores()/2))
+
+  # debug
+  # reffile <- self$getRefPath()
+  # readfile <- self$getShortreads()
+  # refname <- "n"
+  # outdir <- self$getOutdir()
+
   cmd <- generate_mapping_commands("bwamem", readtype, reffile, readfile,
                                    allele, opts, refname, optsname,
                                    outdir = outdir)
@@ -32,6 +39,10 @@ run_bwamem <- function(reffile,
   file_delete_if_exists(paste0(cmd$reffile, ".fai"))
   file_delete_if_exists(paste0(cmd$reffile, ".pac"))
   file_delete_if_exists(paste0(cmd$reffile, ".sa"))
+
+  # debug
+  # samfile <- cmd$outfile
+
   cmd$outfile
 }
 
@@ -86,13 +97,33 @@ generate_mapping_commands <- function(mapper,
         nanopore = "ont2d",
         illumina = NULL
       ),
-      # ##  Penalty for introducing Softclipping. Our read quality is usually
-      # ## quite good and clipping results mostly from bad mapping.
+      # ## Matching score
+      c = switch(
+        readtype,
+        pacbio = "1",
+        nanopore = "1",
+        illumina = 4
+      ),
+      # # ## Mismatch penalty
+      B = switch(
+        readtype,
+        pacbio = "6",
+        nanopore = "6",
+        illumina = "6"
+      ),
+      r = switch(
+        readtype,
+        pacbio = NULL,
+        nanopore = NULL,
+        illumina = 0.5
+      ),
+
+      # ##  Penalty for gap opening
       O = switch(
         readtype,
         pacbio = "6,6",
         nanopore = "6,6",
-        illumina = "10,10"
+        illumina = "18,18"
       ),
       # ##  Penalty for introducing Softclipping. Our read quality is usually
       # ## quite good and clipping results mostly from bad mapping.
@@ -116,6 +147,12 @@ generate_mapping_commands <- function(mapper,
         pacbio = 50,
         nanopore = 30,
         illumina = 50
+      ),
+      w = switch(
+        readtype,
+        pacbio = 50,
+        nanopore = 30,
+        illumina = 300
       )
     )))
     zip <- ".gz"
@@ -148,3 +185,64 @@ generate_mapping_commands <- function(mapper,
     outfile  = paths$outfile
   )
 }
+
+    # opts <- compact(list(
+    #   t = 6,
+    #   x = switch(
+    #     readtype,
+    #     pacbio = "pacbio",
+    #     nanopore = "ont2d",
+    #     illumina = NULL
+    #   ),
+    #   # ## Matching score
+    #   c = switch(
+    #     readtype,
+    #     pacbio = "1",
+    #     nanopore = "1",
+    #     illumina = 4
+    #   ),
+    #   # # ## Mismatch penalty
+    #   B = switch(
+    #     readtype,
+    #     pacbio = "6,6",
+    #     nanopore = "6,6",
+    #     illumina = 6
+    #   ),
+    #
+    #   # ##  Penalty for gap opening
+    #   O = switch(
+    #     readtype,
+    #     pacbio = "6,6",
+    #     nanopore = "6,6",
+    #     illumina = "28,28"
+    #   ),
+    #   # ##  Penalty for introducing Softclipping. Our read quality is usually
+    #   # ## quite good and clipping results mostly from bad mapping.
+    #   r = switch(
+    #     readtype,
+    #     pacbio = "6,6",
+    #     nanopore = "6,6",
+    #     illumina = 0.5
+    #   ),
+    #   ##  Penalty for introducing Softclipping. Our read quality is usually
+    #   ## quite good and clipping results mostly from bad mapping.
+    #   L = switch(
+    #     readtype,
+    #     pacbio = 5,
+    #     nanopore = 5,
+    #     illumina = 60
+    #   ),
+    #   ## Use only reads above this mapping quality. Maximum is 60
+    #   T = switch(
+    #     readtype,
+    #     pacbio = 50,
+    #     nanopore = 30,
+    #     illumina = 50
+    #   ),
+    #   w = switch(
+    #     readtype,
+    #     pacbio = 50,
+    #     nanopore = 30,
+    #     illumina = 300
+    #   )
+    # ))

@@ -16,7 +16,7 @@ mapInit.DR2S <- function(x,
                       microsatellite = FALSE,
                       force = FALSE,
                       fullname = TRUE,
-                      clip = TRUE,
+                      clip = FALSE,
                       plot = TRUE) {
   flog.info("Step 0: Initial mapping ... ", name = "info")
   Sys.sleep(1)
@@ -44,7 +44,7 @@ DR2S_$set("public", "runMapInit",
                   include_read_ids = TRUE,
                   force = FALSE,
                   fullname = TRUE,
-                  clip = TRUE,
+                  clip = FALSE,
                   microsatellite = FALSE,
                   forceBadMapping = FALSE,
                   plot = TRUE) {
@@ -102,6 +102,11 @@ DR2S_$set("public", "runMapInit",
              map_fun <- self$getMapFun()
              ## Run mapper
              flog.info(" First mapping of shortreads to provided reference", name = "info")
+#             self$setConfig("ref_path", "~/project/KIRproject/fresh_kirdr2s/testdata/newKIR/DEDKM9451915/Sequel/KIR2DL5A.pacbio.ref.mapping/KIR2DL5A#0010101.ref.fa")
+#             self$setConfig("ref_path", b)
+#             self$getConfig("refpath")
+#             b <- tempfile()
+#             Biostrings::writeXStringSet(cons, b)
              samfile <- map_fun(
                reffile  = self$getRefPath(),
                readfile = self$getShortreads(),
@@ -113,6 +118,8 @@ DR2S_$set("public", "runMapInit",
                force    = force,
                outdir   = self$getOutdir()
              )
+
+#             cons <- multialign_consensus(multialign(self, "A", nalign))
              if (clip) {
                flog.info(" Filter softclipped reads ...", name = "info")
                ## Run bam - sort - index pipeline

@@ -119,7 +119,7 @@ score_highest_SR <- function(srpartition, diffThreshold = 0.001) {
   return(sr2)
 }
 
-write_part_fq <- function(fq, srFastqHap, dontUseReads = dontUseReads) {
+write_part_fq <- function(fq, srFastqHap, dontUseReads = NULL, useReads = NULL) {
   file_delete_if_exists(srFastqHap)
   fqstream = ShortRead::FastqStreamer(fq)
   repeat {
@@ -127,7 +127,12 @@ write_part_fq <- function(fq, srFastqHap, dontUseReads = dontUseReads) {
     if (length(sr) == 0) break
     fqnames <- as.character(ShortRead::id(sr))
     fqnames <- sub(" .*$", "", fqnames)
-    useReads <- which(!fqnames %in% dontUseReads)
+    if (is.null(dontUseReads)) {
+      useReads <- which(fqnames %in% useReads)
+    } else {
+      # useReads = qnames
+      useReads <- which(!fqnames %in% dontUseReads)
+    }
     flog.info("  Using %s of %s reads", length(useReads), length(fqnames), name = "info")
     sr <- sr[useReads]
     ShortRead::writeFastq(sr, srFastqHap, mode="a", compress = TRUE)

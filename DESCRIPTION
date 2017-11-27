@@ -64,8 +64,6 @@ Collate:
     'consmat.R'
     'dists.R'
     'errors.R'
-    'hmm.R'
-    'hmmer.R'
     'log-config.R'
     'multiplot.R'
     'partition-reads.R'
