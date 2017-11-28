@@ -120,8 +120,8 @@ score_highest_SR <- function(srpartition, diffThreshold = 0.001) {
 }
 
 write_part_fq <- function(fq, srFastqHap, dontUseReads = NULL, useReads = NULL) {
-  file_delete_if_exists(srFastqHap)
   fqstream = ShortRead::FastqStreamer(fq)
+  file_delete_if_exists(srFastqHap)
   repeat {
     sr = ShortRead::yield(fqstream)
     if (length(sr) == 0) break

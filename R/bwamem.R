@@ -100,22 +100,22 @@ generate_mapping_commands <- function(mapper,
       # ## Matching score
       c = switch(
         readtype,
-        pacbio = "1",
-        nanopore = "1",
+        pacbio = NULL,
+        nanopore = NULL,
         illumina = 4
       ),
       # # ## Mismatch penalty
       B = switch(
         readtype,
-        pacbio = "6",
-        nanopore = "6",
-        illumina = "6"
+        pacbio = 6,
+        nanopore = 6,
+        illumina = 6
       ),
       r = switch(
         readtype,
         pacbio = NULL,
         nanopore = NULL,
-        illumina = 0.5
+        illumina = 0.1
       ),
 
       # ##  Penalty for gap opening
