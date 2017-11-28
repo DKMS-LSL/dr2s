@@ -169,7 +169,7 @@ validate_dr2s_conf <- function(conf) {
     stop("forceBadMapping must be logical", call. = FALSE)
   }
   ## Check mapper
-  conf$mapper <- match.arg(conf$mapper, c("bwamem", "graphmap"))
+  conf$mapper <- match.arg(conf$mapper, c("bwamem", "graphmap", "minimap"))
   ## Check pipeline
   pipesteps <- c("clear", "cache", "mapInit", "mapIter", "mapFinal",
                  "partition", "split", "extract", "polish", "report")

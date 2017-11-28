@@ -65,6 +65,7 @@ Collate:
     'dists.R'
     'errors.R'
     'log-config.R'
+    'minimap.R'
     'multiplot.R'
     'partition-reads.R'
     'partitionShortReads.R'
