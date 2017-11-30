@@ -59,7 +59,7 @@ filter_reads <- function(bam, qnames = NULL, preserve_ref_ends = FALSE) {
     dplyr::transmute(keep = is.na(start) & is.na(end))
 
   readlength <- 250
-  alignmentScoreThreshold = 0.4*readlength # Change to dynamic
+  alignmentScoreThreshold = 0.8*readlength # Change to dynamic
   badScore <- bam$qname[bam$tag$AS < alignmentScoreThreshold]
   trim <- id[trim==FALSE]
   flog.info(" Filter %s softclipping reads of %s total ...", length(trim), length(id), name = "info")

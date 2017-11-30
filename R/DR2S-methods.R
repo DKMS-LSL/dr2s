@@ -248,41 +248,6 @@ DR2S_$set("public", "runMapInit",
                  force    = force,
                  outdir   = self$getOutdir()
                )
-             if (filterScores) {
-               flog.info(" Filter reads with bad alignment score...", name = "info")
-               ## Run bam - sort - index pipeline
-               bamfile <- bam_sort_index(samfile, self$getRefPath(), pct / 100, min_mapq, force = force, clean = TRUE)
-               bam = Rsamtools::scanBam(bamfile, param = Rsamtools::ScanBamParam(tag="AS", what = c("qname", "pos", "cigar" )))[[1]]
-               readfilter <- filter_reads(bam = bam, preserve_ref_ends = TRUE)
-               file_delete_if_exists(bamfile)
-
-               flog.info(" Write new shortread fastqs to file ...", name = "info")
-               fqs <- self$getShortreads()
-               fqdir  <- dir_create_if_not_exists(file.path(self$getOutdir(), self$getSrdType()))
-               #fq <- fqs[1]
-               # write fastq's
-               readfile <- foreach(fq = fqs, .combine = c) %do% {
-                 srFastqHap = file.path(fqdir, basename(fq))
-                 write_part_fq(fq = fq, srFastqHap = srFastqHap, dontUseReads = readfilter)
-                 srFastqHap
-               }
-               ## set new shortread directory
-               self$setConfig("filteredShortreads", fqdir)
-
-               ## Rerun mapper
-               flog.info("  Mapping filtered short reads against latest consensus ... ", name = "info")
-               samfile <- map_fun(
-                 reffile  = conseqpath,
-                 readfile = readfile,
-                 allele   = conseq_name,
-                 readtype = self$getSrdType(),
-                 opts     = opts,
-                 refname  = "",
-                 optsname = optsname,
-                 force    = force,
-                 outdir   = self$getOutdir()
-               )
-             }
 
                ## Run bam - sort - index pipeline
                flog.info("   Indexing ...", name = "info")
@@ -359,43 +324,6 @@ DR2S_$set("public", "runMapInit",
                force    = force,
                outdir   = self$getOutdir()
              )
-             if (filterScores) {
-               flog.info(" Filter reads with low alignment score...", name = "info")
-               ## Run bam - sort - index pipeline
-               bamfile <- bam_sort_index(samfile, self$getRefPath(), pct / 100, min_mapq, force = force, clean = TRUE)
-               bam = Rsamtools::scanBam(bamfile, param = Rsamtools::ScanBamParam(tag="AS", what = c("qname", "pos", "cigar" )))[[1]]
-               readfilter <- filter_reads(bam = bam, preserve_ref_ends = TRUE)
-               file_delete_if_exists(bamfile)
-
-               flog.info(" Write new shortread fastqs to file ...", name = "info")
-               fqs <- self$getShortreads()
-               fqdir  <- dir_create_if_not_exists(file.path(self$getOutdir(), self$getSrdType()))
-               #fq <- fqs[1]
-               # write fastq's
-               readfile <- foreach(fq = fqs, .combine = c) %do% {
-                 srFastqHap = file.path(fqdir, basename(fq))
-                 write_part_fq(fq = fq, srFastqHap = srFastqHap, dontUseReads = readfilter)
-                 srFastqHap
-               }
-               ## set new shortread directory
-               self$setConfig("filteredShortreads", fqdir)
-
-               ## Rerun mapper
-               flog.info("  Mapping filtered short reads against latest consensus ... ", name = "info")
-               map_fun <- self$getMapFun()
-               samfile <- map_fun(
-                 reffile  = mapInitSR1$seqpath,
-                 readfile = readfile,
-                 allele   = mapInitSR1$ref,
-                 readtype = self$getSrdType(),
-                 opts     = opts,
-                 refname  = "",
-                 optsname = optsname,
-                 force    = force,
-                 outdir   = self$getOutdir()
-               )
-             }
-
              ## Run bam - sort - index pipeline
              flog.info("  Indexing ...", name = "info")
              bamfile <- bam_sort_index(
@@ -961,7 +889,7 @@ DR2S_$set("public", "runMapIter",
              cmat <- Biostrings::consensusMatrix(mat[readIds], as.prob = TRUE)[VALID_DNA(include = "indel"),]
              conseq_name <- paste0("consensus.mapIter.0.", hptype)
              conseq <- conseq(x = t(cmat), name = conseq_name, type = "prob",
-                    force_exclude_gaps = TRUE, prune_matrix = TRUE,
+                    force_exclude_gaps = FALSE, prune_matrix = TRUE,
                     cutoff = pruning_cutoff)
 
              seqpath     <- file.path(self$mapIter[["0"]][[hptype]]$dir, paste0(conseq_name, ".fa"))
@@ -1079,7 +1007,7 @@ DR2S_$set("public", "runMapIter",
                flog.info("   Constructing a consensus ...", name = "info")
                conseq_name <- paste0("consensus.", sub(".sam.gz", "", basename(samfile)))
                conseq      <- conseq(x = pileup, name = conseq_name, type = "prob",
-                                     exclude_gaps = TRUE, prune_matrix = TRUE,
+                                     exclude_gaps = FALSE, prune_matrix = TRUE,
                                      cutoff = pruning_cutoff)
                seqpath     <- file.path(outdir, paste0(conseq_name, ".fa"))
                self$mapIter[[iterationC]][[hptype]]$seqpath = seqpath
@@ -1320,7 +1248,7 @@ mapFinal.DR2S <- function(x,
 }
 
 # debug
-# self <- dpb1_3.map
+# self <- dpb1_3.p
 # opts = list()
 # pct = 100
 # min_base_quality = 3
