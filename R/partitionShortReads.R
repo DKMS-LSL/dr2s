@@ -80,40 +80,53 @@ get_SR_partition_scores <- function(ppos, refname, bamfile, mats, cores = "auto"
 #' ### Score
 #
 score_highest_SR <- function(srpartition, diffThreshold = 0.001) {
+  # debug
 # srpartition <- srpartitionbc$srpartition
 # srpartitionbc <- srpartition
-  sr <- srpartition %>%
-    dplyr::group_by(read, haplotype) %>%
-    dplyr::mutate(clade = sum(prob)) %>%
-    dplyr::ungroup() %>%
-    dplyr::group_by(read) %>%
-    dplyr::mutate(max = max(clade)) %>%
-    dplyr::group_by(read, haplotype) %>%
-    dplyr::select(read, haplotype, clade, max) %>%
-    dplyr::distinct()
 
-  sr2 <- sr %>%
-    dplyr::group_by(read) %>%
-    dplyr::filter(abs(1-(clade/max)) < diffThreshold) %>%
-    dplyr::mutate(exclusive = n() == 1) %>%
-    dplyr::ungroup()
+# microbenchmark::microbenchmark(
+#   sr <- srpartition %>%
+#     dplyr::group_by(read, haplotype) %>%
+#     dplyr::mutate(clade = sum(prob)) %>%
+#     dplyr::ungroup() %>%
+#     dplyr::group_by(read) %>%
+#     dplyr::mutate(max = max(clade)) %>%
+#     dplyr::group_by(read, haplotype) %>%
+#     dplyr::select(read, haplotype, clade, max) %>%
+#     dplyr::distinct(),
+#   a <- unique(s[, clade := sum(prob), by = list(read, haplotype)] # Get the sum of each read and hptype
+#               [,max := max(clade), by = read] # get the max of the sums of each
+#               [, !c("prob", "pos")]) # dismiss the prob and pos which we dont need anymore
+# )
 
+# microbenchmark::microbenchmark(
+#   sr2 <- sr %>%
+#     dplyr::group_by(read) %>%
+#     dplyr::filter(abs(1-(clade/max)) < diffThreshold) %>%
+#     dplyr::mutate(exclusive = n() == 1) %>%
+#     dplyr::ungroup(),
+#   b <- data.table::as.data.table(sr)[abs(1-(clade/max)) < diffThreshold][, exclusive:= .N, by = read], times = 2
+# )
+
+  ## Using data.table is WAY faster than dplyr! 100x
+  sr <- unique(data.table::as.data.table(srpartition)[, clade := sum(prob), by = list(read, haplotype)] # Get the sum of each read and hptype
+              [,max := max(clade), by = read] # get the max of the sums of each
+              [, !c("prob")]) # dismiss the prob and pos which we dont need anymore
+  sr2 <- sr[abs(1-(clade/max)) < diffThreshold][, exclusive:= .N, by = read]
 
 
   flog.info(" Calculate shortread scoring with cutoff: %s ...", diffThreshold, name = "info")
-  correctScoring <- unlist(sapply(unique(srpartition$pos), function(position) check_SR_scoring(position, sr2, srpartition)))
+  correctScoring <- sapply(unique(sr2$pos), function(position) check_SR_scoring(position, sr2))
+
   if (!all(correctScoring))
     flog.info(" Scoring not meeting proper clustering, refine diffThreshold ...", diffThreshold, name = "info")
 
   while(!all(correctScoring)){
     diffThreshold <- diffThreshold + 0.01
     flog.info(" Calculate shortread scoring with cutoff: ", diffThreshold, name = "info")
-    sr2 <- sr %>%
-      dplyr::group_by(read) %>%
-      dplyr::filter(abs(1-(clade/max)) < diffThreshold) %>%
-      dplyr::mutate(exclusive = n() == 1) %>%
-      dplyr::ungroup()
-    correctScoring <- unlist(sapply(unique(srpartition$pos), function(position) check_SR_scoring(position, sr2, srpartition)))
+    # Check again with new threshold if there are enough reads at each position
+    sr2 <- sr[abs(1-(clade/max)) < diffThreshold][, exclusive:= .N, by = read]
+    correctScoring <- sapply(unique(sr2$pos), function(position) check_SR_scoring(position, sr2))
   }
   flog.info(" Use overlap cutoff of %s for shortread scoring ...", diffThreshold, name = "info")
   return(sr2)
@@ -146,12 +159,8 @@ part_read <- function(a, mats, pos){
   list(prob = l,  haplotype = names(mats), pos = rep(pos, length(l)))
 }
 
-check_SR_scoring <- function(position, sr2, srpartition){
-  reads_at_pos <- unique(dplyr::filter(srpartition, pos == position)$read)
-  score_ok <- c()
-  foreach(hp = unique(sr2$haplotype)) %do% {
-    countOwn <- sum(reads_at_pos %in% dplyr::filter(sr2, haplotype == hp)$read)
-    score_ok <- c(score_ok, countOwn/length(reads_at_pos) > 0.1)
-  }
+check_SR_scoring <- function(position, sr2){
+  reads_at_pos <- unique(sr2[pos == position]$read)
+  score_ok <- sapply(unique(sr2$haplotype), function(hp) sum(reads_at_pos %in% sr2[haplotype == hp]$read)/length(reads_at_pos) > 0.001)
   return(score_ok)
 }
