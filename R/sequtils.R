@@ -33,9 +33,10 @@ extract_fastq.default <- function(x, qnames = NULL, n = 100, replace = TRUE) {
 }
 
 # todo add length and cut option
-filter_reads <- function(bam, qnames = NULL, preserve_ref_ends = FALSE) {
+filter_reads <- function(bam, qnames = NULL, preserve_ref_ends = TRUE) {
   #message("Entering trim_softclipped_ends")
   #on.exit(message("Exiting trim_softclipped_ends"))
+  readlength <- 250
   i <- if (is.null(qnames)) {
     seq_along(bam$qname)
   } else {
@@ -43,7 +44,7 @@ filter_reads <- function(bam, qnames = NULL, preserve_ref_ends = FALSE) {
   }
   if (preserve_ref_ends) {
     not_trim_starts <- which(bam$pos[i] == 1)
-    not_trim_ends   <- which(bam$pos[i] > max(bam$pos[i]) - 250)
+    not_trim_ends   <- which(bam$pos[i] > max(bam$pos[i]) - readlength)
   }
   cigar <- bam$cigar[i]
   id    <- if (!is.null(attr(qnames, "q"))) {
@@ -54,19 +55,17 @@ filter_reads <- function(bam, qnames = NULL, preserve_ref_ends = FALSE) {
     sc[not_trim_starts, "start"] <- NA_integer_
     sc[not_trim_ends, "end"] <- NA_integer_
   }
-
   trim <- sc %>%
-    dplyr::transmute(keep = is.na(start) & is.na(end))
+    dplyr::transmute(keep = ifelse(is.na(start) & is.na(end),
+                                   readlength,
+                                   readlength - abs(ifelse(is.na(end), 0, end) - ifelse(is.na(start), 0, start))))
 
-  readlength <- 250
-  alignmentScoreThreshold = 0.8*readlength # Change to dynamic
+  alignmentScoreThreshold = 0.3*readlength # Change to dynamic
   badScore <- bam$qname[bam$tag$AS < alignmentScoreThreshold]
-  trim <- id[trim==FALSE]
-  flog.info(" Filter %s softclipping reads of %s total ...", length(trim), length(id), name = "info")
+  trim <- id[trim < 0.3 * readlength]
+  flog.info(" Filter %s softclipping reads of %s total; remove reads < %s remaining length ...", length(trim), length(id), 0.3*readlength, name = "info")
   flog.info(" Filter %s reads with alignment score < %s ...", length(badScore), alignmentScoreThreshold, name = "info")
-  # try only discrding by quality
-  # unique(c(trim, badScore))
-  unique(badScore)
+  unique(c(trim, badScore))
 
 }
 
