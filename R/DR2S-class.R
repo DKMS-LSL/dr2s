@@ -120,6 +120,7 @@ DR2S_ <- R6::R6Class(
       ## Private fields
       private$conf   = initialise_dr2s(conf, create_outdir = create_outdir)
       private$ipd    = findLocus(private$conf$locus)
+      private$reportStatus = FALSE
 
       if (is.null(private$conf$reference)) {
         private$conf$reference = "consensus"
@@ -245,6 +246,16 @@ DR2S_ <- R6::R6Class(
     setPartSR = function(partSR) {
       stopifnot(is.logical(partSR))
       self$setConfig("partSR", partSR)
+      invisible(self)
+    },
+    ##
+    getReportStatus = function(){
+      private$reportStatus
+    },
+    ##
+    setReportStatus = function(report){
+      stopifnot(is.logical(report))
+      private$reportStatus <- report
       invisible(self)
     },
     ##
@@ -851,6 +862,7 @@ DR2S_ <- R6::R6Class(
   private = list(
     conf      = NULL,
     ipd       = NULL,
+    reportStatus = NULL,
     run_      = function(step) {
       switch(
         step,

@@ -41,13 +41,13 @@ partition_reads <- function(x, cl_method="ward.D", min_len = 0.5, skip_gap_freq 
 
   ## Get only the fraction of reads that contain at least min_len of total SNPs
   clustres <- get_clusts(xseqs, cl_method = cl_method, min_len = min_len, deepSplit = deepSplit, threshold = threshold)
-  subclades <- clustres$clades
+  subclades <- factor(clustres$clades[!clustres$clades == "@"])
   tree <- clustres$tree
   # debug
    # plot(tree, labels = F)
   hptypes <- levels(subclades)
-  
-  if (length(hptypes) == 1 && hptypes == "@"){
+
+  if (length(subclades) == 0){
     flog.error("Two few longreads for clustering", name = "info")
     stop("To few longreads for clustering")
   }
@@ -538,12 +538,12 @@ plot_partition_tree <- function(x){
     )
   tree <- HTR(x)
   k <- length(oc(x))
-  
+
   tryCatch({
     dendr <- ggdendro::dendro_data(tree, type = "rectangle")
     dendr$labels <- dendr$labels %>%
       dplyr::mutate(label = as.character(label))
-  
+
     clust <- cutree(tree, k)
     clust <- dplyr::data_frame(label = names(clust), haplotype = clust)
     # clust <- partition(x) %>%
@@ -556,23 +556,23 @@ plot_partition_tree <- function(x){
     #   dplyr::rename( haplotype = clustclade, label = read)
     #
     dendr$labels <- dplyr::left_join(dendr$labels, clust, by="label")
-  
+
     height <- unique(dendr$segments$y)[order(unique(dendr$segments$y), decreasing = TRUE)]
     cut.height <- mean(c(height[k], height[k-1]))
     dendr$segments <- dendr$segments %>%
       dplyr::mutate(line =  dplyr::if_else(
         y == yend & y > cut.height, 1, dplyr::if_else(
           yend > cut.height,1, 2)))
-  
+
     dendr$segments$cluster <- c(-1, diff(dendr$segments$line))
     change <- which(dendr$segments$cluster == 1)
     for (i in 1:k) dendr$segments$cluster[change[i]] = i + 1
     dendr$segments <- dendr$segments %>%
       dplyr::mutate(cluster = dplyr::if_else( line == 1, 1, ifelse( cluster == 0, NA, cluster)))
     dendr$segments$cluster <- sapply(1:NROW(dendr$segments$cluster), function(x) getCl(x, dendr$segments$cluster, change))
-  
+
     # Correct order
-  
+
     labs <- c("N", oc(x))#LETTERS[as.numeric(names(sort(table(clust$haplotype), decreasing = TRUE)))])
     dendr$segments$cluster <- labs[dendr$segments$cluster]
     # Make plot

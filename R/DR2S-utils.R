@@ -17,6 +17,46 @@ read_dr2s <- function(path) {
   } else rs
 }
 
+
+finish_cn1 <- function(x){
+   flog.info("Set only allele to A", name = "info")
+   x$setHapTypes(c("A"))
+
+   flog.info("Write mapInit data to mapFinal", name = "info")
+   x$mapFinal = structure(
+     list(
+       dir     = x$getOutdir(),
+       sreads  = list(A = x$getSrdDir()),
+       lreads  = list(A = x$getLrdDir()),
+       ref     = list(A = x$mapInit$SR2$ref),
+       bamfile = list(),
+       pileup  = list(),
+       tag     = list(),
+       seqpath = list()
+     ), class = c("mapFinal", "list")
+   )
+   # Write shortread data to mapFinal
+   mapgroupSR <- "SRA"
+   x$mapFinal$pileup[[mapgroupSR]] = x$mapInit$SR2$pileup
+   x$mapFinal$tag[[mapgroupSR]] = x$mapInit$SR2$tag
+
+   # Write longread data to mapFinal
+   mapgroupLR <- "LRA"
+   x$mapFinal$pileup[[mapgroupLR]] = x$mapInit$pileup
+   x$mapFinal$tag[[mapgroupLR]] = x$mapInit$tag
+
+   flog.info("Get latest consensus from last shortreadm apping ...", name = "info")
+   cseq <- conseq(x$mapInit$SR2$pileup$consmat, "mapFinalA", "ambig", exclude_gaps = TRUE, threshold = x$getThreshold())
+   x$mapFinal$seq$A <- x$mapInit$SR2$conseq
+
+   flog.info("Polish and look for inconsistencies between shortreads and longreads ...", name = "info")
+   polish(x)
+   flog.info("Report consensus sequence and potential problematic variants", name = "info")
+   report(x)
+
+   return(x)
+}
+
 #' @export
 # x <- dedk.report
 #position = 5000

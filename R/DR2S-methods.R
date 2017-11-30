@@ -502,6 +502,7 @@ DR2S_$set("public", "runHaplotypePartitioning", function(max_depth = 1e4,
                   # skip_gap_freq = 2/3
                   # threshold = NULL
                   # plot = TRUE
+
            stopifnot(self$hasPileup())
 
            ## Overide default arguments
@@ -529,9 +530,10 @@ DR2S_$set("public", "runHaplotypePartitioning", function(max_depth = 1e4,
            ppos <- self$polymorphicPositions(useSR = useSR)
 
            if (NROW(ppos) == 0){
-             flog.error("No polymorphic positions for clustering! Only single allele?", name = "info")
+             flog.warn("No polymorphic positions for clustering! Only single allele?", name = "info")
+             flog.info("Entering polish and report pipeline", name = "info")
 
-             stop("No polymorphic position!")
+             return(invisible(finish_cn1(self)))
            }
 
            mat <- if (tryCatch(
@@ -560,9 +562,16 @@ DR2S_$set("public", "runHaplotypePartitioning", function(max_depth = 1e4,
 
            flog.info(" Partitioning %s reads over %s SNPs ...", NROW(mat), NCOL(mat), name = "info")
            prt <- partition_reads(x = mat, skip_gap_freq = skip_gap_freq, deepSplit = 1, threshold = threshold)
+           self$setHapTypes(levels(as.factor(PRT(prt))))
+
+           # Check if we have only one cluster and finish the pipeline if so
+           if (length(self$getHapTypes()) == 1){
+             flog.warn("Only one allele left!")
+             flog.info("Entering polish and report pipeline", name = "info")
+             return(invisible(finish_cn1(self)))
+           }
            browse_seqs(SQS(prt), file = file.path(self$getOutdir(), "partition.fa.html"), openURL = FALSE)
 
-           self$setHapTypes(levels(as.factor(PRT(prt))))
 
            self$partition = structure(list(
              mat = mat,
@@ -612,6 +621,13 @@ split_reads_by_haplotype.DR2S <- function(x,
 #self <- dpb1_3
 DR2S_$set("public", "splitReadsByHaplotype", function(limits,
                                                       plot = TRUE){
+           ## Check if reporting is already finished and exit safely for downstream analysis
+           if (self$getReportStatus()) {
+             currentCall <- strsplit(strsplit(deparse(sys.call()), "\\$")[[1]][2], "\\(")[[1]][1]
+             flog.info("%s: Reporting already done! Nothing to do. Exit safely for downstream analysis ...", currentCall, name = "info")
+             return(invisible(self))
+           }
+
            stopifnot(self$hasPartition())
 
            ## Overide default arguments
@@ -717,6 +733,13 @@ DR2S_$set("public", "extractFastq",
             # nreads = NULL
             # replace = FALSE
             # nalign = 40
+
+           ## Check if reporting is already finished and exit safely for downstream analysis
+           if (self$getReportStatus()) {
+             currentCall <- strsplit(strsplit(deparse(sys.call()), "\\$")[[1]][2], "\\(")[[1]][1]
+             flog.info("%s: Reporting already done! Nothing to do. Exit safely for downstream analysis ...", currentCall, name = "info")
+             return(invisible(self))
+           }
 
             stopifnot(self$hasHapList())
 
@@ -859,6 +882,12 @@ DR2S_$set("public", "runMapIter",
          # plot = TRUE
          # iterations = 1
          # ##
+           ## Check if reporting is already finished and exit safely for downstream analysis
+           if (self$getReportStatus()) {
+             currentCall <- strsplit(strsplit(deparse(sys.call()), "\\$")[[1]][2], "\\(")[[1]][1]
+             flog.info("%s: Reporting already done! Nothing to do. Exit safely for downstream analysis ...", currentCall, name = "info")
+             return(invisible(self))
+           }
 
            ## Overide default arguments
            args <- self$getOpts("mapIter")
@@ -1103,6 +1132,13 @@ DR2S_$set("public", "runPartitionShortReads",
                     # threshold = 0.20
                     # min_mapq = 0
 
+           ## Check if reporting is already finished and exit safely for downstream analysis
+           if (self$getReportStatus()) {
+             currentCall <- strsplit(strsplit(deparse(sys.call()), "\\$")[[1]][2], "\\(")[[1]][1]
+             flog.info("%s: Reporting already done! Nothing to do. Exit safely for downstream analysis ...", currentCall, name = "info")
+             return(invisible(self))
+           }
+
            ## Overide default arguments
            args <- self$getOpts("partitionSR")
            if (!is.null(args)) {
@@ -1277,6 +1313,13 @@ DR2S_$set("public", "runMapFinal",
                   fullname = TRUE,
                   plot = TRUE,
                   clip = TRUE) {
+
+           ## Check if reporting is already finished and exit safely for downstream analysis
+           if (self$getReportStatus()) {
+             currentCall <- strsplit(strsplit(deparse(sys.call()), "\\$")[[1]][2], "\\(")[[1]][1]
+             flog.info("%s: Reporting already done! Nothing to do. Exit safely for downstream analysis ...", currentCall, name = "info")
+             return(invisible(self))
+           }
 
            ## Overide default arguments
            args <- self$getOpts("mapFinal")

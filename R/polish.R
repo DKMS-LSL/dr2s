@@ -9,6 +9,13 @@
 #x <- a
 polish.DR2S <- function(x, threshold = x$getThreshold(), lower_limit = 0.80, cache = TRUE) {
 
+  ## Check if reporting is already finished and exit safely for downstream analysis
+  if (x$getReportStatus()) {
+    currentCall <- strsplit(deparse(sys.call()), "\\.")[[1]][1]
+    flog.info("%s: Reporting already done! Nothing to do. Exit safely for downstream analysis ...", currentCall, name = "info")
+    return(invisible(x))
+  }
+
   assertthat::assert_that(
     is(x$mapFinal, "mapFinal"),
     all(unlist(foreach(rtype = x$mapFinal$pileup) %do% {
@@ -56,7 +63,7 @@ polish.DR2S <- function(x, threshold = x$getThreshold(), lower_limit = 0.80, cac
   vars <- get_problematic_variants(x = rs, lower_limit = .6)
   vars <- dplyr::ungroup(vars)
   rs$consensus$problematic_variants = dplyr::arrange(vars, pos, haplotype)
-  
+
   if (cache)
     rs$cache()
   rs

@@ -7,6 +7,13 @@
 #block_width = 80
 report.DR2S <- function(x, which, block_width = 80, ...) {
 
+  ## Check if reporting is already finished and exit safely for downstream analysis
+  if (x$getReportStatus()) {
+    currentCall <- strsplit(deparse(sys.call()), "\\.")[[1]][1]
+    flog.info("%s: Reporting already done! Nothing to do. Exit safely for downstream analysis ...", currentCall, name = "info")
+    return(invisible(x))
+  }
+
   args <- x$getOpts("report")
   if (!is.null(args)) {
     env  <- environment()
@@ -40,20 +47,7 @@ report_map_ <- function(x, map, outdir, block_width, ...) {
     names(addins) <- strsplitN(names(addins), "~", 1, fixed = TRUE)
   }
   haps <- x$getLatestRef()
-  # switch(
-  #   map,
-  #   "map1" = ifelse(
-  #     x$hasMap1Alternate(),
-  #     foreach(hptype = x$getHapTypes()) %do% {x$map1[[hptype]]$conseq$merged},
-  #     foreach(hptype = x$getHapTypes()) %do% {x$map1[[hptype]]$conseq$reference}
-  #   ),
-  #   "mapIter" = sapply(x$mapIter[x$getHapTypes()], function(a) a$conseq),
-  #   "mapFinal" = unlist(foreach(hptype = x$getHapTypes()) %do% {x$consensus[[hptype]]})
-  # )
-  #
-  # microbenchmark::microbenchmark(
-  #   foreach(hptype = x$getHapTypes(), .final = function(h) setNames(h, x$getHapTypes())) %do% { x$mapIter[[hptype]]$conseq},
-  #   times = 100L)
+
   ## Write html alignment file
   aln_file <-  paste(map, "aln", x$getLrdType(), x$getMapper(), "unchecked", sep = ".")
   # get all seqs as stringset
@@ -83,7 +77,7 @@ report_map_ <- function(x, map, outdir, block_width, ...) {
     aln <- Biostrings::pairwiseAlignment(pattern = haps[[x$getHapTypes()[[1]]]], subject = haps[[x$getHapTypes()[[2]]]], type = "global")
     Biostrings::writePairwiseAlignments(aln, file.path(outdir, pair_file), block.width = block_width)
 
-  } else if (x$getHapTypes() > 2){
+  } else if (length(x$getHapTypes()) > 2){
     aln_file <- paste(map, "aln", x$getLrdType(), x$getMapper(), "unchecked", "msa", sep = ".")
     aln <- DECIPHER::AlignSeqs(unlist(Biostrings::DNAStringSetList(haps)), verbose = FALSE)
     Biostrings::write.phylip(Biostrings::DNAMultipleAlignment(aln), file.path(outdir, aln_file))
@@ -97,6 +91,7 @@ report_map_ <- function(x, map, outdir, block_width, ...) {
     readr::write_tsv(vars, path = file.path(outdir, probvar_file), append = FALSE, col_names = TRUE)
   }
 
+  x$setReportStatus(TRUE)
   invisible(x)
 }
 

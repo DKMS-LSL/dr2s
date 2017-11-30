@@ -32,7 +32,7 @@ create_dr2s_conf <- function(sample,
     microsatellite = microsatellite,
     partSR = partSR,
     forceBadMapping = forceBadMapping,
-    mapper     = conf0$mapper   %||% "bwamem",
+    mapper     = conf0$mapper   %||% "minimap",
     # limitA     = conf0$limitA   %||% NULL,
     # limitB     = conf0$limitB   %||% NULL,
     limits     = conf0$limits   %||% NULL,
@@ -46,7 +46,7 @@ create_dr2s_conf <- function(sample,
     locus      = locus,
     reference  = ref,
     alternate  = alt,
-    consensus  = consensus      %||% "multialign"
+    consensus  = consensus      %||% "mapping"
   )
   structure(conf1, class = c("DR2Sconf", "list"))
 }
@@ -61,7 +61,7 @@ read_dr2s_conf <- function(config_file) {
   conf$microsatellite <- conf$microsatellite %||% FALSE
   conf$partSR <- conf$partSR %||% TRUE
   conf$forceBadMapping <- forceBadMapping %||% FALSE
-  conf$mapper     <- conf$mapper     %||% "bwamem"
+  conf$mapper     <- conf$mapper     %||% "minimap"
   # conf["limitA"]  <- conf$limitA     %||% list(NULL)
   # conf["limitB"]  <- conf$limitN     %||% list(NULL)
   conf$limits     <- conf$limits     %||% list(NULL)
