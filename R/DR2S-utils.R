@@ -39,7 +39,7 @@ run_igv <- function(x, position, ...) {
     fsep <- "/"
   }
   if (missing(position)) {
-    position <- as.integer(x$consensus$problematic_variants[1, "pos"])
+    position <- ifelse(NROW(x$consensus$problematic_variants) == 0, 50, as.integer(x$consensus$problematic_variants[1, "pos"]))
   }
 
   for (hp in x$getHapTypes()){
