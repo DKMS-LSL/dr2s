@@ -54,11 +54,11 @@ x <- DR2Smap(
   datadir = "~/dr2s_data",
   outdir = "~/dr2s_data/output",
   reference = "04:02:01:01",
-  consensus = "multialign",
+  consensus = "mapping",
   iterations = 1,
   partSR = TRUE,
   filterScores = TRUE,
-  microsatellites = TRUE,
+  microsatellite = TRUE,
   threshold = 0.2
 )
 ```
@@ -73,7 +73,7 @@ The argument `consensus` should be set to `mapping`.
 
 `iterations` is the number of iterations to perform in the `mapIter` step. int \[1\]
 
-`microsatellites` decides whether to perform an expansion of the initial reference by an extra mapping step of short reads to the reference. Necessary/useful when you know you have repeats like microsatellites. logical \[TRUE\]
+`microsatellite` decides whether to perform an expansion of the initial reference by an extra mapping step of short reads to the reference. Necessary/useful when you know you have repeats like microsatellites. logical \[TRUE\]
 
 `partSR` decides whether the partitioning is done using SNPs found in shortreads. Usually better to use if you have shortreads. logical \[TRUE\]
 

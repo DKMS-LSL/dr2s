@@ -9,7 +9,7 @@ create_dr2s_conf <- function(sample,
                              threshold = 0.20,
                              iterations = 1,
                              microsatellite = FALSE,
-                             filteScores = TRUE,
+                             filterScores = TRUE,
                              partSR = TRUE,
                              forceBadMapping = FALSE,
                              fullname = TRUE,
@@ -31,7 +31,7 @@ create_dr2s_conf <- function(sample,
     threshold  = threshold,
     iterations = iterations,
     microsatellite = microsatellite,
-    filteScores = filteScores,
+    filterScores = filterScores,
     partSR = partSR,
     forceBadMapping = forceBadMapping,
     mapper     = conf0$mapper   %||% "minimap",
@@ -61,7 +61,7 @@ read_dr2s_conf <- function(config_file) {
   conf$threshold  <- conf$threshold  %||% 0.2
   conf$iterations <- conf$iterations %||% 1
   conf$microsatellite <- conf$microsatellite %||% FALSE
-  conf$filteScores <- conf$filteScores %||% TRUE
+  conf$filterScores <- conf$filterScores %||% TRUE
   conf$partSR <- conf$partSR %||% TRUE
   conf$forceBadMapping <- forceBadMapping %||% FALSE
   conf$mapper     <- conf$mapper     %||% "minimap"
@@ -143,7 +143,7 @@ initialise_dr2s <- function(conf, create_outdir = TRUE) {
 }
 
 validate_dr2s_conf <- function(conf) {
-  fields <- c("datadir", "outdir", "threshold", "iterations", "microsatellite","filteScores", "partSR", "forceBadMapping", "mapper", "limits", "haptypes",
+  fields <- c("datadir", "outdir", "threshold", "iterations", "microsatellite","filterScores", "partSR", "forceBadMapping", "mapper", "limits", "haptypes",
               "pipeline", "longreads", "shortreads", "nreads", "opts",
               "sample_id", "locus", "reference", "alternate", "consensus")#"limitA", "limitB",
   if (!all(fields %in% names(conf))) {
