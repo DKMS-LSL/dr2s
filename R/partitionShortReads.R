@@ -161,6 +161,6 @@ part_read <- function(a, mats, pos){
 
 check_SR_scoring <- function(position, sr2){
   reads_at_pos <- unique(sr2[pos == position]$read)
-  score_ok <- sapply(unique(sr2$haplotype), function(hp) sum(reads_at_pos %in% sr2[haplotype == hp]$read)/length(reads_at_pos) > 0.001)
+  score_ok <- sapply(unique(sr2$haplotype), function(hp) sum(reads_at_pos %in% sr2[haplotype == hp]$read)/length(reads_at_pos) > 0.2)
   return(score_ok)
 }

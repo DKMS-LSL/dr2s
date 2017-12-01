@@ -73,6 +73,7 @@ x <- DR2Smap(
   consensus = "multialign",
   iterations = 1,
   partSR = TRUE,
+  filterScores = TRUE,
   microsatellites = TRUE,
   threshold = 0.2
 )
@@ -84,13 +85,15 @@ The argument `reference` is the name of the allele against which an initial mapp
 
 The argument `consensus` should be set to `mapping`.
 
-`threshold` is the frequency below which SNP variants are considered noise.
+`threshold` is the frequency below which SNP variants are considered noise. num [0.2]
 
-`iterations` is the number of iterations to perform in the `mapIter` step.
+`iterations` is the number of iterations to perform in the `mapIter` step. int [1]
 
-`microsatellites` decides whether to perform an expansion of the initial reference by an extra mapping step of short reads to the reference. Necessary/useful when you know you have repeats like microsatellites.
+`microsatellites` decides whether to perform an expansion of the initial reference by an extra mapping step of short reads to the reference. Necessary/useful when you know you have repeats like microsatellites. logical [TRUE]
 
-`partSR` decides whether the partitioning is done using SNPs found in shortreads. Usually better to use if you have shortreads.
+`partSR` decides whether the partitioning is done using SNPs found in shortreads. Usually better to use if you have shortreads. logical [TRUE]
+
+`filterScores` parameter for a filtering step in mapInit. Filters scores below a threshold of 0.3*sequence length. Necessary for KIR, but slightly worse results for e.g. DPB1 genes. logical [TRUE]
 
 An analysis proceeds in a number of steps that can be chained together
 using the pipe `%>%`:
@@ -199,6 +202,7 @@ x %>%
 This package is only available via gitlab now. It depends on a local installation
 of `samtools`, `bwa` (>= 0.7.11), python and the pysam library, and a C++11
 compliant compiler.
+An alternative mapper with better results is `minimap2`, a successor of `bwa`
 For installation over git via SSH, you need to have installed libssh2-1 and libssh2-1-dev prior to install git2r/devtools or reinstall the package afterwards. You do also need to have set up your ssh key in gitlab.
 Otherwise you need to give your gitlab password in plain.
 

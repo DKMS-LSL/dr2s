@@ -87,6 +87,7 @@ DR2S_$set("public", "runMapInit",
            microsatellite <- self$getMicrosatellite()
            partSR <- self$getPartSR()
            forceBadMapping <- self$getForceBadMapping()
+           filterScores <- self$getFilterScores()
 
            if (recode_header) {
              stopifnot(
@@ -122,6 +123,7 @@ DR2S_$set("public", "runMapInit",
                force    = force,
                outdir   = self$getOutdir()
              )
+
 
              if (filterScores) {
                flog.info(" Filter reads with low alignment scores...", name = "info")
