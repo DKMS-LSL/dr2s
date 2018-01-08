@@ -5,15 +5,15 @@ cpp_hamming <- function(sequences) {
     .Call('_DR2S_cpp_hamming', PACKAGE = 'DR2S', sequences)
 }
 
+cpp_PSDM <- function(consMat, sequences) {
+    .Call('_DR2S_cpp_PSDM', PACKAGE = 'DR2S', consMat, sequences)
+}
+
 cpp_polymorphic_positions <- function(x, threshold) {
     .Call('_DR2S_cpp_polymorphic_positions', PACKAGE = 'DR2S', x, threshold)
 }
 
 cpp_top2_cols <- function(x) {
     .Call('_DR2S_cpp_top2_cols', PACKAGE = 'DR2S', x)
-}
-
-cpp_PSDM <- function(consMat, sequences) {
-    .Call('_DR2S_cpp_PSDM', PACKAGE = 'DR2S', consMat, sequences)
 }
 

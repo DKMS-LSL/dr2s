@@ -10,13 +10,13 @@ plot_partition_haplotypes(x, thin = 1, label = "", sort = TRUE,
 \arguments{
 \item{x}{A \code{HapPart} object.}
 
-\item{thin}{Subsample reads.}
+\item{thin}{Subsample reads. [1]}
 
 \item{label}{Optional plot label.}
 
-\item{sort}{Sort}
+\item{sort}{Sort [TRUE]}
 
-\item{name_reads}{Name reads}
+\item{name_reads}{Name reads [FALSE]}
 }
 \value{
 A \code{ggplot} object.

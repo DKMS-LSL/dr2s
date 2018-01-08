@@ -175,6 +175,8 @@ pileup_get_insertions_ <- function(x, threshold) {
   res <- list()
   colnm <- colnames(x$consmat)
   inpos <- pileup_find_insertion_positions_(x, threshold)
+  inpos <- inpos[!inpos %in% 1:5]
+  inpos <- inpos[!inpos %in% (NROW(x)-5):NROW(x)]
   bamfile <- x$bamfile
   if (length(inpos) > 0) {
     inseqs <- rPython::python.call("py_get_insertions", bamfile, inpos, simplify = FALSE)

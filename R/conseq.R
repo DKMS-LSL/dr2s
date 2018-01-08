@@ -3,7 +3,7 @@
 # Consensus sequences -----------------------------------------------------
 
 
-#' Construct a consensus matrix from a pile-up
+#' Construct a consensus sequence
 #'
 #' @param x \code{pileup} object.
 #' @param name Name for consensus sequence.
@@ -28,7 +28,6 @@
 #'   \item{consmat}{}
 #' }
 #' @export
-#'
 #' @examples
 #' ###
 conseq <- function(x, ...) UseMethod("conseq")

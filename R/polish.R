@@ -1,18 +1,20 @@
 #' @export
 
 #debug
-#x <- dpb1_3.r
+#x <- dpb1_3.p
 # threshold <- x$getThreshold()
 # lower_limit <- 0.6
 # cache = TRUE
 # library(foreach)
 #x <- a
-polish.DR2S <- function(x, threshold = x$getThreshold(), lower_limit = 0.80, cache = TRUE) {
-
+polish.DR2S <- function(x, threshold = x$getThreshold(),
+                        lower_limit = 0.80, cache = TRUE) {
   ## Check if reporting is already finished and exit safely for downstream analysis
   if (x$getReportStatus()) {
     currentCall <- strsplit(deparse(sys.call()), "\\.")[[1]][1]
-    flog.info("%s: Reporting already done! Nothing to do. Exit safely for downstream analysis ...", currentCall, name = "info")
+    flog.info(paste0("%s: Reporting already done! Nothing to do.",
+                     " Exit safely for downstream analysis ..."),
+                     currentCall, name = "info")
     return(invisible(x))
   }
 
@@ -48,7 +50,9 @@ polish.DR2S <- function(x, threshold = x$getThreshold(), lower_limit = 0.80, cac
   ## phasing plots
   for (hptype in hptypes){
     if (!is.null(menv$hptypes[[hptype]]$phasemat)){
-      file <- file.path(x$getOutdir(), paste("plot4.phasing", hptype, x$getLrdType(), x$getMapper(), "pdf", sep = "."))
+      file <- file.path(x$getOutdir(), paste("plot4.phasing",
+                                             hptype, x$getLrdType(),
+                                             x$getMapper(), "pdf", sep = "."))
       pdf(file, width = 16, height = 10, onefile = TRUE)
       p <- phaseplot(menv$hptypes[[hptype]]$phasemat) +
         ggplot2::ggtitle(paste0("Short read phasing A ", hptype))
@@ -98,11 +102,14 @@ collect_variants <- function(x) {
     )
   }
 
-  phasebreaks <- lapply(hptypes, function(t) dplyr::filter(x$consensus[[t]]$phasebreaks, breakpos)$posx)
+  phasebreaks <- lapply(hptypes, function(t)
+    dplyr::filter(x$consensus[[t]]$phasebreaks, breakpos)$posx)
   names(phasebreaks) <- hptypes
 
   df <- do.call("rbind",
-                  lapply(hptypes, function(h) do.call("rbind", lapply(hvars[[h]],  extract_variant_, h = h))))
+                  lapply(hptypes, function(h)
+                    do.call("rbind", lapply(hvars[[h]],
+                                            extract_variant_, h = h))))
 
   df <- df %>%
       dplyr::group_by(haplotype) %>%
@@ -130,10 +137,12 @@ extract_variant_ <- function(v, h) {
 ##
 phaseplot <- function(mat) {
   mat1 <- phasebreaks(mat)
-  ggplot(mat, aes(xmin = posx - 15, xmax = posx + 15, ymin = posy_lower, ymax = posy_upper)) +
+  ggplot(mat, aes(xmin = posx - 15, xmax = posx + 15,
+                  ymin = posy_lower, ymax = posy_upper)) +
     geom_rect(aes(fill = linkage), alpha = 0.5) +
     geom_rect(data = mat1, fill = "darkred", alpha = 0.5) +
-    geom_text(aes(x = posx, y = posx, label = posx), dplyr::filter(mat1, breakpos),
+    geom_text(aes(x = posx, y = posx, label = posx),
+              dplyr::filter(mat1, breakpos),
               angle = -60, hjust = -0.25, vjust = 0.5, size = 3) +
     scale_fill_gradient2() +
     geom_abline(linetype = "dashed", colour = "gray60") +
@@ -162,7 +171,14 @@ phasebreaks <- function(mat) {
 phasematrix <- function(var) {
   if ((n <- length(var)) == 0) {
     df <- data.frame(matrix(ncol = 8, nrow = 0))
-    names(df) <- c("x", "y", "posx", "posy", "posy_lower", "posy_upper", "linkage", "phase")
+    names(df) <- c("x",
+                   "y",
+                   "posx",
+                   "posy",
+                   "posy_lower",
+                   "posy_upper",
+                   "linkage",
+                   "phase")
     return(tibble::as_tibble(df))
   }
   mat <- matrix(rep(0, 5*((n*n) - n)/2), ncol = 5)
@@ -171,7 +187,8 @@ phasematrix <- function(var) {
       mat[(i - 1)*n - ((i*i) - i)/2 + j - i, ] <- c(i, j, phasereads_(var[[i]], var[[j]]))
     }
   }
-  # Set phasebreaks with linkage < 0.001 to 0. Most cases are caused by the span between positions near readlength.
+  # Set phasebreaks with linkage < 0.001 to 0.
+  # Most cases are caused by the span between positions near readlength.
   mat[,5][abs(mat[,5]) < 0.001] <- 0
 
   df <- data.frame(mat)

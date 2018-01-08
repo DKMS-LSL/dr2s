@@ -1,12 +1,12 @@
 Package: DR2S
 Title: Dual redundant reference sequencing
-Version: 0.0.1
-Author: Gerhard Schöfl <gerhard.schofl@gmail.com>
+Version: 0.0.2
+Author: Steffen Klasberg <klasberg@dkms-lab.de>; Gerhard Schöfl <gerhard.schofl@gmail.com>
 Description: Generate highly accurate reference sequences from heterozygous
     HLA and KIR samples by combining data from long-read and short-read
     sequencing technologies
 Depends:
-    R (>= 3.3.0)
+    R (>= 3.4.0)
 License: MIT + file LICENSE
 Suggests:
     testthat (>= 0.8),
@@ -15,7 +15,7 @@ Suggests:
     rPython
 LazyData: true
 Type: Package
-Maintainer: Gerhard Schöfl <gerhard.schofl@gmail.com>
+Maintainer: Steffen Klasberg <klasberg@dkms-lab.de>
 Encoding: UTF-8
 LinkingTo: Rcpp
 Imports:
@@ -46,7 +46,7 @@ Imports:
     XRPython,
     kirtools,
     methods,
-SystemRequirements: C++11, samtools, bwa (>= 0.7.11)
+SystemRequirements: C++11, samtools, bwa (>= 0.7.11), optional: minimap2
 VignetteBuilder: knitr
 RoxygenNote: 6.0.1
 Collate: 

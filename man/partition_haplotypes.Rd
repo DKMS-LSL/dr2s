@@ -50,7 +50,7 @@ Other DR2S mapper functions: \code{\link{DR2Smap}},
   \code{\link{cache}}, \code{\link{clear}},
   \code{\link{extract_fastq}}, \code{\link{mapFinal}},
   \code{\link{mapInit}}, \code{\link{mapIter}},
-  \code{\link{partitionShortReads}}, \code{\link{polish}},
+  \code{\link{polish}},
   \code{\link{report_checked_consensus}},
   \code{\link{report}},
   \code{\link{split_reads_by_haplotype}}

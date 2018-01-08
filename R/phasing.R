@@ -1,6 +1,7 @@
 ##
 ## Phasing of short reads during the assembly step
 ##
+#' @export
 phaseplot <- function(mat) {
   mat1 <- phasebreaks(mat)
   ggplot(mat, aes(xmin = posx - 15, xmax = posx + 15, ymin = posy_lower, ymax = posy_upper)) +
@@ -14,6 +15,7 @@ phaseplot <- function(mat) {
     ylab("Position (bp)")
 }
 
+#' @export
 phasebreaks <- function(mat) {
   if (is.null(mat)) {
     return(NULL)
@@ -32,6 +34,7 @@ phasebreaks <- function(mat) {
     dplyr::mutate(breakpos = ifelse(is.na(breakpos), FALSE, breakpos))
 }
 
+#' @export
 phasematrix <- function(var) {
   if ((n <- length(var)) == 0) {
     df <- data.frame(matrix(ncol = 8, nrow = 0))
@@ -46,7 +49,7 @@ phasematrix <- function(var) {
   }
   # Set phasebreaks with linkage < 0.001 to 0. Most cases are caused by the span between positions near readlength.
   mat[,5][abs(mat[,5]) < 0.001] <- 0
-  
+
   df <- data.frame(mat)
   colnames(df) <- c("x", "y", "posx", "posy", "linkage")
   df <- dplyr::tbl_df(df) %>%
@@ -64,6 +67,7 @@ phasematrix <- function(var) {
   df
 }
 
+#' @export
 phasereads_ <- function(p1, p2) {
   p1pos <- attr(p1, "position")
   p2pos <- attr(p2, "position")

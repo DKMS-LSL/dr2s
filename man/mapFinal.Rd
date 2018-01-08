@@ -80,7 +80,7 @@ x <- DR2Smap(
 Other DR2S mapper functions: \code{\link{DR2Smap}},
   \code{\link{cache}}, \code{\link{clear}},
   \code{\link{extract_fastq}}, \code{\link{mapInit}},
-  \code{\link{mapIter}}, \code{\link{partitionShortReads}},
+  \code{\link{mapIter}},
   \code{\link{partition_haplotypes}}, \code{\link{polish}},
   \code{\link{report_checked_consensus}},
   \code{\link{report}},

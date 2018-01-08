@@ -3,12 +3,11 @@
 # Consensus Matrix --------------------------------------------------------
 
 
-#' Construct a consensus matrix from a pile-up
+#' Construct a consensus matrix from pileup
 #'
 #' @param x A \code{pileup} object.
 #' @param freq If \code{TRUE} then frequencies are reported, otherwise counts.
-#' @param ... Additional arguments such as \code{n}, \code{offset},
-#' \code{insertions}, \code{read_ids}
+#' @param ... Additional arguments such as \code{n}, \code{offset}, \code{insertions}, \code{read_ids}
 #' @details
 #' \code{consmat}: a \code{matrix} with positions row names and nucleotides as
 #' column manes.
@@ -20,7 +19,6 @@
 #'   \item{insertions}{<integer>; Insertions}
 #'   \item{read_ids}{<character>; Read IDs}
 #' }
-#'
 #' @return A \code{consmat} object.
 #' @export
 #' @examples
@@ -236,7 +234,7 @@ prune_consensus_matrix <- function(cm, n_look_behind = 36, cutoff = 0.6, verbose
   cm
 }
 
-# Create position weight matrix from multiple sequence alignment
+#' Create position weight matrix from multiple sequence alignment
 #'
 #' @param msa A \code{DNAStringSet} object of aligned sequences.
 #' @details
@@ -244,8 +242,8 @@ prune_consensus_matrix <- function(cm, n_look_behind = 36, cutoff = 0.6, verbose
 #' column manes. Values are nucleotide weights at a position
 #' A ConsensusMatrix is calculated from the MSA using \code{Biostrings::consensusMatrix} and values are converted to probabilities.
 #' Pseudocounts are added and values are divided by DNA probabilities and log2 score is reported
-#'
 #' @return A \code{PWM} matrix.
+#'
 #' @export
 #' @examples
 #' ###

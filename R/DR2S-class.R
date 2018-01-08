@@ -146,7 +146,7 @@ DR2S_ <- R6::R6Class(
           private$conf$alt_path  = normalizePath(alt_path, mustWork = TRUE)
         } else {
           private$conf$alternate = expand_hla_allele(private$conf$alternate, private$conf$locus)
-          private$conf$alt_path  = generate_reference_sequence(private$ipd, private$conf$alternate, private$conf$outdir, fullname = TRUE)
+          private$conf$alt_path  = generate_reference_sequence(private$ipd, private$conf$alternate, private$conf$outdir, fullname = FALSE)
         }
       }
       conf_log(outdir = private$conf$outdir, logName = "info")
@@ -170,8 +170,8 @@ DR2S_ <- R6::R6Class(
       unlink(self$getOutdir(), recursive = TRUE)
       dir_create_if_not_exists(file.path(self$getOutdir()))
       if (!is.null(private$ipd)) {
-        private$conf$ref_path = generate_reference_sequence(self$getIPD(), self$getReference(), self$getOutdir(), fullname = TRUE)
-        private$conf$alt_path = generate_reference_sequence(self$getIPD(), self$getAlternate(), self$getOutdir(), fullname = TRUE)
+        private$conf$ref_path = generate_reference_sequence(self$getIPD(), self$getReference(), self$getOutdir(), fullname = FALSE)
+        private$conf$alt_path = generate_reference_sequence(self$getIPD(), self$getAlternate(), self$getOutdir(), fullname = FALSE)
       }
       invisible(self)
     },
@@ -878,16 +878,17 @@ DR2S_ <- R6::R6Class(
     run_      = function(step) {
       switch(
         step,
-        clear     = self$clear(),
-        mapInit   = self$runMapInit(),
-        partition = self$runHaplotypePartitioning(),
-        split     = self$splitReadsByHaplotype(),
-        extract   = self$extractFastq(),
-        mapIter   = self$runMapIter(),
-        mapFinal  = self$runMapFinal(),
-        cache     = self$cache(),
-        polish    = DR2S::polish(self),
-        report    = DR2S::report(self),
+        clear          = self$clear(),
+        mapInit        = self$runMapInit(),
+        partition      = self$runHaplotypePartitioning(),
+        partShortReads = self$runPartitionShortReads(),
+        split          = self$splitReadsByHaplotype(),
+        extract        = self$extractFastq(),
+        mapIter        = self$runMapIter(),
+        mapFinal       = self$runMapFinal(),
+        cache          = self$cache(),
+        polish         = DR2S::polish(self),
+        report         = DR2S::report(self),
         stop("<", step, "> is not a valid step in the mapping pipeline")
       )
     }

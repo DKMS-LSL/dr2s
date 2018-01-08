@@ -92,7 +92,7 @@ MergeEnv_$set("public", "init", function(hapEnv) {
   if (readtype == "SR"){
     envir$SR <- self$x$mapFinal$pileup[[paste0("SR", hapEnv)]]$consmat ## consmat short reads
     lr <- self$x$mapFinal$pileup[[paste0("LR", hapEnv)]]$consmat ## consmat long reads
-    envir$LR = expand_longread_consmat(lrm = lr, srm = envir$SR)
+    envir$LR <- expand_longread_consmat(lrm = lr, srm = envir$SR)
   } else {
     envir$LR <- self$x$mapFinal$pileup[[paste0("LR", hapEnv)]]$consmat ## consmat long reads
     envir$SR <- NULL
@@ -129,7 +129,7 @@ MergeEnv_$set("public", "walk_one", function(hapEnv, verbose = FALSE) {
 
 ## self$walk() ####
 # self <- menv
-# hapEnv <- "B"
+# hapEnv <- "A"
 #self$init(hapEnv)
 #self$walk(hapEnv, TRUE)
 # self$walk("B", TRUE)
@@ -156,14 +156,15 @@ MergeEnv_$set("private", "step_through", function(envir) {
   if (!hlatools::hasNext(envir$POSit)) {
     return(FALSE)
   }
-
   envir$pos <- ifelse(!is.null(envir$SR),
                       iterators::nextElem(envir$POSit) + offset(envir$SR),
-                      iterators::nextElem(envir$POSit) + offset(nevir$LR))
+                      iterators::nextElem(envir$POSit) + offset(envir$LR))
   # debug
+  # 3010
   #envir$pos <- 478
   #envir$balance_upper_confint
-  #a <- yield(envir)
+  p <- envir$pos
+  x <- yield(envir)
   rs <- disambiguate_variant(yield(envir), threshold = self$threshold)
   update(envir) <- rs
   TRUE
@@ -253,7 +254,7 @@ MergeEnv_$set("public", "export", function() {
 # Helpers -----------------------------------------------------------------
 
 expand_longread_consmat <- function(lrm, srm) {
-  m <- cbind(as.matrix(lrm), `+` = 0)
+  m <- cbind(as.matrix(lrm))#, `+` = 0)
   if (length(ins(srm)) > 0) {
     insert <- matrix(c(0, 0, 0, 0, median(rowSums(m)), 0), ncol = 6)
     my_ins <- sort(ins(srm))
@@ -262,6 +263,16 @@ expand_longread_consmat <- function(lrm, srm) {
     while (hlatools::hasNext(INSit)) {
       i <- iterators::nextElem(INSit)
       m <- rbind(m[1:(i - 1), ], insert, m[i:NROW(m), ])
+    }
+    if (! NROW(m) == NROW(srm)){
+      warning("shortreads and longreads are of different length! Check problem file")
+      if (NROW(m) < NROW(srm)){
+        flog.info(" fill longreads with gapsfrom %s to %s",
+                NROW(m), NROW(srm), name = "info")
+        add <- ((NROW(m)+1):NROW(srm))
+        m <- rbind(m, srm[add,])
+        m[add,] <- rep.int(0, 6*length(add))
+      }
     }
     stopifnot(NROW(m) == NROW(srm))
     dimnames(m) <- dimnames(srm)

@@ -2,7 +2,7 @@
 % Please edit documentation in R/conseq.R
 \name{conseq}
 \alias{conseq}
-\title{Construct a consensus matrix from a pile-up}
+\title{Construct a consensus sequence}
 \usage{
 conseq(x, ...)
 }
@@ -38,7 +38,7 @@ containing the slots:
 }
 }
 \description{
-Construct a consensus matrix from a pile-up
+Construct a consensus sequence
 }
 \examples{
 ###

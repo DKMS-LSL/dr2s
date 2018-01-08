@@ -2,7 +2,7 @@
 % Please edit documentation in R/partition-reads.R
 \name{plot_partition_tree}
 \alias{plot_partition_tree}
-\title{Plot tree of first clustering}
+\title{Plot tree of initial clustering}
 \usage{
 plot_partition_tree(x)
 }
@@ -13,7 +13,7 @@ plot_partition_tree(x)
 A \code{ggplot} object.
 }
 \description{
-Plot tree of first clustering
+Plot tree of initial clustering
 }
 \examples{
 ###

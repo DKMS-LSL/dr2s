@@ -9,6 +9,8 @@ plot_partition_histogram_multi(x, limits, label = "")
 \arguments{
 \item{x}{A \code{HapPart} object.}
 
+\item{limits}{provided limits for each haplotype as a named list.}
+
 \item{label}{Optional plot label.}
 }
 \value{

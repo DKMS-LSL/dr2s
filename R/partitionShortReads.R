@@ -1,7 +1,8 @@
 
-# Partition ShortReads ------------------------------------------------------------------
+# Partition ShortReads ---------------------------------------------------------
 
-#' Get a score for each shortread in a bam file on specific positions. Scores based on a consensus matrix of longreads.
+#' Get a score for each shortread in a bam file on specific positions.
+#' Scores based on a consensus matrix of longreads.
 #'
 #' @param ppos List of polymorphic positions used for initial clustering.
 #' @param refname Name of the reference.
@@ -30,7 +31,8 @@
 #' @export
 #' @examples
 #' ###
-get_SR_partition_scores <- function(ppos, refname, bamfile, mats, cores = "auto"){
+get_SR_partition_scores <- function(ppos, refname, bamfile, mats,
+                                    cores = "auto"){
   stopifnot(
     requireNamespace("parallel", quietly = TRUE),
     requireNamespace("doParallel", quietly = TRUE),
@@ -45,12 +47,16 @@ get_SR_partition_scores <- function(ppos, refname, bamfile, mats, cores = "auto"
   stopifnot(is.numeric(cores))
   doParallel::registerDoParallel(cores = cores)
 
-  flog.info("  Partition shortreads on %s positions ...", length(ppos),  name = "info")
+  flog.info("  Partition shortreads on %s positions ...", length(ppos),
+            name = "info")
   res <- foreach (pos = ppos, .combine = "rbind") %dopar% {
     message("Get reads on position ", pos)
     param <- paste(paste(refname, pos, sep = ":"), pos, sep = "-")
-    stack <- GenomicAlignments::stackStringsFromBam(bamfile, param = param, use.names = TRUE)
-    dplyr::bind_cols(read = rep(names(stack), each = length(mats)), dplyr::bind_rows(lapply(stack, function(x) part_read(x, mats, pos))))
+    stack <- GenomicAlignments::stackStringsFromBam(bamfile, param = param,
+                                                    use.names = TRUE)
+    dplyr::bind_cols(read = rep(names(stack), each = length(mats)),
+                     dplyr::bind_rows(lapply(stack, function(x)
+                       part_read(x, mats, pos))))
   }
   structure(
     list(
@@ -66,7 +72,9 @@ get_SR_partition_scores <- function(ppos, refname, bamfile, mats, cores = "auto"
 ##' Get the highest scoring haplotype for each read
 #'
 #' @param srpartition srpartition dataframe with scores per read and haplotype.
-#' @param diffThreshold report reads which scores differ only below threshold to both haplotypes
+#' @param diffThreshold report reads which scores differ only
+#' below threshold to both haplotypes. Iteratively increases diffThreshold until
+#' all positions differ below threshold.
 #' @details
 #' Returns a \code{data.frame} object with columns:
 #' \describe{
@@ -80,55 +88,33 @@ get_SR_partition_scores <- function(ppos, refname, bamfile, mats, cores = "auto"
 #' ### Score
 #
 score_highest_SR <- function(srpartition, diffThreshold = 0.001) {
-  # debug
-# srpartition <- srpartitionbc$srpartition
-# srpartitionbc <- srpartition
-
-# microbenchmark::microbenchmark(
-#   sr <- srpartition %>%
-#     dplyr::group_by(read, haplotype) %>%
-#     dplyr::mutate(clade = sum(prob)) %>%
-#     dplyr::ungroup() %>%
-#     dplyr::group_by(read) %>%
-#     dplyr::mutate(max = max(clade)) %>%
-#     dplyr::group_by(read, haplotype) %>%
-#     dplyr::select(read, haplotype, clade, max) %>%
-#     dplyr::distinct(),
-#   a <- unique(s[, clade := sum(prob), by = list(read, haplotype)] # Get the sum of each read and hptype
-#               [,max := max(clade), by = read] # get the max of the sums of each
-#               [, !c("prob", "pos")]) # dismiss the prob and pos which we dont need anymore
-# )
-
-# microbenchmark::microbenchmark(
-#   sr2 <- sr %>%
-#     dplyr::group_by(read) %>%
-#     dplyr::filter(abs(1-(clade/max)) < diffThreshold) %>%
-#     dplyr::mutate(exclusive = n() == 1) %>%
-#     dplyr::ungroup(),
-#   b <- data.table::as.data.table(sr)[abs(1-(clade/max)) < diffThreshold][, exclusive:= .N, by = read], times = 2
-# )
-
-  ## Using data.table is WAY faster than dplyr! 100x
-  sr <- unique(data.table::as.data.table(srpartition)[, clade := sum(prob), by = list(read, haplotype)] # Get the sum of each read and hptype
+  sr <- unique(data.table::as.data.table(srpartition)
+               [, clade := sum(prob), by = list(read, haplotype)] # Get the sum of each read and hptype
               [,max := max(clade), by = read] # get the max of the sums of each
               [, !c("prob")]) # dismiss the prob and pos which we dont need anymore
-  sr2 <- sr[abs(1-(clade/max)) < diffThreshold][, exclusive:= .N, by = read]
 
-
-  flog.info(" Calculate shortread scoring with cutoff: %s ...", diffThreshold, name = "info")
-  correctScoring <- sapply(unique(sr2$pos), function(position) check_SR_scoring(position, sr2))
-
-  if (!all(correctScoring))
-    flog.info(" Scoring not meeting proper clustering, refine diffThreshold ...", diffThreshold, name = "info")
-
-  while(!all(correctScoring)){
-    diffThreshold <- diffThreshold + 0.01
-    flog.info(" Calculate shortread scoring with cutoff: ", diffThreshold, name = "info")
-    # Check again with new threshold if there are enough reads at each position
-    sr2 <- sr[abs(1-(clade/max)) < diffThreshold][, exclusive:= .N, by = read]
-    correctScoring <- sapply(unique(sr2$pos), function(position) check_SR_scoring(position, sr2))
+  srtmp <- NULL
+  sr2 <- NULL
+  diffThreshold <- 0.001
+  while(TRUE){
+    flog.info(" Calculate shortread scoring with cutoff: %s ...",
+              diffThreshold, name = "info")
+    if (NROW(srtmp) > 0) {
+      srtmp <- sr[pos %in% names(which(!correctScoring))][abs(1-(clade/max)) <
+                                                            diffThreshold]
+    } else {
+      srtmp <- sr[abs(1-(clade/max)) < diffThreshold]
+    }
+    correctScoring <- sapply(unique(srtmp$pos), function(position)
+      check_SR_scoring(position, srtmp[pos == position]))
+    if (all(correctScoring)){
+      if (NROW(sr2) == 0)
+        sr2 <- srtmp
+      break
+    }
+    sr2 <- dplyr::bind_rows(sr2, srtmp[pos %in% names(which(correctScoring))])
+    diffThreshold <- 1.2*diffThreshold
   }
-  flog.info(" Use overlap cutoff of %s for shortread scoring ...", diffThreshold, name = "info")
   return(sr2)
 }
 
@@ -146,7 +132,8 @@ write_part_fq <- function(fq, srFastqHap, dontUseReads = NULL, useReads = NULL) 
       # useReads = qnames
       useReads <- which(!fqnames %in% dontUseReads)
     }
-    flog.info("  Using %s of %s reads", length(useReads), length(fqnames), name = "info")
+    flog.info("  Using %s of %s reads",
+              length(useReads), length(fqnames), name = "info")
     sr <- sr[useReads]
     ShortRead::writeFastq(sr, srFastqHap, mode="a", compress = TRUE)
   }
@@ -159,8 +146,9 @@ part_read <- function(a, mats, pos){
   list(prob = l,  haplotype = names(mats), pos = rep(pos, length(l)))
 }
 
-check_SR_scoring <- function(position, sr2){
-  reads_at_pos <- unique(sr2[pos == position]$read)
-  score_ok <- sapply(unique(sr2$haplotype), function(hp) sum(reads_at_pos %in% sr2[haplotype == hp]$read)/length(reads_at_pos) > 0.2)
+
+check_SR_scoring <- function(position, dfpos){
+  score_ok <- all(sapply(unique(dfpos$haplotype), function(hp)
+    sum( dfpos$read %in% dfpos[haplotype == hp]$read)/NROW(dfpos) > 0.2))
   return(score_ok)
 }

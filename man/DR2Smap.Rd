@@ -45,7 +45,7 @@ mapInit. Set to TRUE if you know you have repeats like in microsatellites. Usual
 reference to a maximum length and enables a better mapping.}
 
 \item{forceBadMapping}{FALSE set to TRUE if you want to force processing of bad shortreads, i.e.
-when the distribution of coverage is bad. Aborts the program if maximum coverage > 75 % quantile * 5.}
+when the distribution of coverage is bad. Aborts the program if maximum coverage > 75 \% quantile * 5.}
 }
 \value{
 A \code{\link[=DR2S_]{DR2S}} object.
@@ -112,7 +112,7 @@ x <- DR2Smap(
 Other DR2S mapper functions: \code{\link{cache}},
   \code{\link{clear}}, \code{\link{extract_fastq}},
   \code{\link{mapFinal}}, \code{\link{mapInit}},
-  \code{\link{mapIter}}, \code{\link{partitionShortReads}},
+  \code{\link{mapIter}},
   \code{\link{partition_haplotypes}}, \code{\link{polish}},
   \code{\link{report_checked_consensus}},
   \code{\link{report}},

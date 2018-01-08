@@ -9,7 +9,9 @@ score_highest_SR(srpartition, diffThreshold = 0.001)
 \arguments{
 \item{srpartition}{srpartition dataframe with scores per read and haplotype.}
 
-\item{diffThreshold}{report reads which scores differ only below threshold to both haplotypes}
+\item{diffThreshold}{report reads which scores differ only
+below threshold to both haplotypes. Iteratively increases diffThreshold until
+all positions differ below threshold.}
 }
 \value{
 A \code{data.frame} object. See \code{Details}.

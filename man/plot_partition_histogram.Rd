@@ -10,6 +10,9 @@ plot_partition_histogram(x, label = "", limits = NULL)
 \item{x}{A \code{HapPart} object.}
 
 \item{label}{Optional plot label.}
+
+\item{limits}{Manually provided limits for plotting. Defaults to read limits
+from the \code{HapPart} object.}
 }
 \value{
 A \code{ggplot} object.

@@ -4,18 +4,14 @@
 \alias{partitionShortReads}
 \title{Assign short reads from mapInit to haplotypes}
 \usage{
-partitionShortReads(x, force = TRUE, plot = TRUE, ...)
+partitionShortReads(x, force = TRUE, ...)
 }
 \arguments{
 \item{x}{A \code{\link[=DR2S_]{DR2S}} object.}
 
 \item{force}{force the creation of new fastq files if they already exist}
 
-\item{plot}{Produce diagnostic plots.}
-
 \item{...}{Further arguments passed to methods.}
-
-\item{shuffle}{Randomly shuffle polymorphic positions.}
 }
 \value{
 A \code{\link[=DR2S_]{DR2S}} object.
@@ -44,14 +40,4 @@ x <- DR2Smap(
   polish() \%>\%
   report(block_width = 60)
 }
-}
-\seealso{
-Other DR2S mapper functions: \code{\link{DR2Smap}},
-  \code{\link{cache}}, \code{\link{clear}},
-  \code{\link{extract_fastq}}, \code{\link{mapFinal}},
-  \code{\link{mapInit}}, \code{\link{mapIter}},
-  \code{\link{partition_haplotypes}}, \code{\link{polish}},
-  \code{\link{report_checked_consensus}},
-  \code{\link{report}},
-  \code{\link{split_reads_by_haplotype}}
 }

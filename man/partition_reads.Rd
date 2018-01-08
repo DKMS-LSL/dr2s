@@ -2,7 +2,7 @@
 % Please edit documentation in R/partition-reads.R
 \name{partition_reads}
 \alias{partition_reads}
-\title{Partition a SNP matrix into two haplotype groups}
+\title{Cluster a SNP matrix into haplotype groups}
 \usage{
 partition_reads(x, cl_method = "ward.D", min_len = 0.5,
   skip_gap_freq = 2/3, deepSplit = 1, threshold = 0.2)
@@ -10,14 +10,25 @@ partition_reads(x, cl_method = "ward.D", min_len = 0.5,
 \arguments{
 \item{x}{A \code{[read x position]} SNP matrix.}
 
+\item{cl_method}{clustering method passed to \code{\link[stats]{hclust}}.}
+
+\item{min_len}{Minimal fraction of SNPs that need to be covered by a read
+to be used}
+
 \item{skip_gap_freq}{Skip a badly behaved polymorphic position if the
 frequency of gaps within a haplotype group exceeds \code{skip_gap_freq}.}
+
+\item{deepSplit}{sensitivity parameter passed to
+\code{\link[dynamicTreeCut]{cutreeHybrid}}.}
+
+\item{threshold}{Only gaps above threshold will be treated as gaps.
+Removes noisy positions in longreads.}
 }
 \value{
 A \code{HapPart} object.
 }
 \description{
-Partition a SNP matrix into two haplotype groups
+Cluster a SNP matrix into haplotype groups
 }
 \examples{
 ###

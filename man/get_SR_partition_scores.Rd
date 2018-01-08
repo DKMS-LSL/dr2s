@@ -2,7 +2,8 @@
 % Please edit documentation in R/partitionShortReads.R
 \name{get_SR_partition_scores}
 \alias{get_SR_partition_scores}
-\title{Get a score for each shortread in a bam file on specific positions. Scores based on a consensus matrix of longreads.}
+\title{Get a score for each shortread in a bam file on specific positions.
+Scores based on a consensus matrix of longreads.}
 \usage{
 get_SR_partition_scores(ppos, refname, bamfile, mats, cores = "auto")
 }
@@ -21,7 +22,8 @@ get_SR_partition_scores(ppos, refname, bamfile, mats, cores = "auto")
 A \code{srpatition} object. See \code{Details}.
 }
 \description{
-Get a score for each shortread in a bam file on specific positions. Scores based on a consensus matrix of longreads.
+Get a score for each shortread in a bam file on specific positions.
+Scores based on a consensus matrix of longreads.
 }
 \details{
 Returns a \code{srpartition} object:

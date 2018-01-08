@@ -54,9 +54,7 @@
 #' mapInit. Set to TRUE if you know you have repeats like in microsatellites. Usually extends the
 #' reference to a maximum length and enables a better mapping.
 #' @param forceBadMapping FALSE set to TRUE if you want to force processing of bad shortreads, i.e.
-#' when the distribution of coverage is bad. Aborts the program if maximum coverage > 75 % quantile * 5.
-#'
-#'
+#' when the distribution of coverage is bad. Aborts the program if maximum coverage > 75 \% quantile * 5.
 #' @return A \code{\link[=DR2S_]{DR2S}} object.
 #' @family DR2S mapper functions
 #' @export
@@ -444,12 +442,10 @@ extract_fastq <- function(x, ...) {
 #'
 #' @param x A \code{\link[=DR2S_]{DR2S}} object.
 #' @param force force the creation of new fastq files if they already exist
-#' @param shuffle Randomly shuffle polymorphic positions.
-#' @param plot Produce diagnostic plots.
 #' @param ... Further arguments passed to methods.
 #'
 #' @return A \code{\link[=DR2S_]{DR2S}} object.
-#' @family DR2S mapper functions
+#' @family DR2S partition functions
 #' @export
 #' @examples
 #' \dontrun{
@@ -474,7 +470,6 @@ extract_fastq <- function(x, ...) {
 #' }
 partitionShortReads <- function(x,
                                 force = TRUE,
-                                 plot = TRUE,
                                  ...) {
   UseMethod("partitionShortReads")
 }

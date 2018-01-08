@@ -2,15 +2,14 @@
 % Please edit documentation in R/consmat.R
 \name{consmat}
 \alias{consmat}
-\title{Construct a consensus matrix from a pile-up}
+\title{Construct a consensus matrix from pileup}
 \usage{
 consmat(x, ...)
 }
 \arguments{
 \item{x}{A \code{pileup} object.}
 
-\item{...}{Additional arguments such as \code{n}, \code{offset},
-\code{insertions}, \code{read_ids}}
+\item{...}{Additional arguments such as \code{n}, \code{offset}, \code{insertions}, \code{read_ids}}
 
 \item{freq}{If \code{TRUE} then frequencies are reported, otherwise counts.}
 }
@@ -18,7 +17,7 @@ consmat(x, ...)
 A \code{consmat} object.
 }
 \description{
-Construct a consensus matrix from a pile-up
+Construct a consensus matrix from pileup
 }
 \details{
 \code{consmat}: a \code{matrix} with positions row names and nucleotides as

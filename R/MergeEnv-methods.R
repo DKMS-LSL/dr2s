@@ -64,7 +64,7 @@ print.variant_list <- function(x, threshold = 0.2, ...) {
 #x <- a
 disambiguate_variant <- function(x,
                                  threshold,
-                                 min_overrep_lr =5, 
+                                 min_overrep_lr =5,
                                  max_overrep_sr = 2) {
   stopifnot(is(x, "variant_list"))
 
@@ -79,8 +79,8 @@ disambiguate_variant <- function(x,
     ## Spurious insertion in short reads that should have been set to zero.
     if ("+" %in% names(vars)) {
       warning_msg <- warning_msg %<<% "|Insertion signal in short reads"
-      vars <- vars[!names(vars) %in% "+"]
-      sr[, "+"] <- 0
+      # vars <- vars[!names(vars) %in% "+"]
+      # sr[, "+"] <- 0
     }
 
     ## Mismatch in variant bases between long and short reads
@@ -119,13 +119,12 @@ disambiguate_variant <- function(x,
     #   fmt <- "|Variant [%s] is %s-fold overrepresented in short reads"
     #   warning_msg <- warning_msg %<<% sprintf(fmt, names(overrep_sr), round(overrep_sr, 1))
     # }
-    if (overrep_sr < min_overrep_lr){
+    if (!is.na(overrep_sr) && overrep_sr < min_overrep_lr){
       fmt <- "|Variant [%s] is only %s-fold overrepresented in short reads; Keep it ambiguous"
       warning_msg <- warning_msg %<<% sprintf(fmt, names(overrep_sr), round(overrep_sr, 1))
-
     }
     overrep_lr <- vaf_lr[1]/vaf_lr[2]
-    if (overrep_lr < min_overrep_lr) {
+    if (!is.na(overrep_lr) && overrep_lr < min_overrep_lr) {
       fmt <- "|Variant [%s] is only %s-fold overrepresented in long reads"
       warning_msg <- warning_msg %<<% sprintf(fmt, names(overrep_lr), round(overrep_lr, 1))
     }
@@ -136,7 +135,7 @@ disambiguate_variant <- function(x,
     warning_msg <- sub("|", "", trimws(warning_msg), fixed = TRUE)
     x$lr_ <- lr
     x$sr_ <- sr
-    
+
     x$variant <- variant(bases = bases, proportion = unname(1 - vaf_lr[2]), margin_of_error = margin_of_error, warning = warning_msg, vlist = x)
   } else {
     ## Spurious deletion signal in long reads
@@ -214,7 +213,7 @@ variant <- function(bases, proportion, margin_of_error, warning, vlist) {
     ## here we have to remove the offsets we incurred at previous
     ## ambiguous positions to match the original polymorhic positions
     ## in the pileup
-    reads_ref =reads_ref, 
+    reads_ref =reads_ref,
     reads_alt = reads_alt
   )
 }
