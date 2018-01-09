@@ -6,7 +6,9 @@
 references longer than the sequenced gene.
 * More sensitive insert calling.
 * Don't allow inserts in the first and last five positions.
-* TODO: Test more with KIR
-* TODO: Remove necessety of hlatools
+* Test with 3 allele samples.
+* Add writing and reading MSA in a phylip like format.
+* TODO: Test more with KIR.
+* TODO: Remove necessety of hlatools.
 
 

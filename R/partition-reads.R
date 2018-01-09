@@ -29,7 +29,7 @@
 
 partition_reads <- function(x, cl_method="ward.D", min_len = 0.5,
                             skip_gap_freq = 2/3, deepSplit = 1,
-                            threshold = 0.2){
+                            threshold = 0.2, dist_alleles = 2){
   # get SNPs
   ppos <- colnames(x)
   xm <- as.matrix(x[order(rownames(x)),])
@@ -77,10 +77,10 @@ partition_reads <- function(x, cl_method="ward.D", min_len = 0.5,
     unlist(simple_consensus(
       t(Biostrings::consensusMatrix(x)[c(VALID_DNA(), "+"),])))
   }))
-  if (length(hptypes)> 2) {
+  if (length(hptypes)> dist_alleles) {
     flog.info("  Trying to identify chimeric reads/haplotypes ...",
               name = "info")
-    rC <- sort(find_chimeric(hpseqs))
+    rC <- sort(find_chimeric(seqs = hpseqs, dist_alleles = dist_alleles))
     flog.info("  Use only clusters %s ...", paste(rC, collapse = ", "),
               name = "info")
     mats <- mats[rC]
@@ -202,7 +202,7 @@ get_scores <- function(s, xseqs, mats){
 }
 
 ## Identify chimeric clusters
-find_chimeric <- function(seqs, plot_seqs = FALSE) {
+find_chimeric <- function(seqs, dist_alleles, plot_seqs = FALSE) {
   # Use only non empty seqs
   seqs <- seqs[sapply(seqs, function(x) {
     !nchar(gsub("\\+|-","", as.character(x))) == 0})]
@@ -223,12 +223,12 @@ find_chimeric <- function(seqs, plot_seqs = FALSE) {
           geom_line(aes(x = 1:length(r),y = f+r)) #+
         geom_line(aes(x = length(r):1, y = r))
       }
-      quantile(f+r)[2]
+      unname(quantile(f+r)[2])
     }
   rownames(dm) <- names(seqs)
   colnames(dm) <- names(seqs)
-  addC <- names(dm[1,][dm[1,]>1.2])
-  c("A", addC)
+
+  sort(names(sort(unlist(dm[1,]), decreasing = TRUE)[1:dist_alleles]))
 }
 
 # Class: HapPart -----------------------------------------------------------

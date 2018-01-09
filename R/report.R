@@ -60,7 +60,7 @@ report_map_ <- function(x, map, outdir, block_width, ...) {
   # if (is.null(addins)){
     # seqs <- c(ref, seqs, alt )
   # } else {
-    seqs <- c(ref, seqs, addins)
+  seqs <- c(ref, seqs, addins)
   # }
   browse_align(seqs, file = file.path(outdir, aln_file), openURL = FALSE)
 
@@ -69,14 +69,17 @@ report_map_ <- function(x, map, outdir, block_width, ...) {
   for (hptype in x$getHapTypes()) {
     hap_file <- paste(map, hptype, x$getLrdType(), x$getMapper(),
                       "unchecked.fa", sep = ".")
+    seq <- haps[[hptype]]
+    names(seq) <- paste(names(seq), " LOCUS=",
+                                   x$getLocus(), ";REF=", x$getReference())
     Biostrings::writeXStringSet(
-      haps[[hptype]],
+      seq,
       filepath = file.path(outdir, hap_file),
       format = "fasta"
     )
   }
 
-  ## Write Pairwise Alignment
+  ## Write Pairwise or Multiple Alignment
   if (length(x$getHapTypes()) == 2){
     pair_file <- paste(map, "aln", x$getLrdType(), x$getMapper(), "unchecked",
                        "psa", sep = ".")
@@ -89,10 +92,13 @@ report_map_ <- function(x, map, outdir, block_width, ...) {
   } else if (length(x$getHapTypes()) > 2){
     aln_file <- paste(map, "aln", x$getLrdType(), x$getMapper(), "unchecked",
                       "msa", sep = ".")
-    aln <- DECIPHER::AlignSeqs(unlist(Biostrings::DNAStringSetList(haps)),
+
+    aln <- DECIPHER::AlignSeqs(Biostrings::DNAStringSet(
+      foreach(h = haps, .combine=c) %do% h),
                                verbose = FALSE)
-    Biostrings::write.phylip(Biostrings::DNAMultipleAlignment(aln),
-                             file.path(outdir, aln_file))
+    writeMSA(aln , file = file.path(outdir, aln_file))
+    # Biostrings::write.phylip(Biostrings::DNAMultipleAlignment(aln),
+                             # file.path(outdir, aln_file))
   }
 
   if (map == "mapfinal") {
@@ -120,8 +126,7 @@ report_map_ <- function(x, map, outdir, block_width, ...) {
 #' and a html alignment file \code{aln.\{readtype\}.\{mapper\}.checked.html}.
 #' @family DR2S mapper functions
 #' @export
-#x <- dpb1_3.r
-
+#x <- dpb1_2.rep
 
 report_checked_consensus <- function(x, which = "mapFinal") {
   map <- match.arg(tolower(which), c("mapfinal", "mapiter"))
@@ -142,30 +147,30 @@ report_checked_consensus <- function(x, which = "mapFinal") {
 
   outdir <- dir_create_if_not_exists(file.path(x$getOutdir(), "checked"))
   rs <- readPairFile(pairfile_checked)
-  hapA <- Biostrings::DNAStringSet(gsub("-", "", rs["hapA"]))
-  hapB <- Biostrings::DNAStringSet(gsub("-", "", rs["hapB"]))
+  seqs <- Biostrings::DNAStringSet(
+    sapply(rs, function(s) Biostrings::DNAString(gsub("-", "", s))))
 
   ## Alignment
   ref <- x$getRefSeq()
   names(ref) <- strsplitN(names(ref), "~", 1, fixed = TRUE)
 
-  seqs <- c(ref, hapA, hapB)
+  seqsAll <- c(ref, seqs)
   aln_file <-  paste("aln", x$getLrdType(), x$getMapper(), "html", sep = ".")
-  browse_align(seqs, file = file.path(outdir, aln_file), openURL = FALSE)
+  browse_align(seqsAll, file = file.path(outdir, aln_file), openURL = FALSE)
 
   ## Export FASTA
-  hapA_file <- paste("A", x$getLrdType(), x$getMapper(), "fa", sep = ".")
-  Biostrings::writeXStringSet(
-    hapA,
-    filepath = file.path(outdir, hapA_file),
-    format = "fasta"
-  )
-
-  hapB_file <- paste("B", x$getLrdType(), x$getMapper(), "fa", sep = ".")
-  Biostrings::writeXStringSet(
-    hapB,
-    filepath = file.path(outdir, hapB_file),
-    format = "fasta"
+  files <- sapply(1:length(seqs), function(sq) {
+    file <- paste(names(seqs[sq]), x$getLrdType(), x$getMapper(), "fa", sep = ".")
+    seq <- seqs[sq]
+    names(seq) <- paste0(names(seq), " LOCUS=", x$getLocus(), ";REF=",
+                              x$getReference())
+    Biostrings::writeXStringSet(
+      seq,
+      filepath = file.path(outdir, file),
+      format = "fasta"
+    )
+    file
+    }
   )
 }
 
@@ -199,8 +204,8 @@ check_report_status <- function(x){
   if (x$getReportStatus()) {
     currentCall <- strsplit(strsplit(deparse(sys.call()), "\\$")[[1]][2],
                             "\\(")[[1]][1]
-    flog.info("%s: Reporting already done! Nothing to do.
-              Exit safely for downstream analysis ...",
+    flog.info(paste0("%s: Reporting already done! Nothing to do.",
+              "Exit safely for downstream analysis ..."),
               currentCall, name = "info")
   }
   return(x$getReportStatus())
@@ -220,13 +225,129 @@ readPairFile <- function(pairfile) {
     )
     names(hap) <- c("hapA", "hapB")
   } else if (endsWith(pairfile, "msa")){
-    rs <- Biostrings::readDNAMultipleAlignment(pairfile, format = "phylip")
-    hap <- Biostrings::DNAStringSet(rs)
+    hap <- readMSA(pairfile)
   }
+
+  ## Check for ambiguous bases
+  seqLetters <- Biostrings::uniqueLetters(hap)
+  ambigLetters <- seqLetters[which(!seqLetters %in% VALID_DNA(include = "del"))]
+  if (!length(ambigLetters) == 0){
+    ambigPositions <- sapply(ambigLetters, function(x)
+      unlist(Biostrings::vmatchPattern(x, hap)))
+    msg <- sapply(1:length(ambigPositions), function(x)
+      extractAmbigLetters(ambigPositions, names(ambigPositions)[x]))
+    flog.info(msg, name = "info")
+    stop("Check reported reference! Ambiguous positions were found")
+  }
+
+
   hap
 }
 
 collapse_pair_lines_ <- function(x) {
   paste0(vapply(strsplit(x, split = "\\s+"), `[[`, 3, FUN.VALUE = ""),
          collapse = "")
+}
+
+#' @export
+readMSA <- function(file) {
+  seqs <- c()
+  rows <- scan(file, what = "", sep = "\n", strip.white = TRUE,
+               quiet = TRUE, blank.lines.skip = TRUE)
+
+  for (i in seq_len(length(rows))){
+    if (!grepl("^[A-Za-z]", rows[i]))
+      next
+    line <-unlist(strsplit(x = rows[i], "\\s+"))
+    name <- line[1]
+    if (is.null(seqs) || is.na(seqs[name]))
+      seqs[name] <- ""
+    seq <- paste0(line[3:(length(line)-1)], collapse = "")
+    seqs[name] <- paste0(seqs[name], seq, collapse = "")
+  }
+  seqs <- Biostrings::DNAStringSet(seqs)
+  seqs
+}
+## HELPER ##
+extractAmbigLetters <- function(irange, ambigLetter){
+  msg <- sprintf("Found %s; decide for %s at positions: \n", ambigLetter,
+                 paste(strsplit(CODE_MAP()[ambigLetter], "")[[1]],
+                       collapse = " or "))
+  ambigPositionLetter <- unlist(irange[[ambigLetter]])
+
+  msg %<<% paste0(sapply(1:length(ambigPositionLetter), function(x)
+    sprintf("%s: %s",
+            names(ambigPositionLetter[x]),
+            ambigPositionLetter[x])), collapse = "\n") %<<% "\n"
+}
+
+
+
+## Write a multiple sequence alignment in a phylip like format. Formatted for
+## easily accessing positions and differences
+#' @export
+writeMSA <- function(aln, file="", block.width = 50){
+  # ToDo add check for length
+  if (!is(aln, "DNAStringSet"))
+    stop("'aln' must be a DNAStringSet object and each sequence of same length")
+  if (!is.numeric(block.width))
+    stop("'block.width' must be a single number")
+
+  get_cons_position <- function(pos) {
+   if (length(unique(pos)) == 1) {
+     return(".")
+   } else if ("-" %in% pos){
+     return("+")
+   } else {
+     return("|")
+   }
+  }
+
+  aln_mat <-as.matrix(aln)
+  aln_stat_line <- Biostrings::BStringSet(paste0(apply(aln_mat, 2, function(x) get_cons_position(x)), collapse = ""))
+  alignment <- c(Biostrings::BStringSet(aln), aln_stat_line)
+
+  ## Write Header
+  cat("#=======================================\n", file=file)
+  cat("#\n", file=file, append = TRUE)
+  cat("# Aligned_sequences: ", length(aln)," \n", file=file, append = TRUE)
+  sapply(1:length(aln), function(x) cat(sprintf("# %s: %s\n", x, names(aln[x])), file=file, append = TRUE))
+  cat("#\n#\n", file=file, append = TRUE)
+  cat("#=======================================\n", file=file,append = TRUE)
+
+  # Write sequences
+  lstart <- 1L
+  lend <- block.width
+  alignment_length <- Biostrings::width(alignment[1])
+  start_width <- nchar(as.character(1 + alignment_length))
+  name_width <- max(20L, nchar(names(alignment)))
+  nblock <- alignment_length %/% block.width
+  if (alignment_length %% block.width != 0L)
+    nblock <- nblock + 1L
+  for (i in seq_len(nblock)) {
+    to <- i * block.width
+    from <- to - block.width + 1L
+    if (to > alignment_length)
+      to <- alignment_length
+    names <- names(alignment)
+    strings <- Biostrings::subseq(alignment, from, to)
+
+    ## Split the seq every 10 chars
+    sp <- "(.{10})"
+    addSp <- "\\1 "
+    a <- sapply(1:(length(alignment)-1), function(x) {
+      cat(format(names[x], width = name_width), " ",
+          format(lstart, justify = "right", width = start_width), " ",
+          gsub(sp, addSp, Biostrings::toString(strings[x])), " ",
+          format(lend, justify = "right"), "\n",
+          sep = "", file = file, append = TRUE)
+    })
+    cat(format(" ", width = name_width), " ",
+          format(" ", justify = "right", width = start_width), " ",
+          gsub(sp, addSp, Biostrings::toString(strings[length(alignment)])),
+        "\n\n", sep = "", file = file, append = TRUE)
+
+    lstart <- lend + 1
+    lend <- lstart + block.width - 1
+  }
 }

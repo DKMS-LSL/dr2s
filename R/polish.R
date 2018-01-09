@@ -43,8 +43,10 @@ polish.DR2S <- function(x, threshold = x$getThreshold(),
   ## Short read phasing
   ## phasing.R
   for (hptype in hptypes){
-    menv$hptypes[[hptype]]$phasemat    <- phasematrix(compact(menv$hptypes[[hptype]]$variants))
-    menv$hptypes[[hptype]]$phasebreaks <- phasebreaks(menv$hptypes[[hptype]]$phasemat)
+    menv$hptypes[[hptype]]$phasemat    <- phasematrix(compact(
+      menv$hptypes[[hptype]]$variants))
+    menv$hptypes[[hptype]]$phasebreaks <- phasebreaks(
+      menv$hptypes[[hptype]]$phasemat)
   }
 
   ## phasing plots
@@ -97,7 +99,8 @@ collect_variants <- function(x) {
     return(
       dplyr::data_frame(
         haplotype = character(0), pos = integer(0), ref = character(0),
-        alt = character(0), freq = double(0), lower = double(0), warning = character(0)
+        alt = character(0), freq = double(0), lower = double(0),
+        warning = character(0)
       )
     )
   }
@@ -114,7 +117,8 @@ collect_variants <- function(x) {
   df <- df %>%
       dplyr::group_by(haplotype) %>%
       dplyr::mutate(warning = ifelse(pos  %in% unlist(phasebreaks[haplotype]),
-                                     sub("^\\|", "", warning %<<% "|Phasebreak in short reads"),
+                                     sub("^\\|", "",
+                                         warning %<<% "|Phasebreak in short reads"),
                                      warning))
   df
 }
@@ -184,7 +188,8 @@ phasematrix <- function(var) {
   mat <- matrix(rep(0, 5*((n*n) - n)/2), ncol = 5)
   for (i in seq_len(n - 1)) {
     for (j in seq.int(i + 1, n)) {
-      mat[(i - 1)*n - ((i*i) - i)/2 + j - i, ] <- c(i, j, phasereads_(var[[i]], var[[j]]))
+      mat[(i - 1)*n - ((i*i) - i)/2 + j - i, ] <- c(i, j, phasereads_(var[[i]],
+                                                                      var[[j]]))
     }
   }
   # Set phasebreaks with linkage < 0.001 to 0.

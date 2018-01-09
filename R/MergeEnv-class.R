@@ -254,7 +254,10 @@ MergeEnv_$set("public", "export", function() {
 # Helpers -----------------------------------------------------------------
 
 expand_longread_consmat <- function(lrm, srm) {
-  m <- cbind(as.matrix(lrm))#, `+` = 0)
+  m <- as.matrix(lrm)
+  if (NCOL(lrm) == 5) {
+    m <- cbind(m, `+` = 0)
+  }
   if (length(ins(srm)) > 0) {
     insert <- matrix(c(0, 0, 0, 0, median(rowSums(m)), 0), ncol = 6)
     my_ins <- sort(ins(srm))

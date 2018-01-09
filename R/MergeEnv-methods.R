@@ -86,13 +86,15 @@ disambiguate_variant <- function(x,
     ## Mismatch in variant bases between long and short reads
     if (length(varl) > 1 && any(!names(varl) %in% names(vars))) {
       if (length(intersect(names(varl), names(vars))) == 0) {
-        warning_msg <- warning_msg %<<% "|No intersect between between long and short read variants"
+        warning_msg <- warning_msg %<<% paste0("|No intersect between between",
+                                               " long and short read variants")
       } else if ("-" %in% names(varl)) {
         if (lr[varl["-"]]/sum(lr[varl]) > threshold/(2/3)) {
           warning_msg <- warning_msg %<<% "|Gap overrepresented in long reads"
         }
       } else {
-        warning_msg <- warning_msg %<<% "|Mismatch between long and short read variants"
+        warning_msg <- warning_msg %<<% paste0("|Mismatch between long and ",
+                                               "short read variants")
       }
     }
 

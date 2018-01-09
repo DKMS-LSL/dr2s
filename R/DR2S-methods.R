@@ -553,6 +553,7 @@ DR2S_$set("public", "runHaplotypePartitioning", function(max_depth = 1e4,
 
   # debug
   # skip_gap_freq = 2/3
+  # dist_alleles = 3
   # threshold = NULL
   # plot = TRUE
   # self <- dpb1_3
@@ -620,7 +621,8 @@ DR2S_$set("public", "runHaplotypePartitioning", function(max_depth = 1e4,
   flog.info(" Partitioning %s reads over %s SNPs ...",
             NROW(mat), NCOL(mat), name = "info")
   prt <- partition_reads(x = mat, skip_gap_freq = skip_gap_freq,
-                         deepSplit = 1, threshold = threshold)
+                         deepSplit = 1, threshold = threshold,
+                         dist_alleles = self$getDistAlleles())
   self$setHapTypes(levels(as.factor(PRT(prt))))
 
   # Check if we have only one cluster and finish the pipeline if so

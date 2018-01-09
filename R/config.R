@@ -9,6 +9,7 @@ create_dr2s_conf <- function(sample,
                              threshold = 0.20,
                              iterations = 1,
                              microsatellite = FALSE,
+                             dist_alleles = 2,
                              filterScores = TRUE,
                              partSR = TRUE,
                              forceBadMapping = FALSE,
@@ -31,6 +32,7 @@ create_dr2s_conf <- function(sample,
     threshold  = threshold,
     iterations = iterations,
     microsatellite = microsatellite,
+    dist_alleles = dist_alleles,
     filterScores = filterScores,
     partSR = partSR,
     forceBadMapping = forceBadMapping,
@@ -61,6 +63,7 @@ read_dr2s_conf <- function(config_file) {
   conf$threshold  <- conf$threshold  %||% 0.2
   conf$iterations <- conf$iterations %||% 1
   conf$microsatellite <- conf$microsatellite %||% FALSE
+  conf$dist_alleles <- conf$dist_alleles %||% 2
   conf$filterScores <- conf$filterScores %||% TRUE
   conf$partSR <- conf$partSR %||% TRUE
   conf$forceBadMapping <- forceBadMapping %||% FALSE
@@ -143,7 +146,7 @@ initialise_dr2s <- function(conf, create_outdir = TRUE) {
 }
 
 validate_dr2s_conf <- function(conf) {
-  fields <- c("datadir", "outdir", "threshold", "iterations", "microsatellite","filterScores", "partSR", "forceBadMapping", "mapper", "limits", "haptypes",
+  fields <- c("datadir", "outdir", "threshold", "iterations", "microsatellite", "dist_alleles", "filterScores", "partSR", "forceBadMapping", "mapper", "limits", "haptypes",
               "pipeline", "longreads", "shortreads", "nreads", "opts",
               "sample_id", "locus", "reference", "alternate", "consensus")#"limitA", "limitB",
   if (!all(fields %in% names(conf))) {
@@ -170,6 +173,10 @@ validate_dr2s_conf <- function(conf) {
   # check microsatellite
   if (!is.logical(conf$microsatellite)){
     stop("microsatellite must be logical", call. = FALSE)
+  }
+  # check number of distinct alleles
+  if (!is.numeric(conf$dist_alleles)){
+    stop("Number of distinct alleles (dist_alleles) must be numeric", call. = FALSE)
   }
   # check forceBadMapping
   if (!is.logical(conf$forceBadMapping)){
