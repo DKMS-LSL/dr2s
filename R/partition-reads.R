@@ -130,9 +130,55 @@ partition_reads <- function(x, cl_method="ward.D", min_len = 0.5,
 
 get_clusts <- function(xseqs, xmat, min_len = 0.80, cl_method = "ward.D",
                        deepSplit = 1, min_reads_frac = 1/3, threshold = 0.2){
+  assertthat::assert_that(is.double(min_len))
+  assertthat::assert_that(is.double(min_reads_frac))
+  assertthat::assert_that(is.double(threshold))
 
-  # Need more sequences for more snps
-  # Bad heuristic for how many reads should be used
+  # heuristic for how many reads should be used
+  min_len <- .getMinLenClust(min_reads_frac, min_len, xseqs)
+  flog.info("  Using only long reads containing at least %s %% of all SNPs ...",
+            min_len*100, name = "info")
+  x_sub <- xseqs[Biostrings::width(gsub("\\+", "", xseqs)) >
+                   min_len*Biostrings::width(xseqs[1])]
+
+  ## Consensus matrix with pseudocount
+  flog.info(paste0("  Constructing a Position Specific Distance Matrix",
+                   "of the reamaining %s sequences ..."),
+            length(x_sub), name = "info")
+  consmat  <- as.matrix(Biostrings::consensusMatrix(x_sub,
+                                                    as.prob = TRUE)[
+                                                      c(VALID_DNA(),"+"),
+                                                      ] + 1/length(x_sub))
+  # Remove gaps below a threshold as they are probably sequencing artifacts
+  consmat <- foreach(col = 1:ncol(consmat), .combine = cbind)%do% {
+    a <- consmat[,col]
+    a["-"] <- ifelse(a["-"] < threshold, min(a), a["-"])
+    a
+  }
+  ## Get Position Specific Distance Matrix
+  dist <- PSDM(x_sub, as.matrix(consmat))
+  dist <- as.dist(dist)
+
+  ## replace "na" with mean for a being able to cluster
+  dist[is.na(dist)] <- mean(dist,na.rm = TRUE)
+
+  ## Perform a hierarchical clustering
+  hcc <-  hclust(dist, method = cl_method)
+  ## do a dynamic cut. Need to be evaluated
+  clusts <- dynamicTreeCut::cutreeHybrid(hcc,
+                                         distM = as.matrix(dist),
+                                         deepSplit = deepSplit,
+                                         verbose = FALSE)
+  # extract the clusters for each sequence
+  clades <- as.factor(sapply(unname(clusts$labels), function(i) {
+    rawToChar(as.raw(as.integer(i)+64))
+  }))
+  names(clades) <- hcc$labels
+  return(list(clades = clades, tree = hcc))
+}
+
+## Get minimal fraction of SNPs needed for a read to be used
+.getMinLenClust <- function(min_reads_frac, min_len, xseqs){
   adjusted_min_reads_frac <- min_reads_frac +
     (0.03*Biostrings::width(xseqs[1])/50) * 1500^2/length(xseqs)^2
   adjusted_min_reads_frac <- min(0.5, adjusted_min_reads_frac)
@@ -150,40 +196,6 @@ get_clusts <- function(xseqs, xmat, min_len = 0.80, cl_method = "ward.D",
   names(len_counts) <- min_lens
   min_len <- max(as.numeric(names(
     len_counts[which(len_counts>adjusted_min_reads_frac)][1])), min_len)
-  flog.info("  Using only long reads containing at least %s %% of all SNPs ...",
-            min_len*100, name = "info")
-  x_sub <- xseqs[Biostrings::width(gsub("\\+", "", xseqs)) >
-                   min_len*Biostrings::width(xseqs[1])]
-
-  ## Consensus matrix with pseudocount
-  flog.info(paste0("  Constructing a Position Specific Distance Matrix",
-                   "of the reamaining %s sequences ..."),
-            length(x_sub), name = "info")
-  consmat  <- as.matrix(Biostrings::consensusMatrix(
-    x_sub, as.prob = TRUE)[c(VALID_DNA(),"+"),] + 1/length(x_sub))
-  # Remove gaps below a threshold as they are probably sequencing artifacts
-  consmat <- foreach(col = 1:ncol(consmat), .combine = cbind)%do% {
-    a <- consmat[,col]
-    a["-"] <- ifelse(a["-"] < threshold, min(a), a["-"])
-    a
-  }
-  ## Get Position Specific Distance Matrix
-  dist <- PSDM(x_sub, as.matrix(consmat))
-  dist <- as.dist(dist)
-
-  dist[is.na(dist)] <- mean(dist,na.rm = TRUE)
-
-  ## Perform a hierarchical clustering
-  hcc <-  hclust(dist, method = cl_method)
-  ## do a dynamic cut. Need to be evaluated
-  clusts <- dynamicTreeCut::cutreeHybrid(hcc, distM = as.matrix(dist),
-                                         deepSplit = deepSplit, verbose = FALSE)
-  # extract the clusters for each sequence
-  clades <- as.factor(sapply(unname(clusts$labels), function(i) {
-    rawToChar(as.raw(as.integer(i)+64))
-  }))
-  names(clades) <- hcc$labels
-  return(list(clades = clades, tree = hcc))
 }
 
 get_scores <- function(s, xseqs, mats){
@@ -228,7 +240,7 @@ find_chimeric <- function(seqs, dist_alleles, plot_seqs = FALSE) {
   rownames(dm) <- names(seqs)
   colnames(dm) <- names(seqs)
 
-  sort(names(sort(unlist(dm[1,]), decreasing = TRUE)[1:dist_alleles]))
+  c("A", (names(sort(unlist(dm[1,]), decreasing = TRUE)[1:(dist_alleles-1)])))
 }
 
 # Class: HapPart -----------------------------------------------------------

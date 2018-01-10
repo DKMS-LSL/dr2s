@@ -17,19 +17,28 @@ mapInit.DR2S <- function(x,
                          force = FALSE,
                          fullname = TRUE,
                          filterScores = TRUE,
+                         forceBadMapping = FALSE,
                          plot = TRUE) {
   flog.info("Step 0: Initial mapping ... ", name = "info")
   Sys.sleep(1)
-  x$runMapInit(opts = opts, optsname = optsname, partSR = partSR, pct = pct,
-               threshold = threshold, min_base_quality = min_base_quality,
-               min_mapq = min_mapq, max_depth = max_depth,
+  x$runMapInit(opts = opts,
+               optsname = optsname,
+               partSR = partSR,
+               pct = pct,
+               threshold = threshold,
+               min_base_quality = min_base_quality,
+               min_mapq = min_mapq,
+               max_depth = max_depth,
                min_nucleotide_depth = min_nucleotide_depth,
                include_deletions = include_deletions,
                include_insertions = include_insertions,
                include_read_ids = include_read_ids,
-               microsatellite = microsatellite, filterScores = filterScores,
-               force = force, fullname = fullname, plot = plot)
-  message("  Done!\n")
+               microsatellite = microsatellite,
+               force = force,
+               fullname = fullname,
+               filterScores = filterScores,
+               forceBadMapping = forceBadMapping,
+               plot = plot)
   invisible(x)
 }
 DR2S_$set("public", "runMapInit", function(opts = list(),
@@ -44,13 +53,12 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
                                            include_deletions = TRUE,
                                            include_insertions = TRUE,
                                            include_read_ids = TRUE,
+                                           microsatellite = FALSE,
                                            force = FALSE,
                                            fullname = TRUE,
                                            filterScores = TRUE,
-                                           microsatellite = FALSE,
                                            forceBadMapping = FALSE,
                                            plot = TRUE) {
-
 
   # # debug
   # opts = list()
@@ -79,6 +87,7 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
 
 
   stopifnot(pct > 0 && pct <= 100)
+  ## TODO recode_header useless so
   recode_header <- FALSE
   ## Overide default arguments
   args <- self$getOpts("mapInit")
@@ -87,10 +96,10 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
     list2env(args, envir = env)
   }
 
-  microsatellite <- self$getMicrosatellite()
-  partSR <- self$getPartSR()
+  microsatellite  <- self$getMicrosatellite()
+  partSR          <- self$getPartSR()
   forceBadMapping <- self$getForceBadMapping()
-  filterScores <- self$getFilterScores()
+  filterScores    <- self$getFilterScores()
 
   if (recode_header) {
     stopifnot(
@@ -111,13 +120,6 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
     map_fun <- self$getMapFun()
     ## Run mapper
     flog.info(" First mapping of shortreads to provided reference", name = "info")
-    # self$setConfig("ref_path",
-    # "~/project/KIRproject/fresh_kirdr2s/testdata/newKIR/DEDKM9451915/
-    # Sequel/KIR2DL5A.pacbio.ref.mapping/KIR2DL5A#0010101.ref.fa")
-    # self$setConfig("ref_path", b)
-    # self$getConfig("refpath")
-    # b <- tempfile()
-    # Biostrings::writeXStringSet(cons, b)
     samfile <- map_fun(
       reffile  = self$getRefPath(),
       readfile = readfile,
@@ -129,7 +131,6 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
       force    = force,
       outdir   = self$getOutdir()
     )
-
 
     if (filterScores) {
       flog.info(" Filter reads with low alignment scores...", name = "info")
@@ -531,24 +532,25 @@ print.mapInit <- function(x, ...) {
 
 #' @export
 partition_haplotypes.DR2S <- function(x,
-                                      max_depth = 1e4,
+                                      threshold = NULL,
                                       skip_gap_freq = 2/3,
+                                      dist_alleles = NULL,
                                       plot = TRUE,
                                       ...) {
   flog.info("Step 1: Partition reads into haplotypes ...", name = "info")
   Sys.sleep(1)
-  x$runHaplotypePartitioning(max_depth = max_depth,
-                             threshold = NULL,
+  x$runHaplotypePartitioning(threshold = threshold,
                              skip_gap_freq = skip_gap_freq,
+                             dist_alleles = dist_alleles,
                              plot = plot)
   message("  Done!\n")
   invisible(x)
 
 }
 #self <- dpb1_3
-DR2S_$set("public", "runHaplotypePartitioning", function(max_depth = 1e4,
+DR2S_$set("public", "runHaplotypePartitioning", function(threshold = NULL,
                                                          skip_gap_freq = 2/3,
-                                                         threshold = NULL,
+                                                         dist_alleles = NULL,
                                                          plot = TRUE) {
 
   # debug
@@ -558,7 +560,6 @@ DR2S_$set("public", "runHaplotypePartitioning", function(max_depth = 1e4,
   # plot = TRUE
   # self <- dpb1_3
 
-  stopifnot(self$hasPileup())
 
   ## Overide default arguments
   args <- self$getOpts("partition")
@@ -569,10 +570,18 @@ DR2S_$set("public", "runHaplotypePartitioning", function(max_depth = 1e4,
   if (is.null(threshold)){
     threshold <- self$getThreshold()
   }
+  if (is.null(dist_alleles)){
+    dist_alleles <- self$getDistAlleles()
+  }
+  assertthat::assert_that(self$hasPileup())
+  assertthat::assert_that(is.double(skip_gap_freq))
+  assertthat::assert_that(is.double(threshold))
+  assertthat::assert_that(assertthat::is.count(dist_alleles))
+  assertthat::assert_that(is.logical(plot))
 
   tag  <- self$getMapTag("init", "LR")
-  th   <- self$getThreshold()
 
+  ## Get the reference sequence
   if (!is.null(self$mapInit$SR1)){
     useSR <- TRUE
     refseq <- self$mapInit$SR1$conseq
@@ -584,11 +593,11 @@ DR2S_$set("public", "runHaplotypePartitioning", function(max_depth = 1e4,
   }
   ppos <- self$polymorphicPositions(useSR = useSR)
 
+  ## Check if already finished because it is a homozygous sample
   if (NROW(ppos) == 0){
     flog.warn("No polymorphic positions for clustering! Only single allele?",
               name = "info")
     flog.info("Entering polish and report pipeline", name = "info")
-
     return(invisible(finish_cn1(self)))
   }
 
@@ -604,25 +613,14 @@ DR2S_$set("public", "runHaplotypePartitioning", function(max_depth = 1e4,
   } else {
     self$partition$mat
   }
-  ## expdev: try seqlogo
-  # mat <- hla$partition$mat
-  # seqs <- lapply(rownames(mat), function(x) paste(mat[x, ],
-  # collapse = ""))#paste0(self$partition$mat[x,])))
-  # names(seqs) <- rownames(mat)
-  #
-  # devtools::install_github("omarwagih/ggseqlogo")
-  # library(ggseqlogo)
-  # library(ggplot2)
-  # p <- ggplot() + geom_logo(unlist(seqs), seq_type = "dna") + theme_logo()
-  # DECIPHER::AlignProfiles()
-  # ggsave(filename = "tset.pdf", plot= p, width = 15)
-  # ggseqlogo(unlist(seqs), seqtype = "DNA")
-
   flog.info(" Partitioning %s reads over %s SNPs ...",
             NROW(mat), NCOL(mat), name = "info")
-  prt <- partition_reads(x = mat, skip_gap_freq = skip_gap_freq,
-                         deepSplit = 1, threshold = threshold,
-                         dist_alleles = self$getDistAlleles())
+  prt <- partition_reads(x = mat,
+                         skip_gap_freq = skip_gap_freq,
+                         deepSplit = 1,
+                         threshold = threshold,
+                         dist_alleles = dist_alleles)
+  ## Set sample haplotypes
   self$setHapTypes(levels(as.factor(PRT(prt))))
 
   # Check if we have only one cluster and finish the pipeline if so
@@ -631,10 +629,10 @@ DR2S_$set("public", "runHaplotypePartitioning", function(max_depth = 1e4,
     flog.info("Entering polish and report pipeline", name = "info")
     return(invisible(finish_cn1(self)))
   }
+
   browse_seqs(SQS(prt),
               file = file.path(self$getOutdir(), "partition.fa.html"),
               openURL = FALSE)
-
 
   self$partition = structure(list(
     mat = mat,
@@ -643,18 +641,6 @@ DR2S_$set("public", "runHaplotypePartitioning", function(max_depth = 1e4,
     lmt = NULL
   ),
   class = c("PartList", "list"))
-  # if (plot) {
-  if (FALSE) {
-    message("  Plotting ...")
-    bnm   <- basename(self$mapInit$bamfile)
-    outf  <- file.path(self$getOutdir(),
-                       paste0("plot0.partition.",
-                              sub("bam$", "pdf", usc(bnm))))
-    pdf(file = outf, width = 10, height = 12, onefile = TRUE,
-        title = paste(self$getLocus(), self$getSampleId(), sep = "." ))
-    self$plotPartitionSummary(label = tag)
-    dev.off()
-  }
   return(invisible(self))
 })
 
