@@ -108,9 +108,9 @@ DR2S_ <- R6::R6Class(
   public = list(
     mapInit     = list(),
     partition   = list(),
-    mapIter        = list(),
+    mapIter     = list(),
     srpartition = list(),
-    mapFinal        = list(),
+    mapFinal    = list(),
     ## Final consensus sequences for A and B
     ## class: ConsList
     consensus   = list(),
@@ -118,8 +118,8 @@ DR2S_ <- R6::R6Class(
       ## Public fields
       self$mapInit   = list()
       self$partition = list()
-      self$mapIter      = list()#A = list(), B = list())
-      self$mapFinal      = list()
+      self$mapIter   = list()#A = list(), B = list())
+      self$mapFinal  = list()
       self$consensus = list()
       ## Private fields
       private$conf   = initialise_dr2s(conf, create_outdir = create_outdir)
@@ -212,7 +212,6 @@ DR2S_ <- R6::R6Class(
     setConfig = function(name, value) {
       private$conf[name] = value
       invisible(self)
-
     },
     ##
     getDatadir = function() {
@@ -238,7 +237,7 @@ DR2S_ <- R6::R6Class(
     },
     ##
     setIterations = function(iterations) {
-      stopifnot(iterations < 10 && iterations > 0 && iterations%%1 == 0)
+      stopifnot(iterations < 10 && iterations > 0 && iterations %% 1 == 0)
       self$setConfig("iterations", iterations)
       invisible(self)
     },
@@ -367,7 +366,7 @@ DR2S_ <- R6::R6Class(
     },
     ##
     getSrdDir = function() {
-      if (!is.null(filtered <- self$getConfig("filteredShortreads"))){
+      if (!is.null(filtered <- self$getConfig("filteredShortreads"))) {
         return(filtered)
       }
       if (!is.null(srddir <- self$getConfig("shortreads")$dir)) {
@@ -474,9 +473,9 @@ DR2S_ <- R6::R6Class(
     },
     ##
     getLatestRefPath = function() {
-      if (length(self$mapFinal) > 0){
+      if (length(self$mapFinal) > 0) {
         return(self$mapFinal$seq)
-      } else if (length(self$mapIter) > 0){
+      } else if (length(self$mapIter) > 0) {
         return(sapply(self$mapIter[max(names(self$mapIter))][self$getHapTypes()], function(x) x$seqpath))
       } else {
         return(self$getRefPath())
@@ -484,11 +483,11 @@ DR2S_ <- R6::R6Class(
     },
     ##
     getLatestRef = function() {
-      if (!is.null(self$consensus$seq)){
+      if (!is.null(self$consensus$seq)) {
         return(self$consensus$seq)
-      }else if (length(self$mapFinal) > 0){
+      }else if (length(self$mapFinal) > 0) {
         return(self$mapFinal$seq)
-      } else if (length(self$mapIter) > 0){
+      } else if (length(self$mapIter) > 0) {
         return(sapply(self$mapIter[max(names(self$mapIter))][self$getHapTypes()], function(x) x$conseq))
       }  else {
         return(self$getRefSeq())
@@ -537,9 +536,9 @@ DR2S_ <- R6::R6Class(
         group <- match.arg(group, self$getHapTypes())
         return(self$mapIter[[as.character(iter)]][[group]]$tag)
       }
-      if (iter == "init"){
+      if (iter == "init") {
         ref <- match.arg(ref, c("LR", "SR"))
-        if (ref == "SR"){
+        if (ref == "SR") {
           return(self$mapInit$SR1$tag)
         }
         return(self$mapInit$tag)
@@ -717,9 +716,9 @@ DR2S_ <- R6::R6Class(
                                      point_size = 1) {
       hptypes <- self$getHapTypes()
       cseqs <- foreach(hp = hptypes) %do% {
-        seqs <-list(
+        seqs <- list(
           label = self$getMapTag(iteration, hp),
-          if(is.numeric(iteration)){
+          if(is.numeric(iteration)) {
             cseq = self$mapIter[[as.character(iteration)]][[hp]]$conseq
           } else {
             cseq = self$mapFinal$conseq[[hp]]
@@ -741,7 +740,7 @@ DR2S_ <- R6::R6Class(
       if (missing(threshold)) {
         threshold <- self$getThreshold()
       }
-      if (useSR){
+      if (useSR) {
         pileup <- self$mapInit$SR2$pileup
       } else {
         pileup <- self$getPileup()
@@ -776,7 +775,7 @@ DR2S_ <- R6::R6Class(
                     ggplot2::theme(legend.position = "none")
       p2  <- self$plotPartitionTree()
       p3 <- self$plotPartitionRadar()
-      if (!is.null(p2)){
+      if (!is.null(p2)) {
         multiplot(p1, p2, p3, layout = matrix(c(1, 2, 2, 2, 3), ncol = 1))
       } else {
         multiplot(p1,p3, layout = matrix(c(1,2)))
@@ -785,7 +784,7 @@ DR2S_ <- R6::R6Class(
     ##
     plotmapIterSummary = function(thin = 0.2, width = 10, iteration = 0, drop.indels = TRUE) {
       hptypes <- self$getHapTypes()
-      if (iteration > 1){
+      if (iteration > 1) {
         drop.indels <- FALSE
         width <- 10
       }

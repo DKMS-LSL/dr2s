@@ -229,8 +229,7 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
           label = self$getMapTag("init", "SR"),
           drop.indels = TRUE
         )
-        flog.error("  Aborting. If you want to force processing set
-                   forceBadMapping = TRUE in DR2S object initialisation",
+        flog.error("  Aborting. If you want to force processing set forceBadMapping = TRUE in DR2S object initialisation",
                    name = "info")
         suppressWarnings(ggsave(gfile, plt, width = 12, height = 10,
                                 onefile = TRUE,
@@ -316,8 +315,7 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
       }
 
       # Infer initial consensus
-      flog.info("   Construct second consensus from shortreads with refined
-                repeats ...", name = "info")
+      flog.info("   Construct second consensus from shortreads with refined repeats ...", name = "info")
       conseq <- conseq(pileup$consmat, "mapInit1.2", "prob",
                        force_exclude_gaps = TRUE, threshold = 0.2)
       conseq_name <- paste0("Init.consensus.2", sub(".sam.gz", "",
@@ -355,8 +353,7 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
     ## Fetch mapper
     map_fun <- self$getMapFun()
     ## Run mapper
-    flog.info(" Mapping shortreads against mapInit reference for
-              calling SNPs ...", name = "info")
+    flog.info(" Mapping shortreads against mapInit reference for calling SNPs ...", name = "info")
     samfile <- map_fun(
       reffile  = mapInitSR1$seqpath,
       readfile = readfile,
@@ -528,16 +525,16 @@ print.mapInit <- function(x, ...) {
   cat(msg)
 }
 
-## Method: partition_haplotypes ####
+## Method: partitionLongReads ####
 
 #' @export
-partition_haplotypes.DR2S <- function(x,
+partitionLongReads.DR2S <- function(x,
                                       threshold = NULL,
                                       skip_gap_freq = 2/3,
                                       dist_alleles = NULL,
                                       plot = TRUE,
                                       ...) {
-  flog.info("Step 1: Partition reads into haplotypes ...", name = "info")
+  flog.info("Step 1: Partition longreads into haplotypes ...", name = "info")
   Sys.sleep(1)
   x$runHaplotypePartitioning(threshold = threshold,
                              skip_gap_freq = skip_gap_freq,
@@ -656,10 +653,10 @@ print.PartList <- function(x, ...) {
   print(x$hpl)
 }
 
-## Method: split_reads_by_haplotype ####
+## Method: splitReadsByHaplotype ####
 
 #' @export
-split_reads_by_haplotype.DR2S <- function(x,
+splitReadsByHaplotype.DR2S <- function(x,
                                           limits,
                                           ...) {
   flog.info(" Split partitioned reads by score ...", name = "info")
@@ -766,15 +763,15 @@ summary.HapList <- function(object, ....) {
   )
 }
 
-## Method: extract_fastq ####
+## Method: extractFastq ####
 
 #' @export
-extract_fastq.DR2S <- function(x,
-                               nreads = NULL,
-                               replace = FALSE,
-                               nalign = 40,
-                               ...) {
-  flog.info("Step2: Extracting haplotyped reads ...", name = "info")
+extractFastq.DR2S <- function(x,
+                              nreads = NULL,
+                              replace = FALSE,
+                              nalign = 40,
+                              ...) {
+  flog.info("Step 2: Extracting haplotyped reads ...", name = "info")
   Sys.sleep(1)
   x$extractFastq(nreads = nreads, replace = replace, nalign = nalign)
   message("  Done!\n")
@@ -809,7 +806,7 @@ DR2S_$set("public", "extractFastq", function(nreads = NULL,
 
   ## do this for each haptype
   hptypes <- self$getHapTypes()
-  for (hptype in hptypes){
+  for (hptype in hptypes) {
     dir <- dir_create_if_not_exists(file.path(self$getOutdir(), hptype))
 
     qnames <- self$getHapList(hptype)
@@ -819,7 +816,7 @@ DR2S_$set("public", "extractFastq", function(nreads = NULL,
     # n = self$getNreads()
     # replace = replace
 
-    fq  <- extract_fastq(
+    fq  <- extractFastq(
       x = self$mapInit$bamfile,
       qnames = qnames,
       n = self$getNreads(),
@@ -873,9 +870,8 @@ mapIter.DR2S <- function(x,
                          force = FALSE,
                          fullname = TRUE,
                          plot = TRUE) {
-  flog.info("Step 3: Iteratively mapping partitioned long reads against
-            consensus sequences from initial mapping using only partitioned
-            reads... ", name = "info")
+  flog.info("Step 3: Iteratively mapping partitioned longreads against consensus sequences from initial mapping using only partitioned reads ... ",
+            name = "info")
   Sys.sleep(1)
   x$runMapIter(opts = opts, iterations = 1, pct = pct,
                min_base_quality = min_base_quality,
@@ -950,8 +946,8 @@ DR2S_$set("public", "runMapIter", function(opts = list(),
   mat <- msa_from_bam(bamfile, ref, paddingLetter = "-")
 
   foreach(hptype = hptypes) %do% {
-    flog.info("  Constructing a consensus from initial mapping for haplotype
-              %s ...", hptype, name = "info")
+    flog.info("  Constructing a consensus from initial mapping for haplotype %s ...",
+              hptype, name = "info")
     readIds <- self$getHapList(hptype)
     cmat <- Biostrings::consensusMatrix(mat[readIds],
                                         as.prob = TRUE)[VALID_DNA(
@@ -1152,8 +1148,7 @@ print.mapIter <- function(x, ...) {
 partitionShortReads.DR2S <- function(x,
                                      opts = list(),
                                      force = FALSE) {
-  flog.info("Step 4: Partition shortreads based on initial mapping and
-            longread clustering ... ", name = "info")
+  flog.info("Step 4: Partition shortreads based on initial mapping and longread clustering ... ", name = "info")
   Sys.sleep(1)
   x$runPartitionShortReads(opts = opts,
                            force = force)
@@ -1167,7 +1162,6 @@ DR2S_$set("public", "runPartitionShortReads", function(opts = list(),
                                                        pct = 100,
                                                        threshold = 0.20,
                                                        min_mapq = 0) {
-
 
   ## debug
   # opts = list()
@@ -1327,8 +1321,8 @@ mapFinal.DR2S <- function(x,
                           fullname = TRUE,
                           plot = TRUE,
                           clip = FALSE) {
-  flog.info("Step 5: Mapping short and long reads against refined consensus
-            sequences ...", name = "info")
+  flog.info("Step 5: Mapping short and long reads against refined consensus sequences ...",
+            name = "info")
   Sys.sleep(1)
   x$runMapFinal(opts = opts, pct = pct, min_base_quality = min_base_quality,
                 min_mapq = min_mapq, max_depth = max_depth,
@@ -1427,7 +1421,7 @@ DR2S_$set("public", "runMapFinal", function(opts = list(),
                         optstring(opts), sep = ".")
     readpathLR <- readpathsLR[[hptype]]
     ## Run mapper
-    flog.info("   Mapping long reads against latest consensus ...",
+    flog.info("  Mapping long reads against latest consensus ...",
               name = "info")
     samfile <- map_fun(
       reffile  = refpath,

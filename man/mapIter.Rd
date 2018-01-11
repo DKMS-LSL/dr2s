@@ -62,9 +62,9 @@ x <- DR2Smap(
   ) \%>\%
   clear() \%>\%
   mapInit() \%>\%
-  partition_haplotypes() \%>\%
-  split_reads_by_haplotype(limitA = 0.5, limitB = 0.25) \%>\%
-  extract_fastq() \%>\%
+  partitionLongReads() \%>\%
+  splitReadsByHaplotype(limitA = 0.5, limitB = 0.25) \%>\%
+  extractFastq() \%>\%
   mapIter() \%>\%
   mapFinal() \%>\%
   cache() \%>\%
@@ -82,9 +82,9 @@ x <- DR2Smap(
   ) \%>\%
   clear() \%>\%
   mapInit() \%>\%
-  partition_haplotypes() \%>\%
-  split_reads_by_haplotype() \%>\%
-  extract_fastq() \%>\%
+  partitionLongReads() \%>\%
+  splitReadsByHaplotype() \%>\%
+  extractFastq() \%>\%
   mapIter() \%>\%
   partitionShortReads() \%>\%
   mapFinal() \%>\%
@@ -95,10 +95,9 @@ x <- DR2Smap(
 \seealso{
 Other DR2S mapper functions: \code{\link{DR2Smap}},
   \code{\link{cache}}, \code{\link{clear}},
-  \code{\link{extract_fastq}}, \code{\link{mapFinal}},
-  \code{\link{mapInit}},
-  \code{\link{partition_haplotypes}}, \code{\link{polish}},
+  \code{\link{extractFastq}}, \code{\link{mapFinal}},
+  \code{\link{mapInit}}, \code{\link{partitionLongReads}},
+  \code{\link{polish}},
   \code{\link{report_checked_consensus}},
-  \code{\link{report}},
-  \code{\link{split_reads_by_haplotype}}
+  \code{\link{report}}, \code{\link{splitReadsByHaplotype}}
 }
