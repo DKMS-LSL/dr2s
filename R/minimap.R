@@ -139,7 +139,7 @@ generate_mapping_commands <- function(mapper,
         readtype,
         pacbio = NULL,
         nanopore = 30,
-        illumina = 300
+        illumina = 100
       )
     )))
     zip <- ".gz"
@@ -154,16 +154,22 @@ generate_mapping_commands <- function(mapper,
       # ## Matching score
       k = switch(
         readtype,
-        pacbio = NULL,
+        pacbio = 13,
         nanopore = NULL,
-        illumina = 25
+        illumina = 6
       ),
       # # ## Mismatch penalty
       w = switch(
         readtype,
-        pacbio = NULL,
+        pacbio = 4,
         nanopore = NULL,
-        illumina = 5
+        illumina = 2
+      ),
+      N = switch(
+        readtype,
+        pacbio = 50,
+        nanopore = NULL,
+        illumina = 500
       ),
       A = switch(
         readtype,
@@ -175,13 +181,13 @@ generate_mapping_commands <- function(mapper,
         readtype,
         pacbio = NULL,
         nanopore = NULL,
-        illumina = 16
+        illumina = 8
       ),
       O = switch(
         readtype,
         pacbio = NULL,
         nanopore = NULL,
-        illumina = "16,24"
+        illumina = "16,32"
       ),
       E = switch(
         readtype,
@@ -193,7 +199,7 @@ generate_mapping_commands <- function(mapper,
         readtype,
         pacbio = NULL,
         nanopore = NULL,
-        illumina = 20
+        illumina = 50
       )
     )))
     zip <- ".gz"
