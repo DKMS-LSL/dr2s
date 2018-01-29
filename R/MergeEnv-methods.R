@@ -64,7 +64,7 @@ print.variant_list <- function(x, threshold = 0.2, ...) {
 #x <- a
 disambiguate_variant <- function(x,
                                  threshold,
-                                 min_overrep_lr =5,
+                                 min_overrep_lr = 2,
                                  max_overrep_sr = 2) {
   stopifnot(is(x, "variant_list"))
 
