@@ -52,7 +52,7 @@ report_map_ <- function(x, map, outdir, block_width, ...) {
   haps <- x$getLatestRef()
 
   ## Write html alignment file
-  aln_file <-  paste(map, "aln", x$getLrdType(), x$getMapper(), "unchecked",
+  aln_file <-  paste(map, "aln", x$getLrdType(), x$getLrMapper(), "unchecked",
                      sep = ".")
   # get all seqs as stringset
   seqs <- unlist(Biostrings::BStringSetList(haps))
@@ -67,7 +67,7 @@ report_map_ <- function(x, map, outdir, block_width, ...) {
   ## Write consensus FASTA files
 
   for (hptype in x$getHapTypes()) {
-    hap_file <- paste(map, hptype, x$getLrdType(), x$getMapper(),
+    hap_file <- paste(map, hptype, x$getLrdType(), x$getLrMapper(),
                       "unchecked.fa", sep = ".")
     seq <- haps[[hptype]]
     names(seq) <- paste(names(seq), " LOCUS=",
@@ -81,7 +81,7 @@ report_map_ <- function(x, map, outdir, block_width, ...) {
 
   ## Write Pairwise or Multiple Alignment
   if (length(x$getHapTypes()) == 2){
-    pair_file <- paste(map, "aln", x$getLrdType(), x$getMapper(), "unchecked",
+    pair_file <- paste(map, "aln", x$getLrdType(), x$getLrMapper(), "unchecked",
                        "psa", sep = ".")
     aln <- Biostrings::pairwiseAlignment(pattern = haps[[x$getHapTypes()[[1]]]],
                                          subject = haps[[x$getHapTypes()[[2]]]],
@@ -90,7 +90,7 @@ report_map_ <- function(x, map, outdir, block_width, ...) {
                                         block.width = block_width)
 
   } else if (length(x$getHapTypes()) > 2){
-    aln_file <- paste(map, "aln", x$getLrdType(), x$getMapper(), "unchecked",
+    aln_file <- paste(map, "aln", x$getLrdType(), x$getLrMapper(), "unchecked",
                       "msa", sep = ".")
 
     aln <- DECIPHER::AlignSeqs(Biostrings::DNAStringSet(
@@ -103,7 +103,7 @@ report_map_ <- function(x, map, outdir, block_width, ...) {
 
   if (map == "mapfinal") {
     ## Report problematic Variants
-    probvar_file <- paste("problems", x$getLrdType(), x$getMapper(), "tsv",
+    probvar_file <- paste("problems", x$getLrdType(), x$getLrMapper(), "tsv",
                           sep = ".")
     vars <- x$consensus$problematic_variants %>%
       dplyr::arrange(pos, haplotype)
@@ -131,9 +131,9 @@ report_map_ <- function(x, map, outdir, block_width, ...) {
 report_checked_consensus <- function(x, which = "mapFinal") {
   map <- match.arg(tolower(which), c("mapfinal", "mapiter"))
   ending <- ifelse(length(x$getHapTypes()) == 2, "psa", "msa")
-  pairfile_unchecked <- paste(map, "aln", x$getLrdType(), x$getMapper(),
+  pairfile_unchecked <- paste(map, "aln", x$getLrdType(), x$getLrMapper(),
                               "unchecked", ending, sep = ".")
-  pairfile_checked   <- paste(map, "aln", x$getLrdType(), x$getMapper(),
+  pairfile_checked   <- paste(map, "aln", x$getLrdType(), x$getLrMapper(),
                               "checked", ending, sep = ".")
   pairfile_checked   <- normalizePath(file.path(x$getOutdir(), "report",
                                                 pairfile_checked),
@@ -155,12 +155,12 @@ report_checked_consensus <- function(x, which = "mapFinal") {
   names(ref) <- strsplitN(names(ref), "~", 1, fixed = TRUE)
 
   seqsAll <- c(ref, seqs)
-  aln_file <-  paste("aln", x$getLrdType(), x$getMapper(), "html", sep = ".")
+  aln_file <-  paste("aln", x$getLrdType(), x$getLrMapper(), "html", sep = ".")
   browse_align(seqsAll, file = file.path(outdir, aln_file), openURL = FALSE)
 
   ## Export FASTA
   files <- sapply(1:length(seqs), function(sq) {
-    file <- paste(names(seqs[sq]), x$getLrdType(), x$getMapper(), "fa", sep = ".")
+    file <- paste(names(seqs[sq]), x$getLrdType(), x$getLrMapper(), "fa", sep = ".")
     seq <- seqs[sq]
     names(seq) <- paste0(names(seq), " LOCUS=", x$getLocus(), ";REF=",
                               x$getReference())
@@ -179,7 +179,7 @@ check_alignment_file <- function(x, which = "mapFinal", where = 0,
                                  editor = "xdg-open") {
   which <- match.arg(tolower(which), c("mapfinal", "mapiter"))
   ending <- ifelse(length(x$getHapTypes()) == 2, "psa", "msa")
-  pairfile_unchecked <- paste(which, "aln", x$getLrdType(), x$getMapper(),
+  pairfile_unchecked <- paste(which, "aln", x$getLrdType(), x$getLrMapper(),
                               "unchecked", ending, sep = ".")
   pairfile_unchecked <- normalizePath(file.path(x$getOutdir(), "report",
                                                 pairfile_unchecked),
@@ -188,7 +188,7 @@ check_alignment_file <- function(x, which = "mapFinal", where = 0,
     file.exists(pairfile_unchecked),
     assertthat::is.readable(pairfile_unchecked)
   )
-  pairfile_checked <- paste(which, "aln", x$getLrdType(), x$getMapper(),
+  pairfile_checked <- paste(which, "aln", x$getLrdType(), x$getLrMapper(),
                             "checked", ending, sep = ".")
   pairfile_checked <- normalizePath(file.path(x$getOutdir(), "report",
                                               pairfile_checked),

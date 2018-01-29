@@ -111,13 +111,13 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
   if (partSR){
     mapfmt  <- "mapInit1 <%s> <%s> <%s> <%s>"
     maptag  <- sprintf(mapfmt, self$getReference(), self$getSrdType(),
-                       self$getMapper(), optstring(opts, optsname))
+                       self$getSrMapper(), optstring(opts, optsname))
     readfile <- self$getShortreads()
     if (threshold != self$getThreshold()) {
       self$setThreshold(threshold)
     }
     ## Fetch mapper
-    map_fun <- self$getMapFun()
+    map_fun <- self$getSrMapFun()
     ## Run mapper
     flog.info(" First mapping of shortreads to provided reference", name = "info")
     samfile <- map_fun(
@@ -261,13 +261,13 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
     if (microsatellite){
       mapfmt  <- "mapInit1.2 <%s> <%s> <%s> <%s>"
       maptag  <- sprintf(mapfmt, conseq_name, self$getSrdType(),
-                         self$getMapper(), optstring(opts, optsname))
+                         self$getSrMapper(), optstring(opts, optsname))
       readfile = self$getShortreads()
       if (threshold != self$getThreshold()) {
         self$setThreshold(threshold)
       }
       ## Fetch mapper
-      map_fun <- self$getMapFun()
+      map_fun <- self$getSrMapFun()
       ## Run mapper
       flog.info(" Refine microsatellites or repeats by extending reference ",
                 name = "info")
@@ -349,11 +349,11 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
     ## from same reference as longreads
     mapfmt  <- "mapInit2 <%s> <%s> <%s> <%s>"
     maptag  <- sprintf(mapfmt, mapInitSR1$ref,self$getSrdType(),
-                       self$getMapper(), optstring(opts, optsname))
+                       self$getSrMapper(), optstring(opts, optsname))
     readfile <- self$getShortreads()
 
     ## Fetch mapper
-    map_fun <- self$getMapFun()
+    map_fun <- self$getSrMapFun()
     ## Run mapper
     flog.info(" Mapping shortreads against mapInit reference for
               calling SNPs ...", name = "info")
@@ -414,13 +414,13 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
   allele <- ifelse(partSR, mapInitSR1$ref, self$getReference())
 
   mapfmt  <- "mapInit <%s> <%s> <%s> <%s>"
-  maptag  <- sprintf(mapfmt, allele, self$getLrdType(), self$getMapper(),
+  maptag  <- sprintf(mapfmt, allele, self$getLrdType(), self$getLrMapper(),
                      optstring(opts, optsname))
   if (threshold != self$getThreshold()) {
     self$setThreshold(threshold)
   }
   ## Fetch mapper
-  map_fun <- self$getMapFun()
+  map_fun <- self$getLrMapFun()
   ## Run mapper
   flog.info("  Mapping ...", name = "info")
   samfile <- map_fun(
@@ -830,7 +830,7 @@ DR2S_$set("public", "extractFastq", function(nreads = NULL,
         which(qnames %in% as.character(ShortRead::id(fq)))
       attr(self$partition$hpl[hptype], "n") <- self$getNreads()
     }
-    file <- paste("hap", hptype, self$getLrdType(), self$getMapper(),
+    file <- paste("hap", hptype, self$getLrdType(), self$getLrMapper(),
                   paste0("lim", 100 * abs(attr(self$getHapList(hptype),
                                                "limit"))),
                   paste0("n", length(fq)),
@@ -932,12 +932,20 @@ DR2S_$set("public", "runMapIter", function(opts = list(),
     env  <- environment()
     list2env(args, envir = env)
   }
-
-  ## Mapper
-  map_fun <- self$getMapFun()
-
   hptypes <- self$getHapTypes()
   iterations <- self$getIterations()
+  ## Check if number of iterations is even; otherwise increment
+  if (iterations %% 2 == 1){
+    flog.info("Iterations must be even; set from %s to %s",
+              iterations,
+              iterations+1,
+              name = "info")
+    iterations <- iterations+1
+  }
+
+  ## Mapper
+  map_fun <- self$getLrMapFun()
+
 
   # Construct consensus from initial mapping with the clustered reads
   flog.info(" Constructing a consensus from initial mapping ...", name = "info")
@@ -987,6 +995,10 @@ DR2S_$set("public", "runMapIter", function(opts = list(),
       readpath <- prevIteration[[hptype]]$reads
       refpath  <- prevIteration[[hptype]]$seqpath
 
+      ## try collapsing homopolymers; Did not seem to improve the mapping
+      # if (iteration %% 2 == 1)
+      #   refpath <- .collapseHomopolymers(refpath,4)
+
       nreads <- if (!is.null(attr(self$getHapList(hptype), "n"))) {
         attr(self$getHapList(hptype), "n")
       } else {
@@ -995,7 +1007,7 @@ DR2S_$set("public", "runMapIter", function(opts = list(),
       optsname <- sprintf("%s [%s]", hptype, nreads)
       mapfmt  <- "mapIter <%s> <%s> <%s> <%s>"
       maptag  <- sprintf(mapfmt, iteration, hptype, self$getLrdType(),
-                         self$getMapper(), optstring(opts, optsname))
+                         self$getLrMapper(), optstring(opts, optsname))
 
       self$mapIter[[as.character(iteration)]][[hptype]] = structure(
         list(
@@ -1099,7 +1111,7 @@ DR2S_$set("public", "runMapIter", function(opts = list(),
       ## Coverage and base frequency
       gfile <- file.path(
         self$getOutdir(),
-        paste("plot.MapIter", iteration, self$getLrdType(), self$getMapper(),
+        paste("plot.MapIter", iteration, self$getLrdType(), self$getLrMapper(),
               "pdf", sep = ".")
       )
       pdf(file = gfile, width = 8 * length(hptypes), height = 8, onefile = TRUE,
@@ -1112,7 +1124,7 @@ DR2S_$set("public", "runMapIter", function(opts = list(),
       gfile <- file.path(
         self$getOutdir(),
         paste("plot.MapIter.conseq", iteration, self$getLrdType(),
-              self$getMapper(), "pdf", sep = ".")
+              self$getLrMapper(), "pdf", sep = ".")
       )
       pdf(file = gfile, width = 16, height = 4*length(hptypes), onefile = TRUE,
           title = paste(self$getLocus(), self$getSampleId(), sep = "." ))
@@ -1202,7 +1214,7 @@ DR2S_$set("public", "runPartitionShortReads", function(opts = list(),
   } else {
     mapfmt  <- "mapPartSR <%s> <%s> <%s> <%s>"
     maptag  <- sprintf(mapfmt, self$mapInit$SR1$ref, self$getSrdType(),
-                       self$getMapper(), optstring(opts, optsname))
+                       self$getSrMapper(), optstring(opts, optsname))
     if (threshold != self$getThreshold()) {
       self$setThreshold(threshold)
     }
@@ -1210,7 +1222,7 @@ DR2S_$set("public", "runPartitionShortReads", function(opts = list(),
     refname <- names(ref)
     reffile <- self$getRefPath()
     ## Fetch mapper
-    map_fun <- self$getMapFun()
+    map_fun <- self$getSrMapFun()
     ## Run mapper
     flog.warn(" Found no shortread mapping from MapInit ...", name = "info")
     flog.info(" Mapping short reads against provided reference ...",
@@ -1398,8 +1410,6 @@ DR2S_$set("public", "runMapFinal", function(opts = list(),
   names(refpaths) <- hptypes
   readpathsSR <- sapply(hptypes, function(x) self$srpartition[[x]]$SR)
   names(readpathsSR) <- hptypes
-  ## Mapper
-  map_fun <- self$getMapFun()
 
   self$mapFinal = structure(
     list(
@@ -1423,9 +1433,11 @@ DR2S_$set("public", "runMapFinal", function(opts = list(),
 
     mapgroupLR <- paste0("LR", hptype)
     maptagLR   <- paste("mapFinal", mapgroupLR, self$getLrdType(),
-                        self$getMapper(),
+                        self$getLrMapper(),
                         optstring(opts), sep = ".")
     readpathLR <- readpathsLR[[hptype]]
+    ## Mapper
+    map_fun <- self$getLrMapFun()
     ## Run mapper
     flog.info("   Mapping long reads against latest consensus ...",
               name = "info")
@@ -1515,7 +1527,7 @@ DR2S_$set("public", "runMapFinal", function(opts = list(),
         fq <- trim_polymorphic_ends(fq)
         ## Write new shortread file to disc
         fqdir  <- dir_create_if_not_exists(file.path(self$getOutdir(), "final"))
-        fqfile <- paste("sread", hptype, self$getMapper(), "trimmed", "fastq",
+        fqfile <- paste("sread", hptype, self$getSrMapper(), "trimmed", "fastq",
                         "gz", sep = ".")
         fqout  <- file_delete_if_exists(file.path(fqdir, fqfile))
         ShortRead::writeFastq(fq, fqout, compress = TRUE)
@@ -1593,7 +1605,7 @@ DR2S_$set("public", "runMapFinal", function(opts = list(),
       for (readtype in c("LR", "SR")){
         gfile <- file.path(self$getOutdir(),
                            paste("plotFinal", readtype,
-                                 self$getLrdType(), self$getMapper(),
+                                 self$getLrdType(), self$getLrMapper(),
                                  "pdf", sep = "."))
         pdf(file = gfile, width = 8 * length(hptypes), height = 8,
             onefile = TRUE,  title = paste(self$getLocus(),
@@ -1605,7 +1617,7 @@ DR2S_$set("public", "runMapFinal", function(opts = list(),
     } else {
       gfile <- file.path(self$getOutdir(), paste("plotFinal.LR",
                                                  self$getLrdType(),
-                                                 self$getMapper(), "pdf",
+                                                 self$getLrMapper(), "pdf",
                                                  sep = "."))
       pdf(file = gfile, width = 8 * length(hptypes), height = 8,
           onefile = TRUE, title = paste(self$getLocus(), self$getSampleId(),

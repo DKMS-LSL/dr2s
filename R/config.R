@@ -36,7 +36,8 @@ create_dr2s_conf <- function(sample,
     filterScores = filterScores,
     partSR = partSR,
     forceBadMapping = forceBadMapping,
-    mapper     = conf0$mapper   %||% "minimap",
+    lrmapper     = conf0$lrmapper   %||% "minimap",
+    srmapper     = conf0$srmapper   %||% "bwamem",
     # limitA     = conf0$limitA   %||% NULL,
     # limitB     = conf0$limitB   %||% NULL,
     limits     = conf0$limits   %||% NULL,
@@ -67,7 +68,8 @@ read_dr2s_conf <- function(config_file) {
   conf$filterScores <- conf$filterScores %||% TRUE
   conf$partSR <- conf$partSR %||% TRUE
   conf$forceBadMapping <- forceBadMapping %||% FALSE
-  conf$mapper     <- conf$mapper     %||% "minimap"
+  conf$lrmapper     <- conf$lrmapper     %||% "minimap"
+  conf$srmapper     <- conf$srmapper     %||% "bwamem"
   # conf["limitA"]  <- conf$limitA     %||% list(NULL)
   # conf["limitB"]  <- conf$limitN     %||% list(NULL)
   conf$limits     <- conf$limits     %||% list(NULL)
@@ -146,7 +148,7 @@ initialise_dr2s <- function(conf, create_outdir = TRUE) {
 }
 
 validate_dr2s_conf <- function(conf) {
-  fields <- c("datadir", "outdir", "threshold", "iterations", "microsatellite", "dist_alleles", "filterScores", "partSR", "forceBadMapping", "mapper", "limits", "haptypes",
+  fields <- c("datadir", "outdir", "threshold", "iterations", "microsatellite", "dist_alleles", "filterScores", "partSR", "forceBadMapping", "lrmapper", "srmapper", "limits", "haptypes",
               "pipeline", "longreads", "shortreads", "nreads", "opts",
               "sample_id", "locus", "reference", "alternate", "consensus")#"limitA", "limitB",
   if (!all(fields %in% names(conf))) {
@@ -183,7 +185,8 @@ validate_dr2s_conf <- function(conf) {
     stop("forceBadMapping must be logical", call. = FALSE)
   }
   ## Check mapper
-  conf$mapper <- match.arg(conf$mapper, c("bwamem", "graphmap", "minimap"))
+  conf$lrmapper <- match.arg(conf$lrmapper, c("bwamem", "graphmap", "minimap"))
+  conf$srmapper <- match.arg(conf$srmapper, c("bwamem", "graphmap", "minimap"))
   ## Check pipeline
   pipesteps <- c("clear", "cache", "mapInit", "mapIter", "mapFinal",
                  "partition", "split", "extract", "polish", "report")

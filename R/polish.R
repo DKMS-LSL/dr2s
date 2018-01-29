@@ -54,7 +54,7 @@ polish.DR2S <- function(x, threshold = x$getThreshold(),
     if (!is.null(menv$hptypes[[hptype]]$phasemat)){
       file <- file.path(x$getOutdir(), paste("plot4.phasing",
                                              hptype, x$getLrdType(),
-                                             x$getMapper(), "pdf", sep = "."))
+                                             x$getLrMapper(), "pdf", sep = "."))
       pdf(file, width = 16, height = 10, onefile = TRUE)
       p <- phaseplot(menv$hptypes[[hptype]]$phasemat) +
         ggplot2::ggtitle(paste0("Short read phasing A ", hptype))

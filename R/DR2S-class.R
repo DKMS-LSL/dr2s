@@ -45,7 +45,7 @@ DR2Smap.DR2Sconf <- function(sample) DR2S_$new(conf)
 #' @export
 cache.DR2S <- function(x, outname, ...) {
   if (missing(outname)) {
-    outname <- paste("DR2S", x$getLrdType(), x$getMapper(), "rds", sep = ".")
+    outname <- paste("DR2S", x$getLrdType(), x$getLrMapper(), "rds", sep = ".")
   }
   x$cache(outname = outname)
   invisible(x)
@@ -159,7 +159,7 @@ DR2S_ <- R6::R6Class(
     },
     cache = function(outname) {
       if (missing(outname)) {
-        outname <- paste("DR2S", self$getLrdType(), self$getMapper(), "rds", sep = ".")
+        outname <- paste("DR2S", self$getLrdType(), self$getLrMapper(), "rds", sep = ".")
       }
       path <- file.path(self$getOutdir(), outname)
       message("\nCaching ", dQuote(path), "\n")
@@ -195,7 +195,7 @@ DR2S_ <- R6::R6Class(
       cat(sprintf(fmt1,
         self$getReference(),
         if (is.null(self$getAlternate())) "" else paste0(", ", self$getAlternate()),
-        self$getLrdType(), self$getSrdType(), self$getMapper(), self$getDatadir(), self$getOutdir()
+        self$getLrdType(), self$getSrdType(), self$getLrMapper(), self$getDatadir(), self$getOutdir()
       ))
       invisible(self)
     },
@@ -326,8 +326,12 @@ DR2S_ <- R6::R6Class(
       readpath
     },
     ##
-    getMapper = function() {
-      self$getConfig("mapper")
+    getLrMapper = function() {
+      self$getConfig("lrmapper")
+    },
+    ##
+    getSrMapper = function() {
+      self$getConfig("srmapper")
     },
     ##
     getLimits = function() {
@@ -567,8 +571,12 @@ DR2S_ <- R6::R6Class(
       invisible(self)
     },
     ##
-    getMapFun = function() {
-      match.fun(paste0("run_", self$getMapper()))
+    getLrMapFun = function() {
+      match.fun(paste0("run_", self$getLrMapper()))
+    },
+    ##
+    getSrMapFun = function() {
+      match.fun(paste0("run_", self$getSrMapper()))
     },
     ##
     ## Predicate methods ####
