@@ -218,6 +218,9 @@ is.freq.consmat <- function(x) attr(x, "freq")
 
 #' @keywords internal
 #' @export
+
+## Note for me: flattens the matrix; compare rowsum to rowsums upstream of pos;
+## if > t set all to 0
 prune_consensus_matrix <- function(cm, n_look_behind = 36, cutoff = 0.6, verbose = TRUE) {
   rowsum <- rowSums(cm[, 1:4]) ## only consider bases
   m0 <- do.call(cbind, Map(function(n) dplyr::lag(rowsum, n), n_look_behind:1))
@@ -262,44 +265,31 @@ create_PWM <- function(msa){
 }
 
 
+.distributeGaps <- function(mat, cleanBackgroundError = FALSE){
+  seq <- .mat2rle(mat)
+  for (i in which(seq$length > 1)) {
+    seqStart <- sum(seq$lengths[1:(i-1)])+1
+    seqEnd <- seqStart+seq$lengths[i]-1
+    mat[seqStart:seqEnd,"-"] <- sum(mat[seqStart:seqEnd,"-"])/seq$lengths[i]
+  }
+  if (cleanBackgroundError){
+    backgroundGapError <- .getGapErrorBackground(mat)
+    newGapError <- apply(mat, 1, function(x) sum(x)*backgroundGapError)#
+    mat[,"-"] <- round(mat[,"-"] - newGapError)
+  }
+  mat[which(mat[,"-"] < 0),"-"] <- 0
+  mat
+}
 
-
-# Position specific distance matrix
-## Better use cpp_PSDM
-# PSDM <- function(xseqs, xcons){
-#   xseqsmat <- as.matrix(x_sub[1:4])
-#   # upper <- unlist(sapply(1:nrow(xseqsmat), function(r) callPSDM(xcons, xseqsmat, r)))
-#   upper <- unlist(sapply(1:3, function(r) callPSDM(xcons, xseqsmat, r)))
-#   upper <- unlist(sapply(1:nrow(xseqsmat), function(r) callPSDM(xcons, xseqsmat, r)))
-#   dist <- matrix(NA, nrow(xseqsmat), nrow(xseqsmat))
-#   dist[lower.tri(dist, diag <- TRUE)] <- upper
-#   rownames(dist) <- rownames(xseqsmat)
-#   colnames(dist) <- rownames(xseqsmat)
-#   as.dist(dist)
-# }
-#
-# callPSDM <- function(xcons, xseqsmat, r){
-#   l <- r:nrow(xseqsmat)
-#   sapply(l, function(a) PSDM_cell(xcons, xseqsmat, r, a))
-# }
-#
-# PSDM_cell <- function(xcons, xseqsmat, r, a){
-#   xr <- xseqsmat[r,]
-#   xa <- xseqsmat[a,]
-#   b <- sapply(1:length(xr), function(x) PSDM_score(x, xcons, xr[x], xa[x]))
-#   n <- length(xr) - sum(b == 1)
-#   b[b == 1] <- 0
-#   sum(b)/n
-# }
-#
-# PSDM_score <- function(x, xcons, r, a){
-#    if (r == a){
-#      return(0)
-#    }
-#   else if(r == "-" || a == "-"){
-#     return(1)
-#   }
-#   else {
-#     return(xcons[r,x]*xcons[a,x])
-#    }
-# }
+.getGapErrorBackground <- function(mat,n = 5){
+  seq <- .mat2rle(mat)
+  consecutiveRegions <- rle((seq$lengths > n))
+  longestRegion <- which.max(consecutiveRegions$lengths)
+  startSeq <- sum(consecutiveRegions$lengths[1:(longestRegion-1)])
+  endSeq <- startSeq + consecutiveRegions$lengths[longestRegion] - 1
+  ## Add an offset of 10 to acknowledge bad quality after homopolymer regions
+  startSeq <- startSeq + 10
+  background <- mat[startSeq:endSeq,]
+  backgroundSums <- colSums(background)
+  backgroundSums["-"] / sum(backgroundSums)
+}
