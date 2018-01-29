@@ -31,9 +31,9 @@ x <- DR2Smap(
   ) \%>\%
   clear() \%>\%
   mapInit() \%>\%
-  partition_haplotypes() \%>\%
-  split_reads_by_haplotype() \%>\%
-  extract_fastq() \%>\%
+  partitionLongReads() \%>\%
+  splitReadsByHaplotype() \%>\%
+  extractFastq() \%>\%
   mapIter() \%>\%
   partitionShortReads() \%>\%
   mapFinal() \%>\%

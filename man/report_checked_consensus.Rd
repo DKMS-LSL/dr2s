@@ -25,9 +25,8 @@ and a html alignment file \code{aln.\{readtype\}.\{mapper\}.checked.html}.
 \seealso{
 Other DR2S mapper functions: \code{\link{DR2Smap}},
   \code{\link{cache}}, \code{\link{clear}},
-  \code{\link{extract_fastq}}, \code{\link{mapFinal}},
+  \code{\link{extractFastq}}, \code{\link{mapFinal}},
   \code{\link{mapInit}}, \code{\link{mapIter}},
-  \code{\link{partition_haplotypes}}, \code{\link{polish}},
-  \code{\link{report}},
-  \code{\link{split_reads_by_haplotype}}
+  \code{\link{partitionLongReads}}, \code{\link{polish}},
+  \code{\link{report}}, \code{\link{splitReadsByHaplotype}}
 }

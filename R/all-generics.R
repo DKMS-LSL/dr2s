@@ -71,9 +71,9 @@
 #'   ) %>%
 #'   clear() %>%
 #'   mapInit() %>%
-#'   partition_haplotypes() %>%
-#'   split_reads_by_haplotype() %>%
-#'   extract_fastq() %>%
+#'   partitionLongReads() %>%
+#'   splitLongReads() %>%
+#'   extractFastq() %>%
 #'   mapIter() %>%
 #'   partitionShortReads() %>%
 #'   mapFinal() %>%
@@ -142,9 +142,9 @@ DR2Smap <- function(sample,
 #'   ) %>%
 #'   clear() %>%
 #'   mapInit() %>%
-#'   partition_haplotypes() %>%
-#'   split_reads_by_haplotype() %>%
-#'   extract_fastq() %>%
+#'   partitionLongReads() %>%
+#'   splitReadsByHaplotype() %>%
+#'   extractFastq() %>%
 #'   mapIter() %>%
 #'   partitionShortReads() %>%
 #'   mapFinal() %>%
@@ -152,21 +152,21 @@ DR2Smap <- function(sample,
 #'   report(block_width = 60)
 #' }
 mapInit <- function(x,
-                 opts = list(),
-                 refname = "ref",
-                 optsname = "",
-                 pct = 100,
-                 threshold = 0.20,
-                 min_base_quality = 7,
-                 min_mapq = 0,
-                 max_depth = 1e4,
-                 min_nucleotide_depth = 3,
-                 include_deletions = FALSE,
-                 include_insertions = FALSE,
-                 force = FALSE,
-                 fullname = TRUE,
-                 plot = TRUE,
-                 ...) {
+                    opts = list(),
+                    refname = "ref",
+                    optsname = "",
+                    pct = 100,
+                    threshold = 0.20,
+                    min_base_quality = 7,
+                    min_mapq = 0,
+                    max_depth = 1e4,
+                    min_nucleotide_depth = 3,
+                    include_deletions = FALSE,
+                    include_insertions = FALSE,
+                    force = FALSE,
+                    fullname = TRUE,
+                    plot = TRUE,
+                    ...) {
   UseMethod("mapInit")
 }
 
@@ -210,9 +210,9 @@ mapInit <- function(x,
 #'   ) %>%
 #'   clear() %>%
 #'   mapInit() %>%
-#'   partition_haplotypes() %>%
-#'   split_reads_by_haplotype(limitA = 0.5, limitB = 0.25) %>%
-#'   extract_fastq() %>%
+#'   partitionLongReads() %>%
+#'   splitReadsByHaplotype(limitA = 0.5, limitB = 0.25) %>%
+#'   extractFastq() %>%
 #'   mapIter() %>%
 #'   mapFinal() %>%
 #'   cache() %>%
@@ -231,9 +231,9 @@ mapInit <- function(x,
 #'   ) %>%
 #'   clear() %>%
 #'   mapInit() %>%
-#'   partition_haplotypes() %>%
-#'   split_reads_by_haplotype() %>%
-#'   extract_fastq() %>%
+#'   partitionLongReads() %>%
+#'   splitReadsByHaplotype() %>%
+#'   extractFastq() %>%
 #'   mapIter() %>%
 #'   partitionShortReads() %>%
 #'   mapFinal() %>%
@@ -241,19 +241,19 @@ mapInit <- function(x,
 #'   report(block_width = 60)
 #' }
 mapIter <- function(x,
-                 opts = list(),
-                 pct = 100,
-                 min_base_quality = 7,
-                 min_mapq = 0,
-                 max_depth = 1e4,
-                 min_nucleotide_depth = 3,
-                 include_deletions = TRUE,
-                 include_insertions = TRUE,
-                 pruning_cutoff = 0.75,
-                 force = FALSE,
-                 fullname = TRUE,
-                 plot = TRUE,
-                 ...) {
+                    opts = list(),
+                    pct = 100,
+                    min_base_quality = 7,
+                    min_mapq = 0,
+                    max_depth = 1e4,
+                    min_nucleotide_depth = 3,
+                    include_deletions = TRUE,
+                    include_insertions = TRUE,
+                    pruning_cutoff = 0.75,
+                    force = FALSE,
+                    fullname = TRUE,
+                    plot = TRUE,
+                    ...) {
   UseMethod("mapIter")
 }
 
@@ -299,9 +299,9 @@ mapIter <- function(x,
 #'   ) %>%
 #'   clear() %>%
 #'   mapInit() %>%
-#'   partition_haplotypes() %>%
+#'   partitionLongReads() %>%
 #'   split_reads_by_haplotype() %>%
-#'   extract_fastq() %>%
+#'   extractFastq() %>%
 #'   mapIter() %>%
 #'   partitionShortReads() %>%
 #'   mapFinal() %>%
@@ -309,20 +309,20 @@ mapIter <- function(x,
 #'   report(block_width = 60)
 #' }
 mapFinal <- function(x,
-                 opts = list(),
-                 pct = 100,
-                 min_base_quality = 7,
-                 min_mapq = 0,
-                 max_depth = 1e5,
-                 min_nucleotide_depth = 3,
-                 include_deletions = TRUE,
-                 include_insertions = TRUE,
-                 include_read_ids = TRUE,
-                 force = FALSE,
-                 fullname = TRUE,
-                 plot = TRUE,
-                 clip = TRUE,
-                 ...) {
+                     opts = list(),
+                     pct = 100,
+                     min_base_quality = 7,
+                     min_mapq = 0,
+                     max_depth = 1e5,
+                     min_nucleotide_depth = 3,
+                     include_deletions = TRUE,
+                     include_insertions = TRUE,
+                     include_read_ids = TRUE,
+                     force = FALSE,
+                     fullname = TRUE,
+                     plot = TRUE,
+                     clip = TRUE,
+                     ...) {
   UseMethod("mapFinal")
 }
 
@@ -353,20 +353,20 @@ mapFinal <- function(x,
 #'   ) %>%
 #'   clear() %>%
 #'   mapInit() %>%
-#'   partition_haplotypes() %>%
-#'   split_reads_by_haplotype(limitA = 0.5, limitB = 0.25) %>%
-#'   extract_fastq() %>%
+#'   partitionLongReads() %>%
+#'   splitReadsByHaplotype(limitA = 0.5, limitB = 0.25) %>%
+#'   extractFastq() %>%
 #'   mapIter() %>%
 #'   mapFinal() %>%
 #'   cache() %>%
 #'   polish() %>%
 #'   report(block_width = 60)
 #' }
-partition_haplotypes <- function(x,
-                                 max_depth = 1e4,
-                                 plot = TRUE,
-                                 ...) {
-  UseMethod("partition_haplotypes")
+partitionLongReads <- function(x,
+                               max_depth = 1e4,
+                               plot = TRUE,
+                               ...) {
+  UseMethod("partitionLongReads")
 }
 
 #' Partition mapped long reads into haplotypes
@@ -390,19 +390,19 @@ partition_haplotypes <- function(x,
 #'   ) %>%
 #'   clear() %>%
 #'   mapInit() %>%
-#'   partition_haplotypes() %>%
-#'   split_reads_by_haplotype() %>%
-#'   extract_fastq() %>%
+#'   partitionLongReads() %>%
+#'   splitReadsByHaplotype() %>%
+#'   extractFastq() %>%
 #'   mapIter() %>%
 #'   partitionShortReads() %>%
 #'   mapFinal() %>%
 #'   polish() %>%
 #'   report(block_width = 60)
 #' }
-split_reads_by_haplotype <- function(x,
-                                     limits,
-                                     ...) {
-  UseMethod("split_reads_by_haplotype")
+splitReadsByHaplotype <- function(x,
+                                  limits,
+                                  ...) {
+  UseMethod("splitReadsByHaplotype")
 }
 
 #' Extract FASTQs for partitioned reads
@@ -425,17 +425,17 @@ split_reads_by_haplotype <- function(x,
 #'   ) %>%
 #'   clear() %>%
 #'   mapInit() %>%
-#'   partition_haplotypes() %>%
-#'   split_reads_by_haplotype() %>%
-#'   extract_fastq() %>%
+#'   partitionLongReads() %>%
+#'   splitReadsByHaplotype() %>%
+#'   extractFastq() %>%
 #'   mapIter() %>%
 #'   partitionShortReads() %>%
 #'   mapFinal() %>%
 #'   polish() %>%
 #'   report(block_width = 60)
 #' }
-extract_fastq <- function(x, ...) {
-  UseMethod("extract_fastq")
+extractFastq <- function(x, ...) {
+  UseMethod("extractFastq")
 }
 
 #' Assign short reads from mapInit to haplotypes
@@ -459,9 +459,9 @@ extract_fastq <- function(x, ...) {
 #'   ) %>%
 #'   clear() %>%
 #'   mapInit() %>%
-#'   partition_haplotypes() %>%
-#'   split_reads_by_haplotype() %>%
-#'   extract_fastq() %>%
+#'   partitionLongReads() %>%
+#'   splitReadsByHaplotype() %>%
+#'   extractFastq() %>%
 #'   mapIter() %>%
 #'   partitionShortReads() %>%
 #'   mapFinal() %>%
@@ -470,7 +470,7 @@ extract_fastq <- function(x, ...) {
 #' }
 partitionShortReads <- function(x,
                                 force = TRUE,
-                                 ...) {
+                                ...) {
   UseMethod("partitionShortReads")
 }
 
@@ -501,8 +501,8 @@ partitionShortReads <- function(x,
 #'   clear() %>%
 #'   mapInit() %>%
 #'   partition_haplotypes() %>%
-#'   split_reads_by_haplotype() %>%
-#'   extract_fastq() %>%
+#'   splitReadsByHaplotype() %>%
+#'   extractFastq() %>%
 #'   mapIter() %>%
 #'   partitionShortReads() %>%
 #'   mapFinal() %>%
@@ -549,9 +549,9 @@ polish <- function(x, threshold = x$getThreshold(), lower_limit = 0.6, cache = T
 #'   ) %>%
 #'   clear() %>%
 #'   mapInit() %>%
-#'   partition_haplotypes() %>%
-#'   split_reads_by_haplotype() %>%
-#'   extract_fastq() %>%
+#'   partitionLongReads() %>%
+#'   splitReadsByHaplotype() %>%
+#'   extractFastq() %>%
 #'   mapIter() %>%
 #'   partitionShortReads() %>%
 #'   mapFinal() %>%
@@ -586,9 +586,9 @@ report <- function(x, which, block_width = 80, ...) {
 #'   ) %>%
 #'   clear() %>%
 #'   mapInit() %>%
-#'   partition_haplotypes() %>%
-#'   split_reads_by_haplotype() %>%
-#'   extract_fastq() %>%
+#'   partitionLongReads() %>%
+#'   splitReadsByHaplotype() %>%
+#'   extractFastq() %>%
 #'   mapIter() %>%
 #'   partitionShortReads() %>%
 #'   mapFinal() %>%
@@ -619,9 +619,9 @@ clear <- function(x, ...) {
 #'   ) %>%
 #'   clear() %>%
 #'   mapInit() %>%
-#'   partition_haplotypes() %>%
-#'   split_reads_by_haplotype() %>%
-#'   extract_fastq() %>%
+#'   partitionLongReads() %>%
+#'   splitReadsByHaplotype() %>%
+#'   extractFastq() %>%
 #'   mapIter() %>%
 #'   partitionShortReads() %>%
 #'   mapFinal() %>%

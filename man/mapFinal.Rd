@@ -5,7 +5,7 @@
 \title{Final mapping step (long reads and short reads).}
 \usage{
 mapFinal(x, opts = list(), pct = 100, min_base_quality = 7,
-  min_mapq = 0, max_depth = 1e+05, min_nucleotide_depth = 3,
+  min_mapq = 0, max_depth = 100000, min_nucleotide_depth = 3,
   include_deletions = TRUE, include_insertions = TRUE,
   include_read_ids = TRUE, force = FALSE, fullname = TRUE, plot = TRUE,
   clip = TRUE, ...)
@@ -66,9 +66,9 @@ x <- DR2Smap(
   ) \%>\%
   clear() \%>\%
   mapInit() \%>\%
-  partition_haplotypes() \%>\%
+  partitionLongReads() \%>\%
   split_reads_by_haplotype() \%>\%
-  extract_fastq() \%>\%
+  extractFastq() \%>\%
   mapIter() \%>\%
   partitionShortReads() \%>\%
   mapFinal() \%>\%
@@ -79,10 +79,9 @@ x <- DR2Smap(
 \seealso{
 Other DR2S mapper functions: \code{\link{DR2Smap}},
   \code{\link{cache}}, \code{\link{clear}},
-  \code{\link{extract_fastq}}, \code{\link{mapInit}},
-  \code{\link{mapIter}},
-  \code{\link{partition_haplotypes}}, \code{\link{polish}},
+  \code{\link{extractFastq}}, \code{\link{mapInit}},
+  \code{\link{mapIter}}, \code{\link{partitionLongReads}},
+  \code{\link{polish}},
   \code{\link{report_checked_consensus}},
-  \code{\link{report}},
-  \code{\link{split_reads_by_haplotype}}
+  \code{\link{report}}, \code{\link{splitReadsByHaplotype}}
 }
