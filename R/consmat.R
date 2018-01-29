@@ -264,20 +264,20 @@ create_PWM <- function(msa){
   cmat
 }
 
-
-.distributeGaps <- function(mat, cleanBackgroundError = FALSE){
+.distributeGaps <- function(mat, removeError = FALSE){
   seq <- .mat2rle(mat)
-  for (i in which(seq$length > 1)) {
-    seqStart <- sum(seq$lengths[1:(i-1)])+1
-    seqEnd <- seqStart+seq$lengths[i]-1
-    mat[seqStart:seqEnd,"-"] <- sum(mat[seqStart:seqEnd,"-"])/seq$lengths[i]
-  }
-  if (cleanBackgroundError){
+  if (removeError){
+    for (i in which(seq$length > 1)) {
+      seqStart <- sum(seq$lengths[1:(i-1)])+1
+      seqEnd <- seqStart+seq$lengths[i]-1
+      mat[seqStart:seqEnd,"-"] <- sum(mat[seqStart:seqEnd,"-"])/seq$lengths[i]
+    }
     backgroundGapError <- .getGapErrorBackground(mat)
     newGapError <- apply(mat, 1, function(x) sum(x)*backgroundGapError)#
     mat[,"-"] <- round(mat[,"-"] - newGapError)
+    mat[which(mat[,"-"] < 0),"-"] <- 0
   }
-  mat[which(mat[,"-"] < 0),"-"] <- 0
+  .moveGapsToLeft(mat)
   mat
 }
 
@@ -292,4 +292,26 @@ create_PWM <- function(msa){
   background <- mat[startSeq:endSeq,]
   backgroundSums <- colSums(background)
   backgroundSums["-"] / sum(backgroundSums)
+}
+
+.moveGapsToLeft <- function(mat){
+  seq <- .mat2rle(mat)
+  for (i in which(seq$length > 1)) {
+    seqStart <- sum(seq$lengths[1:(i-1)])+1
+    seqEnd <- seqStart+seq$lengths[i]-1
+
+    ## Assign new gap numbers to each position starting from left
+    meanCoverage <- mean(rowSums(mat[seqStart:seqEnd,1:4]))
+    gaps <- sum(mat[seqStart:seqEnd, "-"])
+    idx <- 0
+    while(gaps > 0){
+      gapsAtPos <- min(gaps, meanCoverage)
+      mat[(seqStart+idx),"-"] <- gapsAtPos
+      gaps <- gaps - gapsAtPos
+    }
+    newSeqStart <- seqStart + idx + 1
+    if (seqEnd > newSeqStart)
+      mat[newSeqStart:seqEnd, "-"] <- 0
+  }
+  mat
 }

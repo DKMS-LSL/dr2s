@@ -78,7 +78,7 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
   # plot = TRUE
   # microsatellite = TRUE
   # forceBadMapping = FALSE
-  # filterScores = TRUE
+  # filterScores = FALSE
   # library(ggplot2)
   # library(foreach)
   # library(futile.logger)
@@ -204,10 +204,9 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
       include_insertions = include_insertions
     )
     if (include_insertions && is.null(ins(pileup$consmat))) {
-      pileup <- pileup_include_insertions(pileup, threshold = 0.05)
+      pileup <- pileup_include_insertions(pileup, threshold = 0.1)
     }
-    pileup$consmat <- .distributeGaps(pileup$consmat,
-                                      cleanBackgroundError = FALSE)
+    pileup$consmat <- .distributeGaps(pileup$consmat, removeError = FALSE)
 
     # debug
     # pileup$consmat[which(pileup$consmat[,6] > 15),]
@@ -314,10 +313,9 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
       )
 
       if (include_insertions && is.null(ins(pileup$consmat))) {
-        pileup <- pileup_include_insertions(pileup, threshold = 0.05)
+        pileup <- pileup_include_insertions(pileup, threshold = 0.1)
       }
-      pileup$consmat <- .distributeGaps(pileup$consmat,
-                                        cleanBackgroundError = FALSE)
+      pileup$consmat <- .distributeGaps(pileup$consmat, removeError = FALSE)
 
       # Infer initial consensus
       flog.info("   Construct second consensus from shortreads with refined
@@ -397,8 +395,7 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
       include_deletions = include_deletions,
       include_insertions = include_insertions
     )
-    pileup$consmat <- .distributeGaps(pileup$consmat,
-                                      cleanBackgroundError = FALSE)
+    pileup$consmat <- .distributeGaps(pileup$consmat, removeError = FALSE)
 
     mapInitSR2 = structure(
       list(
@@ -466,8 +463,7 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
     include_deletions = TRUE,
     include_insertions = FALSE
   )
-  pileup$consmat <- .distributeGaps(pileup$consmat,
-                                    cleanBackgroundError = TRUE)
+  pileup$consmat <- .distributeGaps(pileup$consmat, removeError = TRUE)
 
   self$mapInit = structure(
     list(
@@ -972,7 +968,7 @@ DR2S_$set("public", "runMapIter", function(opts = list(),
     cmat <- t(Biostrings::consensusMatrix(mat[readIds],
                                         as.prob = TRUE)[VALID_DNA(
                                           include = "indel"),])
-    cmat <- .distributeGaps(cmat, cleanBackgroundError = TRUE)
+    cmat <- .distributeGaps(cmat, removeError = TRUE)
     conseq_name <- paste0("consensus.mapIter.0.", hptype)
     conseq <- conseq(x = cmat, name = conseq_name, type = "prob",
                      force_exclude_gaps = FALSE, prune_matrix = FALSE,
@@ -1091,17 +1087,16 @@ DR2S_$set("public", "runMapIter", function(opts = list(),
         include_insertions = include_insertions
       )
       if (include_insertions && is.null(ins(pileup$consmat))) {
-        pileup <- pileup_include_insertions(x = pileup, threshold = 0.1)
+        pileup <- pileup_include_insertions(x = pileup, threshold = 0.2)
       }
-      pileup$consmat <- .distributeGaps(pileup$consmat,
-                                        cleanBackgroundError = TRUE)
+      pileup$consmat <- .distributeGaps(pileup$consmat, removeError = TRUE)
       self$mapIter[[iterationC]][[hptype]]$pileup = pileup
 
       # ## Construct consensus sequence
       flog.info("   Constructing a consensus ...", name = "info")
       conseq_name <- paste0("consensus.", sub(".sam.gz", "", basename(samfile)))
       conseq      <- conseq(x = pileup, name = conseq_name, type = "prob",
-                            exclude_gaps = TRUE, prune_matrix = FALSE,
+                            exclude_gaps = FALSE, prune_matrix = FALSE,
                             cutoff = pruning_cutoff)
       seqpath     <- file.path(outdir, paste0(conseq_name, ".fa"))
       self$mapIter[[iterationC]][[hptype]]$seqpath = seqpath
@@ -1501,8 +1496,7 @@ DR2S_$set("public", "runMapFinal", function(opts = list(),
       include_deletions = include_deletions,
       include_insertions = TRUE
     )
-    pileup$consmat <- .distributeGaps(pileup$consmat,
-                                      cleanBackgroundError = TRUE)
+    pileup$consmat <- .distributeGaps(pileup$consmat, removeError = TRUE)
     self$mapFinal$pileup[[mapgroupLR]] = pileup
 
     ## Set maptag
@@ -1608,10 +1602,9 @@ DR2S_$set("public", "runMapFinal", function(opts = list(),
       }
 
       if (include_insertions && is.null(ins(pileup$consmat))) {
-        pileup <- pileup_include_insertions(pileup)
+        pileup <- pileup_include_insertions(pileup, threshold = 0.1)
       }
-      pileup$consmat <- .distributeGaps(pileup$consmat,
-                                        cleanBackgroundError = FALSE)
+      pileup$consmat <- .distributeGaps(pileup$consmat, removeError = FALSE)
       self$mapFinal$pileup[[mapgroupSR]] = pileup
 
       ## Set maptag
