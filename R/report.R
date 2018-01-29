@@ -210,8 +210,210 @@ check_report_status <- function(x){
   }
   return(x$getReportStatus())
 }
+refineAlignment <- function(x, hptype){
+
+  ## Overide default arguments
+  args <- x$getOpts("refineMapping")
+  if (!is.null(args)) {
+    env  <- environment()
+    list2env(args, envir = env)
+  }
+
+  ## stop if no shortreads provided
+  if (is.null(x$getConfig("shortreads"))) {
+    flog.warn(" Cannot refine mapping. No shortreads provided", name = "info")
+    return(invisible(x))
+  }
+
+  x$consensus$refine <- list(
+    mapgroup = list(),
+    bamfile = list(),
+    consensus = list(),
+    ref = list()
+  )
+  reftag    <- "refine"
+  outdir    <- dir_create_if_not_exists(file.path(x$getOutdir(), reftag))
+  readpathLR  <- x$mapFinal$lreads[hptype]
+  refpath   <- .getUpdatedSeqs(x, hptype)
+  x$consensus$refine$ref[[hptype]] <- refpath
+  names(refpath) <- hptype
+  readpathSR <- x$mapFinal$sreads[hptype]
+
+
+  ## Remap long reads to the same reference sequences as short reads
+  flog.info(" Refine mapping for haplotype %s ...", hptype, name = "info" )
+  mapgroupLR <- paste0("LR", hptype)
+  maptagLR   <- paste("refine", mapgroupLR, x$getLrdType(),
+                      x$getLrMapper(), sep = ".")
+  ## Mapper
+  map_fun <- x$getLrMapFun()
+  ## Run mapper
+  flog.info("   Mapping long reads against final consensus sequence ...",
+            name = "info")
+  samfile <- map_fun(
+    reffile  = refpath,
+    readfile = readpathLR,
+    allele   = mapgroupLR,
+    readtype = x$getLrdType(),
+    refname  = hptype,
+    opts     = list(
+      x = "map-pb -a --cs -c",
+#-c -H -Q -Y",
+
+      k = 10,
+      w = 3,
+      N = 500
+      ),
+    force    = TRUE,
+    outdir   = outdir
+  )
+
+  ## Run bam - sort - index pipeline
+  flog.info("  Indexing ...", name = "info")
+  bamfile <- bam_sort_index(
+    samfile = samfile,
+    reffile = refpath,
+    force   = TRUE
+  )
+  x$consensus$refine$bamfile[[mapgroupLR]] = bamfile
+
+  # ## Calculate pileup from graphmap produced SAM file
+  # flog.info("  Piling up ...", name = "info")
+  # pileup <- Pileup(
+  #   bamfile,
+  #   x$getThreshold(),
+  #   include_deletions = TRUE,
+  #   include_insertions = TRUE
+  # )
+  ## Map short reads
+  if (!is.null(readpathSR)){
+    mapgroupSR <- paste0("SR", hptype)
+    maptagSR   <- paste("refine", mapgroupSR, x$getLrdType(),
+                        x$getSrMapper(), sep = ".")
+
+    readfiles <- unlist(readpathSR)
+    ## Mapper
+    map_fun <- x$getLrMapFun()
+
+    ## Run mapper
+    flog.info("  Mapping short reads against final consensus ...",
+              name = "info")
+    samfile <- map_fun(
+      reffile  = refpath,
+      readfile = readfiles,
+      allele   = mapgroupSR,
+      readtype = x$getSrdType(),
+      refname  = hptype,
+      opts     = list(
+        x      = "sr",
+        k      = 6,
+        w = 2,
+        A = 2,
+        B = 8,
+        O = "12,32",
+        E = "2,1",
+        r = 50,
+        p = 0.5,
+        N = 500
+      ),
+      outdir   = outdir,
+      force    = TRUE
+
+    )
+
+    # if (clip) {
+    #   flog.info(" Trimming softclips and polymorphic ends ...", name = "info")
+    #   ## Run bam - sort - index pipeline
+    #   bamfile <- bam_sort_index(samfile, refpath, pct / 100, min_mapq,
+    #                             force = force, clean = TRUE)
+    #   ## Trim softclips
+    #   fq <- trim_softclipped_ends(bam = Rsamtools::scanBam(bamfile)[[1]],
+    #                               preserve_ref_ends = TRUE)
+    #   ## Trim polymorphic ends
+    #   fq <- trim_polymorphic_ends(fq)
+    #   ## Write new shortread file to disc
+    #   fqdir  <- dir_create_if_not_exists(file.path(self$getOutdir(), "final"))
+    #   fqfile <- paste("sread", hptype, self$getSrMapper(), "trimmed", "fastq",
+    #                   "gz", sep = ".")
+    #   fqout  <- file_delete_if_exists(file.path(fqdir, fqfile))
+    #   ShortRead::writeFastq(fq, fqout, compress = TRUE)
+    #   file_delete_if_exists(bamfile)
+    #   ## Rerun mapper
+    #   flog.info("  Mapping trimmed short reads against latest consensus ... ",
+    #             name = "info")
+    #   samfile <- map_fun(
+    #     reffile  = refpath,
+    #     readfile = fqout,
+    #     allele   = paste0(mapgroupSR, ".", self$getLrdType()),
+    #     readtype = self$getSrdType(),
+    #     opts     = list(A = 1, B = 4, O = 2),
+    #     refname  = hptype,
+    #     optsname = optstring(opts),
+    #     force    = force,
+    #     outdir   = outdir
+    #   )
+    #   # cleanup
+    #   file_delete_if_exists(fqout)
+    # }
+
+    ## Run bam - sort - index pipeline
+    flog.info("  Indexing ...", name = "info")
+    bamfile <- bam_sort_index(
+      samfile,
+      refpath,
+      force = TRUE
+    )
+    x$consensus$refine$bamfile[[mapgroupSR]] = bamfile
+
+    ## Calculate pileup from graphmap produced SAM file
+    flog.info("  Piling up ...", name = "info")
+    pileup <- Pileup(
+      bamfile,
+      x$getThreshold(),
+      include_deletions = TRUE,
+      include_insertions = TRUE
+    )
+    pileup <- pileup_include_read_ids(pileup)
+    pileup <- pileup_include_insertions(pileup)
+  }
+
+  # calc new consensus
+  cseq <- conseq(pileup$consmat, paste0("refine", hptype), "ambig",
+                 exclude_gaps = FALSE, threshold = x$getThreshold())
+  x$consensus$refine$consensus[[hptype]] <- cseq
+  invisible(x)
+}
+
+
+
+
 
 # Helpers -----------------------------------------------------------------
+
+.getUpdatedSeqs <- function(x, hptype){
+  ending <- ifelse(length(x$getHapTypes()) == 2, "psa", "msa")
+  pairfile_checked <- paste("mapfinal.aln", x$getLrdType(), x$getLrMapper(),
+                              "checked", ending, sep = ".")
+  pairfile_checked <- normalizePath(file.path(x$getOutdir(), "report",
+                                                pairfile_checked),
+                                      mustWork = FALSE)
+  rs <- readPairFile(pairfile_checked)
+  seqs <- Biostrings::DNAStringSet(
+    sapply(rs, function(s) Biostrings::DNAString(gsub("-", "", s))))
+
+  ## Export FASTA
+  seq <- seqs[paste0("hap", hptype)]
+  file <- paste(names(seq), x$getLrdType(), x$getLrMapper(), "refined", "fa", sep = ".")
+  names(seq) <- paste0(names(seq), " LOCUS=", x$getLocus(), ";REF=",
+                          x$getReference())
+  seqPath <- file.path(outdir, file)
+  Biostrings::writeXStringSet(
+    seq,
+    filepath = seqPath,
+    format = "fasta"
+  )
+  seqPath
+}
 
 readPairFile <- function(pairfile) {
 
