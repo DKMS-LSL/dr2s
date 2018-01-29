@@ -920,7 +920,7 @@ DR2S_$set("public", "runMapIter", function(opts = list(),
   # force = FALSE
   # fullname = TRUE
   # plot = TRUE
-  # iterations = 1
+  # iterations = 2
   # ##
 
   ## Check if reporting is already finished and exit safely
@@ -1140,7 +1140,19 @@ DR2S_$set("public", "runMapIter", function(opts = list(),
     }
   }
 
-  invisible(self)
+ # browse_align(c(
+ #   self$mapIter$`0`$A$conseq,
+ #   self$mapIter$`1`$A$conseq,
+ #   self$mapIter$`2`$A$conseq,
+ #   # self$mapIter$`3`$A$conseq,
+ #   # self$mapIter$`4`$A$conseq,
+ #   self$mapIter$`0`$B$conseq,
+ #   self$mapIter$`1`$B$conseq,
+ #   self$mapIter$`2`$B$conseq,
+ #   # self$mapIter$`3`$B$conseq,
+ #   # self$mapIter$`4`$B$conseq,
+ #   self$getRefSeq()))
+    invisible(self)
 })
 
 #' @export

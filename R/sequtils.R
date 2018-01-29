@@ -361,3 +361,28 @@ get_seqs_from_mat <- function(mat){
   seqs <- seqs[nchar(gsub("-", "",seqs))>0]
   Biostrings::DNAStringSet(seqs)
 }
+
+.collapseHomopolymers <- function(path, n = 5){
+
+  path <- normalizePath(path, mustWork = TRUE)
+  assertthat::is.count(n)
+
+  seq <- Biostrings::readBStringSet(path)
+  seqname <- names(seq)
+  seq <- strsplit(as.character(seq), "")[[1]]
+  seq <- rle(seq)
+  seq$lengths[seq$lengths > n] <- n
+  seq <- paste(inverse.rle(seq), collapse = "")
+  seq <- Biostrings::DNAStringSet(gsub("[-+]", "", seq))
+  names(seq) <- seqname
+  Biostrings::writeXStringSet(seq, path)
+  path
+}
+
+.mat2rle <- function(mat){
+  seq <- conseq(mat, type = "prob", force_exclude_gaps = TRUE)
+  .seq2rle(seq)
+}
+.seq2rle <- function(seq){
+  rle(strsplit(as.character(seq),"")[[1]])
+}
