@@ -63,11 +63,8 @@ finish_cn1 <- function(x){
 run_igv <- function(x, position, ...) {
   assertthat::assert_that(
     is(x, "DR2S"),
-    is(x$consensus, "ConsList"),
-    requireNamespace("futile.logger", quietly = TRUE)
-
+    is(x$consensus, "ConsList")
   )
-
   if (!nzchar(exe_path <- normalizePath(Sys.which("igv"), mustWork = FALSE))) {
     stop("No IGV executable found on the PATH", call. = FALSE)
   }
@@ -79,16 +76,23 @@ run_igv <- function(x, position, ...) {
     fsep <- "/"
   }
   if (missing(position)) {
-    position <- ifelse(NROW(x$consensus$problematic_variants) == 0, 50, as.integer(x$consensus$problematic_variants[1, "pos"]))
+    position <- ifelse(NROW(x$consensus$problematic_variants) == 0,
+                       50,
+                       as.integer(x$consensus$problematic_variants[1, "pos"]))
   }
-
   for (hp in x$getHapTypes()){
     igv <- file.path(basedir, paste0("igv", hp, ".xml"), fsep = )
-    ref   <- file.path(basedir, hp, basename(x$mapIter[[as.character(x$getIterations())]][[hp]]$seqpath))
-    bamLR <- file.path(basedir, "final", basename(x$mapFinal$bamfile[[paste0("LR", hp)]]))
-    bamSR <- file.path(basedir, "final", basename(x$mapFinal$bamfile[[paste0("SR", hp)]]))
-    chr <- sub(">", "", readLines(ref, 1))
-    locus <- paste0(chr, ":", position - 50, "-", position + 50)
+    if (is.null(x$consensus$refine$ref[[hp]])){
+      ref   <- file.path(basedir, hp, basename(x$mapIter[[as.character(x$getIterations())]][[hp]]$seqpath))
+      bamLR <- file.path(basedir, "final", basename(x$mapFinal$bamfile[[paste0("LR", hp)]]))
+      bamSR <- file.path(basedir, "final", basename(x$mapFinal$bamfile[[paste0("SR", hp)]]))
+    } else{
+      ref   <- x$consensus$refine$ref[[hp]]
+      bamLR <- x$consensus$refine$bamfile[[paste0("LR", hp)]]
+      bamSR <- x$consensus$refine$bamfile[[paste0("SR", hp)]]
+    }
+    chr <- strsplit(sub(">", "", readLines(ref, 1)), "\\s+")[[1]][1]
+    locus <- paste0(chr, ":", min(c((abs(position - 50)),0)), "-", position + 50)
 
     xml <- XML::xmlTree()
     xml$addTag("Global", attrs = c(genome = ref, locus = locus), close = FALSE)
