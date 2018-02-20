@@ -89,6 +89,8 @@ normalise_locus <- function(locus) {
     paste0("KIR", locus)
   } else if (locus == "ABO") {
     locus
+  } else if (locus %in% c("MICA", "MICB")) {
+    locus
   } else {
     stop("Unknown locus ", sQuote(locus), call. = FALSE)
   }

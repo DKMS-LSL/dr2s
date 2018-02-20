@@ -5,7 +5,8 @@
 \title{Cluster a SNP matrix into haplotype groups}
 \usage{
 partition_reads(x, cl_method = "ward.D", min_len = 0.5,
-  skip_gap_freq = 2/3, deepSplit = 1, threshold = 0.2, dist_alleles = 2)
+  skip_gap_freq = 2/3, deepSplit = 1, threshold = 0.2, dist_alleles = 2,
+  sort_by = "count")
 }
 \arguments{
 \item{x}{A \code{[read x position]} SNP matrix.}

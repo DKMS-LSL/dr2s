@@ -10,7 +10,7 @@
 #'
 #' @examples
 #' ###
-extractFastq.default <- function(x, qnames = NULL, n = 100, replace = TRUE) {
+.extractFastq <- function(x, qnames = NULL, n = 100, replace = TRUE) {
   stopifnot(is.character(x) && length(x) == 1)
   bam <- Rsamtools::scanBam(x)[[1]]
   qn <-
