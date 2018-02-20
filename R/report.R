@@ -89,6 +89,13 @@ report_map_ <- function(x, map, outdir, block_width, ...) {
     Biostrings::writePairwiseAlignments(aln, file.path(outdir, pair_file),
                                         block.width = block_width)
 
+  } else if (length(x$getHapTypes()) == 1){
+    aln_file <- paste(map, "aln", x$getLrdType(), x$getLrMapper(), "unchecked",
+                      "fa", sep = ".")
+    Biostrings::writeXStringSet(
+      haps[[1]],
+      filepath = file.path(outdir, aln_file),
+      format = "fasta")
   } else if (length(x$getHapTypes()) > 2){
     aln_file <- paste(map, "aln", x$getLrdType(), x$getLrMapper(), "unchecked",
                       "msa", sep = ".")
@@ -130,7 +137,11 @@ report_map_ <- function(x, map, outdir, block_width, ...) {
 
 report_checked_consensus <- function(x, which = "mapFinal") {
   map <- match.arg(tolower(which), c("mapfinal", "mapiter"))
-  ending <- ifelse(length(x$getHapTypes()) == 2, "psa", "msa")
+  ending <- ifelse(length(x$getHapTypes()) == 2,
+                   "psa",
+                   ifelse(length(x$getHapTypes()) == 1,
+                          "fa",
+                          "msa"))
   pairfile_unchecked <- paste(map, "aln", x$getLrdType(), x$getLrMapper(),
                               "unchecked", ending, sep = ".")
   pairfile_checked   <- paste(map, "aln", x$getLrdType(), x$getLrMapper(),
@@ -178,7 +189,11 @@ report_checked_consensus <- function(x, which = "mapFinal") {
 check_alignment_file <- function(x, which = "mapFinal", where = 0,
                                  editor = "xdg-open") {
   which <- match.arg(tolower(which), c("mapfinal", "mapiter"))
-  ending <- ifelse(length(x$getHapTypes()) == 2, "psa", "msa")
+  ending <- ifelse(length(x$getHapTypes()) == 2,
+                   "psa",
+                   ifelse(length(x$getHapTypes()) == 1,
+                          "fa",
+                          "msa"))
   pairfile_unchecked <- paste(which, "aln", x$getLrdType(), x$getLrMapper(),
                               "unchecked", ending, sep = ".")
   pairfile_unchecked <- normalizePath(file.path(x$getOutdir(), "report",
@@ -210,8 +225,8 @@ check_report_status <- function(x){
   }
   return(x$getReportStatus())
 }
+#hptype = "B"
 refineAlignment <- function(x, hptype){
-
   ## Overide default arguments
   args <- x$getOpts("refineMapping")
   if (!is.null(args)) {
@@ -225,12 +240,15 @@ refineAlignment <- function(x, hptype){
     return(invisible(x))
   }
 
-  x$consensus$refine <- list(
-    mapgroup = list(),
-    bamfile = list(),
-    consensus = list(),
-    ref = list()
-  )
+
+  if (is.null(x$consensus$refine)) {
+    x$consensus$refine <- list(
+      mapgroup = list(),
+      bamfile = list(),
+      consensus = list(),
+      ref = list()
+    )
+  }
   reftag    <- "refine"
   outdir    <- dir_create_if_not_exists(file.path(x$getOutdir(), reftag))
   readpathLR  <- x$mapFinal$lreads[hptype]
@@ -256,14 +274,14 @@ refineAlignment <- function(x, hptype){
     allele   = mapgroupLR,
     readtype = x$getLrdType(),
     refname  = hptype,
-    opts     = list(
-      x = "map-pb -a --cs -c",
-#-c -H -Q -Y",
-
-      k = 10,
-      w = 3,
-      N = 500
-      ),
+#     opts     = list(
+#       x = "map-pb -a --cs -c",
+# #-c -H -Q -Y",
+#
+#       k = 10,
+#       w = 3,
+#       N = 500
+#       ),
     force    = TRUE,
     outdir   = outdir
   )
@@ -286,14 +304,14 @@ refineAlignment <- function(x, hptype){
   #   include_insertions = TRUE
   # )
   ## Map short reads
-  if (!is.null(readpathSR)){
+  if (!is.null(unlist(readpathSR))){
     mapgroupSR <- paste0("SR", hptype)
     maptagSR   <- paste("refine", mapgroupSR, x$getLrdType(),
                         x$getSrMapper(), sep = ".")
 
     readfiles <- unlist(readpathSR)
     ## Mapper
-    map_fun <- x$getLrMapFun()
+    map_fun <- x$getSrMapFun()
 
     ## Run mapper
     flog.info("  Mapping short reads against final consensus ...",
@@ -304,58 +322,21 @@ refineAlignment <- function(x, hptype){
       allele   = mapgroupSR,
       readtype = x$getSrdType(),
       refname  = hptype,
-      opts     = list(
-        x      = "sr",
-        k      = 6,
-        w = 2,
-        A = 2,
-        B = 8,
-        O = "12,32",
-        E = "2,1",
-        r = 50,
-        p = 0.5,
-        N = 500
-      ),
+      # opts     = list(
+      #   x      = "sr",
+      #   k      = 6,
+      #   w = 2,
+      #   A = 2,
+      #   B = 8,
+      #   O = "12,32",
+      #   E = "2,1",
+      #   r = 50,
+      #   p = 0.5,
+      #   N = 500
+      # ),
       outdir   = outdir,
       force    = TRUE
-
     )
-
-    # if (clip) {
-    #   flog.info(" Trimming softclips and polymorphic ends ...", name = "info")
-    #   ## Run bam - sort - index pipeline
-    #   bamfile <- bam_sort_index(samfile, refpath, pct / 100, min_mapq,
-    #                             force = force, clean = TRUE)
-    #   ## Trim softclips
-    #   fq <- trim_softclipped_ends(bam = Rsamtools::scanBam(bamfile)[[1]],
-    #                               preserve_ref_ends = TRUE)
-    #   ## Trim polymorphic ends
-    #   fq <- trim_polymorphic_ends(fq)
-    #   ## Write new shortread file to disc
-    #   fqdir  <- dir_create_if_not_exists(file.path(self$getOutdir(), "final"))
-    #   fqfile <- paste("sread", hptype, self$getSrMapper(), "trimmed", "fastq",
-    #                   "gz", sep = ".")
-    #   fqout  <- file_delete_if_exists(file.path(fqdir, fqfile))
-    #   ShortRead::writeFastq(fq, fqout, compress = TRUE)
-    #   file_delete_if_exists(bamfile)
-    #   ## Rerun mapper
-    #   flog.info("  Mapping trimmed short reads against latest consensus ... ",
-    #             name = "info")
-    #   samfile <- map_fun(
-    #     reffile  = refpath,
-    #     readfile = fqout,
-    #     allele   = paste0(mapgroupSR, ".", self$getLrdType()),
-    #     readtype = self$getSrdType(),
-    #     opts     = list(A = 1, B = 4, O = 2),
-    #     refname  = hptype,
-    #     optsname = optstring(opts),
-    #     force    = force,
-    #     outdir   = outdir
-    #   )
-    #   # cleanup
-    #   file_delete_if_exists(fqout)
-    # }
-
     ## Run bam - sort - index pipeline
     flog.info("  Indexing ...", name = "info")
     bamfile <- bam_sort_index(
@@ -365,17 +346,17 @@ refineAlignment <- function(x, hptype){
     )
     x$consensus$refine$bamfile[[mapgroupSR]] = bamfile
 
-    ## Calculate pileup from graphmap produced SAM file
-    flog.info("  Piling up ...", name = "info")
-    pileup <- Pileup(
-      bamfile,
-      x$getThreshold(),
-      include_deletions = TRUE,
-      include_insertions = TRUE
-    )
-    pileup <- pileup_include_read_ids(pileup)
-    pileup <- pileup_include_insertions(pileup)
   }
+  ## Calculate pileup from graphmap produced SAM file
+  flog.info("  Piling up ...", name = "info")
+  pileup <- Pileup(
+    bamfile,
+    x$getThreshold(),
+    include_deletions = TRUE,
+    include_insertions = TRUE
+  )
+  pileup <- pileup_include_read_ids(pileup)
+  pileup <- pileup_include_insertions(pileup)
 
   # calc new consensus
   cseq <- conseq(pileup$consmat, paste0("refine", hptype), "ambig",
@@ -416,11 +397,12 @@ refineAlignment <- function(x, hptype){
 }
 
 readPairFile <- function(pairfile) {
-
   if (endsWith(pairfile, "psa")){
     rs <- readLines(pairfile)
+    ## This assignment relies on the premise that hapA is always used!
+    ## Usually this should be true, bcs it is the cluster with the most reads
     rsA <- rs[grepl("^hapA", rs)]
-    rsB <- rs[grepl("^hapB", rs)]
+    rsB <- rs[grepl("^hap[B-Z]", rs)]
     hap <- c(
       Biostrings::DNAStringSet(collapse_pair_lines_(rsA)),
       Biostrings::DNAStringSet(collapse_pair_lines_(rsB))
@@ -428,6 +410,9 @@ readPairFile <- function(pairfile) {
     names(hap) <- c("hapA", "hapB")
   } else if (endsWith(pairfile, "msa")){
     hap <- readMSA(pairfile)
+  } else if (endsWith(pairfile, "fa")){
+    hap <- Biostrings::readDNAStringSet(pairfile)
+    names(hap) <- "hapA"
   }
 
   ## Check for ambiguous bases

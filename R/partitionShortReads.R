@@ -31,7 +31,7 @@
 #' @export
 #' @examples
 #' ###
-get_SR_partition_scores <- function(ppos, refname, bamfile, mats,
+get_SR_partition_scores <- function(refname, bamfile, mats,
                                     cores = "auto"){
   stopifnot(
     requireNamespace("parallel", quietly = TRUE),
@@ -47,6 +47,8 @@ get_SR_partition_scores <- function(ppos, refname, bamfile, mats,
   stopifnot(is.numeric(cores))
   doParallel::registerDoParallel(cores = cores)
 
+  ## Get polymorphic positions
+  ppos <- colnames(mats[[1]])
   flog.info("  Partition shortreads on %s positions ...", length(ppos),
             name = "info")
   res <- foreach (pos = ppos, .combine = "rbind") %dopar% {

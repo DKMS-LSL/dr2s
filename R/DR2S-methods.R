@@ -1185,13 +1185,15 @@ DR2S_$set("public", "runPartitionShortReads", function(opts = list(),
     list2env(args, envir = env)
   }
 
-  ## stop if no shortreads provided
+  ## exit if no shortreads provided
   if (is.null(self$getConfig("shortreads"))) {
     flog.warn(" Cannot partition shortreads. No shortreads provided",
               name = "info")
     return(invisible(self))
   }
 
+  ## Check if there is a shortread mapping from mapInit and use it.
+  ## If not, map to the reference
   if (self$getPartSR()){
     flog.info(" Found shortread mapping from MapInit ...", name = "info")
     bamfile <- self$mapInit$SR2$bamfile
@@ -1251,15 +1253,12 @@ DR2S_$set("public", "runPartitionShortReads", function(opts = list(),
   }
   names(mats) <- names(seqs)
 
-  ppos <- colnames(mats[[1]])
-
-
   # Run partitioning
-  srpartition <- get_SR_partition_scores(ppos, refname, bamfile, mats,
+  srpartition <- get_SR_partition_scores(refname, bamfile, mats,
                                          cores = "auto")
 
-  ##' Assign read to haplotype with highest probability,
-  ##' i.e. product over probabilities of each haplotype and choose max
+  ## Assign read to haplotype with highest probability,
+  ## i.e. product over probabilities of each haplotype and choose max
   flog.info(" Get highest scoring haplotype for each read", name = "info")
   srpartition$haplotypes <- score_highest_SR(srpartition$srpartition,
                                              diffThreshold = 0.001)

@@ -1,15 +1,4 @@
-#' Extract (a subset of) reads from a bamfile
-#'
-#' @param x Path to bamfile.
-#' @param qnames Sample a fixed subset of reads.
-#' @param n Sample a fixed number of n reads.
-#' @param replace Sample with or without replacemant?
-#'
-#' @return A \code{\linkS4class{ShortReadQ}} object
-#' @export
-#'
-#' @examples
-#' ###
+## Extract (a subset of) reads from a bamfile
 .extractFastq <- function(x, qnames = NULL, n = 100, replace = TRUE) {
   stopifnot(is.character(x) && length(x) == 1)
   bam <- Rsamtools::scanBam(x)[[1]]
@@ -201,51 +190,53 @@ stouffers_zscore <- function(z, w = rep(1, length(z))) {
   sum(z*w, na.rm = TRUE)/sqrt(sum(w^2, na.rm = TRUE))
 }
 
-merge_conseqs_ <- function(seqs, scores, verbose = TRUE) {
-  aln <- DECIPHER::AdjustAlignment(DECIPHER::AlignSeqs(
-    seqs, verbose = FALSE, gapOpening = -12, gapExtension = -2,
-    iterations = 1, refinements = 1, restrict = c(-500, 2, 10)
-  ))
-  #browse_align(seqs)
-  split1 <- strsplit(toString(aln[[1]]), "")[[1]]
-  split2 <- strsplit(toString(aln[[2]]), "")[[1]]
-  SEQ1 <- hlatools::ihasNext(iter(split1))
-  SEQ2 <- hlatools::ihasNext(iter(split2))
-  SCR1 <- hlatools::ihasNext(iter(scores[[1]]))
-  SCR2 <- hlatools::ihasNext(iter(scores[[2]]))
-  refseq <- vector("character", unique(Biostrings::width(aln)))
-  refscr <- vector("numeric", unique(Biostrings::width(aln)))
-  i <- 0L
-  while(hlatools::hasNext(SEQ1) && hlatools::hasNext(SEQ2)) {
-    s1 <- nextElem(SEQ1)
-    s2 <- nextElem(SEQ2)
-    i <- i + 1L
-    if (s1 == s2) {
-      z <- c(nextElem(SCR1), nextElem(SCR2))
-      refseq[i] <- s1
-      refscr[i] <- stouffers_zscore(z)
-    } else if (s1 == "-") {
-      refseq[i] <- s2
-      refscr[i] <- nextElem(SCR2)
-      message("   Deletion at seq1 at ", i)
-    } else if (s2 == "-") {
-      refseq[i] <- s1
-      refscr[i] <- nextElem(SCR1)
-      message("   Deletion at seq2 at ", i)
-    } else {
-      scrs <- c(nextElem(SCR1), nextElem(SCR2))
-      max.scr <- which.max(scrs)
-      refseq[i] <- c(s1, s2)[max.scr]
-      refscr[i] <- scrs[max.scr]
-      message("   Mismatch ", s1, " (", round(pnorm(scrs[1]), 3), ") <=> ",
-              s2, " (", round(pnorm(scrs[2]), 3),") at ", i)
-    }
-  }
-  conseq <- Biostrings::BStringSet(paste0(refseq, collapse = ""))
-  names(conseq) <- paste0(names(seqs), collapse = "_")
-  metadata(conseq) <- list(zscores = refscr)
-  conseq
-}
+
+## Todo: RM fun
+# merge_conseqs_ <- function(seqs, scores, verbose = TRUE) {
+#   aln <- DECIPHER::AdjustAlignment(DECIPHER::AlignSeqs(
+#     seqs, verbose = FALSE, gapOpening = -12, gapExtension = -2,
+#     iterations = 1, refinements = 1, restrict = c(-500, 2, 10)
+#   ))
+#   #browse_align(seqs)
+#   split1 <- strsplit(toString(aln[[1]]), "")[[1]]
+#   split2 <- strsplit(toString(aln[[2]]), "")[[1]]
+#   SEQ1 <- hlatools::ihasNext(iter(split1))
+#   SEQ2 <- hlatools::ihasNext(iter(split2))
+#   SCR1 <- hlatools::ihasNext(iter(scores[[1]]))
+#   SCR2 <- hlatools::ihasNext(iter(scores[[2]]))
+#   refseq <- vector("character", unique(Biostrings::width(aln)))
+#   refscr <- vector("numeric", unique(Biostrings::width(aln)))
+#   i <- 0L
+#   while(hlatools::hasNext(SEQ1) && hlatools::hasNext(SEQ2)) {
+#     s1 <- nextElem(SEQ1)
+#     s2 <- nextElem(SEQ2)
+#     i <- i + 1L
+#     if (s1 == s2) {
+#       z <- c(nextElem(SCR1), nextElem(SCR2))
+#       refseq[i] <- s1
+#       refscr[i] <- stouffers_zscore(z)
+#     } else if (s1 == "-") {
+#       refseq[i] <- s2
+#       refscr[i] <- nextElem(SCR2)
+#       message("   Deletion at seq1 at ", i)
+#     } else if (s2 == "-") {
+#       refseq[i] <- s1
+#       refscr[i] <- nextElem(SCR1)
+#       message("   Deletion at seq2 at ", i)
+#     } else {
+#       scrs <- c(nextElem(SCR1), nextElem(SCR2))
+#       max.scr <- which.max(scrs)
+#       refseq[i] <- c(s1, s2)[max.scr]
+#       refscr[i] <- scrs[max.scr]
+#       message("   Mismatch ", s1, " (", round(pnorm(scrs[1]), 3), ") <=> ",
+#               s2, " (", round(pnorm(scrs[2]), 3),") at ", i)
+#     }
+#   }
+#   conseq <- Biostrings::BStringSet(paste0(refseq, collapse = ""))
+#   names(conseq) <- paste0(names(seqs), collapse = "_")
+#   metadata(conseq) <- list(zscores = refscr)
+#   conseq
+# }
 #x <- self
 multialign <- function(x, hptype, n, align = list(
   iterations = 0,

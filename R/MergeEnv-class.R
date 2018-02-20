@@ -98,7 +98,7 @@ MergeEnv_$set("public", "init", function(hapEnv) {
     envir$SR <- NULL
   }
 
-  envir$POSit = hlatools::ihasNext(iter(apos <- ambiguous_positions(envir[[readtype]], self$threshold)))
+  envir$POSit = itertools::ihasNext(iter(apos <- ambiguous_positions(envir[[readtype]], self$threshold)))
   envir$balance = apply(as.matrix(envir[[readtype]][apos, ]), 1, function(x) {
     tmp <- sort(x, decreasing = TRUE)[1:2]
     tmp[1] / tmp[2]
@@ -129,7 +129,7 @@ MergeEnv_$set("public", "walk_one", function(hapEnv, verbose = FALSE) {
 
 ## self$walk() ####
 # self <- menv
-# hapEnv <- "A"
+# hapEnv <- "B"
 #self$init(hapEnv)
 #self$walk(hapEnv, TRUE)
 # self$walk("B", TRUE)
@@ -153,7 +153,7 @@ MergeEnv_$set("public", "walk", function(hapEnv, verbose = FALSE) {
 ## private$step_through() ####
 MergeEnv_$set("private", "step_through", function(envir) {
 ##step_through <- function(envir) {
-  if (!hlatools::hasNext(envir$POSit)) {
+  if (!itertools::hasNext(envir$POSit)) {
     return(FALSE)
   }
   envir$pos <- ifelse(!is.null(envir$SR),
@@ -262,8 +262,8 @@ expand_longread_consmat <- function(lrm, srm) {
     insert <- matrix(c(0, 0, 0, 0, median(rowSums(m)), 0), ncol = 6)
     my_ins <- sort(ins(srm))
     my_ins <- my_ins[my_ins < nrow(lrm)]
-    INSit <- hlatools::ihasNext(iter(my_ins))
-    while (hlatools::hasNext(INSit)) {
+    INSit <- itertools::ihasNext(iter(my_ins))
+    while (itertools::hasNext(INSit)) {
       i <- iterators::nextElem(INSit)
       m <- rbind(m[1:(i - 1), ], insert, m[i:NROW(m), ])
     }

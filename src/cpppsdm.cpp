@@ -1,7 +1,6 @@
 #include <Rcpp.h>
 using namespace Rcpp;
 
-//NumericMatrix PSDM (NumericMatrix consensusMatrix, CharacterMatrix sequences) {
 // [[Rcpp::export]]
 NumericMatrix cpp_PSDM(NumericMatrix consMat, NumericMatrix sequences) {
   int seqs = sequences.nrow();
