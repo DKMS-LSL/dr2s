@@ -165,7 +165,7 @@ pileup_find_insertion_positions_ <- function(x, threshold) {
   #   unlist() %>%
   #   unname() %>%
   #   as.integer()
-  cm  <- consmat(x, frequency = TRUE)
+  cm  <- consmat(x, freq = TRUE)
   pos <- ambiguous_positions(cm, threshold = threshold)
   pos[cm[pos, "+"] > threshold]
 }
@@ -238,6 +238,10 @@ pileup_get_insertions_ <- function(x, threshold) {
 # x <- pileup
 pileup_include_insertions <- function(x, threshold = NULL) {
   stopifnot(is(x, "pileup"))
+  if (! "X" %in% colnames(x$consmat)) {
+    flog.warn("No insertions to call!", name = "info")
+    return(x)
+  }
   if (is.null(threshold)) {
     threshold <- x$threshold
   }

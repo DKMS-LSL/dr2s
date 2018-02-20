@@ -30,9 +30,9 @@ SNPmatrix <- function(bamfile,
     polymorphic_positions <- as.integer(polymorphic_positions)
   }
   assertthat::assert_that(is.numeric(polymorphic_positions))
-  mat <- msa_from_bam(bamfile, refseq)
-  mat <- as.matrix(mat)
-  mat <- as.matrix(mat[,polymorphic_positions])
+  msa <- msa_from_bam(bamfile, refseq)
+  mat <- sapply(polymorphic_positions, function(x) as.matrix(Biostrings::subseq(msa, start = x, width = 1)))
+  rownames(mat) <- names(msa)
   colnames(mat) <- polymorphic_positions
   mat
 }
