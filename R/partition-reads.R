@@ -21,7 +21,7 @@
 # debug
 #x <- dpb1_3$partition$mat
 # cl_method="ward.D"
-#min_len = 0.5
+# min_len = 0.5
 # skip_gap_freq = 2/3
 # deepSplit = 1
 # x <- dpb1_3$partition$mat
@@ -29,27 +29,35 @@
 
 partition_reads <- function(x, cl_method="ward.D", min_len = 0.5,
                             skip_gap_freq = 2/3, deepSplit = 1,
-                            threshold = 0.2, dist_alleles = 2){
+                            threshold = 0.2, dist_alleles = 2, sort_by = "count"){
   # get SNPs
   ppos <- colnames(x)
+  bad_ppos <- c()
   xm <- as.matrix(x[order(rownames(x)),])
-  bad_ppos <- apply(xm, 2, function(x) {
-    NROW(x[x == "+"])/NROW(x) > skip_gap_freq
-  })
-  xm <- as.matrix(xm[,!bad_ppos])
-  bad_ppos <- ppos[bad_ppos]
-  flog.info(paste0("  %s SNPs are covered by less than %g %% sequences and",
-                   "discarded. Using the remaining %s SNPs for clustering"),
-            length(bad_ppos), 1-skip_gap_freq, ncol(xm), name = "info")
-  if (NCOL(xm) == 0){
-    flog.error(paste0("  Aborting. No SNP remaining for clustering!",
-                      "Check your reads and reference and have a look",
-                      "at mapInit Plots!"))
-    stop("No SNPs remaining for clustering. Check mapInit plots!")
+  ## if there is only one SNP for clustering, use it! If it does not match both
+  ## sequencing types it will be reported
+  if (length(ppos) > 1) {
+    bad_ppos <- apply(xm, 2, function(x) {
+      NROW(x[x == "+"])/NROW(x) > skip_gap_freq
+    })
+    xm <- as.matrix(xm[,!bad_ppos])
+    bad_ppos <- ppos[bad_ppos]
+    flog.info(paste0("  %s SNPs are covered by less than %g %% sequences and",
+                     "discarded. Using the remaining %s SNPs for clustering"),
+              length(bad_ppos), 1-skip_gap_freq, ncol(xm), name = "info")
+    if (NCOL(xm) == 0){
+      flog.error(paste0("  Aborting. No SNP remaining for clustering!",
+                        "Check your reads and reference and have a look",
+                        "at mapInit Plots!"))
+      stop("No SNPs remaining for clustering. Check mapInit plots!")
+    }
   }
 
   ## Get the SNP matrix as sequences
   xseqs <- get_seqs_from_mat(xm)
+  ## if only one SNP, remove every read without it
+  if (NCOL(xm) == 1)
+    xseqs <- xseqs[!xseqs == "+"]
 
   ## Get only the fraction of reads that contain at least min_len of total SNPs
   clustres <- get_clusts(xseqs, cl_method = cl_method, min_len = min_len,
@@ -77,10 +85,20 @@ partition_reads <- function(x, cl_method="ward.D", min_len = 0.5,
     unlist(simple_consensus(
       t(Biostrings::consensusMatrix(x)[c(VALID_DNA(), "+"),])))
   }))
+  names(hpseqs) <- sapply(hptypes, function(hptype)
+    paste(hptype, sum(subclades == hptype), sep = ":"))
+
   if (length(hptypes)> dist_alleles) {
     flog.info("  Trying to identify chimeric reads/haplotypes ...",
               name = "info")
-    rC <- sort(find_chimeric(seqs = hpseqs, dist_alleles = dist_alleles))
+    if (sort_by == "count") {
+      rC <- names(sort(table(subclades),decreasing = TRUE)[1:dist_alleles])
+      # ## !!!!! HACK!!! rm following line; uncomment previous one; removed
+      # rC <- c("A", "C")
+
+    } else {
+      rC <- sort(find_chimeric(seqs = hpseqs, dist_alleles = dist_alleles))
+    }
     flog.info("  Use only clusters %s ...", paste(rC, collapse = ", "),
               name = "info")
     mats <- mats[rC]
@@ -130,9 +148,10 @@ partition_reads <- function(x, cl_method="ward.D", min_len = 0.5,
 
 get_clusts <- function(xseqs, xmat, min_len = 0.80, cl_method = "ward.D",
                        deepSplit = 1, min_reads_frac = 1/3, threshold = 0.2){
-  assertthat::assert_that(is.double(min_len))
-  assertthat::assert_that(is.double(min_reads_frac))
-  assertthat::assert_that(is.double(threshold))
+  assertthat::assert_that(is.double(min_len),
+                          is.double(min_reads_frac),
+                          is.double(threshold))
+
 
   # heuristic for how many reads should be used
   min_len <- .getMinLenClust(min_reads_frac, min_len, xseqs)
