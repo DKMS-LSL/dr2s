@@ -236,7 +236,7 @@ validate_dr2s_conf <- function(conf) {
   }
   ## Reference type
   conf$reftype <- if (is.null(conf$reference) && is.null(conf$alternate)) {
-    "cons"
+    stop("Need to provide a reference, either as fasta or from ipd")
   } else if (!is.null(conf$reference) && is.null(conf$alternate)) {
     "ref"
   } else if (!is.null(conf$reference) && !is.null(conf$alternate)) {

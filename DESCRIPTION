@@ -50,6 +50,7 @@ Imports:
     ggdendro,
     ShortRead,
     XML,
+    ipd.Hsapiens.db,
 SystemRequirements: C++11, samtools, bwa (>= 0.7.11), optional: minimap2
 VignetteBuilder: knitr
 RoxygenNote: 6.0.1

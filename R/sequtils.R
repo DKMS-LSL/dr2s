@@ -164,21 +164,22 @@ inject_deletions <- function(seq) {
 #' @keywords internal
 #' @examples
 #' ###
-generate_reference_sequence <- function(hla, allele, outdir, fullname = TRUE) {
+generate_reference_sequence <- function(allele, locus, outdir, fullname = TRUE) {
   if (is.null(allele)) {
     return(NULL)
   }
+  locus <- normalise_locus(locus)
+  stopifnot(
+    allele %in% ipd.Hsapiens.db::getAlleles(ipd.Hsapiens.db::ipd.Hsapiens.db,
+                                            locus))
   assertthat::assert_that(
     file.exists(outdir),
     assertthat::is.dir(outdir),
     assertthat::is.writeable(outdir)
   )
   sref <- foreach(al = allele, .combine = "c") %do% {
-    sref <- if (al == "consensus") {
-      hla$cons
-    } else {
-      hla$get_reference_sequence(al)
-    }
+    sref <- ipd.Hsapiens.db::getClosestComplete(ipd.Hsapiens.db::ipd.Hsapiens.db,
+                                               al)
     if (fullname) {
       names(sref) <- gsub(" +", "_", names(sref))
     } else {
@@ -186,7 +187,7 @@ generate_reference_sequence <- function(hla, allele, outdir, fullname = TRUE) {
     }
     sref
   }
-  assertthat::assert_that(is(sref, "BStringSet"))
+  assertthat::assert_that(is(sref, "DNAStringSet"))
   # workaround for these damn windows filename conventions
   allele_nm <- gsub("[*]", "#", gsub("[:]", "_", paste0(allele, collapse = "~")))
   #allele_nm <- paste0(allele, collapse = "~")

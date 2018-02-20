@@ -123,20 +123,19 @@ DR2S_ <- R6::R6Class(
       self$consensus = list()
       ## Private fields
       private$conf   = initialise_dr2s(conf, create_outdir = create_outdir)
-      private$ipd    = findLocus(private$conf$locus)
+      # private$ipd    = findLocus(private$conf$locus)
       private$reportStatus = FALSE
 
-      if (is.null(private$conf$reference)) {
-        private$conf$reference = "consensus"
-        private$conf$ref_path  = generate_reference_sequence(private$ipd, "consensus", private$conf$outdir)
+      if (file.exists(ref_path <- private$conf$reference)) {
+        private$conf$reference = basename(ref_path)
+        private$conf$ref_path  = normalizePath(ref_path, mustWork = TRUE)
       } else {
-        if (file.exists(ref_path <- private$conf$reference)) {
-          private$conf$reference = basename(ref_path)
-          private$conf$ref_path  = normalizePath(ref_path, mustWork = TRUE)
-        } else {
-          private$conf$reference = expand_hla_allele(conf$reference, conf$locus)
-          private$conf$ref_path  = generate_reference_sequence(private$ipd, private$conf$reference, private$conf$outdir, fullname = FALSE)
-        }
+        private$conf$reference = expand_allele(conf$reference, conf$locus)
+        # private$conf$ref_path  = generate_reference_sequence(private$ipd, private$conf$reference, private$conf$outdir, fullname = FALSE)
+        private$conf$ref_path  = generate_reference_sequence(private$conf$reference,
+                                                             private$conf$locus,
+                                                             private$conf$outdir,
+                                                             fullname = FALSE)
       }
       if (is.null(private$conf$alternate)) {
         private$conf["alternate"] = list(NULL)
@@ -146,8 +145,12 @@ DR2S_ <- R6::R6Class(
           private$conf$alternate = basename(alt_path)
           private$conf$alt_path  = normalizePath(alt_path, mustWork = TRUE)
         } else {
-          private$conf$alternate = expand_hla_allele(private$conf$alternate, private$conf$locus)
-          private$conf$alt_path  = generate_reference_sequence(private$ipd, private$conf$alternate, private$conf$outdir, fullname = FALSE)
+          private$conf$alternate = expand_allele(private$conf$alternate, private$conf$locus)
+          # private$conf$alt_path  = generate_reference_sequence(private$ipd, private$conf$alternate, private$conf$outdir, fullname = FALSE)
+          private$conf$ref_path  = generate_reference_sequence(private$conf$alternate,
+                                                             private$conf$locus,
+                                                             private$conf$outdir,
+                                                             fullname = FALSE)
         }
       }
       conf_log(outdir = private$conf$outdir, logName = "info")
@@ -170,10 +173,37 @@ DR2S_ <- R6::R6Class(
     clear = function() {
       unlink(self$getOutdir(), recursive = TRUE)
       dir_create_if_not_exists(file.path(self$getOutdir()))
-      if (!is.null(private$ipd)) {
-        private$conf$ref_path = generate_reference_sequence(self$getIPD(), self$getReference(), self$getOutdir(), fullname = FALSE)
-        private$conf$alt_path = generate_reference_sequence(self$getIPD(), self$getAlternate(), self$getOutdir(), fullname = FALSE)
+
+      if (file.exists(ref_path <- private$conf$reference)) {
+        private$conf$reference = basename(ref_path)
+        private$conf$ref_path  = normalizePath(ref_path, mustWork = TRUE)
+      } else {
+        private$conf$reference = expand_allele(private$conf$reference, private$conf$locus)
+        private$conf$ref_path  = generate_reference_sequence(self$getReference(),
+                                                             self$getLocus(),
+                                                             self$getOutdir(),
+                                                             fullname = FALSE)
       }
+      if (is.null(private$conf$alternate)) {
+        private$conf["alternate"] = list(NULL)
+      }
+      else {
+        if (file.exists(alt_path <- private$conf$alternate)) {
+          private$conf$alternate = basename(alt_path)
+          private$conf$alt_path  = normalizePath(alt_path, mustWork = TRUE)
+        } else {
+          private$conf$alternate = expand_allele(private$conf$alternate, private$conf$locus)
+          private$conf$ref_path  = generate_reference_sequence(self$getAlternate(),
+                                                               self$getLocus(),
+                                                               self$getOutdir(),
+                                                               fullname = FALSE)
+        }
+      }
+
+
+        ## Todo: rm if works
+        # private$conf$ref_path = generate_reference_sequence(self$getIPD(), self$getReference(), self$getOutdir(), fullname = FALSE)
+        # private$conf$alt_path = generate_reference_sequence(self$getIPD(), self$getAlternate(), self$getOutdir(), fullname = FALSE)
       invisible(self)
     },
     cleanup = function() {
@@ -406,13 +436,17 @@ DR2S_ <- R6::R6Class(
     getRefSeq = function() {
       if (!is.null(self$getRefPath())) {
         Biostrings::readDNAStringSet(self$getRefPath())
-      } else  if (!is.null(self$getIPD())) {
-        if (self$getReference() == "consensus") {
-          self$getIPD()$cons
-        } else {
-          self$getIPD()$get_reference_sequence(self$getReference(),)
-        }
+      } else  {
+        ipd.Hsapiens.db::getClosestComplete(ipd.Hsapiens.db::ipd.Hsapiens.db,
+                                            self$getReference())
       }
+      #   if (self$getReference() == "consensus") {
+      #     self$getIPD()$cons
+      #   } else {
+      #
+      #     self$getIPD()$get_reference_sequence(self$getReference(), "a")
+      #   }
+      # }
     },
     ##
     getAltPath = function() {
@@ -420,13 +454,21 @@ DR2S_ <- R6::R6Class(
     },
     ##
     getAltSeq = function() {
-      if (!is.null(self$getAlternate())) {
-        if (!is.null(self$getIPD())) {
-          self$getIPD()$get_reference_sequence(self$getAlternate())
-        } else {
-          Biostrings::readDNAStringSet(self$getAltPath())
-        }
+      if (!is.null(self$getAltPath())) {
+        Biostrings::readDNAStringSet(self$getRefPath())
+      } else if (self$getAlternate() %in%
+                 ipd.Hsapiens.db::getAlleles(ipd.Hsapiens.db::ipd.Hsapiens.db,
+                                             self$getLocus()) ){
+        ipd.Hsapiens.db::getClosestComplete(ipd.Hsapiens.db::ipd.Hsapiens.db,
+                                            self$getAlternate())
       } else NULL
+      # if (!is.null(self$getAlternate())) {
+      #   if (!is.null(self$getIPD())) {
+      #     self$getIPD()$get_reference_sequence(self$getAlternate())
+      #   } else {
+      #     Biostrings::readDNAStringSet(self$getAltPath())
+      #   }
+      # } else NULL
     },
     ##
     getNreads = function() {
@@ -451,10 +493,10 @@ DR2S_ <- R6::R6Class(
       }
     },
     ##
-    getIPD = function() {
-      private$ipd
-    },
-    ##
+    # getIPD = function() {
+    #   private$ipd
+    # },
+    # ##
     getPileup = function() {
       self$mapInit$pileup
     },
@@ -891,7 +933,7 @@ DR2S_ <- R6::R6Class(
   ##
   private = list(
     conf      = NULL,
-    ipd       = NULL,
+    # ipd       = NULL,
     reportStatus = NULL,
     run_      = function(step) {
       switch(
@@ -928,7 +970,7 @@ findReads <- function(datadir, sample_id, locus) {
 }
 
 
-findLocus <- function(locus) {
-  stopifnot(requireNamespace("IPDdata", quietly = TRUE))
-  IPDdata::loadIPDdata(locus)
-}
+# findLocus <- function(locus) {
+#   stopifnot(requireNamespace("ipd.Hsapiens.db", quietly = TRUE))
+#   IPDdata::loadIPDdata(locus)
+# }

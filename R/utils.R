@@ -70,13 +70,21 @@ COL_PATTERN <- function() {
   c("#CC007A", "#CC2900", "#CCCC00", "#29CC00", "#00CC7A", "#007ACC", "#2900CC")
 }
 
+VALID_LOCI <- function() {
+  ipd.Hsapiens.db::getLoci(ipd.Hsapiens.db::ipd.Hsapiens.db)
+}
+VALID_LOCI()
 HLA_LOCI <- function() {
-  c("A", "B", "C", "DRB1", "DRB1", "DQB1", "DPB1")
+  loci <- VALID_LOCI()
+  hla_loci <- loci[startsWith(loci, "HLA")]
+  unname(sapply(hla_loci, function(x) strsplit(x, "-")[[1]][2]))
+
 }
 
 KIR_LOCI <- function() {
-  c("2DL1", "2DL2", "2DL3", "2DL3", "2DL4", "2DL5", "2DL5A", "2DL5B","2DS1", "2DS2", "2DS3",
-    "2DS4", "2DS5", "2DP1", "3DL1", "3DL2", "3DL3", "3DS1", "3DP1")
+  loci <- VALID_LOCI()
+  kir_loci <- loci[startsWith(loci, "KIR")]
+  gsub(pattern = "KIR", "", kir_loci)
 }
 
 # Helpers -----------------------------------------------------------------
@@ -96,7 +104,9 @@ normalise_locus <- function(locus) {
   }
 }
 
-expand_hla_allele <- function(allele, locus) {
+expand_allele <- function(allele, locus) {
+  locus <- normalise_locus(locus)
+  locus <- sub("KIR", "", toupper(locus))
   locus <- sub("HLA-", "", toupper(locus))
   if (locus %in% HLA_LOCI()) {
     pattern1 <- paste0("^HLA-", locus, "[*]\\d\\d\\d?:.+$")
@@ -108,6 +118,17 @@ expand_hla_allele <- function(allele, locus) {
       paste0("HLA-", allele)
     } else if (grepl(pattern3, allele)) {
       paste0("HLA-", locus, "*", allele)
+    }
+  } else if (locus %in% KIR_LOCI()) {
+    pattern1 <- paste0("^KIR", locus, "[*]\\d+$")
+    pattern2 <- paste0("^", locus, "[*]\\d+$")
+    pattern3 <- "^\\d+$"
+    if (grepl(pattern1, allele)) {
+      allele
+    } else if (grepl(pattern2, allele)) {
+      paste0("KIR", allele)
+    } else if (grepl(pattern3, allele)) {
+      paste0("KIR", locus, "*", allele)
     }
   } else allele
 }
