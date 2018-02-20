@@ -40,15 +40,15 @@ consmat.matrix <- function(x, freq = TRUE, ...) {
   x <- if (freq) sweep(x, 1, n, `/`) else x
   Consmat_(x, n, freq, ...)
 }
-
 #' @export
-consmat.tbl_df <- function(x, freq = TRUE, drop.unused.levels = TRUE, ...) {
+consmat.tbl_df <- function(x, freq = TRUE, drop.unused.levels = FALSE, ...) {
   stopifnot(all(c("pos", "nucleotide", "count") %in% colnames(x)))
   x <- xtabs(formula = count ~ pos + nucleotide, data = x, drop.unused.levels = drop.unused.levels)
   rs <- matrix(x, NROW(x),  NCOL(x))
   dimnames(rs) <- dimnames(x)
   n <- .rowSums(rs, NROW(rs), NCOL(rs))
   rs <- if (freq) sweep(rs, 1, n, `/`) else x
+  rs <- rs[,VALID_DNA("indel")]
   Consmat_(rs, n, freq, ...)
 
 }
@@ -263,9 +263,14 @@ create_PWM <- function(msa){
   cmat <- rbind(cmat, "+" = 0)
   cmat
 }
-
 .distributeGaps <- function(mat, removeError = FALSE){
+  stopifnot(is(mat,"consmat"))
+  if (! "-" %in% colnames(mat)) {
+    flog.warn("No Gaps to distribute")
+    return(mat)
+  }
   seq <- .mat2rle(mat)
+
   if (removeError){
     for (i in which(seq$length > 1)) {
       seqStart <- sum(seq$lengths[1:(i-1)])+1
@@ -277,7 +282,7 @@ create_PWM <- function(msa){
     mat[,"-"] <- round(mat[,"-"] - newGapError)
     mat[which(mat[,"-"] < 0),"-"] <- 0
   }
-  .moveGapsToLeft(mat)
+  mat <- .moveGapsToLeft(mat)
   mat
 }
 
@@ -285,7 +290,9 @@ create_PWM <- function(msa){
   seq <- .mat2rle(mat)
   consecutiveRegions <- rle((seq$lengths > n))
   longestRegion <- which.max(consecutiveRegions$lengths)
-  startSeq <- sum(consecutiveRegions$lengths[1:(longestRegion-1)])
+  startSeq <- ifelse(longestRegion == 1,
+                     1,
+                     sum(consecutiveRegions$lengths[1:(longestRegion-1)]))
   endSeq <- startSeq + consecutiveRegions$lengths[longestRegion] - 1
   ## Add an offset of 10 to acknowledge bad quality after homopolymer regions
   startSeq <- startSeq + 10
@@ -293,25 +300,42 @@ create_PWM <- function(msa){
   backgroundSums <- colSums(background)
   backgroundSums["-"] / sum(backgroundSums)
 }
-
 .moveGapsToLeft <- function(mat){
   seq <- .mat2rle(mat)
   for (i in which(seq$length > 1)) {
+    ## Assign new gap numbers to each position starting from left
+    # meanCoverage <- mean(rowSums(mat[seqStart:seqEnd,1:4]))
     seqStart <- sum(seq$lengths[1:(i-1)])+1
     seqEnd <- seqStart+seq$lengths[i]-1
-
-    ## Assign new gap numbers to each position starting from left
-    meanCoverage <- mean(rowSums(mat[seqStart:seqEnd,1:4]))
+    length <- seq$length[i]
     gaps <- sum(mat[seqStart:seqEnd, "-"])
+    prevCoverage <- sum(mat[(seqStart-1),1:5])
+    baseSums <- colSums(mat[seqStart:seqEnd,1:4])
     idx <- 0
-    while(gaps > 0){
-      gapsAtPos <- min(gaps, meanCoverage)
+    while(gaps > 0 && !seq$values[i] == "-"){
+      # move the gaps to the left
+      gapsAtPos <- min(gaps, prevCoverage)
       mat[(seqStart+idx),"-"] <- gapsAtPos
+      # if more gaps than bases move the bases from a column to the right
+      if (gaps >= prevCoverage){
+        length <- length - 1
+        # move the bases to the right; distribute them
+        # set bases at gap column to 0
+        mat[(seqStart+idx),1:4] <- 0
+        ## distribute the bases to all other columns
+        newMeanBases <- baseSums/length
+        for (pos in (seqStart+idx+1):seqEnd){
+          mat[pos,1:4] <- newMeanBases
+        }
+      }
+      if (length == 1)
+        break
       gaps <- gaps - gapsAtPos
+      idx <- idx+1
     }
-    newSeqStart <- seqStart + idx + 1
-    if (seqEnd > newSeqStart)
+    newSeqStart <- seqStart + idx
+    if (!newSeqStart > seqEnd)
       mat[newSeqStart:seqEnd, "-"] <- 0
   }
-  mat
+  m <- round(mat)
 }
