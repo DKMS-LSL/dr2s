@@ -206,7 +206,7 @@ validate_dr2s_conf <- function(conf) {
   if (!file.exists(longreaddir)) {
     stop("No long read directory <", longreaddir, ">", call. = FALSE)
   }
-  if (length(dir(longreaddir, pattern = ".+fastq(.gz)?")) == 0) {
+  if (length(dir(longreaddir, pattern = ".+fast(q|a)(.gz)?")) == 0) {
     stop("No FASTQ files in long read directory <", longreaddir, ">", call. = FALSE)
   }
   ## Check short reads (short reads are optional i.e. the field can be NULL)

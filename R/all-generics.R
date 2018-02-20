@@ -434,8 +434,8 @@ splitReadsByHaplotype <- function(x,
 #'   polish() %>%
 #'   report(block_width = 60)
 #' }
-extractFastq <- function(x, ...) {
-  UseMethod("extractFastq")
+extractLongReads <- function(x, ...) {
+  UseMethod("extractLongReads")
 }
 
 #' Assign short reads from mapInit to haplotypes

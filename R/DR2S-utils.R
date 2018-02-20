@@ -35,19 +35,26 @@ finish_cn1 <- function(x){
        seqpath = list()
      ), class = c("mapFinal", "list")
    )
-   # Write shortread data to mapFinal
-   mapgroupSR <- "SRA"
-   x$mapFinal$pileup[[mapgroupSR]] = x$mapInit$SR2$pileup
-   x$mapFinal$tag[[mapgroupSR]] = x$mapInit$SR2$tag
+   if (!is.null(x$mapInit$SR1)) {
+     # Write shortread data to mapFinal
+     mapgroupSR <- "SRA"
+     x$mapFinal$pileup[[mapgroupSR]] = x$mapInit$SR2$pileup
+     x$mapFinal$tag[[mapgroupSR]] = x$mapInit$SR2$tag
+   }
 
    # Write longread data to mapFinal
    mapgroupLR <- "LRA"
    x$mapFinal$pileup[[mapgroupLR]] = x$mapInit$pileup
    x$mapFinal$tag[[mapgroupLR]] = x$mapInit$tag
 
-   flog.info("Get latest consensus from last shortreadm apping ...", name = "info")
-   cseq <- conseq(x$mapInit$SR2$pileup$consmat, "mapFinalA", "ambig", exclude_gaps = TRUE, threshold = x$getThreshold())
-   x$mapFinal$seq$A <- x$mapInit$SR2$conseq
+   flog.info("Get latest consensus from last mapping ...", name = "info")
+
+   if (!is.null(x$mapInit$SR1)) {
+     cseq <- conseq(x$mapInit$SR2$pileup$consmat, "mapFinalA", "ambig", exclude_gaps = TRUE, threshold = x$getThreshold())
+   } else {
+     cseq <- conseq(x$mapInit$pileup$consmat, "mapFinalA", "ambig", exclude_gaps = TRUE, threshold = x$getThreshold())
+   }
+   x$mapFinal$seq$A <- cseq
 
    flog.info("Polish and look for inconsistencies between shortreads and longreads ...", name = "info")
    polish(x)
@@ -85,11 +92,13 @@ run_igv <- function(x, position, ...) {
     if (is.null(x$consensus$refine$ref[[hp]])){
       ref   <- file.path(basedir, hp, basename(x$mapIter[[as.character(x$getIterations())]][[hp]]$seqpath))
       bamLR <- file.path(basedir, "final", basename(x$mapFinal$bamfile[[paste0("LR", hp)]]))
-      bamSR <- file.path(basedir, "final", basename(x$mapFinal$bamfile[[paste0("SR", hp)]]))
+      if (!is.null(x$mapFinal$sreads[[hp]]))
+        bamSR <- file.path(basedir, "final", basename(x$mapFinal$bamfile[[paste0("SR", hp)]]))
     } else{
       ref   <- x$consensus$refine$ref[[hp]]
       bamLR <- x$consensus$refine$bamfile[[paste0("LR", hp)]]
-      bamSR <- x$consensus$refine$bamfile[[paste0("SR", hp)]]
+      if (!is.null(x$mapFinal$sreads[[hp]]))
+        bamSR <- x$consensus$refine$bamfile[[paste0("SR", hp)]]
     }
     chr <- strsplit(sub(">", "", readLines(ref, 1)), "\\s+")[[1]][1]
     locus <- paste0(chr, ":", min(c((abs(position - 50)),0)), "-", position + 50)
@@ -98,7 +107,8 @@ run_igv <- function(x, position, ...) {
     xml$addTag("Global", attrs = c(genome = ref, locus = locus), close = FALSE)
     xml$addTag("Resources", close = FALSE)
     xml$addTag("Resource", attrs = c(path = bamLR))
-    xml$addTag("Resource", attrs = c(path = bamSR))
+    if (!is.null(x$mapFinal$sreads[[hp]]))
+      xml$addTag("Resource", attrs = c(path = bamSR))
     xml$closeTag()
     xml$closeTag()
     XML::saveXML(xml, file = igv)

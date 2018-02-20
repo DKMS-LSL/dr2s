@@ -129,8 +129,7 @@ DR2S_ <- R6::R6Class(
       if (is.null(private$conf$reference)) {
         private$conf$reference = "consensus"
         private$conf$ref_path  = generate_reference_sequence(private$ipd, "consensus", private$conf$outdir)
-      }
-      else {
+      } else {
         if (file.exists(ref_path <- private$conf$reference)) {
           private$conf$reference = basename(ref_path)
           private$conf$ref_path  = normalizePath(ref_path, mustWork = TRUE)
@@ -306,7 +305,7 @@ DR2S_ <- R6::R6Class(
       dir <- self$getLrdDir()
       readpath <- findReads(dir, self$getSampleId(), self$getLocus())
       if (is.null(readpath) || length(readpath) == 0) {
-        flog.error("No reads available for readtype <%s>", self$getSrdType(), name = "info")
+        flog.error("No reads available for readtype <%s>", self$getLrdType(), name = "info")
         stop("No reads available for readtype <", self$getLrdType(), ">")
       }
       readpath
@@ -917,11 +916,10 @@ DR2S_ <- R6::R6Class(
 
 # Helpers -----------------------------------------------------------------
 
-
 findReads <- function(datadir, sample_id, locus) {
   locus <- sub("^HLA-", "", toupper(locus))
   locus <- sub("^KIR-", "", toupper(locus))
-  file_pattern <- paste0(sample_id, ".+", "fastq(\\.gz)?$")
+  file_pattern <- paste0(sample_id, ".+", "fast(q|a)(\\.gz)?$")
   read_path <- dir(datadir, pattern = file_pattern, full.names = TRUE)
   read_path <- read_path[grep(pattern = "^((?!_trimmed.fastq).)*$", read_path, perl = TRUE)]
   if (length(read_path) > 0) {

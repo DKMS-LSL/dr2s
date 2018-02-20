@@ -84,6 +84,7 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
   # library(futile.logger)
   # self <- DEDK
   # self <- dpb1_3
+  # self <- x
 
 
   stopifnot(pct > 0 && pct <= 100)
@@ -410,8 +411,8 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
 
   flog.info(" Map longreads against MapInit reference for clustering ...",
             name = "info")
-  ref <- ifelse(partSR, mapInitSR1$seqpath, self$getRefPath())
-  allele <- ifelse(partSR, mapInitSR1$ref, self$getReference())
+  ref <- ifelse(exists("mapInitSR1"), mapInitSR1$seqpath, self$getRefPath())
+  allele <- ifelse(exists("mapInitSR1"), mapInitSR1$ref, self$getReference())
 
   mapfmt  <- "mapInit <%s> <%s> <%s> <%s>"
   maptag  <- sprintf(mapfmt, allele, self$getLrdType(), self$getLrMapper(),
@@ -540,7 +541,7 @@ partitionLongReads.DR2S <- function(x,
                                       ...) {
   flog.info("Step 1: Partition longreads into haplotypes ...", name = "info")
   Sys.sleep(1)
-  x$runHaplotypePartitioning(threshold = threshold,
+  x$runPartitionLongReads(threshold = threshold,
                              skip_gap_freq = skip_gap_freq,
                              dist_alleles = dist_alleles,
                              plot = plot)
@@ -549,7 +550,7 @@ partitionLongReads.DR2S <- function(x,
 
 }
 #self <- dpb1_3
-DR2S_$set("public", "runHaplotypePartitioning", function(threshold = NULL,
+DR2S_$set("public", "runPartitionLongReads", function(threshold = NULL,
                                                          skip_gap_freq = 2/3,
                                                          dist_alleles = NULL,
                                                          plot = TRUE) {
@@ -574,11 +575,11 @@ DR2S_$set("public", "runHaplotypePartitioning", function(threshold = NULL,
   if (is.null(dist_alleles)){
     dist_alleles <- self$getDistAlleles()
   }
-  assertthat::assert_that(self$hasPileup())
-  assertthat::assert_that(is.double(skip_gap_freq))
-  assertthat::assert_that(is.double(threshold))
-  assertthat::assert_that(assertthat::is.count(dist_alleles))
-  assertthat::assert_that(is.logical(plot))
+  assertthat::assert_that(self$hasPileup(),
+                          is.double(skip_gap_freq),
+                          is.double(threshold),
+                          assertthat::is.count(dist_alleles),
+                          is.logical(plot))
 
   tag  <- self$getMapTag("init", "LR")
 
@@ -664,12 +665,12 @@ splitReadsByHaplotype.DR2S <- function(x,
                                           limits,
                                           ...) {
   flog.info(" Split partitioned reads by score ...", name = "info")
-  x$splitReadsByHaplotype( limits)
+  x$runSplitReadsByHaplotype(limits)
   invisible(x)
 }
 
 #self <- dpb1_3
-DR2S_$set("public", "splitReadsByHaplotype", function(limits,
+DR2S_$set("public", "runSplitReadsByHaplotype", function(limits,
                                                       plot = TRUE){
 
   ## Check if reporting is already finished and exit safely
@@ -767,23 +768,23 @@ summary.HapList <- function(object, ....) {
   )
 }
 
-## Method: extractFastq ####
+## Method: extractLongReads ####
 
 #' @export
-extractFastq.DR2S <- function(x,
+extractLongReads.DR2S <- function(x,
                               nreads = NULL,
                               replace = FALSE,
                               nalign = 40,
                               ...) {
   flog.info("Step 2: Extracting haplotyped reads ...", name = "info")
   Sys.sleep(1)
-  x$extractFastq(nreads = nreads, replace = replace, nalign = nalign)
+  x$runExtractLongReads(nreads = nreads, replace = replace, nalign = nalign)
   message("  Done!\n")
   invisible(x)
 }
 # debug
 #self <- dpb1_3
-DR2S_$set("public", "extractFastq", function(nreads = NULL,
+DR2S_$set("public", "runExtractLongReads", function(nreads = NULL,
                                              replace = FALSE,
                                              nalign = 40) {
 
@@ -820,7 +821,7 @@ DR2S_$set("public", "extractFastq", function(nreads = NULL,
     # n = self$getNreads()
     # replace = replace
 
-    fq  <- extract_fastq(
+    fq  <- .extractFastq(
       x = self$mapInit$bamfile,
       qnames = qnames,
       n = self$getNreads(),
@@ -934,17 +935,13 @@ DR2S_$set("public", "runMapIter", function(opts = list(),
   }
   hptypes <- self$getHapTypes()
   iterations <- self$getIterations()
-  ## Check if number of iterations is even; otherwise increment
-  if (iterations %% 2 == 1){
-    flog.info("Iterations must be even; set from %s to %s",
-              iterations,
-              iterations+1,
-              name = "info")
-    iterations <- iterations+1
-  }
 
   ## Mapper
   map_fun <- self$getLrMapFun()
+
+
+  # ### HACK: Turn off Distribute Gaps!!! REMOVE AFTER MIC
+  # distGaps <- FALSE
 
 
   # Construct consensus from initial mapping with the clustered reads
@@ -955,20 +952,23 @@ DR2S_$set("public", "runMapIter", function(opts = list(),
   } else {
     ref <- self$getRefSeq()
   }
-  mat <- msa_from_bam(bamfile, ref, paddingLetter = "-")
+  mat <- msa_from_bam(bamfile, ref, paddingLetter = ".")
 
   foreach(hptype = hptypes) %do% {
     flog.info(paste("  Constructing a consensus from initial mapping for",
                     "haplotype %s ...", " "), hptype, name = "info")
     readIds <- self$getHapList(hptype)
-    cmat <- t(Biostrings::consensusMatrix(mat[readIds],
-                                        as.prob = TRUE)[VALID_DNA(
-                                          include = "indel"),])
+    cmat <- consmat(t(Biostrings::consensusMatrix(mat[readIds],
+                                        as.prob = FALSE)[VALID_DNA(
+                                          include = "indel"),]), freq = FALSE)
+
+    # if (distGaps)
     cmat <- .distributeGaps(cmat, removeError = TRUE)
     conseq_name <- paste0("consensus.mapIter.0.", hptype)
     conseq <- conseq(x = cmat, name = conseq_name, type = "prob",
                      force_exclude_gaps = FALSE, prune_matrix = FALSE,
                      cutoff = pruning_cutoff)
+
     seqpath     <- file.path(self$mapIter[["0"]][[hptype]]$dir,
                              paste0(conseq_name, ".fa"))
     self$mapIter[["0"]][[hptype]]$ref <- "mapIter0"
@@ -979,9 +979,10 @@ DR2S_$set("public", "runMapIter", function(opts = list(),
       Biostrings::DNAStringSet(gsub("[-+]", "", conseq)),
       seqpath
     )
+    conseq
   }
 
-  #iteration = 1
+#iterations= 1
   for (iteration in 1:iterations) {
     flog.info(" Iteration %s ", iteration, " of ", iterations, name = "info")
 
@@ -1043,17 +1044,6 @@ DR2S_$set("public", "runMapIter", function(opts = list(),
         force    = force,
         outdir   = outdir
       )
-      #
-      #
-      #                  reffile  = refpath
-      #                  readfile = readpath
-      #                  allele   = paste0("mapIter", iteration)
-      #                  readtype = self$getLrdType()
-      #                  opts     = opts
-      #                  refname  = reftag
-      #                  optsname = optsname
-      #                  force    = force
-      #                  outdir   = outdir
 
       # samfile
       ## Run bam - sort - index pipeline
@@ -1133,10 +1123,6 @@ DR2S_$set("public", "runMapIter", function(opts = list(),
                                         iteration = iteration,
                                         point_size = 0.75,
                                         threshold = "auto")
-      # text_size = 1.75
-      #                                iteration = iteration
-      #                                point_size = 0.75
-      #                                threshold = "auto"
       dev.off()
     }
   }
@@ -1354,7 +1340,7 @@ mapFinal.DR2S <- function(x,
 }
 
 # debug
-# self <- dpb1_3.p
+# self <- dpb1_3
 # opts = list()
 # pct = 100
 # min_base_quality = 3
@@ -1367,7 +1353,7 @@ mapFinal.DR2S <- function(x,
 # force = FALSE
 # fullname = TRUE
 # plot = TRUE
-# clip = TRUE
+# clip = FALSE
 
 DR2S_$set("public", "runMapFinal", function(opts = list(),
                                             pct = 100,
@@ -1426,7 +1412,7 @@ DR2S_$set("public", "runMapFinal", function(opts = list(),
 
   ## Remap long reads to the same reference sequences as short reads
   # debug
-  # hptype = "A"
+  #hptype = "A"
   for (hptype in hptypes) {
     flog.info(" Run mapFinal for haplotype %s ...", hptype, name = "info" )
     refpath  <- refpaths[[hptype]]
@@ -1480,10 +1466,15 @@ DR2S_$set("public", "runMapFinal", function(opts = list(),
       include_insertions = TRUE
     )
     pileup$consmat <- .distributeGaps(pileup$consmat, removeError = TRUE)
+
     self$mapFinal$pileup[[mapgroupLR]] = pileup
 
     ## Set maptag
     self$mapFinal$tag[[mapgroupLR]] = maptagLR
+    # calc new consensus
+    cseq <- conseq(pileup$consmat, paste0("mapFinal", hptype), "ambig",
+                   exclude_gaps = FALSE, threshold = 0.2)
+    self$mapFinal$seq[[hptype]] <- cseq
 
 
     ## Map short reads
@@ -1585,19 +1576,19 @@ DR2S_$set("public", "runMapFinal", function(opts = list(),
       }
 
       if (include_insertions && is.null(ins(pileup$consmat))) {
-        pileup <- pileup_include_insertions(pileup, threshold = 0.1)
+        pileup <- pileup_include_insertions(pileup, threshold = 0.2)
       }
       pileup$consmat <- .distributeGaps(pileup$consmat, removeError = FALSE)
       self$mapFinal$pileup[[mapgroupSR]] = pileup
 
       ## Set maptag
       self$mapFinal$tag[[mapgroupSR]] = maptagSR
+      # calc new consensus
+      cseq <- conseq(pileup$consmat, paste0("mapFinal", hptype), "ambig",
+                     exclude_gaps = FALSE, threshold = 0.2)
+      self$mapFinal$seq[[hptype]] <- cseq
     }
 
-    # calc new consensus
-    cseq <- conseq(pileup$consmat, paste0("mapFinal", hptype), "ambig",
-                   exclude_gaps = TRUE, threshold = 0.1)
-    self$mapFinal$seq[[hptype]] <- cseq
   }
 
 
