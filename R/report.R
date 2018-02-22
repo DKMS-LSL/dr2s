@@ -21,7 +21,7 @@ report.DR2S <- function(x, which, block_width = 80, ...) {
     list2env(args, envir = env)
   }
 
-  outdir <- dir_create_if_not_exists(file.path(x$getOutdir(), "report"))
+  outdir <- dir_create_if_not_exists(x$absPath("report"))
   if (missing(which)) {
     ## if `which` is unspecified choose `mapFinal` if available,
     ## otherwise try `mapIter`, then try `map1`
@@ -62,7 +62,7 @@ report_map_ <- function(x, map, outdir, block_width, ...) {
   # } else {
   seqs <- c(ref, seqs, addins)
   # }
-  browse_align(seqs, file = file.path(outdir, aln_file), openURL = FALSE)
+  browse_align(seqs, file = file.path(outdir,aln_file), openURL = FALSE)
 
   ## Write consensus FASTA files
 
@@ -74,7 +74,7 @@ report_map_ <- function(x, map, outdir, block_width, ...) {
                                    x$getLocus(), ";REF=", x$getReference())
     Biostrings::writeXStringSet(
       seq,
-      filepath = file.path(outdir, hap_file),
+      filepath = file.path(outdir,hap_file),
       format = "fasta"
     )
   }
@@ -94,7 +94,7 @@ report_map_ <- function(x, map, outdir, block_width, ...) {
                       "fa", sep = ".")
     Biostrings::writeXStringSet(
       haps[[1]],
-      filepath = file.path(outdir, aln_file),
+      filepath = file.path(outdir,aln_file),
       format = "fasta")
   } else if (length(x$getHapTypes()) > 2){
     aln_file <- paste(map, "aln", x$getLrdType(), x$getLrMapper(), "unchecked",
@@ -103,7 +103,7 @@ report_map_ <- function(x, map, outdir, block_width, ...) {
     aln <- DECIPHER::AlignSeqs(Biostrings::DNAStringSet(
       foreach(h = haps, .combine=c) %do% h),
                                verbose = FALSE)
-    writeMSA(aln , file = file.path(outdir, aln_file))
+    writeMSA(aln , file = file.path(outdir,aln_file))
     # Biostrings::write.phylip(Biostrings::DNAMultipleAlignment(aln),
                              # file.path(outdir, aln_file))
   }
@@ -114,7 +114,7 @@ report_map_ <- function(x, map, outdir, block_width, ...) {
                           sep = ".")
     vars <- x$consensus$problematic_variants %>%
       dplyr::arrange(pos, haplotype)
-    readr::write_tsv(vars, path = file.path(outdir, probvar_file),
+    readr::write_tsv(vars, path = file.path(outdir,probvar_file),
                      append = FALSE, col_names = TRUE)
   }
 
@@ -146,9 +146,9 @@ report_checked_consensus <- function(x, which = "mapFinal") {
                               "unchecked", ending, sep = ".")
   pairfile_checked   <- paste(map, "aln", x$getLrdType(), x$getLrMapper(),
                               "checked", ending, sep = ".")
-  pairfile_checked   <- normalizePath(file.path(x$getOutdir(), "report",
+  pairfile_checked   <- normalizePath(x$absPath(file.path("report",
                                                 pairfile_checked),
-                                      mustWork = FALSE)
+                                      mustWork = FALSE))
 
   if (!file.exists(pairfile_checked)) {
     msg <- sprintf("The file '%s' must be saved as '%s' before invoking this function",
@@ -156,7 +156,7 @@ report_checked_consensus <- function(x, which = "mapFinal") {
     stop(msg, call. = FALSE)
   }
 
-  outdir <- dir_create_if_not_exists(file.path(x$getOutdir(), "checked"))
+  outdir <- dir_create_if_not_exists(x$absPath("checked"))
   rs <- readPairFile(pairfile_checked)
   seqs <- Biostrings::DNAStringSet(
     sapply(rs, function(s) Biostrings::DNAString(gsub("-", "", s))))
@@ -167,7 +167,7 @@ report_checked_consensus <- function(x, which = "mapFinal") {
 
   seqsAll <- c(ref, seqs)
   aln_file <-  paste("aln", x$getLrdType(), x$getLrMapper(), "html", sep = ".")
-  browse_align(seqsAll, file = file.path(outdir, aln_file), openURL = FALSE)
+  browse_align(seqsAll, file = x$absPath(aln_file), openURL = FALSE)
 
   ## Export FASTA
   files <- sapply(1:length(seqs), function(sq) {
@@ -177,7 +177,7 @@ report_checked_consensus <- function(x, which = "mapFinal") {
                               x$getReference())
     Biostrings::writeXStringSet(
       seq,
-      filepath = file.path(outdir, file),
+      filepath = x$absPath(file),
       format = "fasta"
     )
     file
@@ -196,18 +196,18 @@ check_alignment_file <- function(x, which = "mapFinal", where = 0,
                           "msa"))
   pairfile_unchecked <- paste(which, "aln", x$getLrdType(), x$getLrMapper(),
                               "unchecked", ending, sep = ".")
-  pairfile_unchecked <- normalizePath(file.path(x$getOutdir(), "report",
+  pairfile_unchecked <- normalizePath(x$absPath(file.path("report",
                                                 pairfile_unchecked),
-                                      mustWork = FALSE)
+                                      mustWork = FALSE))
   assertthat::assert_that(
     file.exists(pairfile_unchecked),
     assertthat::is.readable(pairfile_unchecked)
   )
   pairfile_checked <- paste(which, "aln", x$getLrdType(), x$getLrMapper(),
                             "checked", ending, sep = ".")
-  pairfile_checked <- normalizePath(file.path(x$getOutdir(), "report",
+  pairfile_checked <- normalizePath(x$absPath(file.path("report",
                                               pairfile_checked),
-                                    mustWork = FALSE)
+                                    mustWork = FALSE))
   if (!file.exists(pairfile_checked)) {
     file.copy(pairfile_unchecked, pairfile_checked, overwrite = FALSE)
   }
@@ -250,12 +250,12 @@ refineAlignment <- function(x, hptype){
     )
   }
   reftag    <- "refine"
-  outdir    <- dir_create_if_not_exists(file.path(x$getOutdir(), reftag))
+  outdir    <- dir_create_if_not_exists(x$absPath(reftag))
   readpathLR  <- x$mapFinal$lreads[hptype]
   refpath   <- .getUpdatedSeqs(x, hptype)
-  x$consensus$refine$ref[[hptype]] <- refpath
+  x$consensus$refine$ref[[hptype]] <- x$relPath(refpath)
   names(refpath) <- hptype
-  readpathSR <- x$mapFinal$sreads[hptype]
+  readpathSR <- x$absPath(x$mapFinal$sreads[hptype])
 
 
   ## Remap long reads to the same reference sequences as short reads
@@ -293,7 +293,7 @@ refineAlignment <- function(x, hptype){
     reffile = refpath,
     force   = TRUE
   )
-  x$consensus$refine$bamfile[[mapgroupLR]] = bamfile
+  x$consensus$refine$bamfile[[mapgroupLR]] = x$relPath(bamfile)
 
   # ## Calculate pileup from graphmap produced SAM file
   # flog.info("  Piling up ...", name = "info")
@@ -344,7 +344,7 @@ refineAlignment <- function(x, hptype){
       refpath,
       force = TRUE
     )
-    x$consensus$refine$bamfile[[mapgroupSR]] = bamfile
+    x$consensus$refine$bamfile[[mapgroupSR]] = x$relPath(bamfile)
 
   }
   ## Calculate pileup from graphmap produced SAM file
@@ -363,23 +363,20 @@ refineAlignment <- function(x, hptype){
                  exclude_gaps = FALSE, threshold = x$getThreshold())
   x$consensus$refine$consensus[[hptype]] <- cseq
   x$cache()
+  run_igv(x, map = "refine", open_now = FALSE)
   invisible(x)
 }
-
-
-
 
 
 # Helpers -----------------------------------------------------------------
 
 .getUpdatedSeqs <- function(x, hptype){
-  outdir <- x$getOutdir()
   ending <- ifelse(length(x$getHapTypes()) == 2, "psa", "msa")
   pairfile_checked <- paste("mapfinal.aln", x$getLrdType(), x$getLrMapper(),
                               "checked", ending, sep = ".")
-  pairfile_checked <- normalizePath(file.path(x$getOutdir(), "report",
+  pairfile_checked <- normalizePath(x$absPath(file.path("report",
                                                 pairfile_checked),
-                                      mustWork = FALSE)
+                                      mustWork = FALSE))
   rs <- readPairFile(pairfile_checked)
   seqs <- Biostrings::DNAStringSet(
     sapply(rs, function(s) Biostrings::DNAString(gsub("-", "", s))))
@@ -389,7 +386,7 @@ refineAlignment <- function(x, hptype){
   file <- paste(names(seq), x$getLrdType(), x$getLrMapper(), "refined", "fa", sep = ".")
   names(seq) <- paste0(names(seq), " LOCUS=", x$getLocus(), ";REF=",
                           x$getReference())
-  seqPath <- file.path(outdir, file)
+  seqPath <- x$absPath(file)
   Biostrings::writeXStringSet(
     seq,
     filepath = seqPath,

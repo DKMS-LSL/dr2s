@@ -180,10 +180,11 @@ generate_reference_sequence <- function(allele, locus, outdir, fullname = TRUE) 
   # workaround for these damn windows filename conventions
   allele_nm <- gsub("[*]", "#", gsub("[:]", "_", paste0(allele, collapse = "~")))
   #allele_nm <- paste0(allele, collapse = "~")
-  outpath <- normalizePath(file.path(outdir, paste0(allele_nm, ".ref.fa")), mustWork = FALSE)
+  filename <- paste0(allele_nm, ".ref.fa")
+  outpath <- normalizePath(file.path(outdir, filename), mustWork = FALSE)
 
   Biostrings::writeXStringSet(sref, outpath)
-  outpath
+  filename
 }
 
 stouffers_zscore <- function(z, w = rep(1, length(z))) {

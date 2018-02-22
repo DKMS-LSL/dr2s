@@ -138,10 +138,11 @@ initialise_dr2s <- function(conf, create_outdir = TRUE) {
   if (create_outdir) {
     conf$outdir <- dir_create_if_not_exists(path = gsub("//+", "/", file.path(
       conf$outdir,
-      conf$sample_id,
-      sprintf("N%03i", conf$nreads) %||% "",
-      conf$longreads$name %||% conf$longreads$dir %||% "",
-      paste0(normalise_locus(conf$locus), ".", conf$longreads$type, ".", conf$reftype, ".", conf$consensus)
+      conf$sample_id#,
+      ## Use only sample id
+      # sprintf("N%03i", conf$nreads) %||% "",
+      # conf$longreads$name %||% conf$longreads$dir %||% "",
+      # paste0(normalise_locus(conf$locus), ".", conf$longreads$type, ".", conf$reftype, ".", conf$consensus)
     )))
   }
   conf

@@ -148,8 +148,7 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
 
       flog.info(" Write new shortread fastqs to file ...", name = "info")
       fqs <- self$getShortreads()
-      fqdir  <- dir_create_if_not_exists(file.path(self$getOutdir(),
-                                                   self$getSrdType()))
+      fqdir  <- dir_create_if_not_exists(self$absPath(self$getSrdType()))
       # write fastq's
       readfile <- c()
       readfile <- foreach(fq = fqs, .combine = c) %do% {
@@ -159,7 +158,7 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
         srFastqHap
       }
       # set new shortread directory
-      self$setConfig("filteredShortreads", fqdir)
+      self$setConfig("filteredShortreads", self$relPath(fqdir))
 
       ## Rerun mapper
       flog.info("  Mapping filtered short reads against latest consensus ... ",
@@ -221,8 +220,7 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
                 Have a look at the mapInit Plot",
                 maxCov, q75Cov, maxCov/q75Cov, name = "info")
       if (!forceBadMapping) {
-        gfile <- file.path(self$getOutdir(),
-                           paste0("plot.MapInit.SR.",
+        gfile <- self$absPath(paste0("plot.MapInit.SR.",
                                   sub("bam$", "pdf", usc(basename(bamfile)))))
         plt <- plot_pileup_coverage(
           x = pileup,
@@ -254,7 +252,7 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
                      threshold = self$getThreshold())
     conseq_name <- paste0("Init.consensus.", sub(".sam.gz", "",
                                                  basename(samfile)))
-    conseqpath     <- file.path(self$getOutdir(), paste0(conseq_name, ".fa"))
+    conseqpath     <- self$absPath(paste0(conseq_name, ".fa"))
     Biostrings::writeXStringSet(
       Biostrings::DNAStringSet(gsub("[-+]", "N", conseq)),
       conseqpath)
@@ -325,7 +323,7 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
                        force_exclude_gaps = TRUE, threshold = 0.2)
       conseq_name <- paste0("Init.consensus.2", sub(".sam.gz", "",
                                                     basename(samfile)))
-      conseqpath     <- file.path(self$getOutdir(), paste0(conseq_name, ".fa"))
+      conseqpath     <- self$absPath(paste0(conseq_name, ".fa"))
       Biostrings::writeXStringSet(
         Biostrings::DNAStringSet(gsub("[-+]", "N", conseq)),
         conseqpath)
@@ -333,12 +331,12 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
 
     mapInitSR1 = structure(
       list(
-        reads   = self$getShortreads(),
-        bamfile = bamfile,
+        reads   = self$relPath(self$getShortreads()),
+        bamfile = self$relPath(bamfile),
         pileup  = pileup,
         tag     = maptag,
         conseq  = conseq,
-        seqpath = conseqpath,
+        seqpath = self$relPath(conseqpath),
         ref     = conseq_name
       ),
       class  = c("mapInit", "list")
@@ -356,7 +354,7 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
     ## Run mapper
     flog.info(" Mapping shortreads against mapInit reference for calling SNPs ...", name = "info")
     samfile <- map_fun(
-      reffile  = mapInitSR1$seqpath,
+      reffile  = self$absPath(mapInitSR1$seqpath),
       readfile = readfile,
       allele   = mapInitSR1$ref,
       readtype = self$getSrdType(),
@@ -370,7 +368,7 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
     flog.info("  Indexing ...", name = "info")
     bamfile <- bam_sort_index(
       samfile = samfile,
-      reffile = mapInitSR1$seqpath,
+      reffile = self$absPath(mapInitSR1$seqpath),
       sample = pct / 100,
       min_mapq = min_mapq,
       force = force,
@@ -403,12 +401,12 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
 
     mapInitSR2 = structure(
       list(
-        reads   = self$getShortreads(),
-        bamfile = bamfile,
+        reads   = self$relPath(self$getShortreads()),
+        bamfile = self$relPath(bamfile),
         pileup  = pileup,
         tag     = maptag,
         conseq  = conseq,
-        seqpath = conseqpath,
+        seqpath = self$relPath(conseqpath),
         ref     = conseq_name
       ),
       class  = c("mapInit", "list")
@@ -418,7 +416,7 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
   flog.info(" Map longreads against MapInit reference for clustering ...",
             name = "info")
   if (exists("mapInitSR1")){
-    reffile <- mapInitSR1$seqpath
+    reffile <- self$absPath(mapInitSR1$seqpath)
     refseq <- mapInitSR1$conseq
     allele <- mapInitSR1$ref
   } else {
@@ -479,8 +477,8 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
 
   self$mapInit = structure(
     list(
-      reads   = self$getLongreads(),
-      bamfile = bamfile,
+      reads   = self$relPath(self$getLongreads()),
+      bamfile = self$relPath(bamfile),
       pileup  = pileup,
       tag     = maptag,
       SR1     = NULL,
@@ -493,11 +491,11 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
     self$mapInit$SR1 <- mapInitSR1
     self$mapInit$SR2 <- mapInitSR2
   }
+  run_igv(self,map = "mapInit", open_now = "FALSE")
   if (plot) {
     flog.info(" Plotting MapInit Summary ...", name = "info")
     ## Coverage and frequency of minor alleles
-    gfile <- file.path(self$getOutdir(),
-                       paste0("plot.MapInit.LR.",
+    gfile <- self$absPath(paste0("plot.MapInit.LR.",
                               sub("bam$", "pdf",
                                   usc(basename(self$mapInit$bamfile)))))
     pdf(file = gfile, width = 12, height = 10, onefile = TRUE,
@@ -511,8 +509,7 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
     dev.off()
 
     if (partSR){
-      gfile <- file.path(self$getOutdir(),
-                         paste0("plot.MapInit.SR.",
+      gfile <- self$absPath(paste0("plot.MapInit.SR.",
                                 sub("bam$", "pdf",
                                     usc(basename(self$mapInit$SR2$bamfile)))))
       pdf(file = gfile, width = 12, height = 10, onefile = TRUE,
@@ -524,7 +521,6 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
         readtype = "SR"
       )
       dev.off()
-
     }
   }
 
@@ -563,7 +559,6 @@ partitionLongReads.DR2S <- function(x,
   invisible(x)
 
 }
-#self <- dpb1_3
 DR2S_$set("public", "runPartitionLongReads", function(threshold = NULL,
                                                          skip_gap_freq = 2/3,
                                                          dist_alleles = NULL,
@@ -624,7 +619,7 @@ DR2S_$set("public", "runPartitionLongReads", function(threshold = NULL,
   ) ||
   !(all(ppos$position %in% colnames(self$partition$mat)) &&
     all(colnames(self$partition$mat) %in% ppos$position))) {
-    SNPmatrix(bamfile = self$mapInit$bamfile, refseq = refseq,
+    SNPmatrix(bamfile = self$absPath(self$mapInit$bamfile), refseq = refseq,
               polymorphic_positions = ppos)
   } else {
     self$partition$mat
@@ -647,7 +642,7 @@ DR2S_$set("public", "runPartitionLongReads", function(threshold = NULL,
   }
 
   browse_seqs(SQS(prt),
-              file = file.path(self$getOutdir(), "partition.fa.html"),
+              file = self$absPath("partition.fa.html"),
               openURL = FALSE)
 
   self$partition = structure(list(
@@ -740,8 +735,7 @@ DR2S_$set("public", "runSplitReadsByHaplotype", function(limits,
   if (plot) {
     tag   <- self$getMapTag("init", "LR")
     bnm   <- basename(self$mapInit$bamfile)
-    outf  <- file.path(self$getOutdir(),
-                       paste0("plot.partition.", sub("bam$", "pdf", usc(bnm))))
+    outf  <- self$absPath(paste0("plot.partition.", sub("bam$", "pdf", usc(bnm))))
     pdf(file = outf, width = 10, height = 12, onefile = TRUE,
         title = paste(self$getLocus(), self$getSampleId(), sep = "." ))
     self$plotPartitionSummary(label = tag, limits = unlist(self$getLimits()))
@@ -826,7 +820,7 @@ DR2S_$set("public", "runExtractLongReads", function(nreads = NULL,
   ## do this for each haptype
   hptypes <- self$getHapTypes()
   for (hptype in hptypes){
-    dir <- dir_create_if_not_exists(file.path(self$getOutdir(), hptype))
+    dir <- dir_create_if_not_exists(self$absPath(hptype))
 
     qnames <- self$getHapList(hptype)
 
@@ -836,7 +830,7 @@ DR2S_$set("public", "runExtractLongReads", function(nreads = NULL,
     # replace = replace
 
     fq  <- .extractFastq(
-      x = self$mapInit$bamfile,
+      x = self$absPath(self$mapInit$bamfile),
       qnames = qnames,
       n = self$getNreads(),
       replace = replace
@@ -855,8 +849,8 @@ DR2S_$set("public", "runExtractLongReads", function(nreads = NULL,
     ShortRead::writeFastq(fq, out, compress = TRUE)
     self$mapIter[["0"]][[hptype]] = structure(
       list(
-        dir     = dir,
-        reads   = out,
+        dir     = self$relPath(dir),
+        reads   = self$relPath(out),
         ref     = NULL,
         bamfile = NULL,
         pileup  = NULL,
@@ -960,7 +954,7 @@ DR2S_$set("public", "runMapIter", function(opts = list(),
 
   # Construct consensus from initial mapping with the clustered reads
   flog.info(" Constructing a consensus from initial mapping ...", name = "info")
-  bamfile <- self$mapInit$bamfile
+  bamfile <- self$absPath(self$mapInit$bamfile)
   if (self$getPartSR()){
     ref <- self$mapInit$SR1$conseq
   } else {
@@ -981,11 +975,11 @@ DR2S_$set("public", "runMapIter", function(opts = list(),
                      force_exclude_gaps = FALSE, prune_matrix = FALSE,
                      cutoff = pruning_cutoff)
 
-    seqpath     <- file.path(self$mapIter[["0"]][[hptype]]$dir,
-                             paste0(conseq_name, ".fa"))
+    seqpath     <- self$absPath(file.path(self$mapIter[["0"]][[hptype]]$dir,
+                             paste0(conseq_name, ".fa")))
     self$mapIter[["0"]][[hptype]]$ref <- "mapIter0"
     self$mapIter[["0"]][[hptype]]$conseq <- conseq
-    self$mapIter[["0"]][[hptype]]$seqpath <- seqpath
+    self$mapIter[["0"]][[hptype]]$seqpath <- self$relPath(seqpath)
     self$mapIter[["0"]][[hptype]]$tag <- "mapIter0"
     Biostrings::writeXStringSet(
       Biostrings::DNAStringSet(gsub("[-+]", "", conseq)),
@@ -1004,9 +998,9 @@ DR2S_$set("public", "runMapIter", function(opts = list(),
     # hptype = "A"
     foreach (hptype = hptypes) %do% {
       reftag   <- prevIteration[[hptype]]$ref
-      outdir   <- prevIteration[[hptype]]$dir
-      readpath <- prevIteration[[hptype]]$reads
-      refpath  <- prevIteration[[hptype]]$seqpath
+      outdir   <- self$absPath(prevIteration[[hptype]]$dir)
+      readpath <- self$absPath(prevIteration[[hptype]]$reads)
+      refpath  <- self$absPath(prevIteration[[hptype]]$seqpath)
       refseq  <- prevIteration[[hptype]]$conseq
 
       ## try collapsing homopolymers; Did not seem to improve the mapping
@@ -1025,9 +1019,9 @@ DR2S_$set("public", "runMapIter", function(opts = list(),
 
       self$mapIter[[as.character(iteration)]][[hptype]] = structure(
         list(
-          dir     = outdir,
-          reads   = readpath,
-          ref     = refpath,
+          dir     = self$relPath(outdir),
+          reads   = self$relPath(readpath),
+          ref     = self$relPath(refpath),
           bamfile = list(),
           pileup  = list(),
           conseq  = list(),
@@ -1071,7 +1065,7 @@ DR2S_$set("public", "runMapIter", function(opts = list(),
         # debug
         # clean = TRUE
       )
-      self$mapIter[[iterationC]][[hptype]]$bamfile = bamfile
+      self$mapIter[[iterationC]][[hptype]]$bamfile = self$relPath(bamfile)
 
       ## Calculate pileup from graphmap produced SAM file
       flog.info("   Piling up ...", name = "info")
@@ -1101,7 +1095,7 @@ DR2S_$set("public", "runMapIter", function(opts = list(),
                             exclude_gaps = FALSE, prune_matrix = FALSE,
                             cutoff = pruning_cutoff)
       seqpath     <- file.path(outdir, paste0(conseq_name, ".fa"))
-      self$mapIter[[iterationC]][[hptype]]$seqpath = seqpath
+      self$mapIter[[iterationC]][[hptype]]$seqpath = self$relPath(seqpath)
       self$mapIter[[iterationC]][[hptype]]$conseq = conseq
       self$mapIter[[iterationC]][[hptype]]$ref = conseq_name
       Biostrings::writeXStringSet(
@@ -1116,9 +1110,7 @@ DR2S_$set("public", "runMapIter", function(opts = list(),
     if (plot) {
       flog.info(" Plotting MapIter Summary ...", name = "info")
       ## Coverage and base frequency
-      gfile <- file.path(
-        self$getOutdir(),
-        paste("plot.MapIter", iteration, self$getLrdType(), self$getLrMapper(),
+      gfile <- self$absPath(paste("plot.MapIter", iteration, self$getLrdType(), self$getLrMapper(),
               "pdf", sep = ".")
       )
       pdf(file = gfile, width = 8 * length(hptypes), height = 8, onefile = TRUE,
@@ -1128,9 +1120,7 @@ DR2S_$set("public", "runMapIter", function(opts = list(),
       ## map1: 0.1; 4
       dev.off()
       ## Consensus sequence probability
-      gfile <- file.path(
-        self$getOutdir(),
-        paste("plot.MapIter.conseq", iteration, self$getLrdType(),
+      gfile <- self$absPath(paste("plot.MapIter.conseq", iteration, self$getLrdType(),
               self$getLrMapper(), "pdf", sep = ".")
       )
       pdf(file = gfile, width = 16, height = 4*length(hptypes), onefile = TRUE,
@@ -1142,6 +1132,7 @@ DR2S_$set("public", "runMapIter", function(opts = list(),
       dev.off()
     }
   }
+  run_igv(self,map = "mapIter", open_now = "FALSE")
 
   invisible(self)
 })
@@ -1212,7 +1203,7 @@ DR2S_$set("public", "runPartitionShortReads", function(opts = list(),
   ## If not, map to the reference
   if (self$getPartSR()){
     flog.info(" Found shortread mapping from MapInit ...", name = "info")
-    bamfile <- self$mapInit$SR2$bamfile
+    bamfile <- self$absPath(self$mapInit$SR2$bamfile)
     ref <- self$mapInit$SR1$conseq
     refname <- names(ref)
   } else {
@@ -1291,15 +1282,15 @@ DR2S_$set("public", "runPartitionShortReads", function(opts = list(),
 
     # write fastq's
     foreach(fq = fqs) %do% {
-      srFastqHap = file.path(self$getOutdir(), hptype,
+      srFastqHap = self$absPath(file.path(hptype,
                              paste0(c(strsplit(basename(fq), "\\.")[[1]][1],
-                                      hptype, "fastq.gz"), collapse = "."))
+                                      hptype, "fastq.gz"), collapse = ".")))
       write_part_fq(fq = fq, srFastqHap = srFastqHap,
                     dontUseReads = dontUseReads)
       srfilenames <- c(srfilenames, srFastqHap)
       self$srpartition[[hptype]]$srpartition <- srpartition
     }
-    self$srpartition[[hptype]]$SR[[fq]] <- srfilenames
+    self$srpartition[[hptype]]$SR[[fq]] <- self$relPath(srfilenames)
   }
   return(invisible(self))
 })
@@ -1401,29 +1392,30 @@ DR2S_$set("public", "runMapFinal", function(opts = list(),
   }
 
   reftag       <- "final"
-  outdir       <- dir_create_if_not_exists(file.path(self$getOutdir(), reftag))
+  outdir       <- dir_create_if_not_exists(self$absPath(reftag))
   lastIter     <- self$mapIter[[max(names(self$mapIter))]]
   hptypes      <- self$getHapTypes()
-  readpathsLR  <- sapply(hptypes, function(x) lastIter[[x]]$reads)
+  readpathsLR  <- sapply(hptypes, function(x) self$absPath(lastIter[[x]]$reads))
   names(readpathsLR) <- hptypes
-  refpaths     <- sapply(hptypes, function(x) lastIter[[x]]$seqpath)
+  refpaths     <- sapply(hptypes, function(x) self$absPath(lastIter[[x]]$seqpath))
   refseqs      <- sapply(hptypes, function(x) lastIter[[x]]$conseq)
   names(refpaths) <- hptypes
-  readpathsSR <- sapply(hptypes, function(x) self$srpartition[[x]]$SR)
+  readpathsSR <- lapply(hptypes, function(x) self$absPath(unlist(self$srpartition[[x]]$SR)))
   names(readpathsSR) <- hptypes
 
   self$mapFinal = structure(
     list(
-      dir     = outdir,
-      sreads  = readpathsSR,
-      lreads   = readpathsLR,
-      ref     = refpaths,
+      dir     = self$relPath(outdir),
+      sreads  = lapply(readpathsSR,self$relPath),
+      lreads  = self$relPath(readpathsLR),
+      ref     = self$relPath(refpaths),
       bamfile = list(),
       pileup  = list(),
       tag     = list(),
       seqpath = list()
     ), class = c("mapFinal", "list")
   )
+
 
   ## Remap long reads to the same reference sequences as short reads
   # debug
@@ -1576,7 +1568,7 @@ DR2S_$set("public", "runMapFinal", function(opts = list(),
         # debug
         # clean = TRUE
       )
-      self$mapFinal$bamfile[[mapgroupSR]] = bamfile
+      self$mapFinal$bamfile[[mapgroupSR]] = self$relPath(bamfile)
 
       ## Calculate pileup from graphmap produced SAM file
       flog.info("  Piling up ...", name = "info")
@@ -1617,8 +1609,8 @@ DR2S_$set("public", "runMapFinal", function(opts = list(),
 
     if (!is.null(self$mapFinal$sreads$A)){
       for (readtype in c("LR", "SR")){
-        gfile <- file.path(self$getOutdir(),
-                           paste("plotFinal", readtype,
+        #readtype <- "LR"
+        gfile <- self$absPath(paste("plotFinal", readtype,
                                  self$getLrdType(), self$getLrMapper(),
                                  "pdf", sep = "."))
         pdf(file = gfile, width = 8 * length(hptypes), height = 8,
@@ -1629,7 +1621,7 @@ DR2S_$set("public", "runMapFinal", function(opts = list(),
         dev.off()
       }
     } else {
-      gfile <- file.path(self$getOutdir(), paste("plotFinal.LR",
+      gfile <- self$absPath(paste("plotFinal.LR",
                                                  self$getLrdType(),
                                                  self$getLrMapper(), "pdf",
                                                  sep = "."))
@@ -1641,6 +1633,7 @@ DR2S_$set("public", "runMapFinal", function(opts = list(),
       dev.off()
     }
   }
+  run_igv(self, map = "mapFinal", open_now = FALSE)
 
   return(invisible(self))
 })

@@ -128,7 +128,7 @@ DR2S_ <- R6::R6Class(
 
       if (file.exists(ref_path <- private$conf$reference)) {
         private$conf$reference = basename(ref_path)
-        private$conf$ref_path  = normalizePath(ref_path, mustWork = TRUE)
+        private$conf$ref_path  = basename(ref_path)
       } else {
         private$conf$reference = expand_allele(conf$reference, conf$locus)
         # private$conf$ref_path  = generate_reference_sequence(private$ipd, private$conf$reference, private$conf$outdir, fullname = FALSE)
@@ -143,7 +143,7 @@ DR2S_ <- R6::R6Class(
       else {
         if (file.exists(alt_path <- private$conf$alternate)) {
           private$conf$alternate = basename(alt_path)
-          private$conf$alt_path  = normalizePath(alt_path, mustWork = TRUE)
+          private$conf$alt_path  = basename(alt_path)
         } else {
           private$conf$alternate = expand_allele(private$conf$alternate, private$conf$locus)
           # private$conf$alt_path  = generate_reference_sequence(private$ipd, private$conf$alternate, private$conf$outdir, fullname = FALSE)
@@ -173,7 +173,7 @@ DR2S_ <- R6::R6Class(
 
       if (file.exists(ref_path <- private$conf$reference)) {
         private$conf$reference = basename(ref_path)
-        private$conf$ref_path  = normalizePath(ref_path, mustWork = TRUE)
+        private$conf$ref_path  = basename(ref_path)
       } else {
         private$conf$reference = expand_allele(private$conf$reference, private$conf$locus)
         private$conf$ref_path  = generate_reference_sequence(self$getReference(),
@@ -187,7 +187,7 @@ DR2S_ <- R6::R6Class(
       else {
         if (file.exists(alt_path <- private$conf$alternate)) {
           private$conf$alternate = basename(alt_path)
-          private$conf$alt_path  = normalizePath(alt_path, mustWork = TRUE)
+          private$conf$alt_path  = basename(alt_path)
         } else {
           private$conf$alternate = expand_allele(private$conf$alternate, private$conf$locus)
           private$conf$ref_path  = generate_reference_sequence(self$getAlternate(),
@@ -196,22 +196,15 @@ DR2S_ <- R6::R6Class(
                                                                fullname = FALSE)
         }
       }
-
-
-        ## Todo: rm if works
-        # private$conf$ref_path = generate_reference_sequence(self$getIPD(), self$getReference(), self$getOutdir(), fullname = FALSE)
-        # private$conf$alt_path = generate_reference_sequence(self$getIPD(), self$getAlternate(), self$getOutdir(), fullname = FALSE)
       invisible(self)
     },
     cleanup = function() {
-      unlink(self$mapInit$bamfile)
-      unlink(paste0(self$mapInit$bamfile, ".bai"))
+      unlink(self$absPath(self$mapInit$bamfile))
+      unlink(paste0(self$absPath(self$mapInit$bamfile), ".bai"))
       foreach(hpt = self$getHapTypes()) %do% {
-        unlink(file.path(self$getOutdir(), hpt), recursive = TRUE)
+        unlink(self$absPath(hpt), recursive = TRUE)
       }
-      # unlink(file.path(self$getOutdir(), "A"), recursive = TRUE)
-      # unlink(file.path(self$getOutdir(), "B"), recursive = TRUE)
-      unlink(file.path(self$getOutdir(), "final"), recursive = TRUE)
+      unlink(self$absPath("final"), recursive = TRUE)
       invisible(self)
     },
     print = function() {
@@ -397,7 +390,7 @@ DR2S_ <- R6::R6Class(
     ##
     getSrdDir = function() {
       if (!is.null(filtered <- self$getConfig("filteredShortreads"))) {
-        return(filtered)
+        return(self$absPath(filtered))
       }
       if (!is.null(srddir <- self$getConfig("shortreads")$dir)) {
         file.path(self$getDatadir(), srddir)
@@ -427,7 +420,7 @@ DR2S_ <- R6::R6Class(
     },
     ##
     getRefPath = function() {
-      self$getConfig("ref_path")
+      self$absPath(self$getConfig("ref_path"))
     },
     ##
     getRefSeq = function() {
@@ -437,22 +430,15 @@ DR2S_ <- R6::R6Class(
         ipd.Hsapiens.db::getClosestComplete(ipd.Hsapiens.db::ipd.Hsapiens.db,
                                             self$getReference())
       }
-      #   if (self$getReference() == "consensus") {
-      #     self$getIPD()$cons
-      #   } else {
-      #
-      #     self$getIPD()$get_reference_sequence(self$getReference(), "a")
-      #   }
-      # }
     },
     ##
     getAltPath = function() {
-      self$getConfig("alt_path")
+      self$absPath(self$getConfig("alt_path"))
     },
     ##
     getAltSeq = function() {
       if (!is.null(self$getAltPath())) {
-        Biostrings::readDNAStringSet(self$getRefPath())
+        Biostrings::readDNAStringSet(self$getAltPath())
       } else if (self$getAlternate() %in%
                  ipd.Hsapiens.db::getAlleles(ipd.Hsapiens.db::ipd.Hsapiens.db,
                                              self$getLocus()) ){
@@ -516,9 +502,10 @@ DR2S_ <- R6::R6Class(
     ##
     getLatestRefPath = function() {
       if (length(self$mapFinal) > 0) {
-        return(self$mapFinal$seq)
+        return(self$absPath(self$mapFinal$seq))
       } else if (length(self$mapIter) > 0) {
-        return(sapply(self$mapIter[max(names(self$mapIter))][self$getHapTypes()], function(x) x$seqpath))
+        return(sapply(self$mapIter[max(names(self$mapIter))][self$getHapTypes()],
+                      function(x) self$absPath(x$seqpath)))
       } else {
         return(self$getRefPath())
       }
@@ -644,6 +631,18 @@ DR2S_ <- R6::R6Class(
         error = function(e)
           FALSE
       )
+    },
+    ## Get the absolut path
+    absPath = function(filename) {
+      sapply(filename, function(x) {
+        normalizePath(
+        file.path(self$getOutdir(), x),
+        mustWork = FALSE)
+      })
+    },
+    ## Get the relative path
+    relPath = function(filepath) {
+      gsub("^/", "", gsub(self$getOutdir(),"",filepath))
     },
     ##
     ## Plotting methods ####
@@ -856,9 +855,9 @@ DR2S_ <- R6::R6Class(
         tag <- self$getMapTag(iteration, hp, readtype)
         ref <- paste0(readtype, hp)
         # tag <- self$mapFinal$tag[[ref]]
-          self$plotGroupCoverage(group = hp, ref = readtype, iteration = iteration,
-                                 threshold = NULL, range = NULL, thin = thin,
-                                 width = width, label = tag)
+        self$plotGroupCoverage(group = hp, ref = readtype, iteration = iteration,
+                               threshold = NULL, range = NULL, thin = thin,
+                               width = width, label = tag)
         list(
           self$plotGroupCoverage(group = hp, ref = readtype, iteration = iteration,
                                  threshold = NULL, range = NULL, thin = thin,
