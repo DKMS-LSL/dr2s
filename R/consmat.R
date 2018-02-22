@@ -263,28 +263,88 @@ create_PWM <- function(msa){
   cmat <- rbind(cmat, "+" = 0)
   cmat
 }
-.distributeGaps <- function(mat, removeError = FALSE){
-  stopifnot(is(mat,"consmat"))
-  if (! "-" %in% colnames(mat)) {
-    flog.warn("No Gaps to distribute")
-    return(mat)
-  }
-  seq <- .mat2rle(mat)
 
+# mat <- pileup$consmat
+#removeError = TRUE
+.distributeGaps <- function(mat, bamfile, reference, removeError = FALSE){
+  seq <- .mat2rle(mat)
   if (removeError){
-    for (i in which(seq$length > 1)) {
-      seqStart <- sum(seq$lengths[1:(i-1)])+1
-      seqEnd <- seqStart+seq$lengths[i]-1
-      mat[seqStart:seqEnd,"-"] <- sum(mat[seqStart:seqEnd,"-"])/seq$lengths[i]
-    }
-    backgroundGapError <- .getGapErrorBackground(mat)
-    newGapError <- apply(mat, 1, function(x) sum(x)*backgroundGapError)#
-    mat[,"-"] <- round(mat[,"-"] - newGapError)
-    mat[which(mat[,"-"] < 0),"-"] <- 0
+    gapError <- .getGapErrorBackground(mat, n = 5)
   }
-  mat <- .moveGapsToLeft(mat)
+  for (i in which(seq$length > 5)) {
+    ## Assign new gap numbers to each position starting from left
+    # meanCoverage <- mean(rowSums(mat[seqStart:seqEnd,1:4]))
+    seqStart <- sum(seq$lengths[1:(i-1)])+1
+    seqEnd <- seqStart+seq$lengths[i]-1
+    region <- paste(seqStart, seqEnd, sep = "-")
+
+    msa <- msa_from_bam(bamfile, reference,paddingLetter = "+", region = region)
+    ## Use only sequences spanning the complete region! Every other sequence
+    ## gives no Info
+    msa <- msa[sapply(msa, function(x) !"+" %in% Biostrings::uniqueLetters(x))]
+
+    if (removeError){
+      aFreq <- Biostrings::alphabetFrequency(msa[1])
+      nt <- colnames(aFreq)[which.max(aFreq)]
+      nucs <- sum(Biostrings::nchar(msa))
+      falseGaps <- round(nucs * gapError)
+      while (falseGaps > 0) {
+        seqsWithGap <- which(sapply(msa, function(x)
+          "-" %in% Biostrings::uniqueLetters(x)))
+        if (length(seqsWithGap) > 1) {
+          seqsToChange <- sample(seqsWithGap,
+                                 min(falseGaps,
+                                     length(seqsWithGap)))
+        } else {
+          seqsToChange <- seqsWithGap
+        }
+        if (length(seqsToChange) == 0)
+          break
+        msaChanged <- Biostrings::DNAStringSet(
+          sapply(msa[seqsToChange], function(x) {
+            # x <- msa[seqsToChange][[1]]
+            pos <- Biostrings::matchPattern("-", x)[1]
+            Biostrings::replaceLetterAt(x,
+                                     Biostrings::start(Biostrings::matchPattern("-", x)[1]),
+                                     nt)
+          }))
+        msa[seqsToChange] <- msaChanged
+        falseGaps <- falseGaps - length(seqsToChange)
+      }
+    }
+
+    msa <- Biostrings::DNAStringSet(sapply(msa, function(x) {
+      gapless <- gsub(pattern = "-", "", x)
+      nGaps <- Biostrings::nchar(x) - Biostrings::nchar(gapless)
+      paste0(paste0(rep("-", nGaps), collapse = ""), gapless)
+    }))
+    mat[seqStart:seqEnd,] <- t(Biostrings::consensusMatrix(msa))[,VALID_DNA(include = "indel")]
+  }
   mat
 }
+
+# .distributeGapsConsMat <- function(mat, bamfile, reference, removeError = FALSE){
+#   stopifnot(is(mat,"consmat"))
+#   if (! "-" %in% colnames(mat)) {
+#     flog.warn("No Gaps to distribute")
+#     return(mat)
+#   }
+#   seq <- .mat2rle(mat)
+#
+#   if (removeError){
+#     for (i in which(seq$length > 1)) {
+#       seqStart <- sum(seq$lengths[1:(i-1)])+1
+#       seqEnd <- seqStart+seq$lengths[i]-1
+#       mat[seqStart:seqEnd,"-"] <- sum(mat[seqStart:seqEnd,"-"])/seq$lengths[i]
+#     }
+#     backgroundGapError <- .getGapErrorBackground(mat)
+#     newGapError <- apply(mat, 1, function(x) sum(x)*backgroundGapError)#
+#     mat[,"-"] <- round(mat[,"-"] - newGapError)
+#     mat[which(mat[,"-"] < 0),"-"] <- 0
+#   }
+#   mat <- .moveGapsToLeft(mat, bamfile, reference)
+#   mat
+# }
 
 .getGapErrorBackground <- function(mat,n = 5){
   seq <- .mat2rle(mat)
@@ -300,42 +360,50 @@ create_PWM <- function(msa){
   backgroundSums <- colSums(background)
   backgroundSums["-"] / sum(backgroundSums)
 }
-.moveGapsToLeft <- function(mat){
-  seq <- .mat2rle(mat)
-  for (i in which(seq$length > 1)) {
-    ## Assign new gap numbers to each position starting from left
-    # meanCoverage <- mean(rowSums(mat[seqStart:seqEnd,1:4]))
-    seqStart <- sum(seq$lengths[1:(i-1)])+1
-    seqEnd <- seqStart+seq$lengths[i]-1
-    length <- seq$length[i]
-    gaps <- sum(mat[seqStart:seqEnd, "-"])
-    prevCoverage <- sum(mat[(seqStart-1),1:5])
-    baseSums <- colSums(mat[seqStart:seqEnd,1:4])
-    idx <- 0
-    while(gaps > 0 && !seq$values[i] == "-"){
-      # move the gaps to the left
-      gapsAtPos <- min(gaps, prevCoverage)
-      mat[(seqStart+idx),"-"] <- gapsAtPos
-      # if more gaps than bases move the bases from a column to the right
-      if (gaps >= prevCoverage){
-        length <- length - 1
-        # move the bases to the right; distribute them
-        # set bases at gap column to 0
-        mat[(seqStart+idx),1:4] <- 0
-        ## distribute the bases to all other columns
-        newMeanBases <- baseSums/length
-        for (pos in (seqStart+idx+1):seqEnd){
-          mat[pos,1:4] <- newMeanBases
-        }
-      }
-      if (length == 1)
-        break
-      gaps <- gaps - gapsAtPos
-      idx <- idx+1
-    }
-    newSeqStart <- seqStart + idx
-    if (!newSeqStart > seqEnd)
-      mat[newSeqStart:seqEnd, "-"] <- 0
-  }
-  m <- round(mat)
-}
+# .moveGapsToLeft <- function(mat){
+#   seq <- .mat2rle(mat)
+#   ## debug
+#   al
+#   i <- 7084
+#   ##
+#   for (i in which(seq$length > 9)) {
+#     ## Assign new gap numbers to each position starting from left
+#     # meanCoverage <- mean(rowSums(mat[seqStart:seqEnd,1:4]))
+#     ## !! not true now: start is now -1, end +1
+#     seqStart <- sum(seq$lengths[1:(i-1)])+1
+#     seqEnd <- seqStart+seq$lengths[i]-1
+#     length <- seq$length[i]
+#
+#     msa <-
+#
+#     gaps <- sum(mat[seqStart:seqEnd, "-"])
+#     prevCoverage <- sum(mat[(seqStart-1),1:5])
+#     baseSums <- colSums(mat[seqStart:seqEnd,1:4])
+#     idx <- 0
+#     while(gaps > 0 && !seq$values[i] == "-"){
+#       # move the gaps to the left
+#       gapsAtPos <- min(gaps, prevCoverage)
+#       mat[(seqStart+idx),"-"] <- gapsAtPos
+#       # if more gaps than bases move the bases from a column to the right
+#       if (gaps >= prevCoverage){
+#         length <- length - 1
+#         # move the bases to the right; distribute them
+#         # set bases at gap column to 0
+#         mat[(seqStart+idx),1:4] <- 0
+#         ## distribute the bases to all other columns
+#         newMeanBases <- baseSums/length
+#         for (pos in (seqStart+idx+1):seqEnd){
+#           mat[pos,1:4] <- newMeanBases
+#         }
+#       }
+#       if (length == 1)
+#         break
+#       gaps <- gaps - gapsAtPos
+#       idx <- idx+1
+#     }
+#     newSeqStart <- seqStart + idx
+#     if (!newSeqStart > seqEnd)
+#       mat[newSeqStart:seqEnd, "-"] <- 0
+#   }
+#   m <- round(mat)
+# }

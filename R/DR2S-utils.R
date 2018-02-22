@@ -12,6 +12,7 @@ read_dr2s <- function(path) {
     x$setConfig("outdir", outdir)
     x
   })
+  conf_log(outdir = outdir, logName = "info")
   if (length(rs) == 1) {
     rs[[1]]
   } else rs

@@ -82,9 +82,7 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
   # library(ggplot2)
   # library(foreach)
   # library(futile.logger)
-  # self <- DEDK
-  # self <- dpb1_3
-  # self <- x
+  # self <- dr2s
 
 
   stopifnot(pct > 0 && pct <= 100)
@@ -207,7 +205,9 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
     if (include_insertions && is.null(ins(pileup$consmat))) {
       pileup <- pileup_include_insertions(pileup, threshold = 0.1)
     }
-    pileup$consmat <- .distributeGaps(pileup$consmat, removeError = FALSE)
+    ## distribution of gaps not necessary for shortreads (need to check if also
+    ## true for homopolymer regions > 15)
+    # pileup$consmat <- .distributeGaps(pileup$consmat, removeError = FALSE)
 
     # debug
     # pileup$consmat[which(pileup$consmat[,6] > 15),]
@@ -315,7 +315,9 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
       if (include_insertions && is.null(ins(pileup$consmat))) {
         pileup <- pileup_include_insertions(pileup, threshold = 0.1)
       }
-      pileup$consmat <- .distributeGaps(pileup$consmat, removeError = FALSE)
+      ## distribution of gaps not necessary for shortreads (need to check if also
+      ## true for homopolymer regions > 15)
+      # pileup$consmat <- .distributeGaps(pileup$consmat, removeError = FALSE)
 
       # Infer initial consensus
       flog.info("   Construct second consensus from shortreads with refined repeats ...", name = "info")
@@ -328,10 +330,6 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
         Biostrings::DNAStringSet(gsub("[-+]", "N", conseq)),
         conseqpath)
     }
-    # Debug
-    # bl <- c(bl, Biostrings::DNAStringSet(conseq))
-    # browse_align(bl)
-    # browse_seqs(DECIPHER::AlignSeqs(Biostrings::DNAStringSet(c(cs, conseq))))
 
     mapInitSR1 = structure(
       list(
@@ -393,7 +391,15 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
       include_deletions = include_deletions,
       include_insertions = include_insertions
     )
-    pileup$consmat <- .distributeGaps(pileup$consmat, removeError = FALSE)
+
+    ## check if calling insertions is necessary; Problem: insertions are not
+    ## used for clustering in either way
+    # if (include_insertions && is.null(ins(pileup$consmat))) {
+    #   pileup <- pileup_include_insertions(pileup, threshold = 0.1)
+    # }
+
+    ## distribution of gaps seems not necessary for shortreads
+    # pileup$consmat <- .distributeGaps(pileup$consmat, removeError = FALSE)
 
     mapInitSR2 = structure(
       list(
@@ -411,8 +417,15 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
 
   flog.info(" Map longreads against MapInit reference for clustering ...",
             name = "info")
-  ref <- ifelse(exists("mapInitSR1"), mapInitSR1$seqpath, self$getRefPath())
-  allele <- ifelse(exists("mapInitSR1"), mapInitSR1$ref, self$getReference())
+  if (exists("mapInitSR1")){
+    reffile <- mapInitSR1$seqpath
+    refseq <- mapInitSR1$conseq
+    allele <- mapInitSR1$ref
+  } else {
+    reffile <- self$getRefPath()
+    refseq <- self$getRefSeq()
+    allele <- self$getReference()
+  }
 
   mapfmt  <- "mapInit <%s> <%s> <%s> <%s>"
   maptag  <- sprintf(mapfmt, allele, self$getLrdType(), self$getLrMapper(),
@@ -425,7 +438,7 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
   ## Run mapper
   flog.info("  Mapping ...", name = "info")
   samfile <- map_fun(
-    reffile  = ref,
+    reffile  = reffile,
     readfile = self$getLongreads(),
     allele   = allele,
     readtype = self$getLrdType(),
@@ -440,7 +453,7 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
   flog.info("  Indexing ...", name = "info")
   bamfile <- bam_sort_index(
     samfile = samfile,
-    reffile = ref,
+    reffile = reffile,
     sample = pct / 100,
     min_mapq = min_mapq,
     force = force,
@@ -461,7 +474,8 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
     include_deletions = TRUE,
     include_insertions = FALSE
   )
-  pileup$consmat <- .distributeGaps(pileup$consmat, removeError = TRUE)
+
+  pileup$consmat <- .distributeGaps(pileup$consmat, bamfile, refseq, removeError = TRUE)
 
   self$mapInit = structure(
     list(
@@ -962,8 +976,6 @@ DR2S_$set("public", "runMapIter", function(opts = list(),
                                         as.prob = FALSE)[VALID_DNA(
                                           include = "indel"),]), freq = FALSE)
 
-    # if (distGaps)
-    cmat <- .distributeGaps(cmat, removeError = TRUE)
     conseq_name <- paste0("consensus.mapIter.0.", hptype)
     conseq <- conseq(x = cmat, name = conseq_name, type = "prob",
                      force_exclude_gaps = FALSE, prune_matrix = FALSE,
@@ -995,6 +1007,7 @@ DR2S_$set("public", "runMapIter", function(opts = list(),
       outdir   <- prevIteration[[hptype]]$dir
       readpath <- prevIteration[[hptype]]$reads
       refpath  <- prevIteration[[hptype]]$seqpath
+      refseq  <- prevIteration[[hptype]]$conseq
 
       ## try collapsing homopolymers; Did not seem to improve the mapping
       # if (iteration %% 2 == 1)
@@ -1075,7 +1088,10 @@ DR2S_$set("public", "runMapIter", function(opts = list(),
       if (include_insertions && is.null(ins(pileup$consmat))) {
         pileup <- pileup_include_insertions(x = pileup, threshold = 0.2)
       }
-      pileup$consmat <- .distributeGaps(pileup$consmat, removeError = TRUE)
+      pileup$consmat <- .distributeGaps(pileup$consmat,
+                                        bamfile,
+                                        refseq,
+                                        removeError = TRUE)
       self$mapIter[[iterationC]][[hptype]]$pileup = pileup
 
       # ## Construct consensus sequence
@@ -1384,14 +1400,14 @@ DR2S_$set("public", "runMapFinal", function(opts = list(),
     return(invisible(self))
   }
 
-  reftag    <- "final"
-  outdir    <- dir_create_if_not_exists(file.path(self$getOutdir(), reftag))
-
-  lastIter  <- self$mapIter[[max(names(self$mapIter))]]
-  hptypes   <- self$getHapTypes()
+  reftag       <- "final"
+  outdir       <- dir_create_if_not_exists(file.path(self$getOutdir(), reftag))
+  lastIter     <- self$mapIter[[max(names(self$mapIter))]]
+  hptypes      <- self$getHapTypes()
   readpathsLR  <- sapply(hptypes, function(x) lastIter[[x]]$reads)
   names(readpathsLR) <- hptypes
-  refpaths   <- sapply(hptypes, function(x) lastIter[[x]]$seqpath)
+  refpaths     <- sapply(hptypes, function(x) lastIter[[x]]$seqpath)
+  refseqs      <- sapply(hptypes, function(x) lastIter[[x]]$conseq)
   names(refpaths) <- hptypes
   readpathsSR <- sapply(hptypes, function(x) self$srpartition[[x]]$SR)
   names(readpathsSR) <- hptypes
@@ -1415,6 +1431,7 @@ DR2S_$set("public", "runMapFinal", function(opts = list(),
   for (hptype in hptypes) {
     flog.info(" Run mapFinal for haplotype %s ...", hptype, name = "info" )
     refpath  <- refpaths[[hptype]]
+    refseq  <- refseqs[[hptype]]
 
     mapgroupLR <- paste0("LR", hptype)
     maptagLR   <- paste("mapFinal", mapgroupLR, self$getLrdType(),
@@ -1464,7 +1481,10 @@ DR2S_$set("public", "runMapFinal", function(opts = list(),
       include_deletions = include_deletions,
       include_insertions = TRUE
     )
-    pileup$consmat <- .distributeGaps(pileup$consmat, removeError = TRUE)
+    pileup$consmat <- .distributeGaps(pileup$consmat,
+                                      bamfile,
+                                      refseq,
+                                      removeError = TRUE)
 
     self$mapFinal$pileup[[mapgroupLR]] = pileup
 
@@ -1577,7 +1597,7 @@ DR2S_$set("public", "runMapFinal", function(opts = list(),
       if (include_insertions && is.null(ins(pileup$consmat))) {
         pileup <- pileup_include_insertions(pileup, threshold = 0.2)
       }
-      pileup$consmat <- .distributeGaps(pileup$consmat, removeError = FALSE)
+      # pileup$consmat <- .distributeGaps(pileup$consmat, removeError = FALSE)
       self$mapFinal$pileup[[mapgroupSR]] = pileup
 
       ## Set maptag

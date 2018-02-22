@@ -283,16 +283,19 @@ pileup_include_insertions <- function(x, threshold = NULL) {
   x$consmat <- cm
   x
 }
-
 #refseq <- hla.map1$map1$A$ref$refseq
 ## get msa from bam file
 # debug
 #bamfile <- self$mapInit$bamfile
 #refseq <- self$getRefSeq()
-msa_from_bam <- function(bamfile, refseq, paddingLetter = "+"){
+msa_from_bam <- function(bamfile, refseq, paddingLetter = "+", region = NULL){
   nRefseq <- names(refseq)
   lRefseq <- length(refseq[[1]])
-  region <- paste0(nRefseq, ":1-", lRefseq)
+  if (is.null(region))
+    region <- paste0(nRefseq, ":1-", lRefseq)
+  else
+    region <- paste(nRefseq, region, sep = ":")
+  assert_that(grepl(pattern = "^[[:alnum:]_\\*#\\.]+:\\d+-\\d+", region))
   GenomicAlignments::stackStringsFromBam(bamfile, param=region, Lpadding.letter = paddingLetter, Rpadding.letter = paddingLetter, use.names = TRUE)
 }
 

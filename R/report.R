@@ -362,6 +362,7 @@ refineAlignment <- function(x, hptype){
   cseq <- conseq(pileup$consmat, paste0("refine", hptype), "ambig",
                  exclude_gaps = FALSE, threshold = x$getThreshold())
   x$consensus$refine$consensus[[hptype]] <- cseq
+  x$cache()
   invisible(x)
 }
 
@@ -372,6 +373,7 @@ refineAlignment <- function(x, hptype){
 # Helpers -----------------------------------------------------------------
 
 .getUpdatedSeqs <- function(x, hptype){
+  outdir <- x$getOutdir()
   ending <- ifelse(length(x$getHapTypes()) == 2, "psa", "msa")
   pairfile_checked <- paste("mapfinal.aln", x$getLrdType(), x$getLrMapper(),
                               "checked", ending, sep = ".")

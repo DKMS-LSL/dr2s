@@ -155,9 +155,6 @@ DR2S_ <- R6::R6Class(
       }
       conf_log(outdir = private$conf$outdir, logName = "info")
       flog.info("Creating DR2S Object", name = "info")
-      # # ToDo: If still used rm A,B
-      # private$conf$A_reftype = NA
-      # private$conf$B_reftype = NA
     },
     cache = function(outname) {
       if (missing(outname)) {
