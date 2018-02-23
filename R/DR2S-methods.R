@@ -184,9 +184,7 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
       sample = pct / 100,
       min_mapq = min_mapq,
       force = force,
-      # clean = TRUE
-      # debug
-      clean = FALSE
+      clean = TRUE
     )
 
     ## Calculate pileup from graphmap produced SAM file
@@ -292,9 +290,7 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
         sample = pct / 100,
         min_mapq = min_mapq,
         force = force,
-        # clean = TRUE
-        # debug
-        clean = FALSE
+        clean = TRUE
       )
 
       ## Calculate pileup from graphmap produced SAM file
@@ -372,9 +368,7 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
       sample = pct / 100,
       min_mapq = min_mapq,
       force = force,
-      # clean = TRUE
-      # debug
-      clean = FALSE
+      clean = TRUE
     )
 
     ## Calculate pileup from graphmap produced SAM file
@@ -455,9 +449,7 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
     sample = pct / 100,
     min_mapq = min_mapq,
     force = force,
-    # clean = TRUE
-    # debug
-    clean = FALSE
+    clean = TRUE
   )
 
   ## Calculate pileup from graphmap produced SAM file
@@ -1061,9 +1053,7 @@ DR2S_$set("public", "runMapIter", function(opts = list(),
         pct / 100,
         min_mapq,
         force = force,
-        clean = FALSE
-        # debug
-        # clean = TRUE
+        clean = TRUE
       )
       self$mapIter[[iterationC]][[hptype]]$bamfile = self$relPath(bamfile)
 
@@ -1241,9 +1231,7 @@ DR2S_$set("public", "runPartitionShortReads", function(opts = list(),
       sample = pct / 100,
       min_mapq = min_mapq,
       force = force,
-      # clean = TRUE
-      # debug
-      clean = FALSE
+      clean = TRUE
     )
   }
 
@@ -1455,9 +1443,7 @@ DR2S_$set("public", "runMapFinal", function(opts = list(),
       pct / 100,
       min_mapq,
       force = force,
-      clean = FALSE
-      # debug
-      # clean = TRUE
+      clean = TRUE
     )
     self$mapFinal$bamfile[[mapgroupLR]] = bamfile
 
@@ -1563,10 +1549,7 @@ DR2S_$set("public", "runMapFinal", function(opts = list(),
         pct / 100,
         min_mapq,
         force = force,
-        clean = FALSE
-
-        # debug
-        # clean = TRUE
+        clean = TRUE
       )
       self$mapFinal$bamfile[[mapgroupSR]] = self$relPath(bamfile)
 

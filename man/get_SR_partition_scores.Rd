@@ -5,11 +5,9 @@
 \title{Get a score for each shortread in a bam file on specific positions.
 Scores based on a consensus matrix of longreads.}
 \usage{
-get_SR_partition_scores(ppos, refname, bamfile, mats, cores = "auto")
+get_SR_partition_scores(refname, bamfile, mats, cores = "auto")
 }
 \arguments{
-\item{ppos}{List of polymorphic positions used for initial clustering.}
-
 \item{refname}{Name of the reference.}
 
 \item{bamfile}{BAM file path.}
@@ -17,6 +15,8 @@ get_SR_partition_scores(ppos, refname, bamfile, mats, cores = "auto")
 \item{mats}{Consensus matrix from longread clustering at positions in ppos.}
 
 \item{cores}{Number of cores or "auto"}
+
+\item{ppos}{List of polymorphic positions used for initial clustering.}
 }
 \value{
 A \code{srpatition} object. See \code{Details}.

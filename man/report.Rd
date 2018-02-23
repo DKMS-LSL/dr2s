@@ -59,10 +59,11 @@ x <- DR2Smap(
 }
 \seealso{
 Other DR2S mapper functions: \code{\link{DR2Smap}},
-  \code{\link{cache}}, \code{\link{clear}},
-  \code{\link{extractLongReads}}, \code{\link{mapFinal}},
-  \code{\link{mapInit}}, \code{\link{mapIter}},
-  \code{\link{partitionLongReads}}, \code{\link{polish}},
+  \code{\link{cache}}, \code{\link{check_alignment_file}},
+  \code{\link{clear}}, \code{\link{extractLongReads}},
+  \code{\link{mapFinal}}, \code{\link{mapInit}},
+  \code{\link{mapIter}}, \code{\link{partitionLongReads}},
+  \code{\link{polish}}, \code{\link{refineAlignment}},
   \code{\link{report_checked_consensus}},
   \code{\link{splitReadsByHaplotype}}
 }

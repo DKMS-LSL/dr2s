@@ -70,8 +70,7 @@ finish_cn1 <- function(x){
 #position = 5000
 run_igv <- function(x, position, map = "mapFinal", open_now = TRUE, ...) {
   assertthat::assert_that(
-    is(x, "DR2S"),
-    is(x$consensus, "ConsList")
+    is(x, "DR2S")
   )
   if (!nzchar(exe_path <- normalizePath(Sys.which("igv"), mustWork = FALSE))) {
     stop("No IGV executable found on the PATH", call. = FALSE)
@@ -97,7 +96,8 @@ run_igv <- function(x, position, map = "mapFinal", open_now = TRUE, ...) {
   }
   igvConfigs <- list()
   # hp = "A"
-  for (hp in x$getHapTypes()){
+  haptypes <- ifelse(map == "mapInit", "Init", x$getHapTypes())
+  for (hp in haptypes){
     igv <- file.path(igvdir, paste0("igv", hp, map, ".xml"))
     if (map == "mapFinal") {
       ref   <- file.path(hp, basename(x$mapIter[[as.character(x$getIterations())]][[hp]]$seqpath))
@@ -133,7 +133,10 @@ run_igv <- function(x, position, map = "mapFinal", open_now = TRUE, ...) {
     locus <- paste0(chr, ":", min(c((abs(position - 50)),0)), "-", position + 50)
 
     xml <- XML::xmlTree()
-    xml$addTag("Global", attrs = c(genome = file.path("..", ref), locus = locus), close = FALSE)
+    suppressWarnings(xml$addTag("Global",
+                                attrs = c(genome = file.path("..", ref),
+                                          locus = locus),
+                                close = FALSE))
     xml$addTag("Resources", close = FALSE)
     xml$addTag("Resource", attrs = c(path = file.path("..", bamLR)))
     if (exists("bamSR"))
@@ -143,8 +146,6 @@ run_igv <- function(x, position, map = "mapFinal", open_now = TRUE, ...) {
     XML::saveXML(xml, file = igv)
 
     igvConfigs[[hp]] <- x$relPath(igv)
-    if (map == "mapInit")
-      break
   }
   igvCommand <- file.path(basedir, paste0("IGV_", map, ".sh"))
   cmds <- paste0("igv ", igvConfigs, " &")

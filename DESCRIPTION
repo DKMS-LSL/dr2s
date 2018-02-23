@@ -76,6 +76,7 @@ Collate:
     'polish-utils.R'
     'polish.R'
     'polymorphic-positions.R'
+    'postprocessScripts.R'
     'report.R'
     'samtools.R'
     'sequtils.R'

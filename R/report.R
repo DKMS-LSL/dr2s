@@ -116,7 +116,17 @@ report_map_ <- function(x, map, outdir, block_width, ...) {
       dplyr::arrange(pos, haplotype)
     readr::write_tsv(vars, path = file.path(outdir,probvar_file),
                      append = FALSE, col_names = TRUE)
+
+    ## Write postprocessing scripts
+    scriptsdir <- normalizePath(file.path(x$getOutdir(), "Rscripts"),
+                                mustWork = FALSE)
+    dir_create_if_not_exists(scriptsdir)
+    writeReportCheckedConsensus(scriptsdir)
+    writeCheckConsensus(scriptsdir)
+    writePlotDiagnosticAlignment(scriptsdir)
+    writeRefineAlignments(scriptsdir, x$getHapTypes())
   }
+  path <- scriptsdir
 
   x$setReportStatus(TRUE)
   invisible(x)
@@ -147,8 +157,8 @@ report_checked_consensus <- function(x, which = "mapFinal") {
   pairfile_checked   <- paste(map, "aln", x$getLrdType(), x$getLrMapper(),
                               "checked", ending, sep = ".")
   pairfile_checked   <- normalizePath(x$absPath(file.path("report",
-                                                pairfile_checked),
-                                      mustWork = FALSE))
+                                                pairfile_checked)),
+                                      mustWork = FALSE)
 
   if (!file.exists(pairfile_checked)) {
     msg <- sprintf("The file '%s' must be saved as '%s' before invoking this function",
@@ -185,6 +195,16 @@ report_checked_consensus <- function(x, which = "mapFinal") {
   )
 }
 
+#' Manually check the alignment of consensus sequences using an editor.
+#'
+#'
+#' @param x  A \code{\link[=DR2S_]{DR2S}} object.
+#' @param which Which stage of mapping to use. Either "mapFinal" (default) or
+#' "mapIter".
+#' @param where Where to focus with the editor.
+#' @param editor Which editor to use. Either "xdg-open" (default) for standard
+#' system editor, "subl" for sublime, "gvim" or "gedit"
+#' @details
 #' @export
 check_alignment_file <- function(x, which = "mapFinal", where = 0,
                                  editor = "xdg-open") {
@@ -197,8 +217,8 @@ check_alignment_file <- function(x, which = "mapFinal", where = 0,
   pairfile_unchecked <- paste(which, "aln", x$getLrdType(), x$getLrMapper(),
                               "unchecked", ending, sep = ".")
   pairfile_unchecked <- normalizePath(x$absPath(file.path("report",
-                                                pairfile_unchecked),
-                                      mustWork = FALSE))
+                                                pairfile_unchecked)),
+                                      mustWork = FALSE)
   assertthat::assert_that(
     file.exists(pairfile_unchecked),
     assertthat::is.readable(pairfile_unchecked)
@@ -206,8 +226,8 @@ check_alignment_file <- function(x, which = "mapFinal", where = 0,
   pairfile_checked <- paste(which, "aln", x$getLrdType(), x$getLrMapper(),
                             "checked", ending, sep = ".")
   pairfile_checked <- normalizePath(x$absPath(file.path("report",
-                                              pairfile_checked),
-                                    mustWork = FALSE))
+                                              pairfile_checked)),
+                                    mustWork = FALSE)
   if (!file.exists(pairfile_checked)) {
     file.copy(pairfile_unchecked, pairfile_checked, overwrite = FALSE)
   }
@@ -225,7 +245,16 @@ check_report_status <- function(x){
   }
   return(x$getReportStatus())
 }
-#hptype = "B"
+
+#' Refine the mapping of an allele by remap to the checked consensus
+#'
+#' @param x  A \code{\link[=DR2S_]{DR2S}} object.
+#' @param hptype The allele to refine
+#' @return Returns the updated \code{\link[=DR2s_]{DR2S}} object.
+#' @return Creates an executable bash file for inspecting the mapping with IGV
+#' @details
+#' @family DR2S mapper functions
+#' @export
 refineAlignment <- function(x, hptype){
   ## Overide default arguments
   args <- x$getOpts("refineMapping")
@@ -251,7 +280,7 @@ refineAlignment <- function(x, hptype){
   }
   reftag    <- "refine"
   outdir    <- dir_create_if_not_exists(x$absPath(reftag))
-  readpathLR  <- x$mapFinal$lreads[hptype]
+  readpathLR  <- x$absPath(x$mapFinal$lreads[hptype])
   refpath   <- .getUpdatedSeqs(x, hptype)
   x$consensus$refine$ref[[hptype]] <- x$relPath(refpath)
   names(refpath) <- hptype
@@ -375,8 +404,8 @@ refineAlignment <- function(x, hptype){
   pairfile_checked <- paste("mapfinal.aln", x$getLrdType(), x$getLrMapper(),
                               "checked", ending, sep = ".")
   pairfile_checked <- normalizePath(x$absPath(file.path("report",
-                                                pairfile_checked),
-                                      mustWork = FALSE))
+                                                pairfile_checked)),
+                                      mustWork = FALSE)
   rs <- readPairFile(pairfile_checked)
   seqs <- Biostrings::DNAStringSet(
     sapply(rs, function(s) Biostrings::DNAString(gsub("-", "", s))))
@@ -423,7 +452,8 @@ readPairFile <- function(pairfile) {
     msg <- sapply(1:length(ambigPositions), function(x)
       extractAmbigLetters(ambigPositions, names(ambigPositions)[x]))
     flog.info(msg, name = "info")
-    stop("Check reported reference! Ambiguous positions were found")
+    stop(paste("Check reported reference! Ambiguous positions were found",
+               msg, sep = "\n"))
   }
 
 
