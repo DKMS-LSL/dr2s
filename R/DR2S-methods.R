@@ -461,7 +461,8 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
     include_insertions = FALSE
   )
 
-  pileup$consmat <- .distributeGaps(pileup$consmat, bamfile, refseq, removeError = TRUE)
+
+  pileup$consmat <- .distributeGaps(pileup$consmat, bamfile, reference = refseq, removeError = TRUE)
 
   self$mapInit = structure(
     list(

@@ -258,7 +258,7 @@ create_PWM <- function(msa){
     # meanCoverage <- mean(rowSums(mat[seqStart:seqEnd,1:4]))
     seqStart <- sum(seq$lengths[1:(i-1)])+1
     seqEnd <- seqStart+seq$lengths[i]-1
-    region <- paste0(reference, ":", seqStart, "-", seqEnd)
+    region <- paste0(names(reference), ":", seqStart, "-", seqEnd)
 
     msa <- msa_from_bam(bamfile, reference,paddingLetter = "+", region = region)
     ## Use only sequences spanning the complete region! Every other sequence
