@@ -1,11 +1,3 @@
-.onLoad <- function(libname, pkgname) {
-  if (.Platform$OS.type != "windows") {
-    ## load python funs
-    stopifnot(requireNamespace("rPython", quietly = TRUE))
-    pyutils <- system.file("python", "pyutils.py", package = "DR2S", mustWork = TRUE)
-    rPython::python.exec(readLines(pyutils))
-  }
-}
 
 #' Initialize DR2S commandline scripts.
 #'

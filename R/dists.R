@@ -12,7 +12,6 @@
 #'   \item{freq}{<logical>; Is it a frequency matrix or a count matrix.}
 #'   \item{offset}{<integer>; Offset}
 #'   \item{insertions}{<integer>; Insertions}
-#'   \item{read_ids}{<character>; Read IDs}
 #' }
 #'
 #' @return A \code{consmat} object.
@@ -38,7 +37,9 @@ PSDM <- function(x, consmat){
 
   ## Create seq matrix as input for cpp_PSDM
   x_tmp <- as.matrix(x)
-  x_mat<- plyr::revalue(x_tmp, c("G" = 1, "A" = 2, "T" = 3, "C" = 4, "-" = 5, "+" = 6), warn_missing = FALSE)
+  x_mat<- plyr::revalue(x_tmp,
+                        c("G" = 1, "A" = 2, "T" = 3, "C" = 4, "-" = 5, "+" = 6),
+                        warn_missing = FALSE)
   x_mat<- sapply(x_mat, as.numeric)
   dim(x_mat) <- dim(x_tmp)
   rm(x_tmp)

@@ -7,7 +7,7 @@
 #'
 #' @param x A \code{pileup} object.
 #' @param freq If \code{TRUE} then frequencies are reported, otherwise counts.
-#' @param ... Additional arguments such as \code{n}, \code{offset}, \code{insertions}, \code{read_ids}
+#' @param ... Additional arguments such as \code{n}, \code{offset}, \code{insertions}
 #' @details
 #' \code{consmat}: a \code{matrix} with positions row names and nucleotides as
 #' column manes.
@@ -17,7 +17,6 @@
 #'   \item{freq}{<logical>; Is it a frequency matrix or a count matrix.}
 #'   \item{offset}{<integer>; Offset}
 #'   \item{insertions}{<integer>; Insertions}
-#'   \item{read_ids}{<character>; Read IDs}
 #' }
 #' @return A \code{consmat} object.
 #' @export
@@ -26,10 +25,10 @@
 consmat <- function(x, ...) UseMethod("consmat")
 
 # Internal constructor
-Consmat_ <- function(x, n, freq, offset = 0L, insertions = NULL, read_ids = NULL) {
+Consmat_ <- function(x, n, freq, offset = 0L, insertions = NULL) {
   structure(
     x, n = n, freq = freq, offset = offset, insertions = insertions,
-    read_ids = read_ids, class = c("consmat", "matrix")
+    class = c("consmat", "matrix")
   )
 }
 
@@ -61,7 +60,7 @@ consmat.consmat <- function(x, freq = TRUE, ...) {
     } else {
       Consmat_(
         sweep(x, 1, n(x), `/`), n = n(x), freq = freq, offset = offset(x),
-        insertions = ins(x), read_ids = ids(x)
+        insertions = ins(x)
       )
     }
   } else if (!freq) {
@@ -70,7 +69,7 @@ consmat.consmat <- function(x, freq = TRUE, ...) {
     if (is.freq(x)) {
       Consmat_(
         sweep(x, 1, n(x), `*`), n = n(x), freq = freq, offset = offset(x),
-        insertions = ins(x), read_ids = ids(x)
+        insertions = ins(x)
       )
     } else {
       x
@@ -111,7 +110,6 @@ print.consmat <- function(x, n = 25, noHead = FALSE, transpose = FALSE,  ...) {
     n <- .rowSums(rs, NROW(rs), NCOL(rs))
     Consmat_(
       rs, n, freq = is.freq(x), offset = offset(x), insertions = ins(x),
-      read_ids = compact(ids(x)[as.character(as.numeric(i) - offset(x))])
     )
   } else rs
 }
@@ -123,7 +121,6 @@ print.consmat <- function(x, n = 25, noHead = FALSE, transpose = FALSE,  ...) {
   n <- .rowSums(rs, NROW(rs), NCOL(rs))
   Consmat_(
     rs, n, freq = is.freq(x), offset = offset(x), insertions = ins(x),
-    read_ids = compact(ids(x))
   )
 }
 
@@ -134,7 +131,6 @@ as.matrix.consmat <- function(x, ...) {
   attr(rs, "insertions") <- NULL
   attr(rs, "freq") <- NULL
   attr(rs, "offset") <- NULL
-  attr(rs, "read_ids") <- NULL
   rs
 }
 
@@ -180,20 +176,6 @@ ins.consmat <- function(x) attr(x, "insertions")
   x
 }
 
-#' @keywords internal
-#' @export
-ids <- function(x, ...) UseMethod("ids")
-#' @export
-ids.consmat <- function(x) attr(x, "read_ids")
-
-#' @keywords internal
-#' @export
-`ids<-` <- function(x, value, ...) UseMethod("ids<-")
-#' @export
-`ids<-.consmat` <- function(x, value) {
-  attr(x, "read_ids") <- value
-  x
-}
 
 #' @keywords internal
 #' @export
@@ -276,7 +258,7 @@ create_PWM <- function(msa){
     # meanCoverage <- mean(rowSums(mat[seqStart:seqEnd,1:4]))
     seqStart <- sum(seq$lengths[1:(i-1)])+1
     seqEnd <- seqStart+seq$lengths[i]-1
-    region <- paste(seqStart, seqEnd, sep = "-")
+    region <- paste0(reference, ":", seqStart, "-", seqEnd)
 
     msa <- msa_from_bam(bamfile, reference,paddingLetter = "+", region = region)
     ## Use only sequences spanning the complete region! Every other sequence

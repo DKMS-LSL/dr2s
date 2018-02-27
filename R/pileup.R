@@ -121,56 +121,12 @@ print.pileup <- function(x, as_string = FALSE, ...) {
 
 # Helpers -----------------------------------------------------------------
 
-pileup_get_read_ids_ <- function(x,
-                                 ppos = NULL,
-                                 threshold = NULL,
-                                 nucA = NULL,
-                                 nucB = NULL,
-                                 all_bases = FALSE) {
-  stopifnot(is(x, "pileup"))
-  if (is.null(threshold)) {
-    threshold <- x$threshold
-  }
-  cm <- consmat(x$pileup, freq = TRUE)
-  if (is.null(ppos)) {
-    ppos <- cpp_polymorphic_positions(cm, threshold)
-  }
-  if (length(ppos) == 0) {
-    return(NULL)
-  }
-  if (!all_bases && is.null(nucA) && is.null(nucB)) {
-    rs <- cpp_top2_cols(cm[ppos, ])
-    nucA <- colnames(cm)[rs$i1]
-    nucB <- colnames(cm)[rs$i2]
-  }
-  bamfile <- x$bamfile
-  out <- rPython::python.call("py_get_reads_at_ppos", bamfile = bamfile, ppos = ppos - 1,
-                              nucA = nucA, nucB = nucB, simplify = FALSE)
-  names(out) <- as.character(as.integer(names(out)) + 1)
-  out[order(as.integer(names(out)))]
-}
-
-#' @keywords internal
-#' @export
-pileup_include_read_ids <- function(x, threshold = NULL) {
-  rs <- pileup_get_read_ids_(x, threshold = NULL)
-  ids(x$consmat) <- rs
-  x
-}
-
 pileup_find_insertion_positions_ <- function(x, threshold) {
-  # polymorphic_positions(consmat(x, freq = TRUE), threshold = threshold) %>%
-  #   dplyr::filter(a1 == "+" | a2 == "+") %>%
-  #   dplyr::select(position) %>%
-  #   unlist() %>%
-  #   unname() %>%
-  #   as.integer()
   cm  <- consmat(x, freq = TRUE)
   pos <- ambiguous_positions(cm, threshold = threshold)
   pos[cm[pos, "+"] > threshold]
 }
-# debug
-# threshold <- 0.2
+
 pileup_get_insertions_ <- function(x, threshold) {
   res <- list()
   colnm <- colnames(x$consmat)
@@ -179,51 +135,41 @@ pileup_get_insertions_ <- function(x, threshold) {
   inpos <- inpos[!inpos %in% (NROW(x)-5):NROW(x)]
   bamfile <- x$bamfile
   if (length(inpos) > 0) {
-    inseqs <- rPython::python.call("py_get_insertions", bamfile, inpos, simplify = FALSE)
+    inseqs <- .getInsertions(bamfile, inpos)
     inseqs <- inseqs[order(as.integer(names(inseqs)))]
-    ## DEBUG ANFANG ##
-    # x$consmat[inpos, ]
-    #inseq <- inseqs[[3]]
-    # table(inseq)
-    ## DEBUG ENDE ##
     for (inseq in inseqs) {
-      s <- Biostrings::DNAStringSet(inseq)
-      if (length(s) < 100) {
-        s <- s[order(Biostrings::width(s))]
-        max_width <- max(Biostrings::width(s))
-        s0 <- s[s != "-"]
-        if (length(s0) > 2) {
-          gT <- data.frame(seq_along(s0))
-          # s1 <- DECIPHER::AdjustAlignment(
-          #   DECIPHER::AlignSeqs(s0, guideTree = gT, verbose = FALSE,
-          #                       iterations = 0, refinements = 0,
-          #                       restrict = c(-500, 2, 10), normPower = 0)
-          # )
-          s1 <- DECIPHER::AdjustAlignment(
-            DECIPHER::AlignSeqs(s0, verbose = FALSE,
+      if (length(inseq) < 100) {
+        inseq <- inseq[order(Biostrings::width(inseq))]
+        max_width <- max(Biostrings::width(inseq))
+        inseq0 <- inseq[inseq != "-"]
+        if (length(inseq0) > 2) {
+          gT <- data.frame(seq_along(inseq0))
+          inseq1 <- DECIPHER::AdjustAlignment(
+            DECIPHER::AlignSeqs(inseq0, verbose = FALSE,
                                 iterations = 0, refinements = 0,
                                 restrict = c(-500, 2, 10), normPower = 0)
           )
-          s1 <- c(s1, Biostrings::DNAStringSet(
-            rep(paste0(rep.int("-", max_width), collapse = ""), sum(s == "-"))
+          inseq1 <- c(inseq1, Biostrings::DNAStringSet(
+            rep(paste0(rep.int("-", max_width), collapse = ""), sum(inseq == "-"))
           ))
         } else {
-          s1 <- s
+          inseq1 <- inseq
         }
       }  else {
         # get biostringset which fills all positions with gaps where it is not complete, i.e. width is < max width
-        dels <- Biostrings::DNAStringSet(vapply(max(Biostrings::width(s)) - Biostrings::width(s), function(x) {
+        dels <- Biostrings::DNAStringSet(vapply(max(Biostrings::width(inseq)) - Biostrings::width(inseq), function(x) {
           paste0(rep.int("-", x), collapse = "")
         }, FUN.VALUE = ""))
         # merge both biostrings so each seq is of same width
-        s1 <- Biostrings::xscat(s, dels)
+        inseq1 <- Biostrings::xscat(inseq, dels)
       }
-      cm <- t(Biostrings::consensusMatrix(s1))[, colnm, drop = FALSE]
+      cm <- t(Biostrings::consensusMatrix(inseq1))[, colnm, drop = FALSE]
       cmf <- sweep(cm, 1, rowSums(cm), "/")
       cmf[, "-"] <- 0
       cm <- cm[apply(cmf, 1, function(row) any(row > threshold)), , drop = FALSE]
       res <- c( res, list(cm) )
     }
+    res
     names(res) <- names(inseqs)
   }
   # Remove all empty positions for now!! ToDo: Better apply this to the initial ins pos calling in the python script
@@ -238,7 +184,7 @@ pileup_get_insertions_ <- function(x, threshold) {
 # x <- pileup
 pileup_include_insertions <- function(x, threshold = NULL) {
   stopifnot(is(x, "pileup"))
-  if (! "X" %in% colnames(x$consmat)) {
+  if (! "+" %in% colnames(x$consmat)) {
     flog.warn("No insertions to call!", name = "info")
     return(x)
   }
@@ -265,15 +211,6 @@ pileup_include_insertions <- function(x, threshold = NULL) {
     ins_run <- c(ins_run, rep(i, ins_len))
     offset <- offset + ins_len
   }
-  if (length(ids_ <- as.integer(names(cm_attr$read_ids))) > 0) {
-    ## shift polymorphic positions with insertions
-    run <- rle(ins_run)
-    vals <- ins_idx[match(run$values, ins_run)]
-    for (i in seq_along(vals)) {
-      ids_[ids_ >= vals[i] - 1] <- ids_[ids_ >= vals[i] - 1] + run$lengths[i]
-    }
-    names(cm_attr$read_ids) <- as.character(ids_)
-  }
   attr(ins_idx, "run") <- ins_run
   cm_attr$dim <- dim(cm)
   cm_attr$dimnames$pos <- as.character(seq_len(NROW(cm)))
@@ -288,13 +225,12 @@ pileup_include_insertions <- function(x, threshold = NULL) {
 # debug
 #bamfile <- self$mapInit$bamfile
 #refseq <- self$getRefSeq()
-msa_from_bam <- function(bamfile, refseq, paddingLetter = "+", region = NULL){
-  nRefseq <- names(refseq)
-  lRefseq <- length(refseq[[1]])
-  if (is.null(region))
+msa_from_bam <- function(bamfile, refseq = NULL, paddingLetter = "+", region = NULL){
+  if (is.null(region)) {
+    nRefseq <- names(refseq)
+    lRefseq <- length(refseq[[1]])
     region <- paste0(nRefseq, ":1-", lRefseq)
-  else
-    region <- paste(nRefseq, region, sep = ":")
+  }
   assert_that(grepl(pattern = "^[[:alnum:]_\\*#\\.]+:\\d+-\\d+", region))
   GenomicAlignments::stackStringsFromBam(bamfile, param=region, Lpadding.letter = paddingLetter, Rpadding.letter = paddingLetter, use.names = TRUE)
 }
@@ -388,4 +324,102 @@ plot_pileup_basecall_frequency <- function(x, threshold = 0.20, label = "", drop
       panel.border = element_blank(),
       axis.line = element_line(colour = "grey50")
     )
+}
+
+# get_reads_at_ppos <- function(bamfile, ppos, nucA = None, nucB = None) {
+#
+#   ppos
+#     if isinstance(ppos, list):
+#         ppos = [int(x) for x in ppos]
+#     else:
+#         ppos = [int(ppos)]
+#
+#     if nucA and nucB:
+#         if isinstance(nucA, list):
+#             nucA = [str(x) for x in nucA]
+#         else:
+#             nucA = [str(nucA)]
+#         if isinstance(nucB, list):
+#             nucB = [str(x) for x in nucB]
+#         else:
+#             nucB = [str(nucB)]
+#         assert len(nucA) == len(nucB)
+#         assert len(ppos) == len(nucA)
+#         posdict = {pos: {A if B != "+" else "-": [], B if A != "+" else "-": []} for pos, A, B in zip(ppos, nucA, nucB)}
+#     else:
+#         posdict = {pos: {"A": [], "C": [], "G": [], "T": [], "-": [], "+": []} for pos in ppos}
+#     bam = pysam.AlignmentFile(bamfile, "rb")
+#     ref = bam.references[0]
+#     pileup = bam.pileup(ref)
+#     for pileupCol in pileup:
+#         pos = int(pileupCol.reference_pos)
+#         if pos not in posdict.keys():
+#             pass
+#         else:
+#             sys.stdout.write("Extracting read IDs for " + " and ".join(posdict[pos].keys()) + " at " + str(pos + 1) + "\n")
+#             for read in pileupCol.pileups:
+#                 refpos = read.alignment.get_reference_positions(full_length = True)
+#                 try:
+#                     i = refpos.index(pos)
+#                     base = read.alignment.query_sequence[i]
+#                     if "+" not in posdict[pos].keys(): # We don't expect an insertion here
+#                         try:
+#                             posdict[pos][base].append(read.alignment.query_name)
+#                         except KeyError:
+#                             pass
+#                     else: # We do expect an insertion here
+#                         j = refpos.index(pos + 1)
+#                         ins = read.alignment.query_sequence[i:j][1:]
+#                         if ins:
+#                             posdict[pos]["+"].append(read.alignment.query_name)
+#                         else:
+#                             posdict[pos]["-"].append(read.alignment.query_name)
+#                 except ValueError:
+#                     try:
+#                         posdict[pos]["-"].append(read.alignment.query_name)
+#                     except KeyError:
+#                         pass
+#     return dict(posdict)
+#
+#
+#
+#
+# }
+.getInsertions <- function(bamfile, inpos, reference) {
+  stopifnot(is.numeric(inpos))
+  inpos <- sort(inpos)
+  flog.info("Extracting insertions at position %s",
+            paste(inpos, collapse = ", "),
+            name = "info")
+
+  ## Get the actual position of the first insertion character, not the last
+  ##  matching position, so +1
+  inpos <- inpos+1
+
+  ## Get the reference
+  reference <- Rsamtools::seqinfo(Rsamtools::BamFile(bamfile))@seqnames[1]
+
+  inposRanges <- GenomicRanges::GRanges(reference, IRanges::IRanges(start = inpos, end = inpos))
+  bamParam <- Rsamtools::ScanBamParam(what = "seq", which = inposRanges)
+  bam <- GenomicAlignments::readGAlignments(bamfile, param = bamParam, use.names = TRUE)
+  ## Use only reads with an insertion
+  bamI <- bam[sapply(GenomicAlignments::cigar(bam), function(x) grepl("I",  x))]
+  insSeqs <- foreach(i = inpos) %do% {
+    message("Position: ", i)
+    bamPos <- bamI[GenomicAlignments::start(bamI)<=i & GenomicAlignments::end(bamI)>=1]
+    insSeq <- lapply(bamPos, function(a) .extractInsertion(a,i))
+    Biostrings::DNAStringSet(insSeq)
+  }
+  names(insSeqs) <- inpos
+  insSeqs
+
+}
+.extractInsertion <- function(read, i) {
+  cigar <- read@cigar
+  seq <- Biostrings::DNAString("-")
+  insertion <- GenomicAlignments::cigarRangesAlongQuerySpace(cigar, ops = "I")[[1]]
+  insertPos <- insertion[which((GenomicAlignments::start(read) + insertion@start - 1) == i)]
+  if (length(insertPos) > 0)
+    seq <- unlist(Biostrings::subseq(read@elementMetadata$seq, start = IRanges::start(insertPos), end = IRanges::end(insertPos)))
+  seq
 }

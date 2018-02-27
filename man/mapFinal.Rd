@@ -6,9 +6,8 @@
 \usage{
 mapFinal(x, opts = list(), pct = 100, min_base_quality = 7,
   min_mapq = 0, max_depth = 1e+05, min_nucleotide_depth = 3,
-  include_deletions = TRUE, include_insertions = TRUE,
-  include_read_ids = TRUE, force = FALSE, fullname = TRUE, plot = TRUE,
-  clip = TRUE, ...)
+  include_deletions = TRUE, include_insertions = TRUE, force = FALSE,
+  fullname = TRUE, plot = TRUE, clip = TRUE, ...)
 }
 \arguments{
 \item{x}{A \code{\link[=DR2S_]{DR2S}} object.}
@@ -31,9 +30,7 @@ position required for that nucleotide to appear in the result.}
 
 \item{include_deletions}{If \code{TRUE}, include deletions in pileup.}
 
-\item{include_insertions}{If \code{TRUE}, include insertions in pileup.}
-
-\item{include_read_ids}{If \code{TRUE}, read identifieres are extracted
+\item{include_insertions}{If \code{TRUE}, include insertions in pileup.
 from bam files for variants ar polymorphic positions.}
 
 \item{force}{If \code{TRUE}, overwrite existing bam file.}
@@ -78,11 +75,10 @@ x <- DR2Smap(
 }
 \seealso{
 Other DR2S mapper functions: \code{\link{DR2Smap}},
-  \code{\link{cache}}, \code{\link{check_alignment_file}},
-  \code{\link{clear}}, \code{\link{extractLongReads}},
-  \code{\link{mapInit}}, \code{\link{mapIter}},
-  \code{\link{partitionLongReads}}, \code{\link{polish}},
-  \code{\link{refineAlignment}},
+  \code{\link{cache}}, \code{\link{clear}},
+  \code{\link{extractLongReads}}, \code{\link{mapInit}},
+  \code{\link{mapIter}}, \code{\link{partitionLongReads}},
+  \code{\link{polish}}, \code{\link{refineAlignment}},
   \code{\link{report_checked_consensus}},
   \code{\link{report}}, \code{\link{splitReadsByHaplotype}}
 }

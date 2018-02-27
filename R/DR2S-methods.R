@@ -12,7 +12,6 @@ mapInit.DR2S <- function(x,
                          min_nucleotide_depth = 3,
                          include_deletions = TRUE,
                          include_insertions = TRUE,
-                         include_read_ids = TRUE,
                          microsatellite = FALSE,
                          force = FALSE,
                          fullname = TRUE,
@@ -32,7 +31,6 @@ mapInit.DR2S <- function(x,
                min_nucleotide_depth = min_nucleotide_depth,
                include_deletions = include_deletions,
                include_insertions = include_insertions,
-               include_read_ids = include_read_ids,
                microsatellite = microsatellite,
                force = force,
                fullname = fullname,
@@ -52,7 +50,6 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
                                            min_nucleotide_depth = 3,
                                            include_deletions = TRUE,
                                            include_insertions = TRUE,
-                                           include_read_ids = TRUE,
                                            microsatellite = FALSE,
                                            force = FALSE,
                                            fullname = TRUE,
@@ -72,7 +69,6 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
   # min_nucleotide_depth = 3
   # include_insertions = TRUE
   # include_deletions = TRUE
-  # include_read_ids = TRUE
   # force = FALSE
   # fullname = TRUE
   # plot = TRUE
@@ -561,7 +557,7 @@ DR2S_$set("public", "runPartitionLongReads", function(threshold = NULL,
   # dist_alleles = 3
   # threshold = NULL
   # plot = TRUE
-  # self <- dpb1_3
+  # self <- dr2s
 
 
   ## Overide default arguments
@@ -907,7 +903,7 @@ DR2S_$set("public", "runMapIter", function(opts = list(),
                                            plot = TRUE) {
   # # debug
 
-  # self <- hla.fq
+  # self <- dr2s
 
   # opts = list()
   # pct = 100
@@ -980,7 +976,7 @@ DR2S_$set("public", "runMapIter", function(opts = list(),
     conseq
   }
 
-#iterations= 1
+  # iteration <- 1
   for (iteration in 1:iterations) {
     flog.info(" Iteration %s ", iteration, " of ", iterations, name = "info")
 
@@ -1314,7 +1310,6 @@ mapFinal.DR2S <- function(x,
                           min_nucleotide_depth = 3,
                           include_deletions = TRUE,
                           include_insertions = TRUE,
-                          include_read_ids = TRUE,
                           force = FALSE,
                           fullname = TRUE,
                           plot = TRUE,
@@ -1327,13 +1322,12 @@ mapFinal.DR2S <- function(x,
                 min_nucleotide_depth = min_nucleotide_depth,
                 include_deletions = include_deletions,
                 include_insertions = include_insertions,
-                include_read_ids = include_read_ids, force = force,
                 fullname = fullname, plot = plot, clip = clip)
   message("  Done!\n")
   invisible(x)
 }
 
-# debug
+## debug
 # self <- dpb1_3
 # opts = list()
 # pct = 100
@@ -1343,11 +1337,11 @@ mapFinal.DR2S <- function(x,
 # min_nucleotide_depth = 3
 # include_deletions = TRUE
 # include_insertions = TRUE
-# include_read_ids = TRUE
 # force = FALSE
 # fullname = TRUE
 # plot = TRUE
 # clip = FALSE
+# self <- dr2s
 
 DR2S_$set("public", "runMapFinal", function(opts = list(),
                                             pct = 100,
@@ -1357,7 +1351,6 @@ DR2S_$set("public", "runMapFinal", function(opts = list(),
                                             min_nucleotide_depth = 3,
                                             include_deletions = TRUE,
                                             include_insertions = TRUE,
-                                            include_read_ids = TRUE,
                                             force = FALSE,
                                             fullname = TRUE,
                                             plot = TRUE,
@@ -1565,9 +1558,6 @@ DR2S_$set("public", "runMapFinal", function(opts = list(),
         include_deletions = include_deletions,
         include_insertions = TRUE
       )
-      if (include_read_ids && is.null(ids(pileup$consmat))) {
-        pileup <- pileup_include_read_ids(pileup)
-      }
 
       if (include_insertions && is.null(ins(pileup$consmat))) {
         pileup <- pileup_include_insertions(pileup, threshold = 0.2)

@@ -276,7 +276,6 @@ mapIter <- function(x,
 #' position required for that nucleotide to appear in the result.
 #' @param include_deletions If \code{TRUE}, include deletions in pileup.
 #' @param include_insertions If \code{TRUE}, include insertions in pileup.
-#' @param include_read_ids If \code{TRUE}, read identifieres are extracted
 #' from bam files for variants ar polymorphic positions.
 #' @param force If \code{TRUE}, overwrite existing bam file.
 #' @param fullname If \code{TRUE}, use the full name in reference fasta.
@@ -317,7 +316,6 @@ mapFinal <- function(x,
                      min_nucleotide_depth = 3,
                      include_deletions = TRUE,
                      include_insertions = TRUE,
-                     include_read_ids = TRUE,
                      force = FALSE,
                      fullname = TRUE,
                      plot = TRUE,

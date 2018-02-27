@@ -24,7 +24,6 @@ A \code{consmat} object includes the attributes:
   \item{freq}{<logical>; Is it a frequency matrix or a count matrix.}
   \item{offset}{<integer>; Offset}
   \item{insertions}{<integer>; Insertions}
-  \item{read_ids}{<character>; Read IDs}
 }
 }
 \examples{

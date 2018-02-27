@@ -10,26 +10,14 @@ check_alignment_file(x, which = "mapFinal", where = 0,
 \arguments{
 \item{x}{A \code{\link[=DR2S_]{DR2S}} object.}
 
-\item{which}{Which .}
-}
-\value{
-Side effect
+\item{which}{Which stage of mapping to use. Either "mapFinal" (default) or
+"mapIter".}
+
+\item{where}{Where to focus with the editor.}
+
+\item{editor}{Which editor to use. Either "xdg-open" (default) for standard
+system editor, "subl" for sublime, "gvim" or "gedit"}
 }
 \description{
 Manually check the alignment of consensus sequences using an editor.
-}
-\details{
-\code{report_checked_consensus} will create a \code{checked} directory
-containing the consensus sequences \code{\{A,B\}.\{readtype\}.\{mapper\}.checked.fa}
-and a html alignment file \code{aln.\{readtype\}.\{mapper\}.checked.html}.
-}
-\seealso{
-Other DR2S mapper functions: \code{\link{DR2Smap}},
-  \code{\link{cache}}, \code{\link{clear}},
-  \code{\link{extractLongReads}}, \code{\link{mapFinal}},
-  \code{\link{mapInit}}, \code{\link{mapIter}},
-  \code{\link{partitionLongReads}}, \code{\link{polish}},
-  \code{\link{refineAlignment}},
-  \code{\link{report_checked_consensus}},
-  \code{\link{report}}, \code{\link{splitReadsByHaplotype}}
 }

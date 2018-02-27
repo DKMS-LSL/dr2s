@@ -41,7 +41,6 @@ Imports:
     yaml,
     doParallel,
     tibble,
-    XRPython,
     methods,
     dynamicTreeCut,
     ggdendro,

@@ -82,7 +82,7 @@ run_igv <- function(x, position, map = "mapFinal", open_now = TRUE, ...) {
 
 
   basedir <- normalizePath(x$getOutdir(), mustWork = TRUE)
-  igvdir <- file.path(basedir, ".igv")
+  igvdir <- file.path(basedir, ".pplib")
   dir_create_if_not_exists(igvdir)
   if (.Platform$OS.type == "windows") {
     fsep <- "\\"
@@ -96,7 +96,11 @@ run_igv <- function(x, position, map = "mapFinal", open_now = TRUE, ...) {
   }
   igvConfigs <- list()
   # hp = "A"
-  haptypes <- ifelse(map == "mapInit", "Init", x$getHapTypes())
+  haptypes <- if(map == "mapInit") {
+    "Init"
+  } else {
+    x$getHapTypes()
+  }
   for (hp in haptypes){
     igv <- file.path(igvdir, paste0("igv", hp, map, ".xml"))
     if (map == "mapFinal") {
@@ -147,7 +151,7 @@ run_igv <- function(x, position, map = "mapFinal", open_now = TRUE, ...) {
 
     igvConfigs[[hp]] <- x$relPath(igv)
   }
-  igvCommand <- file.path(basedir, paste0("IGV_", map, ".sh"))
+  igvCommand <- file.path(basedir, paste0("runIGV_", map, ".sh"))
   cmds <- paste0("igv ", igvConfigs, " &")
   write(cmds, igvCommand)
   Sys.chmod(igvCommand, mode = "775")

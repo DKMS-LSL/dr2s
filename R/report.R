@@ -118,15 +118,10 @@ report_map_ <- function(x, map, outdir, block_width, ...) {
                      append = FALSE, col_names = TRUE)
 
     ## Write postprocessing scripts
-    scriptsdir <- normalizePath(file.path(x$getOutdir(), "Rscripts"),
-                                mustWork = FALSE)
-    dir_create_if_not_exists(scriptsdir)
-    writeReportCheckedConsensus(scriptsdir)
-    writeCheckConsensus(scriptsdir)
-    writePlotDiagnosticAlignment(scriptsdir)
-    writeRefineAlignments(scriptsdir, x$getHapTypes())
+    writeCheckConsensus(x$getOutdir())
+    writeReportCheckedConsensus(x$getOutdir())
+    writeRefineAlignments(x$getOutdir(), x$getHapTypes())
   }
-  path <- scriptsdir
 
   x$setReportStatus(TRUE)
   invisible(x)
@@ -177,7 +172,7 @@ report_checked_consensus <- function(x, which = "mapFinal") {
 
   seqsAll <- c(ref, seqs)
   aln_file <-  paste("aln", x$getLrdType(), x$getLrMapper(), "html", sep = ".")
-  browse_align(seqsAll, file = x$absPath(aln_file), openURL = FALSE)
+  browse_align(seqsAll, file = file.path(outdir,aln_file), openURL = FALSE)
 
   ## Export FASTA
   files <- sapply(1:length(seqs), function(sq) {
@@ -187,7 +182,7 @@ report_checked_consensus <- function(x, which = "mapFinal") {
                               x$getReference())
     Biostrings::writeXStringSet(
       seq,
-      filepath = x$absPath(file),
+      filepath = file.path(outdir,file),
       format = "fasta"
     )
     file
@@ -204,7 +199,6 @@ report_checked_consensus <- function(x, which = "mapFinal") {
 #' @param where Where to focus with the editor.
 #' @param editor Which editor to use. Either "xdg-open" (default) for standard
 #' system editor, "subl" for sublime, "gvim" or "gedit"
-#' @details
 #' @export
 check_alignment_file <- function(x, which = "mapFinal", where = 0,
                                  editor = "xdg-open") {
@@ -252,7 +246,6 @@ check_report_status <- function(x){
 #' @param hptype The allele to refine
 #' @return Returns the updated \code{\link[=DR2s_]{DR2S}} object.
 #' @return Creates an executable bash file for inspecting the mapping with IGV
-#' @details
 #' @family DR2S mapper functions
 #' @export
 refineAlignment <- function(x, hptype){
@@ -384,8 +377,6 @@ refineAlignment <- function(x, hptype){
     include_deletions = TRUE,
     include_insertions = TRUE
   )
-  pileup <- pileup_include_read_ids(pileup)
-  pileup <- pileup_include_insertions(pileup)
 
   # calc new consensus
   cseq <- conseq(pileup$consmat, paste0("refine", hptype), "ambig",
