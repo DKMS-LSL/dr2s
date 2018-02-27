@@ -109,7 +109,7 @@ print.consmat <- function(x, n = 25, noHead = FALSE, transpose = FALSE,  ...) {
     ## recalibrate n
     n <- .rowSums(rs, NROW(rs), NCOL(rs))
     Consmat_(
-      rs, n, freq = is.freq(x), offset = offset(x), insertions = ins(x),
+      rs, n, freq = is.freq(x), offset = offset(x), insertions = ins(x)
     )
   } else rs
 }
@@ -120,7 +120,7 @@ print.consmat <- function(x, n = 25, noHead = FALSE, transpose = FALSE,  ...) {
   ## recalibrate n
   n <- .rowSums(rs, NROW(rs), NCOL(rs))
   Consmat_(
-    rs, n, freq = is.freq(x), offset = offset(x), insertions = ins(x),
+    rs, n, freq = is.freq(x), offset = offset(x), insertions = ins(x)
   )
 }
 
