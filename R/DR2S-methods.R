@@ -95,6 +95,7 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
   partSR          <- self$getPartSR()
   forceBadMapping <- self$getForceBadMapping()
   filterScores    <- self$getFilterScores()
+  outdir       <- dir_create_if_not_exists(self$absPath("mapInit"))
 
   if (recode_header) {
     stopifnot(
@@ -124,7 +125,7 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
       refname  = "",
       optsname = optsname,
       force    = force,
-      outdir   = self$getOutdir()
+      outdir   = outdir
     )
 
     if (filterScores) {
@@ -144,7 +145,7 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
 
       flog.info(" Write new shortread fastqs to file ...", name = "info")
       fqs <- self$getShortreads()
-      fqdir  <- dir_create_if_not_exists(self$absPath(self$getSrdType()))
+      fqdir  <- dir_create_if_not_exists(file.path(outdir,self$getSrdType()))
       # write fastq's
       readfile <- c()
       readfile <- foreach(fq = fqs, .combine = c) %do% {
@@ -168,7 +169,7 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
         refname  = "",
         optsname = optsname,
         force    = force,
-        outdir   = self$getOutdir()
+        outdir   = outdir
       )
     }
 
@@ -246,7 +247,7 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
                      threshold = self$getThreshold())
     conseq_name <- paste0("Init.consensus.", sub(".sam.gz", "",
                                                  basename(samfile)))
-    conseqpath     <- self$absPath(paste0(conseq_name, ".fa"))
+    conseqpath     <- file.path(outdir, paste0(conseq_name, ".fa"))
     Biostrings::writeXStringSet(
       Biostrings::DNAStringSet(gsub("[-+]", "N", conseq)),
       conseqpath)
@@ -275,7 +276,7 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
         refname  = "",
         optsname = optsname,
         force    = force,
-        outdir   = self$getOutdir()
+        outdir   = outdir
       )
 
       ## Run bam - sort - index pipeline
@@ -315,7 +316,7 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
                        force_exclude_gaps = TRUE, threshold = 0.2)
       conseq_name <- paste0("Init.consensus.2", sub(".sam.gz", "",
                                                     basename(samfile)))
-      conseqpath     <- self$absPath(paste0(conseq_name, ".fa"))
+      conseqpath     <- file.path(outdir, paste0(conseq_name, ".fa"))
       Biostrings::writeXStringSet(
         Biostrings::DNAStringSet(gsub("[-+]", "N", conseq)),
         conseqpath)
@@ -354,7 +355,7 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
       refname  = "",
       optsname = optsname,
       force    = force,
-      outdir   = self$getOutdir()
+      outdir   = outdir
     )
     ## Run bam - sort - index pipeline
     flog.info("  Indexing ...", name = "info")
@@ -434,7 +435,7 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
     refname  = "",
     optsname = optsname,
     force    = force,
-    outdir   = self$getOutdir()
+    outdir   = outdir
   )
 
   ## Run bam - sort - index pipeline
@@ -780,7 +781,7 @@ extractLongReads.DR2S <- function(x,
   invisible(x)
 }
 # debug
-#self <- dpb1_3
+#self <- dr2s
 DR2S_$set("public", "runExtractLongReads", function(nreads = NULL,
                                              replace = FALSE,
                                              nalign = 40) {
@@ -809,7 +810,10 @@ DR2S_$set("public", "runExtractLongReads", function(nreads = NULL,
   ## do this for each haptype
   hptypes <- self$getHapTypes()
   for (hptype in hptypes){
-    dir <- dir_create_if_not_exists(self$absPath(hptype))
+    dir <- dir_create_if_not_exists(normalizePath(file.path(self$getOutdir(),
+                                                            "mapIter",
+                                                            (hptype)),
+                                                  mustWork = FALSE))
 
     qnames <- self$getHapList(hptype)
 
@@ -1267,7 +1271,8 @@ DR2S_$set("public", "runPartitionShortReads", function(opts = list(),
 
     # write fastq's
     foreach(fq = fqs) %do% {
-      srFastqHap = self$absPath(file.path(hptype,
+
+      srFastqHap = self$absPath(file.path(self$mapIter$`0`[[hptype]]$dir,
                              paste0(c(strsplit(basename(fq), "\\.")[[1]][1],
                                       hptype, "fastq.gz"), collapse = ".")))
       write_part_fq(fq = fq, srFastqHap = srFastqHap,
@@ -1373,7 +1378,7 @@ DR2S_$set("public", "runMapFinal", function(opts = list(),
     return(invisible(self))
   }
 
-  reftag       <- "final"
+  reftag       <- "mapFinal"
   outdir       <- dir_create_if_not_exists(self$absPath(reftag))
   lastIter     <- self$mapIter[[max(names(self$mapIter))]]
   hptypes      <- self$getHapTypes()
@@ -1401,7 +1406,7 @@ DR2S_$set("public", "runMapFinal", function(opts = list(),
 
   ## Remap long reads to the same reference sequences as short reads
   # debug
-  #hptype = "A"
+  # hptype = "B"
   for (hptype in hptypes) {
     flog.info(" Run mapFinal for haplotype %s ...", hptype, name = "info" )
     refpath  <- refpaths[[hptype]]
@@ -1563,7 +1568,6 @@ DR2S_$set("public", "runMapFinal", function(opts = list(),
       if (include_insertions && is.null(ins(pileup$consmat))) {
         pileup <- pileup_include_insertions(pileup, threshold = 0.2)
       }
-      # pileup$consmat <- .distributeGaps(pileup$consmat, removeError = FALSE)
       self$mapFinal$pileup[[mapgroupSR]] = pileup
 
       ## Set maptag
@@ -1584,7 +1588,7 @@ DR2S_$set("public", "runMapFinal", function(opts = list(),
     if (!is.null(self$mapFinal$sreads$A)){
       for (readtype in c("LR", "SR")){
         #readtype <- "LR"
-        gfile <- self$absPath(paste("plotFinal", readtype,
+        gfile <- self$absPath(paste("plot.mapFinal", readtype,
                                  self$getLrdType(), self$getLrMapper(),
                                  "pdf", sep = "."))
         pdf(file = gfile, width = 8 * length(hptypes), height = 8,
@@ -1595,7 +1599,7 @@ DR2S_$set("public", "runMapFinal", function(opts = list(),
         dev.off()
       }
     } else {
-      gfile <- self$absPath(paste("plotFinal.LR",
+      gfile <- self$absPath(paste("plot.mapFinal.LR",
                                                  self$getLrdType(),
                                                  self$getLrMapper(), "pdf",
                                                  sep = "."))

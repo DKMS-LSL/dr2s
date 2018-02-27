@@ -131,10 +131,10 @@ DR2S_ <- R6::R6Class(
         private$conf$ref_path  = basename(ref_path)
       } else {
         private$conf$reference = expand_allele(conf$reference, conf$locus)
-        # private$conf$ref_path  = generate_reference_sequence(private$ipd, private$conf$reference, private$conf$outdir, fullname = FALSE)
         private$conf$ref_path  = generate_reference_sequence(private$conf$reference,
                                                              private$conf$locus,
                                                              private$conf$outdir,
+                                                             "mapInit",
                                                              fullname = FALSE)
       }
       if (is.null(private$conf$alternate)) {
@@ -146,10 +146,12 @@ DR2S_ <- R6::R6Class(
           private$conf$alt_path  = basename(alt_path)
         } else {
           private$conf$alternate = expand_allele(private$conf$alternate, private$conf$locus)
-          # private$conf$alt_path  = generate_reference_sequence(private$ipd, private$conf$alternate, private$conf$outdir, fullname = FALSE)
+          outdir <- dir_create_if_not_exists(normalizePath(
+            file.path(private$conf$outdir, "mapInit"), mustWork = FALSE))
           private$conf$ref_path  = generate_reference_sequence(private$conf$alternate,
                                                              private$conf$locus,
                                                              private$conf$outdir,
+                                                             "mapInit",
                                                              fullname = FALSE)
         }
       }
@@ -176,9 +178,12 @@ DR2S_ <- R6::R6Class(
         private$conf$ref_path  = basename(ref_path)
       } else {
         private$conf$reference = expand_allele(private$conf$reference, private$conf$locus)
+        outdir <- dir_create_if_not_exists(normalizePath(
+          file.path(private$conf$outdir, "mapInit"), mustWork = FALSE))
         private$conf$ref_path  = generate_reference_sequence(self$getReference(),
                                                              self$getLocus(),
-                                                             self$getOutdir(),
+                                                             private$conf$outdir,
+                                                             "mapInit",
                                                              fullname = FALSE)
       }
       if (is.null(private$conf$alternate)) {
@@ -190,9 +195,12 @@ DR2S_ <- R6::R6Class(
           private$conf$alt_path  = basename(alt_path)
         } else {
           private$conf$alternate = expand_allele(private$conf$alternate, private$conf$locus)
+          outdir <- dir_create_if_not_exists(normalizePath(
+            file.path(private$conf$outdir, "mapInit"), mustWork = FALSE))
           private$conf$ref_path  = generate_reference_sequence(self$getAlternate(),
                                                                self$getLocus(),
-                                                               self$getOutdir(),
+                                                               private$conf$outdir,
+                                                               "mapInit",
                                                                fullname = FALSE)
         }
       }

@@ -80,7 +80,6 @@ run_igv <- function(x, position, map = "mapFinal", open_now = TRUE, ...) {
                           "mapIter",
                           "refine"))
 
-
   basedir <- normalizePath(x$getOutdir(), mustWork = TRUE)
   igvdir <- file.path(basedir, ".pplib")
   dir_create_if_not_exists(igvdir)
@@ -104,10 +103,10 @@ run_igv <- function(x, position, map = "mapFinal", open_now = TRUE, ...) {
   for (hp in haptypes){
     igv <- file.path(igvdir, paste0("igv", hp, map, ".xml"))
     if (map == "mapFinal") {
-      ref   <- file.path(hp, basename(x$mapIter[[as.character(x$getIterations())]][[hp]]$seqpath))
-      bamLR <- file.path("final", basename(x$mapFinal$bamfile[[paste0("LR", hp)]]))
+      ref   <- x$mapIter[[as.character(x$getIterations())]][[hp]]$seqpath
+      bamLR <- file.path("mapFinal", basename(x$mapFinal$bamfile[[paste0("LR", hp)]]))
       if (!is.null(x$mapFinal$sreads[[hp]]))
-        bamSR <- file.path("final", basename(x$mapFinal$bamfile[[paste0("SR", hp)]]))
+        bamSR <- file.path("mapFinal", basename(x$mapFinal$bamfile[[paste0("SR", hp)]]))
     } else if (map == "refine") {
       if (!is.null(x$consensus$refine$ref[[hp]])) {
         ref   <- x$consensus$refine$ref[[hp]]
@@ -115,10 +114,10 @@ run_igv <- function(x, position, map = "mapFinal", open_now = TRUE, ...) {
         if (!is.null(x$mapFinal$sreads[[hp]]))
           bamSR <- x$consensus$refine$bamfile[[paste0("SR", hp)]]
       } else {
-        ref   <- file.path(hp, basename(x$mapIter[[as.character(x$getIterations())]][[hp]]$seqpath))
-        bamLR <- file.path("final", basename(x$mapFinal$bamfile[[paste0("LR", hp)]]))
+        ref   <- x$mapIter[[as.character(x$getIterations())]][[hp]]$seqpath
+        bamLR <- file.path("mapFinal", basename(x$mapFinal$bamfile[[paste0("LR", hp)]]))
         if (!is.null(x$mapFinal$sreads[[hp]]))
-          bamSR <- file.path("final", basename(x$mapFinal$bamfile[[paste0("SR", hp)]]))
+          bamSR <- file.path("mapFinal", basename(x$mapFinal$bamfile[[paste0("SR", hp)]]))
       }
     } else if (map == "mapInit") {
       if (x$getPartSR()) {
@@ -130,8 +129,8 @@ run_igv <- function(x, position, map = "mapFinal", open_now = TRUE, ...) {
       bamLR <- x$mapInit$bamfile
 
     } else if (map == "mapIter") {
-      ref <- x$mapIter[[x$getIterations()]][[hp]]$seqpath
-      bamLR <- x$mapIter[[x$getIterations()]][[hp]]$bamfile
+      ref <- x$mapIter[[as.character(x$getIterations()-1)]][[hp]]$seqpath
+      bamLR <- x$mapIter[[as.character(x$getIterations())]][[hp]]$bamfile
     }
     chr <- strsplit(sub(">", "", readLines(file.path(basedir, ref), 1)), "\\s+")[[1]][1]
     locus <- paste0(chr, ":", min(c((abs(position - 50)),0)), "-", position + 50)

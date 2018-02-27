@@ -1,3 +1,18 @@
+# DR2S 0.0.3
+ 
+* Add complete workflow for samples with > 2 alleles and 1 allele.
+* Add functions to distribute gaps at homopolymer sites and remove a "backgound
+gap noise" in Sequel reads.
+* Choose clusters by read number .
+* Move from `hlatools` and `IPDdata` to the new `ipd.Hsapiens.db` package.
+* Restructure output folder.
+* Add executable scripts for IGV and most useful postprocessing steps.
+* Change everything to relative paths so the dr2s object can be read from 
+everywhere
+* Allow fasta files as input
+* Refactor.
+
+
 # DR2S 0.0.2
 
 * Added a `NEWS.md` file to track changes to the package.

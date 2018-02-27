@@ -153,7 +153,8 @@ inject_deletions <- function(seq) {
 #' @keywords internal
 #' @examples
 #' ###
-generate_reference_sequence <- function(allele, locus, outdir, fullname = TRUE) {
+generate_reference_sequence <- function(allele, locus, outdir, dirtag = NULL,
+                                        fullname = TRUE) {
   if (is.null(allele)) {
     return(NULL)
   }
@@ -161,6 +162,8 @@ generate_reference_sequence <- function(allele, locus, outdir, fullname = TRUE) 
   stopifnot(
     allele %in% ipd.Hsapiens.db::getAlleles(ipd.Hsapiens.db::ipd.Hsapiens.db,
                                             locus))
+  dir_create_if_not_exists(normalizePath(
+    file.path(outdir, dirtag), mustWork = FALSE))
   assertthat::assert_that(
     file.exists(outdir),
     assertthat::is.dir(outdir),
@@ -179,8 +182,8 @@ generate_reference_sequence <- function(allele, locus, outdir, fullname = TRUE) 
   assertthat::assert_that(is(sref, "DNAStringSet"))
   # workaround for these damn windows filename conventions
   allele_nm <- gsub("[*]", "#", gsub("[:]", "_", paste0(allele, collapse = "~")))
-  #allele_nm <- paste0(allele, collapse = "~")
-  filename <- paste0(allele_nm, ".ref.fa")
+  filename <- ifelse(is.null(dirtag), paste0(allele_nm, ".ref.fa"),
+                     file.path(dirtag, paste0(allele_nm, ".ref.fa")))
   outpath <- normalizePath(file.path(outdir, filename), mustWork = FALSE)
 
   Biostrings::writeXStringSet(sref, outpath)
