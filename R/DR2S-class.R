@@ -435,8 +435,7 @@ DR2S_ <- R6::R6Class(
       if (!is.null(self$getRefPath())) {
         Biostrings::readDNAStringSet(self$getRefPath())
       } else  {
-        ipd.Hsapiens.db::getClosestComplete(ipd.Hsapiens.db::ipd.Hsapiens.db,
-                                            self$getReference())
+        ipd.Hsapiens.db::getClosestComplete(self$getReference())
       }
     },
     ##
@@ -448,10 +447,8 @@ DR2S_ <- R6::R6Class(
       if (!is.null(self$getAltPath())) {
         Biostrings::readDNAStringSet(self$getAltPath())
       } else if (self$getAlternate() %in%
-                 ipd.Hsapiens.db::getAlleles(ipd.Hsapiens.db::ipd.Hsapiens.db,
-                                             self$getLocus()) ){
-        ipd.Hsapiens.db::getClosestComplete(ipd.Hsapiens.db::ipd.Hsapiens.db,
-                                            self$getAlternate())
+                 ipd.Hsapiens.db::getAlleles(self$getLocus()) ){
+        ipd.Hsapiens.db::getClosestComplete(self$getAlternate())
       } else NULL
       # if (!is.null(self$getAlternate())) {
       #   if (!is.null(self$getIPD())) {

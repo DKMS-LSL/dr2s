@@ -160,7 +160,7 @@ generate_reference_sequence <- function(allele, locus, outdir, dirtag = NULL,
   }
   locus <- normalise_locus(locus)
   stopifnot(
-    allele %in% ipd.Hsapiens.db::getAlleles(locus, ipd.Hsapiens.db::ipd.Hsapiens.db))
+    allele %in% ipd.Hsapiens.db::getAlleles(locus))
   dir_create_if_not_exists(normalizePath(
     file.path(outdir, dirtag), mustWork = FALSE))
   assertthat::assert_that(
@@ -169,7 +169,7 @@ generate_reference_sequence <- function(allele, locus, outdir, dirtag = NULL,
     assertthat::is.writeable(outdir)
   )
   sref <- foreach(al = allele, .combine = "c") %do% {
-    sref <- ipd.Hsapiens.db::getClosestComplete(al, ipd.Hsapiens.db::ipd.Hsapiens.db)
+    sref <- ipd.Hsapiens.db::getClosestComplete(al)
     if (fullname) {
       names(sref) <- gsub(" +", "_", names(sref))
     } else {

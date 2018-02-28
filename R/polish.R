@@ -1,7 +1,7 @@
 #' @export
 
 #debug
-#x <- dpb1_3.p
+# x <- dpb1_3
 # threshold <- x$getThreshold()
 # lower_limit <- 0.6
 # cache = TRUE
