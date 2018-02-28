@@ -331,9 +331,6 @@ mapFinal <- function(x,
 #' Partition mapped long reads into haplotypes
 #'
 #' @param x A \code{\link[=DR2S_]{DR2S}} object.
-#' @param max_depth Maximum number of alignments considered for partitioning.
-#' @param shuffle Randomly shuffle polymorphic positions.
-#' @param plot Produce diagnostic plots.
 #' @param ... Further arguments passed to methods.
 #'
 #' @return A \code{\link[=DR2S_]{DR2S}} object.
@@ -352,88 +349,14 @@ mapFinal <- function(x,
 #'   clear() %>%
 #'   mapInit() %>%
 #'   partitionLongReads() %>%
-#'   splitReadsByHaplotype(limitA = 0.5, limitB = 0.25) %>%
-#'   extractFastq() %>%
 #'   mapIter() %>%
 #'   mapFinal() %>%
 #'   cache() %>%
 #'   polish() %>%
 #'   report(block_width = 60)
 #' }
-partitionLongReads <- function(x,
-                               max_depth = 1e4,
-                               plot = TRUE,
-                               ...) {
+partitionLongReads <- function(x, ...) {
   UseMethod("partitionLongReads")
-}
-
-#' Partition mapped long reads into haplotypes
-#'
-#' @param x A \code{\link[=DR2S_]{DR2S}} object.
-#' @param limits List of Cutoff values for haplotypes.
-#' @param ... Further arguments passed to methods.
-#'
-#' @return A \code{\link[=DR2S_]{DR2S}} object.
-#' @family DR2S mapper functions
-#' @export
-#' @examples
-#' \dontrun{
-#' x <- DR2Smap(
-#'   sample = "ID12300527",
-#'   locus = "DPB1",
-#'   datadir = "/path/to/data",
-#'   outdir = "/path/to/output",
-#'   reference = "04:01:01:01",
-#'   consensus = "mapping"
-#'   ) %>%
-#'   clear() %>%
-#'   mapInit() %>%
-#'   partitionLongReads() %>%
-#'   splitReadsByHaplotype() %>%
-#'   extractFastq() %>%
-#'   mapIter() %>%
-#'   partitionShortReads() %>%
-#'   mapFinal() %>%
-#'   polish() %>%
-#'   report(block_width = 60)
-#' }
-splitReadsByHaplotype <- function(x,
-                                  limits,
-                                  ...) {
-  UseMethod("splitReadsByHaplotype")
-}
-
-#' Extract FASTQs for partitioned reads
-#'
-#' @param x A \code{\link[=DR2S_]{DR2S}} object.
-#' @param ... Further arguments passed to methods.
-#'
-#' @return A \code{\link[=DR2S_]{DR2S}} object.
-#' @family DR2S mapper functions
-#' @export
-#' @examples
-#' \dontrun{
-#' x <- DR2Smap(
-#'   sample = "ID12300527",
-#'   locus = "DPB1",
-#'   datadir = "/path/to/data",
-#'   outdir = "/path/to/output",
-#'   reference = "04:01:01:01",
-#'   consensus = "mapping"
-#'   ) %>%
-#'   clear() %>%
-#'   mapInit() %>%
-#'   partitionLongReads() %>%
-#'   splitReadsByHaplotype() %>%
-#'   extractFastq() %>%
-#'   mapIter() %>%
-#'   partitionShortReads() %>%
-#'   mapFinal() %>%
-#'   polish() %>%
-#'   report(block_width = 60)
-#' }
-extractLongReads <- function(x, ...) {
-  UseMethod("extractLongReads")
 }
 
 #' Assign short reads from mapInit to haplotypes

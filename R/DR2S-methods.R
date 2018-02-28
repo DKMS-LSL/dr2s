@@ -39,6 +39,7 @@ mapInit.DR2S <- function(x,
                plot = plot)
   invisible(x)
 }
+
 DR2S_$set("public", "runMapInit", function(opts = list(),
                                            optsname = "",
                                            partSR = TRUE,
@@ -104,7 +105,7 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
       recode_fastq_header(self$getShortreads()[2])
     )
   }
-  if (partSR){
+  if (partSR) {
     mapfmt  <- "mapInit1 <%s> <%s> <%s> <%s>"
     maptag  <- sprintf(mapfmt, self$getReference(), self$getSrdType(),
                        self$getSrMapper(), optstring(opts, optsname))
@@ -139,7 +140,7 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
                                                                what = c("qname",
                                                                         "pos",
                                                                         "cigar")
-                                                               ))[[1]]
+                               ))[[1]]
       readfilter <- filter_reads(bam = bam, preserve_ref_ends = TRUE)
       file_delete_if_exists(bamfile)
 
@@ -205,7 +206,7 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
 
     # debug
     # pileup$consmat[which(pileup$consmat[,6] > 15),]
-    if (max(rowSums(pileup$consmat))/quantile(rowSums(pileup$consmat), 0.75) > 5){
+    if (max(rowSums(pileup$consmat)) / quantile(rowSums(pileup$consmat), 0.75) > 5){
       flog.warn("  Shortreads seems corrupted or the reference is bad!",
                 name = "info")
       maxCov <- max(rowSums(pileup$consmat))
@@ -216,7 +217,7 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
                 maxCov, q75Cov, maxCov/q75Cov, name = "info")
       if (!forceBadMapping) {
         gfile <- self$absPath(paste0("plot.MapInit.SR.",
-                                  sub("bam$", "pdf", usc(basename(bamfile)))))
+                                     sub("bam$", "pdf", usc(basename(bamfile)))))
         plt <- plot_pileup_coverage(
           x = pileup,
           thin = 0.25,
@@ -252,7 +253,7 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
       Biostrings::DNAStringSet(gsub("[-+]", "N", conseq)),
       conseqpath)
 
-    if (microsatellite){
+    if (microsatellite) {
       mapfmt  <- "mapInit1.2 <%s> <%s> <%s> <%s>"
       maptag  <- sprintf(mapfmt, conseq_name, self$getSrdType(),
                          self$getSrMapper(), optstring(opts, optsname))
@@ -406,7 +407,7 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
 
   flog.info(" Map longreads against MapInit reference for clustering ...",
             name = "info")
-  if (exists("mapInitSR1")){
+  if (exists("mapInitSR1")) {
     reffile <- self$absPath(mapInitSR1$seqpath)
     refseq <- mapInitSR1$conseq
     allele <- mapInitSR1$ref
@@ -486,8 +487,8 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
     flog.info(" Plotting MapInit Summary ...", name = "info")
     ## Coverage and frequency of minor alleles
     gfile <- self$absPath(paste0("plot.MapInit.LR.",
-                              sub("bam$", "pdf",
-                                  usc(basename(self$mapInit$bamfile)))))
+                                 sub("bam$", "pdf",
+                                     usc(basename(self$mapInit$bamfile)))))
     pdf(file = gfile, width = 12, height = 10, onefile = TRUE,
         title = paste(self$getLocus(), self$getSampleId(), sep = "." ))
     self$plotmapInitSummary(
@@ -500,8 +501,8 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
 
     if (partSR){
       gfile <- self$absPath(paste0("plot.MapInit.SR.",
-                                sub("bam$", "pdf",
-                                    usc(basename(self$mapInit$SR2$bamfile)))))
+                                   sub("bam$", "pdf",
+                                       usc(basename(self$mapInit$SR2$bamfile)))))
       pdf(file = gfile, width = 12, height = 10, onefile = TRUE,
           title = paste(self$getLocus(), self$getSampleId(), sep = "." ))
       self$plotmapInitSummary(
@@ -534,33 +535,36 @@ print.mapInit <- function(x, ...) {
 
 #' @export
 partitionLongReads.DR2S <- function(x,
-                                      threshold = NULL,
-                                      skip_gap_freq = 2/3,
-                                      dist_alleles = NULL,
-                                      plot = TRUE,
-                                      ...) {
+                                    threshold = NULL,
+                                    skip_gap_freq = 2/3,
+                                    dist_alleles = NULL,
+                                    nreads = NULL,
+                                    replace = FALSE,
+                                    plot = TRUE,
+                                    ...) {
   flog.info("Step 1: Partition longreads into haplotypes ...", name = "info")
-  Sys.sleep(1)
   x$runPartitionLongReads(threshold = threshold,
-                             skip_gap_freq = skip_gap_freq,
-                             dist_alleles = dist_alleles,
-                             plot = plot)
-  message("  Done!\n")
+                          skip_gap_freq = skip_gap_freq,
+                          dist_alleles = dist_alleles,
+                          plot = plot)
+  flog.info(" Split partitioned longreads by score ...", name = "info")
+  x$runSplitLongReadsByHaplotype(plot = plot)
+  flog.info(" Extracting haplotyped longreads ...", name = "info")
+  x$runExtractLongReads(nreads = nreads, replace = replace)
+
   invisible(x)
-
 }
-DR2S_$set("public", "runPartitionLongReads", function(threshold = NULL,
-                                                         skip_gap_freq = 2/3,
-                                                         dist_alleles = NULL,
-                                                         plot = TRUE) {
 
+DR2S_$set("public", "runPartitionLongReads", function(threshold = NULL,
+                                                      skip_gap_freq = 2/3,
+                                                      dist_alleles = NULL,
+                                                      plot = TRUE) {
   # debug
   # skip_gap_freq = 2/3
   # dist_alleles = 3
   # threshold = NULL
   # plot = TRUE
   # self <- dr2s
-
 
   ## Overide default arguments
   args <- self$getOpts("partition")
@@ -657,20 +661,8 @@ print.PartList <- function(x, ...) {
   print(x$hpl)
 }
 
-## Method: splitReadsByHaplotype ####
-
-#' @export
-splitReadsByHaplotype.DR2S <- function(x,
-                                          limits,
-                                          ...) {
-  flog.info(" Split partitioned reads by score ...", name = "info")
-  x$runSplitReadsByHaplotype(limits)
-  invisible(x)
-}
-
 #self <- dpb1_3
-DR2S_$set("public", "runSplitReadsByHaplotype", function(limits,
-                                                      plot = TRUE){
+DR2S_$set("public", "runSplitLongReadsByHaplotype", function(plot = TRUE) {
 
   ## Check if reporting is already finished and exit safely
   if (check_report_status(self)) return(invisible(self))
@@ -699,7 +691,6 @@ DR2S_$set("public", "runSplitReadsByHaplotype", function(limits,
 
   self$setLimits(plainlmts)
   self$partition$lmt <- lmts$plt
-
 
   # Get only reads within the limit
   reads <- lapply(names(self$getLimits()), function(x) {
@@ -753,7 +744,6 @@ print.HapList <- function(x, ...) {
 }
 
 #' @export
-
 ## ToDo: change this
 summary.HapList <- function(object, ....) {
   data.frame(
@@ -766,30 +756,14 @@ summary.HapList <- function(object, ....) {
   )
 }
 
-## Method: extractLongReads ####
-
-#' @export
-extractLongReads.DR2S <- function(x,
-                              nreads = NULL,
-                              replace = FALSE,
-                              nalign = 40,
-                              ...) {
-  flog.info("Step 2: Extracting haplotyped reads ...", name = "info")
-  Sys.sleep(1)
-  x$runExtractLongReads(nreads = nreads, replace = replace, nalign = nalign)
-  message("  Done!\n")
-  invisible(x)
-}
 # debug
 #self <- dr2s
 DR2S_$set("public", "runExtractLongReads", function(nreads = NULL,
-                                             replace = FALSE,
-                                             nalign = 40) {
+                                                    replace = FALSE) {
 
   # debug
   # nreads = NULL
   # replace = FALSE
-  # nalign = 40
 
   ## Check if reporting is already finished and exit safely
   if (check_report_status(self)) return(invisible(self))
@@ -960,8 +934,8 @@ DR2S_$set("public", "runMapIter", function(opts = list(),
                     "haplotype %s ...", " "), hptype, name = "info")
     readIds <- self$getHapList(hptype)
     cmat <- consmat(t(Biostrings::consensusMatrix(mat[readIds],
-                                        as.prob = FALSE)[VALID_DNA(
-                                          include = "indel"),]), freq = FALSE)
+                                                  as.prob = FALSE)[VALID_DNA(
+                                                    include = "indel"),]), freq = FALSE)
 
     conseq_name <- paste0("consensus.mapIter.0.", hptype)
     conseq <- conseq(x = cmat, name = conseq_name, type = "prob",
@@ -969,7 +943,7 @@ DR2S_$set("public", "runMapIter", function(opts = list(),
                      cutoff = pruning_cutoff)
 
     seqpath     <- self$absPath(file.path(self$mapIter[["0"]][[hptype]]$dir,
-                             paste0(conseq_name, ".fa")))
+                                          paste0(conseq_name, ".fa")))
     self$mapIter[["0"]][[hptype]]$ref <- "mapIter0"
     self$mapIter[["0"]][[hptype]]$conseq <- conseq
     self$mapIter[["0"]][[hptype]]$seqpath <- self$relPath(seqpath)
@@ -1102,7 +1076,7 @@ DR2S_$set("public", "runMapIter", function(opts = list(),
       flog.info(" Plotting MapIter Summary ...", name = "info")
       ## Coverage and base frequency
       gfile <- self$absPath(paste("plot.MapIter", iteration, self$getLrdType(), self$getLrMapper(),
-              "pdf", sep = ".")
+                                  "pdf", sep = ".")
       )
       pdf(file = gfile, width = 8 * length(hptypes), height = 8, onefile = TRUE,
           title = paste(self$getLocus(), self$getSampleId(), sep = "." ))
@@ -1112,7 +1086,7 @@ DR2S_$set("public", "runMapIter", function(opts = list(),
       dev.off()
       ## Consensus sequence probability
       gfile <- self$absPath(paste("plot.MapIter.conseq", iteration, self$getLrdType(),
-              self$getLrMapper(), "pdf", sep = ".")
+                                  self$getLrMapper(), "pdf", sep = ".")
       )
       pdf(file = gfile, width = 16, height = 4*length(hptypes), onefile = TRUE,
           title = paste(self$getLocus(), self$getSampleId(), sep = "." ))
@@ -1273,8 +1247,8 @@ DR2S_$set("public", "runPartitionShortReads", function(opts = list(),
     foreach(fq = fqs) %do% {
 
       srFastqHap = self$absPath(file.path(self$mapIter$`0`[[hptype]]$dir,
-                             paste0(c(strsplit(basename(fq), "\\.")[[1]][1],
-                                      hptype, "fastq.gz"), collapse = ".")))
+                                          paste0(c(strsplit(basename(fq), "\\.")[[1]][1],
+                                                   hptype, "fastq.gz"), collapse = ".")))
       write_part_fq(fq = fq, srFastqHap = srFastqHap,
                     dontUseReads = dontUseReads)
       srfilenames <- c(srfilenames, srFastqHap)
@@ -1589,8 +1563,8 @@ DR2S_$set("public", "runMapFinal", function(opts = list(),
       for (readtype in c("LR", "SR")){
         #readtype <- "LR"
         gfile <- self$absPath(paste("plot.mapFinal", readtype,
-                                 self$getLrdType(), self$getLrMapper(),
-                                 "pdf", sep = "."))
+                                    self$getLrdType(), self$getLrMapper(),
+                                    "pdf", sep = "."))
         pdf(file = gfile, width = 8 * length(hptypes), height = 8,
             onefile = TRUE,  title = paste(self$getLocus(),
                                            self$getSampleId(), sep = "." ))
@@ -1600,9 +1574,9 @@ DR2S_$set("public", "runMapFinal", function(opts = list(),
       }
     } else {
       gfile <- self$absPath(paste("plot.mapFinal.LR",
-                                                 self$getLrdType(),
-                                                 self$getLrMapper(), "pdf",
-                                                 sep = "."))
+                                  self$getLrdType(),
+                                  self$getLrMapper(), "pdf",
+                                  sep = "."))
       pdf(file = gfile, width = 8 * length(hptypes), height = 8,
           onefile = TRUE, title = paste(self$getLocus(), self$getSampleId(),
                                         sep = "." ))

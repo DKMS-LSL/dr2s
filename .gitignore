@@ -11,3 +11,5 @@ scratch.[rR]
 eval.[rR]
 .*.Rnb.cached
 .*.Rnb.cached
+*.o
+*.so

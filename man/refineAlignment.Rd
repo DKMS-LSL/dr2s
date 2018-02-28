@@ -22,9 +22,9 @@ Refine the mapping of an allele by remap to the checked consensus
 \seealso{
 Other DR2S mapper functions: \code{\link{DR2Smap}},
   \code{\link{cache}}, \code{\link{clear}},
-  \code{\link{extractLongReads}}, \code{\link{mapFinal}},
-  \code{\link{mapInit}}, \code{\link{mapIter}},
-  \code{\link{partitionLongReads}}, \code{\link{polish}},
+  \code{\link{mapFinal}}, \code{\link{mapInit}},
+  \code{\link{mapIter}}, \code{\link{partitionLongReads}},
+  \code{\link{polish}},
   \code{\link{report_checked_consensus}},
-  \code{\link{report}}, \code{\link{splitReadsByHaplotype}}
+  \code{\link{report}}
 }

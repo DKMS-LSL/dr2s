@@ -4,18 +4,12 @@
 \alias{partitionLongReads}
 \title{Partition mapped long reads into haplotypes}
 \usage{
-partitionLongReads(x, max_depth = 10000, plot = TRUE, ...)
+partitionLongReads(x, ...)
 }
 \arguments{
 \item{x}{A \code{\link[=DR2S_]{DR2S}} object.}
 
-\item{max_depth}{Maximum number of alignments considered for partitioning.}
-
-\item{plot}{Produce diagnostic plots.}
-
 \item{...}{Further arguments passed to methods.}
-
-\item{shuffle}{Randomly shuffle polymorphic positions.}
 }
 \value{
 A \code{\link[=DR2S_]{DR2S}} object.
@@ -36,8 +30,6 @@ x <- DR2Smap(
   clear() \%>\%
   mapInit() \%>\%
   partitionLongReads() \%>\%
-  splitReadsByHaplotype(limitA = 0.5, limitB = 0.25) \%>\%
-  extractFastq() \%>\%
   mapIter() \%>\%
   mapFinal() \%>\%
   cache() \%>\%
@@ -48,9 +40,9 @@ x <- DR2Smap(
 \seealso{
 Other DR2S mapper functions: \code{\link{DR2Smap}},
   \code{\link{cache}}, \code{\link{clear}},
-  \code{\link{extractLongReads}}, \code{\link{mapFinal}},
-  \code{\link{mapInit}}, \code{\link{mapIter}},
-  \code{\link{polish}}, \code{\link{refineAlignment}},
+  \code{\link{mapFinal}}, \code{\link{mapInit}},
+  \code{\link{mapIter}}, \code{\link{polish}},
+  \code{\link{refineAlignment}},
   \code{\link{report_checked_consensus}},
-  \code{\link{report}}, \code{\link{splitReadsByHaplotype}}
+  \code{\link{report}}
 }
