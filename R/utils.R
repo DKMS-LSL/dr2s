@@ -71,7 +71,7 @@ COL_PATTERN <- function() {
 }
 
 VALID_LOCI <- function() {
-  ipd.Hsapiens.db::getLoci(ipd.Hsapiens.db::ipd.Hsapiens.db)
+  ipd.Hsapiens.db::getLoci()
 }
 VALID_LOCI()
 HLA_LOCI <- function() {
@@ -315,8 +315,6 @@ editor <- function(x, pos = NULL, use_editor = "xdg-open") {
     system(paste(use_editor, tmp, sep = " "))
   }
 }
-
-
 # Alignment browser -------------------------------------------------------
 
 

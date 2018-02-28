@@ -13,5 +13,6 @@
 #' @import foreach
 #' @import ggplot2
 #' @import futile.logger
+#' @import ipd.Hsapiens.db
 #' @importFrom iterators iter nextElem
 NULL

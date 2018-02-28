@@ -2,6 +2,18 @@ yield <- function(envir, ...) UseMethod("yield")
 yield.HapEnv <- function(envir, pos = NULL) {
   lr <- envir$LR
   sr <- envir$SR
+
+  # if (!all(VALID_DNA(include = "indel") %in% colnames(sr))) {
+  #   addSymbol <- VALID_DNA(include = "indel")[
+  #     !VALID_DNA(include = "indel") %in% colnames(sr)]
+  #   if (addSymbol == "+")
+  #     sr <- cbind(sr, "+" = 0)
+  #   sr <- consmat(sr, freq = FALSE)
+  #   envir$SR <- sr
+  # }
+  # v <- VALID_DNA("indel")
+  # v[which(!v %in% colnames(sr))]
+
   pos <- if (is.null(pos)) envir$pos else pos
   structure(list(
     ## class: variant
@@ -193,13 +205,6 @@ variant <- function(bases, proportion, margin_of_error, warning, vlist) {
     cm <- rbind(as.matrix(vlist$lr), vlist$lr_)
     rownames(cm) <- c("LR1", "LR2")
   }
-  if(!is.null(vlist$sr)){
-   reads_ref = unlist(compact(ids(vlist$sr)[[as.character(pos - vlist$offset[["sr"]])]][base_ref_]))
-   reads_alt = unlist(compact(ids(vlist$sr)[[as.character(pos - vlist$offset[["sr"]])]][base_alt_]))
-  } else {
-    reads_ref = list()
-    reads_alt = list()
-  }
   structure(
     bases,
     class = "variant",
@@ -211,12 +216,10 @@ variant <- function(bases, proportion, margin_of_error, warning, vlist) {
     cm = cm,
     offset = ifelse(!is.null(vlist$sr),
                     vlist$offset[["sr"]],
-                    vlist$offset[["lr"]]),
+                    vlist$offset[["lr"]])
     ## here we have to remove the offsets we incurred at previous
     ## ambiguous positions to match the original polymorhic positions
     ## in the pileup
-    reads_ref =reads_ref,
-    reads_alt = reads_alt
   )
 }
 
@@ -268,13 +271,11 @@ do_update_ <- function(cm, val, pos) {
   }
   cm[pos_, ] <- val
   if (anyNA(cm)) {
-    ids_ <- ids(cm)
     d <- dim(cm)
     omit <- seq_along(cm)[is.na(cm)]
     omit <- unique(((omit - 1) %% d[1L]) + 1L)
     cm <- cm[-omit, , drop = FALSE]
     rownames(cm) <- as.character(seq_len(NROW(cm)))
-    ids(cm) <- ids_
     i <- which((ins_ <- ins(cm)) == pos - offset(cm))
     if (length(i) == 1) {
       run_ <- attr(ins_, "run")
