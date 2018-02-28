@@ -35,10 +35,6 @@ An example:
        +-- output
              |
              +-- ID12912701
-                   |
-                   +-- pacbio
-                         |
-                         +-- HLA-DPB1.pacbio.ref.multialign
                      
 
 ### Usage
@@ -57,6 +53,7 @@ x <- DR2Smap(
   consensus = "mapping",
   iterations = 1,
   partSR = TRUE,
+  dist_alleles = 2,
   filterScores = TRUE,
   microsatellite = TRUE,
   threshold = 0.2
@@ -79,19 +76,21 @@ The argument `consensus` should be set to `mapping`.
 
 `filterScores` parameter for a filtering step in mapInit. Filters scores below a threshold of 0.3\*sequence length. Necessary for KIR, but slightly worse results for e.g. DPB1 genes. logical \[TRUE\]
 
+`dist_alleles` the number of distinct alleles
+
 An analysis proceeds in a number of steps that can be chained together using the pipe `%>%`:
 
 ``` r
 x %>% 
-  mapInit()
+  mapInit() %>%
   partition_haplotypes() %>%
   split_reads_by_haplotype() %>%
-  extract_fastq()
-  mapIter()
-  partitionShortReads %>%
-  mapFinal()
+  extract_fastq() %>%
+  mapIter() %>%
+  partitionShortReads() %>%
+  mapFinal() %>%
   polish() %>%
-  report
+  report()
 ```
 
 The individual steps perform the following analyses:
@@ -126,7 +125,7 @@ Throughout this process a number of diagnostic plots are produced and placed in 
 
 While this process works remarkably well, there are situations where alignment artefacts or plain bad luck may introduce errors in the final consensus sequences. You should **never** accept the result as ground truth without some manual and visual consistency checks!
 
-`gDR2S` provides some facilities to aid checking and signing-off of finalised consensus sequences.
+`DR2S` provides some facilities to aid checking and signing-off of finalised consensus sequences.
 
 A typical post-processing workflow may look as follows:
 
@@ -134,6 +133,8 @@ A typical post-processing workflow may look as follows:
 plot_diagnostic_alignment(x)
 run_igv(x, 3000)
 check_alignment_file(x)
+refineAlignment(x, "A")
+run_igv(x, "refine")
 report_checked_consensus(x)
 ```
 
@@ -141,9 +142,18 @@ report_checked_consensus(x)
 
 -   **run\_igv:** Opens an instance of the IGV Genome Browser for each haplotype at a specified position (one for each allele) displaying both the long read and short read data for manual inspection.
 
--   **check\_alignment\_file :** Opens a pairwise alignment of the final consensus sequences in your text editor. Use this to perform any manual edits on the consensus sequences. Editor options are: "subl", "gvim" and "gedit". Defaults to systems standard editor.
+-   **check\_alignment\_file :** Opens a pairwise or multiple alignment of the final consensus sequences in your text editor. Use this to perform any manual edits on the consensus sequences. Editor options are: "subl", "gvim" and "gedit". Defaults to systems standard editor.
 
 -   **report\_checked\_consensus:** Export final consensus sequences from the edited pairwise or multiple alignment as FASTAs into a separate subdirectory `./checked` in the output directory.
+
+`DR2S` creates bash scripts for the convenient access to important postprocessing functions:
+
+-   **run\_checkConsensus.sh** Runs the `check_alignment_file` command.
+-   **runIGV\_mapInit.sh** Opens an IGV instance of the initial mapping.
+-   **runIGV\_mapIter.sh** Opens an IGV instance of the results of the mapIter step.
+-   **runIGV\_mapFinal.sh** Opens an IGV instance of the final mapping
+-   **run\_remap\[X\].sh** Remap the reads of a haplotype to the manuall curated sequence to look if it is finally correct. This command is available for all found haplotypes
+-   **run\_reportCheckedConsensus.sh** report the manually checked consensus and state that its finished and can be used.
 
 ### Only longreads
 
@@ -151,14 +161,14 @@ If you want to find allele sequences only based on longreads you need to skip th
 
 ``` r
 x %>% 
-  mapInit()
+  mapInit() %>%
   partition_haplotypes() %>%
   split_reads_by_haplotype() %>%
-  extract_fastq()
-  mapIter()
-  mapFinal()
+  extract_fastq() %>%
+  mapIter() %>%
+  mapFinal() %>%
   polish() %>%
-  report
+  report()
 ```
 
 Installation
