@@ -296,14 +296,6 @@ refineAlignment <- function(x, hptype){
     allele   = mapgroupLR,
     readtype = x$getLrdType(),
     refname  = hptype,
-#     opts     = list(
-#       x = "map-pb -a --cs -c",
-# #-c -H -Q -Y",
-#
-#       k = 10,
-#       w = 3,
-#       N = 500
-#       ),
     force    = TRUE,
     outdir   = outdir
   )
@@ -317,21 +309,13 @@ refineAlignment <- function(x, hptype){
   )
   x$consensus$refine$bamfile[[mapgroupLR]] = x$relPath(bamfile)
 
-  # ## Calculate pileup from graphmap produced SAM file
-  # flog.info("  Piling up ...", name = "info")
-  # pileup <- Pileup(
-  #   bamfile,
-  #   x$getThreshold(),
-  #   include_deletions = TRUE,
-  #   include_insertions = TRUE
-  # )
   ## Map short reads
   if (!is.null(unlist(readpathSR))){
     mapgroupSR <- paste0("SR", hptype)
     maptagSR   <- paste("refine", mapgroupSR, x$getLrdType(),
                         x$getSrMapper(), sep = ".")
-
     readfiles <- unlist(readpathSR)
+
     ## Mapper
     map_fun <- x$getSrMapFun()
 
@@ -344,21 +328,43 @@ refineAlignment <- function(x, hptype){
       allele   = mapgroupSR,
       readtype = x$getSrdType(),
       refname  = hptype,
-      # opts     = list(
-      #   x      = "sr",
-      #   k      = 6,
-      #   w = 2,
-      #   A = 2,
-      #   B = 8,
-      #   O = "12,32",
-      #   E = "2,1",
-      #   r = 50,
-      #   p = 0.5,
-      #   N = 500
-      # ),
       outdir   = outdir,
       force    = TRUE
     )
+
+    ## Remove softclipping
+    flog.info(" Trimming softclips and polymorphic ends ...", name = "info")
+    ## Run bam - sort - index pipeline
+    bamfile <- bam_sort_index(samfile,
+                              refpath,
+                              force = TRUE)
+    ## Trim softclips
+    fq <- trim_softclipped_ends(bam = Rsamtools::scanBam(bamfile)[[1]],
+                                preserve_ref_ends = TRUE)
+    ## Trim polymorphic ends
+    fq <- trim_polymorphic_ends(fq)
+    ## Write new shortread file to disc
+    fqdir  <- dir_create_if_not_exists(file.path(x$getOutdir(), "refine"))
+    fqfile <- paste("sread", hptype, x$getSrMapper(), "trimmed", "fastq",
+                    "gz", sep = ".")
+    fqout  <- file_delete_if_exists(file.path(fqdir, fqfile))
+    ShortRead::writeFastq(fq, fqout, compress = TRUE)
+    file_delete_if_exists(bamfile)
+    ## Rerun mapper
+    flog.info("  Mapping trimmed short reads against latest consensus ... ",
+              name = "info")
+    samfile <- map_fun(
+      reffile  = refpath,
+      readfile = fqout,
+      allele   = mapgroupSR,
+      readtype = x$getSrdType(),
+      refname  = hptype,
+      force    = TRUE,
+      outdir   = outdir
+    )
+    # cleanup
+    file_delete_if_exists(fqout)
+
     ## Run bam - sort - index pipeline
     flog.info("  Indexing ...", name = "info")
     bamfile <- bam_sort_index(
@@ -403,10 +409,15 @@ refineAlignment <- function(x, hptype){
 
   ## Export FASTA
   seq <- seqs[paste0("hap", hptype)]
-  file <- paste(names(seq), x$getLrdType(), x$getLrMapper(), "refined", "fa", sep = ".")
+  file <- paste(names(seq),
+                x$getLrdType(),
+                x$getLrMapper(),
+                "refined",
+                "fa",
+                sep = ".")
   names(seq) <- paste0(names(seq), " LOCUS=", x$getLocus(), ";REF=",
                           x$getReference())
-  seqPath <- x$absPath(file)
+  seqPath <- x$absPath(file.path("refine", file))
   Biostrings::writeXStringSet(
     seq,
     filepath = seqPath,

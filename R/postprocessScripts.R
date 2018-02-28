@@ -2,7 +2,7 @@
 ##
 writeReportCheckedConsensus <- function(path, libpath = ".pplib") {
   bashFile <- file.path(path, "run_reportCheckedConsensus.sh")
-  rFile <- file.path(path, libpath, "reportCheckedConsensus.R")
+  rFile <- file.path(libpath, "reportCheckedConsensus.R")
   script <-
 'library(DR2S)
 ## get the scripts dir for change wd
@@ -25,14 +25,14 @@ tryCatch(report_checked_consensus(x),
 
   write(paste0("#!/usr/bin/env bash\nRscript ",
                rFile), bashFile)
-  write(script, rFile)
+  write(script, file.path(path, rFile))
 
   Sys.chmod(bashFile, mode = "775")
 }
 
 writeCheckConsensus <- function(path, libpath = ".pplib") {
   bashFile <- file.path(path, "run_checkConsensus.sh")
-  rFile <- file.path(path, libpath, "checkConsensus.R")
+  rFile <- file.path(libpath, "checkConsensus.R")
   script <-
 '#!/usr/bin/env Rscript
 library(DR2S)
@@ -53,7 +53,7 @@ tryCatch(check_alignment_file(x),
              shQuote("Run in terminal to see whats wrong")))
          })
 '
-  write(script, rFile)
+  write(script, file.path(path,rFile))
   write(paste0("#!/usr/bin/env bash\nRscript ", rFile), bashFile)
   Sys.chmod(bashFile, mode = "775")
 }
@@ -61,7 +61,7 @@ tryCatch(check_alignment_file(x),
 writeRefineAlignments <- function(path, haptypes, libpath = ".pplib") {
   writeScript <- function(hptype, path) {
     bashFile <- file.path(path, paste0("run_remap", hptype, ".sh"))
-    rFile <- file.path(path, libpath, paste0("remap", hptype, ".R"))
+    rFile <- file.path(libpath, paste0("remap", hptype, ".R"))
     script <- paste0(
 '#!/usr/bin/env Rscript
 library(DR2S)
@@ -83,7 +83,7 @@ tryCatch({refineAlignment(x, "', hptype, '")
              shQuote("Run in terminal to see whats wrong")))
          })
 ')
-    write(script, rFile)
+    write(script, file.path(rFile))
     write(paste0("#!/usr/bin/env bash\nRscript ", rFile), bashFile)
     Sys.chmod(bashFile, mode = "775")
   }

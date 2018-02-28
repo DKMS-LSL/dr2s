@@ -4,7 +4,8 @@
 \alias{generate_reference_sequence}
 \title{Generate reference sequences in a FASTA file}
 \usage{
-generate_reference_sequence(allele, locus, outdir, fullname = TRUE)
+generate_reference_sequence(allele, locus, outdir, dirtag = NULL,
+  fullname = TRUE)
 }
 \arguments{
 \item{allele}{Allele name.}
