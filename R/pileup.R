@@ -419,8 +419,10 @@ plot_pileup_basecall_frequency <- function(x, threshold = 0.20, label = "", drop
 .extractInsertion <- function(read, i) {
   cigar <- read@cigar
   seq <- Biostrings::DNAString("-")
-  insertion <- GenomicAlignments::cigarRangesAlongQuerySpace(cigar, ops = "I")[[1]]
-  insertPos <- insertion[which((GenomicAlignments::start(read) + insertion@start - 1) == i)]
+  ## map insertion position to reference space, extract insertions from query space
+  insertionQ <- GenomicAlignments::cigarRangesAlongQuerySpace(cigar, ops = "I")[[1]]
+  insertionR <- GenomicAlignments::cigarRangesAlongReferenceSpace(cigar, ops = "I")[[1]]
+  insertPos <- insertionQ[which((GenomicAlignments::start(read) + insertionR@start - 1) == i)]
   if (length(insertPos) > 0)
     seq <- unlist(Biostrings::subseq(read@elementMetadata$seq, start = IRanges::start(insertPos), end = IRanges::end(insertPos)))
   seq
