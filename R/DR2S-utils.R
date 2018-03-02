@@ -132,7 +132,7 @@ run_igv <- function(x, position, map = "mapFinal", open_now = TRUE, ...) {
       ref <- x$mapIter[[as.character(x$getIterations()-1)]][[hp]]$seqpath
       bamLR <- x$mapIter[[as.character(x$getIterations())]][[hp]]$bamfile
     }
-    chr <- strsplit(sub(">", "", readLines(file.path(basedir, ref), 1)), "\\s+")[[1]][1]
+    chr <- strsplit1(sub(">", "", readLines(file.path(basedir, ref), 1)), "\\s+")[1]
     locus <- paste0(chr, ":", min(c((abs(position - 50)),0)), "-", position + 50)
 
     xml <- XML::xmlTree()

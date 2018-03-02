@@ -49,7 +49,7 @@ get_SR_partition_scores <- function(refname, bamfile, mats,
 
   ## Get polymorphic positions
   ppos <- colnames(mats[[1]])
-  flog.info("  Partition shortreads on %s positions ...", length(ppos),
+  flog.info(" Partition shortreads on %s positions", length(ppos),
             name = "info")
   res <- foreach (pos = ppos, .combine = "rbind") %dopar% {
     message("Get reads on position ", pos)
@@ -92,24 +92,23 @@ get_SR_partition_scores <- function(refname, bamfile, mats,
 score_highest_SR <- function(srpartition, diffThreshold = 0.001) {
   sr <- unique(data.table::as.data.table(srpartition)
                [, clade := sum(prob), by = list(read, haplotype)] # Get the sum of each read and hptype
-              [,max := max(clade), by = read] # get the max of the sums of each
-              [, !c("prob")]) # dismiss the prob and pos which we dont need anymore
+               [,max := max(clade), by = read] # get the max of the sums of each
+               [, !c("prob")]) # dismiss the prob and pos which we dont need anymore
 
   srtmp <- NULL
   sr2 <- NULL
   diffThreshold <- 0.001
-  while(TRUE){
-    flog.info(" Calculate shortread scoring with cutoff: %s ...",
+  while (TRUE) {
+    flog.info(" Calculate shortread scoring with cutoff = %s",
               diffThreshold, name = "info")
     if (NROW(srtmp) > 0) {
-      srtmp <- sr[pos %in% names(which(!correctScoring))][abs(1-(clade/max)) <
-                                                            diffThreshold]
+      srtmp <- sr[pos %in% names(which(!correctScoring))][abs(1 - (clade/max)) < diffThreshold]
     } else {
-      srtmp <- sr[abs(1-(clade/max)) < diffThreshold]
+      srtmp <- sr[abs(1 - (clade/max)) < diffThreshold]
     }
     correctScoring <- sapply(unique(srtmp$pos), function(position)
       check_SR_scoring(position, srtmp[pos == position]))
-    if (all(correctScoring)){
+    if (all(correctScoring)) {
       if (NROW(sr2) == 0)
         sr2 <- srtmp
       break
@@ -134,20 +133,19 @@ write_part_fq <- function(fq, srFastqHap, dontUseReads = NULL, useReads = NULL) 
       # useReads = qnames
       useReads <- which(!fqnames %in% dontUseReads)
     }
-    flog.info("  Using %s of %s reads",
-              length(useReads), length(fqnames), name = "info")
+    flog.info("  Using %s of %s reads", length(useReads), length(fqnames), name = "info")
     sr <- sr[useReads]
-    ShortRead::writeFastq(sr, srFastqHap, mode="a", compress = TRUE)
+    ShortRead::writeFastq(sr, srFastqHap, mode = "a", compress = TRUE)
   }
   close(fqstream)
 }
+
 # --- Helper ---
 
 part_read <- function(a, mats, pos){
   l <- sapply(mats, function(x) x[,pos][as.character(a)])
   list(prob = l,  haplotype = names(mats), pos = rep(pos, length(l)))
 }
-
 
 check_SR_scoring <- function(position, dfpos){
   score_ok <- all(sapply(unique(dfpos$haplotype), function(hp)

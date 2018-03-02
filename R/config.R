@@ -31,18 +31,16 @@ create_dr2s_conf <- function(sample,
     outdir     = outdir,
     threshold  = threshold,
     iterations = iterations,
-    microsatellite = microsatellite,
-    dist_alleles = dist_alleles,
-    filterScores = filterScores,
-    partSR = partSR,
+    microsatellite  = microsatellite,
+    dist_alleles    = dist_alleles,
+    filterScores    = filterScores,
+    partSR          = partSR,
     forceBadMapping = forceBadMapping,
-    lrmapper     = conf0$lrmapper   %||% "minimap",
-    srmapper     = conf0$srmapper   %||% "bwamem",
-    # limitA     = conf0$limitA   %||% NULL,
-    # limitB     = conf0$limitB   %||% NULL,
+    lrmapper   = conf0$lrmapper %||% "minimap",
+    srmapper   = conf0$srmapper %||% "bwamem",
     limits     = conf0$limits   %||% NULL,
-    haptypes   = conf0$haptypes   %||% NULL,
-    pipeline   = conf0$pipeline %||% c("clear", "mapInit", "partition", "split", "extract", "mapIter", "mapFinal", "polish", "report"),
+    haptypes   = conf0$haptypes %||% NULL,
+    pipeline   = conf0$pipeline %||% c("clear", "mapInit", "partLR", "mapIter", "partSR", "mapFinal", "polish", "report"),
     longreads  = longreads,
     shortreads = shortreads,
     nreads     = conf0$nreads   %||% NULL,
@@ -68,13 +66,11 @@ read_dr2s_conf <- function(config_file) {
   conf$filterScores <- conf$filterScores %||% TRUE
   conf$partSR <- conf$partSR %||% TRUE
   conf$forceBadMapping <- forceBadMapping %||% FALSE
-  conf$lrmapper     <- conf$lrmapper     %||% "minimap"
-  conf$srmapper     <- conf$srmapper     %||% "bwamem"
-  # conf["limitA"]  <- conf$limitA     %||% list(NULL)
-  # conf["limitB"]  <- conf$limitN     %||% list(NULL)
+  conf$lrmapper     <- conf$lrmapper      %||% "minimap"
+  conf$srmapper     <- conf$srmapper      %||% "bwamem"
   conf$limits     <- conf$limits     %||% list(NULL)
   conf$haptypes   <- conf$haptypes   %||% list(NULL)
-  conf$pipeline   <- conf$pipeline   %||% c("clear", "mapInit", "partition", "split", "extract", "mapIter", "mapFinal", "polish", "report")
+  conf$pipeline   <- conf$pipeline   %||% c("clear", "mapInit", "partLR", "mapIter", "partSR", "mapFinal", "polish", "report")
   conf$longreads  <- conf$longreads  %||% list(type = "pacbio", dir = "pacbio")
   conf$shortreads <- conf$shortreads %||% list(type = "illumina", dir = "illumina")
 
@@ -190,7 +186,7 @@ validate_dr2s_conf <- function(conf) {
   conf$srmapper <- match.arg(conf$srmapper, c("bwamem", "graphmap", "minimap"))
   ## Check pipeline
   pipesteps <- c("clear", "cache", "mapInit", "mapIter", "mapFinal",
-                 "partition", "split", "extract", "polish", "report")
+                 "partLR", "partSR", "polish", "report")
   if (!all(conf$pipeline %in% pipesteps)) {
     stop("Invalid pipeline step <", comma(conf$pipeline[!conf$pipeline %in% pipesteps]), ">", call. = FALSE)
   }

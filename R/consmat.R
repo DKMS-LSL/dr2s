@@ -248,24 +248,24 @@ create_PWM <- function(msa){
 
 # mat <- pileup$consmat
 #removeError = TRUE
-.distributeGaps <- function(mat, bamfile, reference, removeError = FALSE){
+.distributeGaps <- function(mat, bamfile, reference, removeError = FALSE) {
   seq <- .mat2rle(mat)
-  if (removeError){
+  if (removeError) {
     gapError <- .getGapErrorBackground(mat, n = 5)
   }
   for (i in which(seq$length > 5)) {
     ## Assign new gap numbers to each position starting from left
     # meanCoverage <- mean(rowSums(mat[seqStart:seqEnd,1:4]))
-    seqStart <- sum(seq$lengths[1:(i-1)])+1
-    seqEnd <- seqStart+seq$lengths[i]-1
+    seqStart <- sum(seq$lengths[1:(i - 1)]) + 1
+    seqEnd <- seqStart + seq$lengths[i] - 1
     region <- paste0(names(reference), ":", seqStart, "-", seqEnd)
 
-    msa <- msa_from_bam(bamfile, reference,paddingLetter = "+", region = region)
+    msa <- msa_from_bam(bamfile, reference, paddingLetter = "+", region = region)
     ## Use only sequences spanning the complete region! Every other sequence
     ## gives no Info
     msa <- msa[sapply(msa, function(x) !"+" %in% Biostrings::uniqueLetters(x))]
 
-    if (removeError){
+    if (removeError) {
       aFreq <- Biostrings::alphabetFrequency(msa[1])
       nt <- colnames(aFreq)[which.max(aFreq)]
       nucs <- sum(Biostrings::nchar(msa))

@@ -1,5 +1,4 @@
 #' @export
-
 #debug
 # x <- dpb1_3
 # threshold <- x$getThreshold()
@@ -7,14 +6,19 @@
 # cache = TRUE
 # library(foreach)
 #x <- a
-polish.DR2S <- function(x, threshold = x$getThreshold(),
-                        lower_limit = 0.80, cache = TRUE) {
+polish.DR2S <- function(x,
+                        threshold = x$getThreshold(),
+                        lower_limit = 0.80,
+                        cache = TRUE) {
+
+  flog.info("Step 5: polish ...", name = "info")
+
   ## Check if reporting is already finished and exit safely for downstream analysis
   if (x$getReportStatus()) {
-    currentCall <- strsplit(deparse(sys.call()), "\\.")[[1]][1]
+    currentCall <- strsplit1(deparse(sys.call()), "\\.")[1]
     flog.info(paste0("%s: Reporting already done! Nothing to do.",
-                     " Exit safely for downstream analysis ..."),
-                     currentCall, name = "info")
+                     " Exit safely for downstream analysis."),
+              currentCall, name = "info")
     return(invisible(x))
   }
 
@@ -32,17 +36,17 @@ polish.DR2S <- function(x, threshold = x$getThreshold(),
   }
 
   # get read types and haplotypes
-  rtypes <- names(x$mapFinal$pileup)
+  rtypes  <- names(x$mapFinal$pileup)
   hptypes <- x$getHapTypes()
   menv <- MergeEnv(x, threshold)
-  for (hptype in hptypes){
+  for (hptype in hptypes) {
     menv$init(hptype)
     menv$walk(hptype)
   }
 
   ## Short read phasing
   ## phasing.R
-  for (hptype in hptypes){
+  for (hptype in hptypes) {
     menv$hptypes[[hptype]]$phasemat    <- phasematrix(compact(
       menv$hptypes[[hptype]]$variants))
     menv$hptypes[[hptype]]$phasebreaks <- phasebreaks(
@@ -50,8 +54,8 @@ polish.DR2S <- function(x, threshold = x$getThreshold(),
   }
 
   ## phasing plots
-  for (hptype in hptypes){
-    if (!is.null(menv$hptypes[[hptype]]$phasemat)){
+  for (hptype in hptypes) {
+    if (!is.null(menv$hptypes[[hptype]]$phasemat)) {
       file <- file.path(x$getOutdir(), paste("plot4.phasing",
                                              hptype, x$getLrdType(),
                                              x$getLrMapper(), "pdf", sep = "."))
@@ -72,7 +76,7 @@ polish.DR2S <- function(x, threshold = x$getThreshold(),
 
   if (cache)
     rs$cache()
-  rs
+  rs$consensus
 }
 
 
@@ -95,7 +99,7 @@ collect_variants <- function(x) {
   names(hvars) <- hptypes
 
 
-  if (all(sapply(hvars, function(x) length(x) == 0))){
+  if (all(sapply(hvars, function(x) length(x) == 0))) {
     return(
       dplyr::data_frame(
         haplotype = character(0), pos = integer(0), ref = character(0),
@@ -110,16 +114,16 @@ collect_variants <- function(x) {
   names(phasebreaks) <- hptypes
 
   df <- do.call("rbind",
-                  lapply(hptypes, function(h)
-                    do.call("rbind", lapply(hvars[[h]],
-                                            extract_variant_, h = h))))
+                lapply(hptypes, function(h)
+                  do.call("rbind", lapply(hvars[[h]],
+                                          extract_variant_, h = h))))
 
   df <- df %>%
-      dplyr::group_by(haplotype) %>%
-      dplyr::mutate(warning = ifelse(pos  %in% unlist(phasebreaks[haplotype]),
-                                     sub("^\\|", "",
-                                         warning %<<% "|Phasebreak in short reads"),
-                                     warning))
+    dplyr::group_by(haplotype) %>%
+    dplyr::mutate(warning = ifelse(pos  %in% unlist(phasebreaks[haplotype]),
+                                   sub("^\\|", "",
+                                       warning %<<% "|Phasebreak in short reads"),
+                                   warning))
   df
 }
 

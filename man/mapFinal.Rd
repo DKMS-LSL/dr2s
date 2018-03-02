@@ -64,8 +64,6 @@ x <- DR2Smap(
   clear() \%>\%
   mapInit() \%>\%
   partitionLongReads() \%>\%
-  split_reads_by_haplotype() \%>\%
-  extractFastq() \%>\%
   mapIter() \%>\%
   partitionShortReads() \%>\%
   mapFinal() \%>\%

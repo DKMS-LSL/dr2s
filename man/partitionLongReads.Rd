@@ -31,8 +31,8 @@ x <- DR2Smap(
   mapInit() \%>\%
   partitionLongReads() \%>\%
   mapIter() \%>\%
+  partitionShortReads() \%>\%
   mapFinal() \%>\%
-  cache() \%>\%
   polish() \%>\%
   report(block_width = 60)
 }

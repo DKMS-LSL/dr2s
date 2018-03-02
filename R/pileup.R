@@ -132,7 +132,7 @@ pileup_get_insertions_ <- function(x, threshold) {
   colnm <- colnames(x$consmat)
   inpos <- pileup_find_insertion_positions_(x, threshold)
   inpos <- inpos[!inpos %in% 1:5]
-  inpos <- inpos[!inpos %in% (NROW(x)-5):NROW(x)]
+  inpos <- inpos[!inpos %in% (NROW(x) - 5):NROW(x)]
   bamfile <- x$bamfile
   if (length(inpos) > 0) {
     inseqs <- .getInsertions(bamfile, inpos)
@@ -184,7 +184,7 @@ pileup_get_insertions_ <- function(x, threshold) {
 # x <- pileup
 pileup_include_insertions <- function(x, threshold = NULL) {
   stopifnot(is(x, "pileup"))
-  if (! "+" %in% colnames(x$consmat)) {
+  if (!"+" %in% colnames(x$consmat)) {
     flog.warn("No insertions to call!", name = "info")
     return(x)
   }
@@ -225,14 +225,19 @@ pileup_include_insertions <- function(x, threshold = NULL) {
 # debug
 #bamfile <- self$mapInit$bamfile
 #refseq <- self$getRefSeq()
-msa_from_bam <- function(bamfile, refseq = NULL, paddingLetter = "+", region = NULL){
+msa_from_bam <- function(bamfile, refseq = NULL, paddingLetter = "+", region = NULL) {
   if (is.null(region)) {
     nRefseq <- names(refseq)
     lRefseq <- length(refseq[[1]])
     region <- paste0(nRefseq, ":1-", lRefseq)
   }
   assert_that(grepl(pattern = "^[[:alnum:]_\\*#\\.]+:\\d+-\\d+", region))
-  GenomicAlignments::stackStringsFromBam(bamfile, param=region, Lpadding.letter = paddingLetter, Rpadding.letter = paddingLetter, use.names = TRUE)
+  GenomicAlignments::stackStringsFromBam(
+    bamfile,
+    param = region,
+    Lpadding.letter = paddingLetter,
+    Rpadding.letter = paddingLetter,
+    use.names = TRUE)
 }
 
 # Summarise and plot ------------------------------------------------------
@@ -388,32 +393,29 @@ plot_pileup_basecall_frequency <- function(x, threshold = 0.20, label = "", drop
 .getInsertions <- function(bamfile, inpos, reference) {
   stopifnot(is.numeric(inpos))
   inpos <- sort(inpos)
-  flog.info("Extracting insertions at position %s",
-            paste(inpos, collapse = ", "),
-            name = "info")
+  flog.info("  Extracting insertions at position %s ...", comma(inpos), name = "info")
 
   ## Get the actual position of the first insertion character, not the last
   ##  matching position, so +1
-  inpos <- inpos+1
+  inpos <- inpos + 1
 
   ## Get the reference
-  reference <- Rsamtools::seqinfo(Rsamtools::BamFile(bamfile))@seqnames[1]
-
+  reference   <- Rsamtools::seqinfo(Rsamtools::BamFile(bamfile))@seqnames[1]
   inposRanges <- GenomicRanges::GRanges(reference, IRanges::IRanges(start = inpos, end = inpos))
-  bamParam <- Rsamtools::ScanBamParam(what = "seq", which = inposRanges)
+  bamParam    <- Rsamtools::ScanBamParam(what = "seq", which = inposRanges)
   bam <- GenomicAlignments::readGAlignments(bamfile, param = bamParam, use.names = TRUE)
   ## Use only reads with an insertion
   bamI <- bam[sapply(GenomicAlignments::cigar(bam), function(x) grepl("I",  x))]
   insSeqs <- foreach(i = inpos) %do% {
     message("Position: ", i)
-    bamPos <- bamI[GenomicAlignments::start(bamI)<=i & GenomicAlignments::end(bamI)>=1]
-    insSeq <- lapply(bamPos, function(a) .extractInsertion(a,i))
+    bamPos <- bamI[GenomicAlignments::start(bamI) <= i & GenomicAlignments::end(bamI) >= 1]
+    insSeq <- lapply(bamPos, function(a) .extractInsertion(a, i))
     Biostrings::DNAStringSet(insSeq)
   }
   names(insSeqs) <- inpos
   insSeqs
-
 }
+
 .extractInsertion <- function(read, i) {
   cigar <- read@cigar
   seq <- Biostrings::DNAString("-")
@@ -423,3 +425,4 @@ plot_pileup_basecall_frequency <- function(x, threshold = 0.20, label = "", drop
     seq <- unlist(Biostrings::subseq(read@elementMetadata$seq, start = IRanges::start(insertPos), end = IRanges::end(insertPos)))
   seq
 }
+

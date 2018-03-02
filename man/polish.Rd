@@ -4,7 +4,7 @@
 \alias{polish}
 \title{Polish final haplotype sequences.}
 \usage{
-polish(x, threshold = x$getThreshold(), lower_limit = 0.6, cache = TRUE,
+polish(x, threshold = x$getThreshold(), lower_limit = 1.6, cache = TRUE,
   ...)
 }
 \arguments{
@@ -37,9 +37,7 @@ x <- DR2Smap(
   ) \%>\%
   clear() \%>\%
   mapInit() \%>\%
-  partition_haplotypes() \%>\%
-  splitReadsByHaplotype() \%>\%
-  extractFastq() \%>\%
+  partitionLongReads() \%>\%
   mapIter() \%>\%
   partitionShortReads() \%>\%
   mapFinal() \%>\%

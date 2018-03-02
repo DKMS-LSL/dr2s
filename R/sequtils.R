@@ -52,10 +52,9 @@ filter_reads <- function(bam, qnames = NULL, preserve_ref_ends = TRUE) {
   alignmentScoreThreshold = 0.3*readlength # Change to dynamic
   badScore <- bam$qname[bam$tag$AS < alignmentScoreThreshold]
   trim <- id[trim < 0.3 * readlength]
-  flog.info(" Filter %s softclipping reads of %s total; remove reads < %s remaining length ...", length(trim), length(id), 0.3*readlength, name = "info")
-  flog.info(" Filter %s reads with alignment score < %s ...", length(badScore), alignmentScoreThreshold, name = "info")
+  flog.info("  Filtering %s softclipping reads from %s reads in total; removing reads < %s bp ...", length(trim), length(id), 0.3*readlength, name = "info")
+  flog.info("  Filtering %s reads with an alignment score < %s ...", length(badScore), alignmentScoreThreshold, name = "info")
   unique(c(trim, badScore))
-
 }
 
 trim_softclipped_ends <- function(bam, qnames = NULL, preserve_ref_ends = FALSE) {
@@ -200,8 +199,8 @@ stouffers_zscore <- function(z, w = rep(1, length(z))) {
 #     iterations = 1, refinements = 1, restrict = c(-500, 2, 10)
 #   ))
 #   #browse_align(seqs)
-#   split1 <- strsplit(toString(aln[[1]]), "")[[1]]
-#   split2 <- strsplit(toString(aln[[2]]), "")[[1]]
+#   split1 <- strsplit1(toString(aln[[1]]), "")
+#   split2 <- strsplit1(toString(aln[[2]]), "")
 #   SEQ1 <- hlatools::ihasNext(iter(split1))
 #   SEQ2 <- hlatools::ihasNext(iter(split2))
 #   SCR1 <- hlatools::ihasNext(iter(scores[[1]]))
@@ -350,20 +349,21 @@ trim_polymorphic_ends <- function(fq, min_len = 50) {
   fq@quality@quality <- Biostrings::subseq(fq@quality@quality, start, end)
   fq[Biostrings::width(fq) >= min_len]
 }
+
 get_seqs_from_mat <- function(mat){
   seqs <- apply(mat, 1, function(t) c(unlist(paste(t, collapse = ""))))
   seqs <- seqs[nchar(gsub("-", "",seqs))>0]
   Biostrings::DNAStringSet(seqs)
 }
 
-.collapseHomopolymers <- function(path, n = 5){
+.collapseHomopolymers <- function(path, n = 5) {
 
   path <- normalizePath(path, mustWork = TRUE)
   assertthat::is.count(n)
 
   seq <- Biostrings::readBStringSet(path)
   seqname <- names(seq)
-  seq <- strsplit(as.character(seq), "")[[1]]
+  seq <- strsplit1(as.character(seq), "")
   seq <- rle(seq)
   seq$lengths[seq$lengths > n] <- n
   seq <- paste(inverse.rle(seq), collapse = "")
@@ -373,10 +373,11 @@ get_seqs_from_mat <- function(mat){
   path
 }
 
-.mat2rle <- function(mat){
+.mat2rle <- function(mat) {
   seq <- conseq(mat, type = "prob", force_exclude_gaps = TRUE)
   .seq2rle(seq)
 }
-.seq2rle <- function(seq){
-  rle(strsplit(as.character(seq),"")[[1]])
+
+.seq2rle <- function(seq) {
+  rle(strsplit1(as.character(seq), ""))
 }

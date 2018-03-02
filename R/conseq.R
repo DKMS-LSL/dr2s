@@ -236,22 +236,22 @@ make_ambig_consensus_ <- function(x, threshold, exclude_gaps = FALSE, as_string 
 #'
 #' @examples
 #' ##
-                                    # threshold = "auto"
-                                    # text_size = 3
-                                    # point_size = 1
+# threshold = "auto"
+# text_size = 3
+# point_size = 1
 plot_conseq_probability <- function(cseqs,
                                     threshold = "auto",
                                     text_size = 3,
                                     point_size = 1) {
   labels <- sapply(cseqs, function(x) x$label)
-  seqs <- sapply(cseqs, function(x) x$cseq)
+  seqs   <- sapply(cseqs, function(x) x$cseq)
   # get labels and tags
-  if (all(nzchar(labels))){
-    tags <- lapply(labels, function(x) gsub("[<>]", "", strsplit(x, " ", fixed = TRUE)[[1]]))
-    groups <- lapply(tags, function(x) paste0(setdiff(x, Reduce(intersect, tags)), collapse = "."))
-    label <- paste0(Reduce(intersect, tags), collapse = ".")
-  } else{
-    label <- ""
+  if (all(nzchar(labels))) {
+    tags   <- lapply(labels, function(x) gsub("[<>]", "", strsplit1(x, " ", fixed = TRUE)))
+    groups <- lapply(tags, function(x) dot(setdiff(x, Reduce(intersect, tags))))
+    label  <- dot(Reduce(intersect, tags))
+  } else {
+    label  <- ""
     groups <- 1:length(cseqs)
   }
 
@@ -260,13 +260,14 @@ plot_conseq_probability <- function(cseqs,
   } else {
     ylabel <- "Frequency"
   }
+
   df <- dplyr::bind_rows(
     foreach(hp = names(cseqs)) %do% {
       seq <- seqs[[hp]]
       dplyr::data_frame(
         group = groups[[hp]],
         pos   = seq_len(Biostrings::width(seq)),
-        base  = strsplit(as.character(seq), split = "")[[1]],
+        base  = strsplit1(as.character(seq), split = ""),
         prob  = if (!is.null(metadata(seq)$zscore)) {
           as.numeric(pnorm(metadata(seq)$zscore))
         } else {
@@ -281,6 +282,7 @@ plot_conseq_probability <- function(cseqs,
   } else {
     dplyr::data_frame(group = unlist(groups), lower = threshold)
   }
+
   df2 <- dplyr::filter(dplyr::left_join(df, lower, by = "group"), prob <= lower)
   ggplot(df, aes(pos, prob)) +
     facet_grid(group ~ .) +

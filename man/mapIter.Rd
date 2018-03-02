@@ -63,28 +63,6 @@ x <- DR2Smap(
   clear() \%>\%
   mapInit() \%>\%
   partitionLongReads() \%>\%
-  splitReadsByHaplotype(limitA = 0.5, limitB = 0.25) \%>\%
-  extractFastq() \%>\%
-  mapIter() \%>\%
-  mapFinal() \%>\%
-  cache() \%>\%
-  polish() \%>\%
-  report(block_width = 60)
-}
-\dontrun{
-x <- DR2Smap(
-  sample = "ID12300527",
-  locus = "DPB1",
-  datadir = "/path/to/data",
-  outdir = "/path/to/output",
-  reference = "04:01:01:01",
-  consensus = "mapping"
-  ) \%>\%
-  clear() \%>\%
-  mapInit() \%>\%
-  partitionLongReads() \%>\%
-  splitReadsByHaplotype() \%>\%
-  extractFastq() \%>\%
   mapIter() \%>\%
   partitionShortReads() \%>\%
   mapFinal() \%>\%

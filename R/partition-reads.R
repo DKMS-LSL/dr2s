@@ -27,7 +27,7 @@
 # x <- dpb1_3$partition$mat
 # x <- mat
 
-partition_reads <- function(x, cl_method="ward.D", min_len = 0.5,
+partition_reads <- function(x, cl_method = "ward.D", min_len = 0.5,
                             skip_gap_freq = 2/3, deepSplit = 1,
                             threshold = 0.2, dist_alleles = 2, sort_by = "count"){
   # get SNPs
@@ -42,13 +42,13 @@ partition_reads <- function(x, cl_method="ward.D", min_len = 0.5,
     })
     xm <- as.matrix(xm[,!bad_ppos])
     bad_ppos <- ppos[bad_ppos]
-    flog.info(paste0("  %s SNPs are covered by less than %g %% sequences and",
-                     "discarded. Using the remaining %s SNPs for clustering"),
-              length(bad_ppos), 1-skip_gap_freq, ncol(xm), name = "info")
-    if (NCOL(xm) == 0){
+    flog.info(paste0("  %s SNPs are covered by less than %g%% of sequences and",
+                     " discarded. Using the remaining %s SNPs for clustering ..."),
+              length(bad_ppos), 1 - skip_gap_freq, ncol(xm), name = "info")
+    if (NCOL(xm) == 0) {
       flog.error(paste0("  Aborting. No SNP remaining for clustering!",
-                        "Check your reads and reference and have a look",
-                        "at mapInit Plots!"))
+                        " Check your reads and reference and have a look",
+                        " at mapInit plots!"))
       stop("No SNPs remaining for clustering. Check mapInit plots!")
     }
   }
@@ -67,12 +67,12 @@ partition_reads <- function(x, cl_method="ward.D", min_len = 0.5,
   hptypes <- levels(subclades)
 
   if (length(subclades) == 0){
-    flog.error("Two few longreads for clustering", name = "info")
+    flog.error("  Two few longreads for clustering", name = "info")
     stop("To few longreads for clustering")
   }
 
   flog.info("  Initial clustering results in %s haplotypes %s",
-            length(hptypes), paste(hptypes, collapse = ", "), name = "info")
+            length(hptypes), comma(hptypes), name = "info")
   # Get scores and assign clades by freq mat
   ## Position Weight Matrix: Use frequency plus pseudocount/ basefrequency
   ## (here 0.25 for each).
@@ -88,19 +88,17 @@ partition_reads <- function(x, cl_method="ward.D", min_len = 0.5,
   names(hpseqs) <- sapply(hptypes, function(hptype)
     paste(hptype, sum(subclades == hptype), sep = ":"))
 
-  if (length(hptypes)> dist_alleles) {
+  if (length(hptypes) > dist_alleles) {
     flog.info("  Trying to identify chimeric reads/haplotypes ...",
               name = "info")
     if (sort_by == "count") {
       rC <- names(sort(table(subclades),decreasing = TRUE)[1:dist_alleles])
       # ## !!!!! HACK!!! rm following line; uncomment previous one; removed
       # rC <- c("A", "C")
-
     } else {
       rC <- sort(find_chimeric(seqs = hpseqs, dist_alleles = dist_alleles))
     }
-    flog.info("  Use only clusters %s ...", paste(rC, collapse = ", "),
-              name = "info")
+    flog.info("  Use only clusters %s ...", comma(rC), name = "info")
     mats <- mats[rC]
   }
   hptypes <- names(mats)
@@ -118,12 +116,12 @@ partition_reads <- function(x, cl_method="ward.D", min_len = 0.5,
     dplyr::mutate(correct = dplyr::if_else(clustclade == clade, TRUE, FALSE))
 
   ## Correctly classified clades in the initial clustering
-  falseClassified <- NROW(dplyr::filter(clades, correct == FALSE))/
+  falseClassified <- NROW(dplyr::filter(clades, correct == FALSE)) /
     NROW(dplyr::filter(clades, correct == TRUE))
-  flog.info("  Corrected classification of %.2f%% reads ...",
+  flog.info("  Corrected classification of %.2f%% of reads",
             100*falseClassified, name = "info")
   foreach(hp = hptypes) %do% {
-    flog.info("  %s reads in haplotype %s ...", table(clades$clade)[hp],
+    flog.info("  %s reads in haplotype %s", table(clades$clade)[hp],
               hp, name = "info")
   }
 
@@ -132,13 +130,11 @@ partition_reads <- function(x, cl_method="ward.D", min_len = 0.5,
   PRT(part_) <- clades$clade
   HTR(part_) <- tree
   SNP(part_) <- ppos
-  K(part_) <- length(ppos)-length(bad_ppos)
-  oc(part_) <-as.character(unique(subclades))
-  mcoef(part_) <- clades$score
+  K(part_)   <- length(ppos) - length(bad_ppos)
+  oc(part_)  <- as.character(unique(subclades))
+  mcoef(part_)  <- clades$score
   scores(part_) <- scores
-  SQS(part_) <- hpseqs
-  #  mats(part_) <- mats
-
+  SQS(part_)    <- hpseqs
 
   return(part_)
 }
@@ -147,29 +143,30 @@ partition_reads <- function(x, cl_method="ward.D", min_len = 0.5,
 # Helpers -----------------------------------------------------------------
 
 get_clusts <- function(xseqs, xmat, min_len = 0.80, cl_method = "ward.D",
-                       deepSplit = 1, min_reads_frac = 1/3, threshold = 0.2){
-  assertthat::assert_that(is.double(min_len),
-                          is.double(min_reads_frac),
-                          is.double(threshold))
+                       deepSplit = 1, min_reads_frac = 1/3, threshold = 0.2) {
 
+  assertthat::assert_that(
+    is.double(min_len),
+    is.double(min_reads_frac),
+    is.double(threshold)
+  )
 
   # heuristic for how many reads should be used
   min_len <- .getMinLenClust(min_reads_frac, min_len, xseqs)
-  flog.info("  Using only long reads containing at least %s %% of all SNPs ...",
+  flog.info("  Using only longreads containing at least %s%% of all SNPs ...",
             min_len*100, name = "info")
   x_sub <- xseqs[Biostrings::width(gsub("\\+", "", xseqs)) >
                    min_len*Biostrings::width(xseqs[1])]
 
   ## Consensus matrix with pseudocount
   flog.info(paste0("  Constructing a Position Specific Distance Matrix",
-                   "of the reamaining %s sequences ..."),
+                   " of the reamaining %s sequences ..."),
             length(x_sub), name = "info")
-  consmat  <- as.matrix(Biostrings::consensusMatrix(x_sub,
-                                                    as.prob = TRUE)[
-                                                      c(VALID_DNA(),"+"),
-                                                      ] + 1/length(x_sub))
+  consmat  <- as.matrix(
+    Biostrings::consensusMatrix(x_sub, as.prob = TRUE)[c(VALID_DNA(), "+" ), ] + 1/length(x_sub)
+  )
   # Remove gaps below a threshold as they are probably sequencing artifacts
-  consmat <- foreach(col = 1:ncol(consmat), .combine = cbind)%do% {
+  consmat <- foreach(col = 1:ncol(consmat), .combine = cbind) %do% {
     a <- consmat[,col]
     a["-"] <- ifelse(a["-"] < threshold, min(a), a["-"])
     a
@@ -190,7 +187,7 @@ get_clusts <- function(xseqs, xmat, min_len = 0.80, cl_method = "ward.D",
                                          verbose = FALSE)
   # extract the clusters for each sequence
   clades <- as.factor(sapply(unname(clusts$labels), function(i) {
-    rawToChar(as.raw(as.integer(i)+64))
+    rawToChar(as.raw(as.integer(i) + 64))
   }))
   names(clades) <- hcc$labels
   return(list(clades = clades, tree = hcc))
@@ -202,7 +199,7 @@ get_clusts <- function(xseqs, xmat, min_len = 0.80, cl_method = "ward.D",
     (0.03*Biostrings::width(xseqs[1])/50) * 1500^2/length(xseqs)^2
   adjusted_min_reads_frac <- min(0.5, adjusted_min_reads_frac)
   flog.info(paste0("  Adjusting minimal fraction of reads used for clustering",
-                   "from %g %% to %g %% ..."), min_reads_frac*100,
+                   " from %g%% to %g%% ..."), min_reads_frac*100,
             adjusted_min_reads_frac*100, name = "info")
   # get long reads containing sufficient number of SNPs
   min_lens <- seq(1, 0, -0.01)
@@ -214,14 +211,13 @@ get_clusts <- function(xseqs, xmat, min_len = 0.80, cl_method = "ward.D",
   })
   names(len_counts) <- min_lens
   min_len <- max(as.numeric(names(
-    len_counts[which(len_counts>adjusted_min_reads_frac)][1])), min_len)
+    len_counts[which(len_counts > adjusted_min_reads_frac)][1])), min_len)
 }
 
 get_scores <- function(s, xseqs, mats){
   seq <- as.character(xseqs[[s]])
   seq <- unlist(strsplit(seq, split = ""))
   read <- names(xseqs[s])
-
 
   b <- sapply(mats, function(t) {
     sum( sapply(1:length(seq), function(x) t[seq[x],x]))
@@ -251,15 +247,15 @@ find_chimeric <- function(seqs, dist_alleles, plot_seqs = FALSE) {
       # debug
       if (plot_seqs) {
         ggplot() +
-          geom_line(aes(x = 1:length(r),y = f+r)) #+
+          geom_line(aes(x = 1:length(r),y = f + r)) #+
         geom_line(aes(x = length(r):1, y = r))
       }
-      unname(quantile(f+r)[2])
+      unname(quantile(f + r)[2])
     }
   rownames(dm) <- names(seqs)
   colnames(dm) <- names(seqs)
 
-  c("A", (names(sort(unlist(dm[1,]), decreasing = TRUE)[1:(dist_alleles-1)])))
+  c("A", (names(sort(unlist(dm[1,]), decreasing = TRUE)[1:(dist_alleles - 1)])))
 }
 
 # Class: HapPart -----------------------------------------------------------
@@ -507,7 +503,7 @@ plot_partition_histogram_multi <- function(x, limits, label = "") {
     # geom_vline(xintercept = c(0.25, 0.5, 0.75),
     # linetype = "dashed", size = 0.2, colour = "grey80") +
     geom_vline( aes(xintercept = limit), colour = "grey40",
-                linetype = "dashed", size = 1)+
+                linetype = "dashed", size = 1) +
     scale_fill_manual(values = PARTCOL()) +
     # xlim(c(0, 1.1)) +
     xlab("Haplotype membership coefficient") +
@@ -633,11 +629,11 @@ plot_partition_tree <- function(x){
 
     clust <- cutree(tree, k)
     clust <- dplyr::data_frame(label = names(clust), haplotype = clust)
-    dendr$labels <- dplyr::left_join(dendr$labels, clust, by="label")
+    dendr$labels <- dplyr::left_join(dendr$labels, clust, by = "label")
 
     height <- unique(dendr$segments$y)[order(unique(dendr$segments$y),
                                              decreasing = TRUE)]
-    cut.height <- mean(c(height[k], height[k-1]))
+    cut.height <- mean(c(height[k], height[k - 1]))
     dendr$segments <- dendr$segments %>%
       dplyr::mutate(line =  dplyr::if_else(
         y == yend & y > cut.height, 1, dplyr::if_else(
@@ -691,7 +687,7 @@ getCl <- function(n, cluster, change) {
   )
 }
 # Helper function for the plotting of radar charts
-coord_radar <- function (theta = "x", start = 0, direction = 1)  {
+coord_radar <- function(theta = "x", start = 0, direction = 1)  {
   theta <- match.arg(theta, c("x", "y"))
   r <- if (theta == "x")
     "y"
@@ -708,9 +704,9 @@ optimal_partition_limits <- function(scores, f = 0.8) {
   rHap <- lapply(scores, function(x) {
     sapply(coeff_cuts, function(cutoff) sum(x >= cutoff))})
   df <- data.frame()
-  for(hapType in names(rHap)){
+  for(hapType in names(rHap)) {
     l <- f * length(unlist(
-      scores[!names(rHap) == hapType]))/ length(scores[[hapType]])
+      scores[!names(rHap) == hapType])) / length(scores[[hapType]])
     df <- dplyr::bind_rows(df,
                            dplyr::data_frame(c = coeff_cuts,
                                              r = unlist(rHap[hapType])) %>%

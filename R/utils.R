@@ -10,11 +10,10 @@ magrittr::`%>%`
 DNA_BASES <- function() {
   c("A", "C", "G", "T", "a", "c", "g", "t")
 }
+
 DNA_BASES_UPPER <- function() {
   c("A", "C", "G", "T")
 }
-
-
 
 VALID_DNA <- function(include = "del"){
   include <- match.arg(include, c("none", "del", "ins", "indel"))
@@ -23,6 +22,7 @@ VALID_DNA <- function(include = "del"){
   if (include == "del") return(c("G", "A", "T", "C", "-"))
   if (include == "none") return(c("G", "A", "T", "C"))
 }
+
 CODE_MAP <- function() {
   c(
     A =  "A",  C = "C",   G = "G",   T = "T",    M = "AC",   R = "AG",   W = "AT",
@@ -32,22 +32,32 @@ CODE_MAP <- function() {
   )
 }
 
-DNA_PROB <- function(include = "indels"){
+DNA_PROB <- function(include = "indels") {
   if (include == "indels") {
     return(c(A = 0.2, C = 0.2, G = 0.2, T = 0.2, `-` = 0.2, `+` = 0.01))
-  } else if (include == "ins"){
+  } else if (include == "ins") {
     return(c(A = 0.2, C = 0.2, G = 0.2, T = 0.2, `+` = 0.01))
-  } else if (include == "del"){
+  } else if (include == "del") {
     return(c(A = 0.2, C = 0.2, G = 0.2, T = 0.2, `-` = 0.2))
   }
   return(c(A = 0.25, C = 0.25, G = 0.25, T = 0.25))
 }
+
 PARTCOL <- function() {
   # colors from https://rdrr.io/cran/igraph/src/R/palette.R; extendable
-  c(C = "#B35806", A = "#F1A340", E = "#FEE0B6", `-` = "#F7F7F7", F = "#D8DAEB", B = "#998EC3",
-  D  = "#542788", N = "#9F9F9F" )
+  c(
+    C = "#B35806",
+    A = "#F1A340",
+    E = "#FEE0B6",
+    `-` = "#F7F7F7",
+    F = "#D8DAEB",
+    B = "#998EC3",
+    D = "#542788",
+    N = "#9F9F9F"
+  )
   # c(A = "#f1a340", B = "#998ec3", `-` = "#f7f7f7")
 }
+
 NUCCOL <- function() {
   c(
     A = "#0087bd", ## BLUE
@@ -73,12 +83,11 @@ COL_PATTERN <- function() {
 VALID_LOCI <- function() {
   ipd.Hsapiens.db::getLoci()
 }
-VALID_LOCI()
+
 HLA_LOCI <- function() {
   loci <- VALID_LOCI()
   hla_loci <- loci[startsWith(loci, "HLA")]
-  unname(sapply(hla_loci, function(x) strsplit(x, "-")[[1]][2]))
-
+  unname(sapply(hla_loci, function(x) strsplit1(x, "-")[2]))
 }
 
 KIR_LOCI <- function() {
@@ -133,6 +142,8 @@ expand_allele <- function(allele, locus) {
   } else allele
 }
 
+strsplit1 <- function(...) strsplit(...)[[1]]
+
 strsplitN <- function(x, split, n, from = "start", collapse = split, ...) {
   stopifnot(is.vector(x))
   from <- match.arg(from, c("start", "end"))
@@ -162,15 +173,15 @@ compact <- function(x) {
   x[!vapply(x, is.null, FALSE, USE.NAMES = FALSE)]
 }
 
-usc <- function(x) {
-  gsub("[*:?<>|]", "_", x)
-}
+usc <- function(x) gsub("[*:?<>|]", "_", x)
 
-comma <- function(...) {
-  paste0(..., collapse = ", ")
-}
+comma <- function(...) paste0(..., collapse = ", ")
 
-merge_list <- function (x, y, update = FALSE)  {
+colon <- function(...) paste0(..., collapse = ":")
+
+dot <- function(...) paste0(..., collapse = ".")
+
+merge_list <- function(x, y, update = FALSE) {
   if (length(x) == 0)
     return(y)
   if (length(y) == 0)
@@ -186,9 +197,7 @@ merge_list <- function (x, y, update = FALSE)  {
   x
 }
 
-colon <- function(...) paste0(..., collapse = ":")
-
-wrap <- function (x, wrap = "\"") {
+wrap <- function(x, wrap = "\"") {
   stopifnot(is.vector(x))
   sprintf("%s%s%s", wrap, x, wrap)
 }
@@ -315,6 +324,8 @@ editor <- function(x, pos = NULL, use_editor = "xdg-open") {
     system(paste(use_editor, tmp, sep = " "))
   }
 }
+
+
 # Alignment browser -------------------------------------------------------
 
 
@@ -387,9 +398,9 @@ plot_diagnostic_alignment <- function(x, onlyFinal = FALSE) {
 
   seqs <- c(seqs1, seqs2, seqs3)
   seqs <- seqs[order(names(seqs))]
-  if (onlyFinal){
-    DECIPHER::BrowseSeqs(DECIPHER::AlignSeqs(seqs4), colWidth = 120)
-  }else {
+  if (onlyFinal) {
+    DECIPHER::BrowseSeqs(DECIPHER::AlignSeqs(seqs3), colWidth = 120)
+  } else {
     DECIPHER::BrowseSeqs(DECIPHER::AlignSeqs(seqs), colWidth = 120)
   }
 }
