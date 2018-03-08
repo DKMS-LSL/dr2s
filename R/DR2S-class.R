@@ -833,7 +833,7 @@ DR2S_ <- R6::R6Class(
     ##
     plotmapIterSummary = function(thin = 0.2, width = 10, iteration = 0, drop.indels = TRUE) {
       hptypes <- self$getHapTypes()
-      if (iteration > 1) {
+      if (iteration > 2) {
         drop.indels <- FALSE
         width <- 10
       }

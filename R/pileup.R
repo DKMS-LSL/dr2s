@@ -2,6 +2,7 @@
 
 # Pileup ------------------------------------------------------------------
 
+
 #' Calculate pile-up for a BAM file.
 #'
 #' @param bamfile BAM file path.
@@ -121,6 +122,7 @@ print.pileup <- function(x, as_string = FALSE, ...) {
 
 # Helpers -----------------------------------------------------------------
 
+
 pileup_find_insertion_positions_ <- function(x, threshold) {
   cm  <- consmat(x, freq = TRUE)
   pos <- ambiguous_positions(cm, threshold = threshold)
@@ -132,7 +134,7 @@ pileup_get_insertions_ <- function(x, threshold) {
   colnm <- colnames(x$consmat)
   inpos <- pileup_find_insertion_positions_(x, threshold)
   inpos <- inpos[!inpos %in% 1:5]
-  inpos <- inpos[!inpos %in% (NROW(x) - 5):NROW(x)]
+  inpos <- inpos[!inpos %in% (NROW(x$consmat) - 5):NROW(x$consmat)]
   bamfile <- x$bamfile
   if (length(inpos) > 0) {
     inseqs <- .getInsertions(bamfile, inpos)
@@ -200,7 +202,8 @@ pileup_include_insertions <- function(x, threshold = NULL) {
   ins_run <- integer()
   cm <- consmat(x, freq = FALSE)
   cm_attr <- attributes(cm)
-  # i <- 2
+  # cm[680:700,]
+  # i <- 1
   for (i in seq_along(ins_)) {
     j <- as.integer(names(ins_[i])) + offset
     # cm[(j-1):(j+1), ]
@@ -239,6 +242,7 @@ msa_from_bam <- function(bamfile, refseq = NULL, paddingLetter = "+", region = N
     Rpadding.letter = paddingLetter,
     use.names = TRUE)
 }
+
 
 # Summarise and plot ------------------------------------------------------
 
@@ -412,7 +416,9 @@ plot_pileup_basecall_frequency <- function(x, threshold = 0.20, label = "", drop
     insSeq <- lapply(bamPos, function(a) .extractInsertion(a, i))
     Biostrings::DNAStringSet(insSeq)
   }
-  names(insSeqs) <- inpos
+
+  ## decrement to last matching position again to work as expected with downstream
+  names(insSeqs) <- inpos - 1
   insSeqs
 }
 

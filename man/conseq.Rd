@@ -9,12 +9,11 @@ conseq(x, ...)
 \arguments{
 \item{x}{\code{pileup} object.}
 
-\item{...}{Additional arguments to \code{prune_consensus_matrix}.
-Defaults \code{n_look_behind = 12} and \code{cutoff = 0.5}.}
+\item{...}{Additional arguments.}
 
 \item{name}{Name for consensus sequence.}
 
-\item{type}{One of "prob", "freq", or "ambig".}
+\item{type}{One of "prob" or "ambig".}
 
 \item{threshold}{If \code{type == "ambig"}, threshold to call an ambiguous
 consensus call.}
@@ -22,8 +21,11 @@ consensus call.}
 \item{exclude_gaps}{Exclude gaps at insertion position from consensus
 calling.}
 
-\item{prune_matrix}{Exclude positions with a sudden drop in coverage from
-consensus calling.}
+\item{gap_suppression_ratio}{The ratio of base/gap above which gaps at
+insertion position are excluded from from consensus calling.}
+
+\item{force_exclude_gaps}{Exclude gaps at from consensus calling irrespective
+of the frequency of the gap.}
 }
 \value{
 A \code{\linkS4class{BStringSet}} object with a metadata list

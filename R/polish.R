@@ -76,7 +76,8 @@ polish.DR2S <- function(x,
 
   if (cache)
     rs$cache()
-  rs$consensus
+
+  invisible(rs)
 }
 
 

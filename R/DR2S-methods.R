@@ -79,7 +79,6 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
   # library(ggplot2)
   # library(foreach)
   # library(futile.logger)
-  # self <- dr2s
 
   stopifnot(pct > 0 && pct <= 100)
   ## TODO recode_header useless so
@@ -138,11 +137,11 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
       bamfile <- bam_sort_index(samfile, self$getRefPath(), pct / 100,
                                 min_mapq, force = force, clean = TRUE)
       ## Filter Reads
-      bam = Rsamtools::scanBam(bamfile,
-                               param = Rsamtools::ScanBamParam(
-                                 tag = "AS",
-                                 what = c("qname", "pos", "cigar")
-                               ))[[1]]
+      bam <- Rsamtools::scanBam(bamfile,
+                                param = Rsamtools::ScanBamParam(
+                                  tag = "AS",
+                                  what = c("qname", "pos", "cigar")
+                                ))[[1]]
       readfilter <- filter_reads(bam = bam, preserve_ref_ends = TRUE)
       file_delete_if_exists(bamfile)
 
@@ -201,7 +200,7 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
     )
 
     if (include_insertions && is.null(ins(pileup$consmat))) {
-      pileup <- pileup_include_insertions(pileup, threshold = 0.1)
+      pileup <- pileup_include_insertions(x = pileup, threshold = 0.1)
     }
     ## distribution of gaps not necessary for shortreads (need to check if also
     ## true for homopolymer regions > 15)
@@ -245,11 +244,9 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
     # calc initial consensus
     flog.info(" Construct initial consensus from shortreads", name = "info")
 
-    conseq <- conseq(pileup$consmat, "mapInit", "prob",
-                     force_exclude_gaps = TRUE,
-                     threshold = self$getThreshold())
-    conseq_name <- paste0("Init.consensus.", sub(".sam.gz", "",
-                                                 basename(samfile)))
+    conseq <- conseq(pileup$consmat, name = "mapInit", type = "prob",
+                     threshold = self$getThreshold(), force_exclude_gaps = TRUE)
+    conseq_name <- paste0("Init.consensus.", sub(".sam.gz", "", basename(samfile)))
     conseqpath  <- file.path(outdir, paste0(conseq_name, ".fa"))
     Biostrings::writeXStringSet(
       Biostrings::DNAStringSet(gsub("[-+]", "N", conseq)),
@@ -318,10 +315,9 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
 
       # Infer initial consensus
       flog.info(" Construct second consensus from shortreads with refined repeats", name = "info")
-      conseq <- conseq(pileup$consmat, "mapInit1.2", "prob",
-                       force_exclude_gaps = TRUE, threshold = 0.2)
-      conseq_name <- paste0("Init.consensus.2", sub(".sam.gz", "",
-                                                    basename(samfile)))
+      conseq <- conseq(pileup$consmat, name = "mapInit1.2", type = "prob",
+                       threshold = 0.2, force_exclude_gaps = TRUE)
+      conseq_name <- paste0("Init.consensus.2", sub(".sam.gz", "", basename(samfile)))
       conseqpath  <- file.path(outdir, paste0(conseq_name, ".fa"))
       Biostrings::writeXStringSet(
         Biostrings::DNAStringSet(gsub("[-+]", "N", conseq)),
@@ -581,10 +577,10 @@ DR2S_$set("public", "runPartitionLongReads", function(threshold = NULL,
     env  <- environment()
     list2env(args, envir = env)
   }
-  if (is.null(threshold)){
+  if (is.null(threshold)) {
     threshold <- self$getThreshold()
   }
-  if (is.null(dist_alleles)){
+  if (is.null(dist_alleles)) {
     dist_alleles <- self$getDistAlleles()
   }
   assertthat::assert_that(
@@ -598,7 +594,7 @@ DR2S_$set("public", "runPartitionLongReads", function(threshold = NULL,
   tag  <- self$getMapTag("init", "LR")
 
   ## Get the reference sequence
-  if (!is.null(self$mapInit$SR1)){
+  if (!is.null(self$mapInit$SR1)) {
     useSR <- TRUE
     refseq <- self$mapInit$SR1$conseq
     flog.info(" Construct SNP matrix from shortreads", name = "info")
@@ -639,7 +635,7 @@ DR2S_$set("public", "runPartitionLongReads", function(threshold = NULL,
   self$setHapTypes(levels(as.factor(PRT(prt))))
 
   # Check if we have only one cluster and finish the pipeline if so
-  if (length(self$getHapTypes()) == 1){
+  if (length(self$getHapTypes()) == 1) {
     flog.warn(" Only one allele left!")
     flog.info(" Entering polish and report pipeline", name = "info")
     return(invisible(finish_cn1(self)))
@@ -857,7 +853,7 @@ mapIter.DR2S <- function(x,
                          min_nucleotide_depth = 3,
                          include_deletions = TRUE,
                          include_insertions = TRUE,
-                         pruning_cutoff = 0.75,
+                         gap_suppression_ratio = 2/5,
                          force = FALSE,
                          fullname = TRUE,
                          plot = TRUE) {
@@ -870,7 +866,7 @@ mapIter.DR2S <- function(x,
                min_nucleotide_depth = min_nucleotide_depth,
                include_deletions = include_deletions,
                include_insertions = include_insertions,
-               pruning_cutoff = pruning_cutoff,
+               gap_suppression_ratio = gap_suppression_ratio,
                force = force,
                fullname = fullname,
                plot = plot)
@@ -888,7 +884,7 @@ DR2S_$set("public", "runMapIter", function(opts = list(),
                                            min_nucleotide_depth = 3,
                                            include_deletions = TRUE,
                                            include_insertions = TRUE,
-                                           pruning_cutoff = 0.75,
+                                           gap_suppression_ratio = 2/5,
                                            force = FALSE,
                                            fullname = TRUE,
                                            plot = TRUE) {
@@ -902,11 +898,11 @@ DR2S_$set("public", "runMapIter", function(opts = list(),
   # min_nucleotide_depth = 3
   # include_deletions = TRUE
   # include_insertions = TRUE
-  # pruning_cutoff = 0.75
+  # gap_suppression_ratio = 2/5
   # force = FALSE
   # fullname = TRUE
   # plot = TRUE
-  # iterations = 2
+  # iterations = 1
   # ##
 
   flog.info("Step 2: MapIter ...", name = "info")
@@ -940,7 +936,7 @@ DR2S_$set("public", "runMapIter", function(opts = list(),
   }
   mat <- msa_from_bam(bamfile, ref, paddingLetter = ".")
 
-  #hptype <- "B"
+  #hptype <- "A"
   foreach(hptype = hptypes) %do% {
     flog.info("  Constructing a consensus for haplotype %s ...", hptype, name = "info")
     readIds <- self$getHapList(hptype)
@@ -948,24 +944,21 @@ DR2S_$set("public", "runMapIter", function(opts = list(),
       Biostrings::consensusMatrix(mat[readIds], as.prob = FALSE)[VALID_DNA(include = "indel"), ]
     ), freq = FALSE)
     conseq_name <- paste0("consensus.mapIter.0.", hptype)
-    conseq <- conseq(x = cmat, name = conseq_name, type = "prob",
-                     force_exclude_gaps = FALSE, prune_matrix = FALSE,
-                     cutoff = pruning_cutoff)
-
-    seqpath     <- self$absPath(file.path(self$mapIter[["0"]][[hptype]]$dir,
-                                          paste0(conseq_name, ".fa")))
-    self$mapIter[["0"]][[hptype]]$ref <- "mapIter0"
-    self$mapIter[["0"]][[hptype]]$conseq <- conseq
+    conseq <- conseq(cmat, name = conseq_name, type = "prob", exclude_gaps = FALSE)
+    seqpath <- self$absPath(
+      file.path(self$mapIter[["0"]][[hptype]]$dir, paste0(conseq_name, ".fa")))
+    self$mapIter[["0"]][[hptype]]$ref     <- "mapIter0"
+    self$mapIter[["0"]][[hptype]]$conseq  <- conseq
     self$mapIter[["0"]][[hptype]]$seqpath <- self$relPath(seqpath)
-    self$mapIter[["0"]][[hptype]]$tag <- "mapIter0"
+    self$mapIter[["0"]][[hptype]]$tag     <- "mapIter0"
     Biostrings::writeXStringSet(
       Biostrings::DNAStringSet(gsub("[-+]", "", conseq)),
       seqpath
     )
-    conseq
+    NULL
   }
 
-  # iteration <- 2
+  # iteration <- 1
   for (iteration in 1:iterations) {
     flog.info(" Iteration %s of %s", iteration, iterations, name = "info")
 
@@ -978,8 +971,7 @@ DR2S_$set("public", "runMapIter", function(opts = list(),
       outdir   <- self$absPath(prevIteration[[hptype]]$dir)
       readpath <- self$absPath(prevIteration[[hptype]]$reads)
       refpath  <- self$absPath(prevIteration[[hptype]]$seqpath)
-      refseq  <- prevIteration[[hptype]]$conseq
-      #subseq(refseq, 1715, 1735)
+      refseq   <- prevIteration[[hptype]]$conseq
 
       ## try collapsing homopolymers; Did not seem to improve the mapping
       # if (iteration %% 2 == 1)
@@ -1004,7 +996,7 @@ DR2S_$set("public", "runMapIter", function(opts = list(),
           pileup  = list(),
           conseq  = list(),
           seqpath = list(),
-          params  = list(pruning_cutoff = pruning_cutoff),
+          params  = list(gap_suppression_ratio = gap_suppression_ratio),
           tag     = list()
         ),
         class = c("mapIter", "list")
@@ -1055,26 +1047,25 @@ DR2S_$set("public", "runMapIter", function(opts = list(),
         include_deletions = include_deletions,
         include_insertions = include_insertions
       )
-      #pileup$consmat[1715:1730,]
       if (include_insertions && is.null(ins(pileup$consmat))) {
         pileup <- pileup_include_insertions(x = pileup, threshold = 0.2)
       }
-      pileup$consmat <- .distributeGaps(pileup$consmat,
-                                        bamfile,
-                                        refseq,
+      pileup$consmat <- .distributeGaps(mat = pileup$consmat,
+                                        bamfile = bamfile,
+                                        reference = refseq,
                                         removeError = TRUE)
       self$mapIter[[iterationC]][[hptype]]$pileup = pileup
 
       # ## Construct consensus sequence
       flog.info("   Constructing consensus ...", name = "info")
       conseq_name <- paste0("consensus.", sub(".sam.gz", "", basename(samfile)))
-      conseq      <- conseq(x = pileup, name = conseq_name, type = "prob",
-                            exclude_gaps = FALSE, prune_matrix = FALSE,
-                            cutoff = pruning_cutoff)
+      conseq      <- conseq(pileup, name = conseq_name, type = "prob",
+                            exclude_gaps = TRUE,
+                            gap_suppression_ratio = gap_suppression_ratio)
       seqpath     <- file.path(outdir, paste0(conseq_name, ".fa"))
       self$mapIter[[iterationC]][[hptype]]$seqpath = self$relPath(seqpath)
-      self$mapIter[[iterationC]][[hptype]]$conseq = conseq
-      self$mapIter[[iterationC]][[hptype]]$ref = conseq_name
+      self$mapIter[[iterationC]][[hptype]]$conseq  = conseq
+      self$mapIter[[iterationC]][[hptype]]$ref     = conseq_name
       Biostrings::writeXStringSet(
         Biostrings::DNAStringSet(gsub("[-+]", "", conseq)),
         seqpath
@@ -1454,8 +1445,8 @@ DR2S_$set("public", "runMapFinal", function(opts = list(),
     ## Set maptag
     self$mapFinal$tag[[mapgroupLR]] = maptagLR
     # calc new consensus
-    cseq <- conseq(pileup$consmat, paste0("mapFinal", hptype), "ambig",
-                   exclude_gaps = FALSE, threshold = 0.2)
+    cseq <- conseq(pileup$consmat, name = paste0("mapFinal", hptype),
+                   type = "ambig", threshold = 0.2, exclude_gaps = FALSE)
     self$mapFinal$seq[[hptype]] <- cseq
 
 
@@ -1558,8 +1549,8 @@ DR2S_$set("public", "runMapFinal", function(opts = list(),
       ## Set maptag
       self$mapFinal$tag[[mapgroupSR]] = maptagSR
       # calc new consensus
-      cseq <- conseq(pileup$consmat, paste0("mapFinal", hptype), "ambig",
-                     exclude_gaps = FALSE, threshold = 0.2)
+      cseq <- conseq(pileup$consmat, name = paste0("mapFinal", hptype),
+                     type = "ambig", threshold = 0.2, exclude_gaps = TRUE)
       self$mapFinal$seq[[hptype]] <- cseq
     }
 

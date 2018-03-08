@@ -7,15 +7,16 @@
 #'
 #' @param x \code{pileup} object.
 #' @param name Name for consensus sequence.
-#' @param type One of "prob", "freq", or "ambig".
+#' @param type One of "prob" or "ambig".
 #' @param threshold If \code{type == "ambig"}, threshold to call an ambiguous
 #' consensus call.
 #' @param exclude_gaps Exclude gaps at insertion position from consensus
 #' calling.
-#' @param prune_matrix Exclude positions with a sudden drop in coverage from
-#' consensus calling.
-#' @param ... Additional arguments to \code{prune_consensus_matrix}.
-#' Defaults \code{n_look_behind = 12} and \code{cutoff = 0.5}.
+#' @param gap_suppression_ratio The ratio of base/gap above which gaps at
+#' insertion position are excluded from from consensus calling.
+#' @param force_exclude_gaps Exclude gaps at from consensus calling irrespective
+#' of the frequency of the gap.
+#' @param ... Additional arguments.
 #'
 #' @return A \code{\linkS4class{BStringSet}} object with a metadata list
 #' containing the slots:
@@ -33,35 +34,40 @@
 conseq <- function(x, ...) UseMethod("conseq")
 
 #' @export
-conseq.pileup <- function(x, name = "conseq", type = c("prob", "freq", "ambig"),
-                          threshold = NULL, exclude_gaps = FALSE,
-                          force_exclude_gaps = FALSE,
-                          prune_matrix = FALSE, ...) {
+conseq.pileup <- function(x,
+                          name = "conseq",
+                          type = c("prob", "ambig"),
+                          threshold = NULL,
+                          exclude_gaps = TRUE,
+                          gap_suppression_ratio = 2/5,
+                          force_exclude_gaps = FALSE, ...) {
   if (is.null(threshold)) {
     threshold <- x$threshold
   }
   x <- consmat(x, freq = FALSE)
   conseq(x, name = name, type = type, threshold = threshold,
-         force_exclude_gaps = force_exclude_gaps,
-         exclude_gaps = exclude_gaps, prune_matrix = prune_matrix, ... )
+         exclude_gaps = exclude_gaps,
+         gap_suppression_ratio = gap_suppression_ratio,
+         force_exclude_gaps = force_exclude_gaps, ... )
 }
 
 #' @export
-conseq.matrix <- function(x, name = NULL, type = c("prob", "freq", "ambig"),
-                          threshold = NULL, exclude_gaps = FALSE,
-                          force_exclude_gaps = FALSE,
-                          prune_matrix = FALSE, ...) {
-  type <- match.arg(type, c("prob", "freq", "ambig"))
+conseq.matrix <- function(x,
+                          name = NULL,
+                          type = c("prob", "ambig"),
+                          threshold = NULL,
+                          exclude_gaps = TRUE,
+                          gap_suppression_ratio = 2/5,
+                          force_exclude_gaps = FALSE, ...) {
+  type <- match.arg(type, c("prob", "ambig"))
   if (type == "ambig" && is.null(threshold)) {
     stop("Must set threshold for ambiguity consensus calling!")
   }
   x <- consmat(x, freq = FALSE)
-  if (prune_matrix) {
-    x <- prune_consensus_matrix(cm = x, ...)
-  }
   conseq <- switch(type,
-    prob  = (make_prob_consensus_(x, exclude_gaps = exclude_gaps, force_exclude_gaps = force_exclude_gaps)),
-    freq  = Biostrings::DNAString(make_freq_consensus_(x, exclude_gaps = exclude_gaps, force_exclude_gaps = force_exclude_gaps)),
+    prob  = make_prob_consensus_(x, exclude_gaps = exclude_gaps,
+                                 force_exclude_gaps = force_exclude_gaps,
+                                 gap_suppression_ratio = gap_suppression_ratio),
     ambig = make_ambig_consensus_(x, threshold, exclude_gaps = exclude_gaps)
   )
   names(conseq) <- name
@@ -80,28 +86,37 @@ simple_consensus <- function(x) {
 }
 
 ## strict consensus based on z-scores
-make_prob_consensus_ <- function(x, exclude_gaps, force_exclude_gaps = FALSE, as_string = FALSE) {
+## <exclude_gaps> affects behaviour at insertion positions
+## if <exclude_gaps> the gap count at insertion position is set to zero if
+## the ratio of base/gap >= gap_suppression_ratio (2/3), which allows calling
+## the alternate base even if at lower frequency than the gap.
+## if <force_exclude_gaps> all gap counts will be set to zero.
+make_prob_consensus_ <- function(x,
+                                 exclude_gaps = TRUE,
+                                 force_exclude_gaps = FALSE,
+                                 gap_suppression_ratio = 2/5,
+                                 as_string = FALSE) {
   x_ori <- x
   if (exclude_gaps && length(ins_ <- as.character(ins(x))) > 0) {
-    x[dimnames(x)$pos %in% ins_, "-"] <- 0
+    x <- suppress_gaps_(x, ins = ins_, gap_suppression_ratio = gap_suppression_ratio)
   }
-  if (force_exclude_gaps){
-    x[,"-"] <- 0
+  if (force_exclude_gaps) {
+    x[, "-"] <- 0
   }
-    # don't allow gaps at beginning and start
-    maxbases <- names(unlist(unname(apply(x, 1, function(a) list(which(a == max(a))[1])))))
-    maxbase <- which(maxbases != "-")
-    maxgap <- which(maxbases == "-")
-    if (!length(maxgap) == 0){
-      if (min(maxgap) < min(maxbase)){
-        exclude_from_start <- min(which(maxbases == "-")):(min(which(maxbases != "-"))-1)
-        x[exclude_from_start,"-"] <- 0
-      }
-      if (max(maxgap) > max(maxbase)) {
-        exclude_from_end <- (max(which(maxbases != "-"))+1):max(which(maxbases == "-"))
-        x[exclude_from_end,"-"] <- 0
-      }
+  # don't allow gaps at beginning and end
+  maxbases <- names(unlist(unname(apply(x, 1, function(a) list(which(a == max(a))[1])))))
+  maxbase  <- which(maxbases != "-")
+  maxgap   <- which(maxbases == "-")
+  if (!length(maxgap) == 0) {
+    if (min(maxgap) < min(maxbase)) {
+      exclude_from_start <- min(which(maxbases == "-")):(min(which(maxbases != "-")) - 1)
+      x[exclude_from_start,"-"] <- 0
     }
+    if (max(maxgap) > max(maxbase)) {
+      exclude_from_end <- (max(which(maxbases != "-")) + 1):max(which(maxbases == "-"))
+      x[exclude_from_end,"-"] <- 0
+    }
+  }
 
   ## remove rows which have been set to zero
   if (length(i <- which(n(x) == 0L)) > 0) {
@@ -130,42 +145,15 @@ make_prob_consensus_ <- function(x, exclude_gaps, force_exclude_gaps = FALSE, as
   return(seq)
 }
 
-## strict majority rule consensus
-make_freq_consensus_ <- function(x, exclude_gaps, force_exclude_gaps, as_string = FALSE) {
-  x_ori <- x
-  if (exclude_gaps && length(ins_ <- ins(x)) > 0) {
-    x[ins_, "-"] <- 0
-  }
-  if (force_exclude_gaps){
-    x[,"-"] <- 0
-  }
-  cmf <- consmat(x, freq = TRUE)
-  ## remove rows which have been set to zero
-  if (length(i <- which(n(cmf) == 0L)) > 0) {
-    cmf <- cmf[-i, ]
-  }
-  bases <- colnames(x)[apply(cmf, 1, which.max)]
-  if (as_string) {
-    return(paste0(bases, collapse = ""))
-  }
-  dels <- bases == "-"
-  seq  <- Biostrings::BStringSet(paste0(bases[!dels], collapse = ""))
-  metadata(seq) <- list(
-    zscore     = NULL,
-    freq       = unname(apply(cmf, 1, max)),
-    ambigs     = NULL,
-    insertions = ins(x_ori),
-    deletions  = unname(which(dels)),
-    consmat    = x_ori
-  )
-  seq
-}
-
 ## consensus with ambiguities
 ## <exclude_gaps> affects behaviour at polymorphic positions:
 ## if <!exclude_gaps> a gap ambiguity will be called (small letter)
-## if <exclude_gaps> the alternate base(s) will be called irrespective of the frequency of the gap
-make_ambig_consensus_ <- function(x, threshold, exclude_gaps = FALSE, as_string = FALSE) {
+## if <exclude_gaps> the alternate base(s) will be called irrespective
+## of the frequency of the gap
+make_ambig_consensus_ <- function(x,
+                                  threshold,
+                                  exclude_gaps = FALSE,
+                                  as_string = FALSE) {
   ## Filter all bases with a frequency > threshold
   cmf <- consmat(x, freq = TRUE)
   ## remove rows which have been set to zero
@@ -216,6 +204,19 @@ make_ambig_consensus_ <- function(x, threshold, exclude_gaps = FALSE, as_string 
     consmat    = x
   )
   seq
+}
+
+# gap_suppression_ratio = base/gap
+suppress_gaps_ <- function(x, ins, gap_suppression_ratio = 2/5) {
+  x0 <- x[dimnames(x)$pos %in% ins, ]
+  ## if the ratio of the most freqent base to gap is greater/equal to
+  ## gap_suppression_ratio set the gap count to zero (i.e. suppress the gap)
+  i <- which(apply(x0[, c("A", "C", "G", "T")], 1, max) / x0[, "-"] >= gap_suppression_ratio)
+  if (length(j <- dimnames(x0)$pos[i]) > 0) {
+    x[j, "-"] <- 0
+  }
+
+  x
 }
 
 

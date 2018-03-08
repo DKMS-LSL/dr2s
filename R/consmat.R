@@ -328,13 +328,13 @@ create_PWM <- function(msa){
 #   mat
 # }
 
-.getGapErrorBackground <- function(mat,n = 5){
+.getGapErrorBackground <- function(mat, n = 5){
   seq <- .mat2rle(mat)
   consecutiveRegions <- rle((seq$lengths > n))
   longestRegion <- which.max(consecutiveRegions$lengths)
   startSeq <- ifelse(longestRegion == 1,
                      1,
-                     sum(consecutiveRegions$lengths[1:(longestRegion-1)]))
+                     sum(consecutiveRegions$lengths[1:(longestRegion - 1)]))
   endSeq <- startSeq + consecutiveRegions$lengths[longestRegion] - 1
   ## Add an offset of 10 to acknowledge bad quality after homopolymer regions
   startSeq <- startSeq + 10

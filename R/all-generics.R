@@ -187,7 +187,8 @@ mapInit <- function(x,
 #' position required for that nucleotide to appear in the result.
 #' @param include_deletions If \code{TRUE}, include deletions in pileup.
 #' @param include_insertions If \code{TRUE}, include insertions in pileup.
-#' @param pruning_cutoff TODO
+#' @param gap_suppression_ratio The ratio of base/gap above which gaps at
+#' insertion position are excluded from from consensus calling.
 #' @param force If \code{TRUE}, overwrite existing bam file.
 #' @param fullname If \code{TRUE}, use the full name in reference fasta.
 #' @param plot Plot diagnostics.
@@ -224,7 +225,7 @@ mapIter <- function(x,
                     min_nucleotide_depth = 3,
                     include_deletions = TRUE,
                     include_insertions = TRUE,
-                    pruning_cutoff = 0.75,
+                    gap_suppression_ratio = 2/5,
                     force = FALSE,
                     fullname = TRUE,
                     plot = TRUE,
