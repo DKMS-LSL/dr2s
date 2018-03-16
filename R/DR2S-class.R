@@ -132,7 +132,7 @@ DR2S_ <- R6::R6Class(
         private$conf$ref_path  = basename(ref_path)
       } else {
         private$conf$reference = expand_allele(conf$reference, conf$locus)
-        private$conf$ref_path  = generate_reference_sequence(private$conf$reference,
+        private$conf$ref_path  = generateReferenceSequence(private$conf$reference,
                                                              private$conf$locus,
                                                              private$conf$outdir,
                                                              "mapInit",
@@ -149,7 +149,7 @@ DR2S_ <- R6::R6Class(
           private$conf$alternate = expand_allele(private$conf$alternate, private$conf$locus)
           outdir <- dir_create_if_not_exists(normalizePath(
             file.path(private$conf$outdir, "mapInit"), mustWork = FALSE))
-          private$conf$ref_path  = generate_reference_sequence(private$conf$alternate,
+          private$conf$ref_path  = generateReferenceSequence(private$conf$alternate,
                                                                private$conf$locus,
                                                                private$conf$outdir,
                                                                "mapInit",
@@ -179,7 +179,7 @@ DR2S_ <- R6::R6Class(
         private$conf$reference = expand_allele(private$conf$reference, private$conf$locus)
         outdir <- dir_create_if_not_exists(normalizePath(
           file.path(private$conf$outdir, "mapInit"), mustWork = FALSE))
-        private$conf$ref_path  = generate_reference_sequence(self$getReference(),
+        private$conf$ref_path  = generateReferenceSequence(self$getReference(),
                                                              self$getLocus(),
                                                              private$conf$outdir,
                                                              "mapInit",
@@ -196,7 +196,7 @@ DR2S_ <- R6::R6Class(
           private$conf$alternate = expand_allele(private$conf$alternate, private$conf$locus)
           outdir <- dir_create_if_not_exists(normalizePath(
             file.path(private$conf$outdir, "mapInit"), mustWork = FALSE))
-          private$conf$ref_path  = generate_reference_sequence(self$getAlternate(),
+          private$conf$ref_path  = generateReferenceSequence(self$getAlternate(),
                                                                self$getLocus(),
                                                                private$conf$outdir,
                                                                "mapInit",
@@ -434,7 +434,8 @@ DR2S_ <- R6::R6Class(
       if (!is.null(self$getRefPath())) {
         Biostrings::readDNAStringSet(self$getRefPath())
       } else  {
-        ipd.Hsapiens.db::getClosestComplete(self$getReference())
+        ipd.Hsapiens.db::getClosestComplete(self$getReference(),
+                                            self$getLocus())
       }
     },
     ##
@@ -447,7 +448,8 @@ DR2S_ <- R6::R6Class(
         Biostrings::readDNAStringSet(self$getAltPath())
       } else if (self$getAlternate() %in%
                  ipd.Hsapiens.db::getAlleles(self$getLocus()) ){
-        ipd.Hsapiens.db::getClosestComplete(self$getAlternate())
+        ipd.Hsapiens.db::getClosestComplete(self$getAlternate(),
+                                            self$getLocus())
       } else NULL
       # if (!is.null(self$getAlternate())) {
       #   if (!is.null(self$getIPD())) {

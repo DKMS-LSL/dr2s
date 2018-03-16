@@ -1,28 +1,28 @@
 ## Extract (a subset of) reads from a bamfile
-.extractFastq <- function(x, qnames = NULL, n = 100, replace = TRUE) {
+.extractFastq <- function(x, qnames=NULL, n=100, replace=TRUE) {
   stopifnot(is.character(x) && length(x) == 1)
   bam <- Rsamtools::scanBam(x)[[1]]
   qn <-
     if (!is.null(qnames) && is.null(n)) {
       qnames
     } else if (!is.null(qnames) && !is.null(n)) {
-      qn <- sample(qnames, size = n, replace = replace)
+      qn <- sample(qnames, size=n, replace=replace)
       q  <- attr(qnames, "q")[match(qn, qnames)]
-      o  <- order(q, decreasing = TRUE)
+      o  <- order(q, decreasing=TRUE)
       qn <- qn[o]
       q  <- q[o]
       attr(qn, "q") <- q
       qn
     } else if (is.null(qnames) && !is.null(n)) {
-      sample(bam$qname, size = n, replace = replace)
+      sample(bam$qname, size=n, replace=replace)
     } else if (is.null(qnames) && is.null(n)) {
       bam$qname
     }
-  trim_softclipped_ends(bam, qn)
+  .trimSoftclippedEnds(bam, qn)
 }
 
 # todo add length and cut option
-filter_reads <- function(bam, qnames = NULL, preserve_ref_ends = TRUE) {
+.filterReads <- function(bam, qnames=NULL, preserve_ref_ends=TRUE) {
   #message("Entering trim_softclipped_ends")
   #on.exit(message("Exiting trim_softclipped_ends"))
   readlength <- 250
@@ -39,7 +39,7 @@ filter_reads <- function(bam, qnames = NULL, preserve_ref_ends = TRUE) {
   id    <- if (!is.null(attr(qnames, "q"))) {
     paste0(bam$qname[i], " q=", round(attr(qnames, "q"), 4))
   } else bam$qname[i]
-  sc <- map_softclip(cigar)
+  sc <- .mapSoftclip(cigar)
   if (preserve_ref_ends) {
     sc[not_trim_starts, "start"] <- NA_integer_
     sc[not_trim_ends, "end"] <- NA_integer_
@@ -47,17 +47,25 @@ filter_reads <- function(bam, qnames = NULL, preserve_ref_ends = TRUE) {
   trim <- sc %>%
     dplyr::transmute(keep = ifelse(is.na(start) & is.na(end),
                                    readlength,
-                                   readlength - abs(ifelse(is.na(end), 0, end) - ifelse(is.na(start), 0, start))))
+                                   readlength -
+                                     abs(ifelse(is.na(end), 0, end) -
+                                           ifelse(is.na(start), 0, start))))
 
   alignmentScoreThreshold = 0.3*readlength # Change to dynamic
   badScore <- bam$qname[bam$tag$AS < alignmentScoreThreshold]
   trim <- id[trim < 0.3 * readlength]
-  flog.info("  Filtering %s softclipping reads from %s reads in total; removing reads < %s bp ...", length(trim), length(id), 0.3*readlength, name = "info")
-  flog.info("  Filtering %s reads with an alignment score < %s ...", length(badScore), alignmentScoreThreshold, name = "info")
+  flog.info(paste0("  Filtering %s softclipping reads from %s reads in total;",
+                   "removing reads < %s bp ..."),
+            length(trim),
+            length(id),
+            0.3*readlength,
+            name = "info")
+  flog.info("  Filtering %s reads with an alignment score < %s ...",
+            length(badScore), alignmentScoreThreshold, name = "info")
   unique(c(trim, badScore))
 }
 
-trim_softclipped_ends <- function(bam, qnames = NULL, preserve_ref_ends = FALSE) {
+.trimSoftclippedEnds <- function(bam, qnames=NULL, preserve_ref_ends=FALSE) {
   #message("Entering trim_softclipped_ends")
   #on.exit(message("Exiting trim_softclipped_ends"))
   i <- if (is.null(qnames)) {
@@ -75,7 +83,7 @@ trim_softclipped_ends <- function(bam, qnames = NULL, preserve_ref_ends = FALSE)
   id    <- if (!is.null(attr(qnames, "q"))) {
     paste0(bam$qname[i], " q=", round(attr(qnames, "q"), 4))
   } else bam$qname[i]
-  sc <- map_softclip(cigar)
+  sc <- .mapSoftclip(cigar)
   if (preserve_ref_ends) {
     sc[not_trim_starts, "start"] <- NA_integer_
     sc[not_trim_ends, "end"] <- NA_integer_
@@ -96,7 +104,7 @@ trim_softclipped_ends <- function(bam, qnames = NULL, preserve_ref_ends = FALSE)
   rs
 }
 
-map_softclip <- function(cigar) {
+.mapSoftclip <- function(cigar) {
   m  <- gregexpr("^\\d+S", cigar)
   sc <- regmatches(cigar, m)
   sc[!vapply(sc, function(x) length(x) > 0, FUN.VALUE = FALSE)] <- NA_character_
@@ -111,35 +119,35 @@ map_softclip <- function(cigar) {
   )
 }
 
-#' Filter a bamfile by qnames
-#'
-#' @param x Path to bamfile.
-#' @param qnames Sample a fixed subset of reads.
-#' @param dest Location where the filtered output file will be created.
-#'
-#' @return A character vector
-#' @export
-#'
-#' @examples
-#' ###
-filter_bam <- function(x, qnames, dest) {
-  stopifnot(is.character(x) && length(x) == 1)
-  filt <- S4Vectors::FilterRules(list(function(x) x$qname %in% qnames))
-  Rsamtools::filterBam(x, dest, filter = filt, indexDestination = TRUE)
-}
+# #' Filter a bamfile by qnames
+# #'
+# #' @param x Path to bamfile.
+# #' @param qnames Sample a fixed subset of reads.
+# #' @param dest Location where the filtered output file will be created.
+# #'
+# #' @return A character vector
+# #' @export
+# #'
+# #' @examples
+# #' ###
+# filterBam <- function(x, qnames, dest) {
+#   stopifnot(is.character(x) && length(x) == 1)
+#   filt <- S4Vectors::FilterRules(list(function(x) x$qname %in% qnames))
+#   Rsamtools::filterBam(x, dest, filter = filt, indexDestination = TRUE)
+# }
 
-inject_deletions <- function(seq) {
-  mdata <- metadata(seq)
-  if (!is.null(mdata$deletions) || length(mdata$deletions) > 0) {
-    dels <- itertools::ihasNext(iter(mdata$deletions))
-    while(itertools::hasNext(dels)) {
-      d <- nextElem(dels)
-      XVector::subseq(seq, d, d - 1) <- "-"
-    }
-    metadata(seq) <- mdata
-  }
-  seq
-}
+# inject_deletions <- function(seq) {
+#   mdata <- metadata(seq)
+#   if (!is.null(mdata$deletions) || length(mdata$deletions) > 0) {
+#     dels <- itertools::ihasNext(iter(mdata$deletions))
+#     while(itertools::hasNext(dels)) {
+#       d <- nextElem(dels)
+#       XVector::subseq(seq, d, d - 1) <- "-"
+#     }
+#     metadata(seq) <- mdata
+#   }
+#   seq
+# }
 
 #' Generate reference sequences in a FASTA file
 #'
@@ -152,23 +160,22 @@ inject_deletions <- function(seq) {
 #' @keywords internal
 #' @examples
 #' ###
-generate_reference_sequence <- function(allele, locus, outdir, dirtag = NULL,
-                                        fullname = TRUE) {
+generateReferenceSequence <- function(allele, locus, outdir, dirtag=NULL,
+                                        fullname=TRUE) {
   if (is.null(allele)) {
     return(NULL)
   }
   locus <- normalise_locus(locus)
-  stopifnot(
-    allele %in% ipd.Hsapiens.db::getAlleles(locus))
+  stopifnot(allele %in% ipd.Hsapiens.db::getAlleles(locus))
   dir_create_if_not_exists(normalizePath(
-    file.path(outdir, dirtag), mustWork = FALSE))
+    file.path(outdir, dirtag), mustWork=FALSE))
   assertthat::assert_that(
     file.exists(outdir),
     assertthat::is.dir(outdir),
     assertthat::is.writeable(outdir)
   )
-  sref <- foreach(al = allele, .combine = "c") %do% {
-    sref <- ipd.Hsapiens.db::getClosestComplete(al)
+  sref <- foreach(al=allele, .combine="c") %do% {
+    sref <- ipd.Hsapiens.db::getClosestComplete(al, locus)
     if (fullname) {
       names(sref) <- gsub(" +", "_", names(sref))
     } else {
@@ -178,67 +185,15 @@ generate_reference_sequence <- function(allele, locus, outdir, dirtag = NULL,
   }
   assertthat::assert_that(is(sref, "DNAStringSet"))
   # workaround for these damn windows filename conventions
-  allele_nm <- gsub("[*]", "#", gsub("[:]", "_", paste0(allele, collapse = "~")))
+  allele_nm <- gsub("[*]", "#", gsub("[:]", "_", paste0(allele, collapse="~")))
   filename <- ifelse(is.null(dirtag), paste0(allele_nm, ".ref.fa"),
                      file.path(dirtag, paste0(allele_nm, ".ref.fa")))
-  outpath <- normalizePath(file.path(outdir, filename), mustWork = FALSE)
+  outpath <- normalizePath(file.path(outdir, filename), mustWork=FALSE)
 
   Biostrings::writeXStringSet(sref, outpath)
   filename
 }
 
-stouffers_zscore <- function(z, w = rep(1, length(z))) {
-  sum(z*w, na.rm = TRUE)/sqrt(sum(w^2, na.rm = TRUE))
-}
-
-
-## Todo: RM fun
-# merge_conseqs_ <- function(seqs, scores, verbose = TRUE) {
-#   aln <- DECIPHER::AdjustAlignment(DECIPHER::AlignSeqs(
-#     seqs, verbose = FALSE, gapOpening = -12, gapExtension = -2,
-#     iterations = 1, refinements = 1, restrict = c(-500, 2, 10)
-#   ))
-#   #browse_align(seqs)
-#   split1 <- strsplit1(toString(aln[[1]]), "")
-#   split2 <- strsplit1(toString(aln[[2]]), "")
-#   SEQ1 <- hlatools::ihasNext(iter(split1))
-#   SEQ2 <- hlatools::ihasNext(iter(split2))
-#   SCR1 <- hlatools::ihasNext(iter(scores[[1]]))
-#   SCR2 <- hlatools::ihasNext(iter(scores[[2]]))
-#   refseq <- vector("character", unique(Biostrings::width(aln)))
-#   refscr <- vector("numeric", unique(Biostrings::width(aln)))
-#   i <- 0L
-#   while(hlatools::hasNext(SEQ1) && hlatools::hasNext(SEQ2)) {
-#     s1 <- nextElem(SEQ1)
-#     s2 <- nextElem(SEQ2)
-#     i <- i + 1L
-#     if (s1 == s2) {
-#       z <- c(nextElem(SCR1), nextElem(SCR2))
-#       refseq[i] <- s1
-#       refscr[i] <- stouffers_zscore(z)
-#     } else if (s1 == "-") {
-#       refseq[i] <- s2
-#       refscr[i] <- nextElem(SCR2)
-#       message("   Deletion at seq1 at ", i)
-#     } else if (s2 == "-") {
-#       refseq[i] <- s1
-#       refscr[i] <- nextElem(SCR1)
-#       message("   Deletion at seq2 at ", i)
-#     } else {
-#       scrs <- c(nextElem(SCR1), nextElem(SCR2))
-#       max.scr <- which.max(scrs)
-#       refseq[i] <- c(s1, s2)[max.scr]
-#       refscr[i] <- scrs[max.scr]
-#       message("   Mismatch ", s1, " (", round(pnorm(scrs[1]), 3), ") <=> ",
-#               s2, " (", round(pnorm(scrs[2]), 3),") at ", i)
-#     }
-#   }
-#   conseq <- Biostrings::BStringSet(paste0(refseq, collapse = ""))
-#   names(conseq) <- paste0(names(seqs), collapse = "_")
-#   metadata(conseq) <- list(zscores = refscr)
-#   conseq
-# }
-#x <- self
 multialign <- function(x, hptype, n, align = list(
   iterations = 0,
   refinements = 0,

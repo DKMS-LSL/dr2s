@@ -142,7 +142,7 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
                                   tag = "AS",
                                   what = c("qname", "pos", "cigar")
                                 ))[[1]]
-      readfilter <- filter_reads(bam = bam, preserve_ref_ends = TRUE)
+      readfilter <- .filterReads(bam = bam, preserve_ref_ends = TRUE)
       file_delete_if_exists(bamfile)
 
       flog.info(" Write new shortread fastqs to file", name = "info")
@@ -1487,7 +1487,7 @@ DR2S_$set("public", "runMapFinal", function(opts = list(),
         bamfile <- bam_sort_index(samfile, refpath, pct / 100, min_mapq,
                                   force = force, clean = TRUE)
         ## Trim softclips
-        fq <- trim_softclipped_ends(bam = Rsamtools::scanBam(bamfile)[[1]],
+        fq <- .trimSoftclippedEnds(bam = Rsamtools::scanBam(bamfile)[[1]],
                                     preserve_ref_ends = TRUE)
         ## Trim polymorphic ends
         fq <- trim_polymorphic_ends(fq)

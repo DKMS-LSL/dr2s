@@ -336,7 +336,7 @@ refineAlignment <- function(x, hptype){
                               refpath,
                               force = TRUE)
     ## Trim softclips
-    fq <- trim_softclipped_ends(bam = Rsamtools::scanBam(bamfile)[[1]],
+    fq <- .trimSoftclippedEnds(bam = Rsamtools::scanBam(bamfile)[[1]],
                                 preserve_ref_ends = TRUE)
     ## Trim polymorphic ends
     fq <- trim_polymorphic_ends(fq)

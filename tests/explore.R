@@ -144,7 +144,7 @@ yy5_se3  <- yy4_se3 %>% polish() %>% report()
 
 
 
-debug(trim_softclipped_ends)
+debug(.trimSoftclippedEnds)
 debug(trim_polymorphic_ends)
 
 
@@ -175,7 +175,7 @@ samfile <- mapfun(
 ## Run bam - sort - index pipeline
 bamfile <- bam_sort_index(samfile, refpath, clean = TRUE)
 ## Trim softclips
-fq <- trim_softclipped_ends(bam = Rsamtools::scanBam(bamfile)[[1]], preserve_ref_ends = TRUE)
+fq <- .trimSoftclippedEnds(bam = Rsamtools::scanBam(bamfile)[[1]], preserve_ref_ends = TRUE)
 ## Trim polymorphic ends
 fq <- trim_polymorphic_ends(fq)
 
