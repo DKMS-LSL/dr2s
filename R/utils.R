@@ -325,6 +325,11 @@ editor <- function(x, pos = NULL, use_editor = "xdg-open") {
   }
 }
 
+## Mode
+.getModeValue <- function(v) {
+  uniqv <- unique(v)
+  uniqv[which.max(tabulate(match(v, uniqv)))]
+}
 
 # Alignment browser -------------------------------------------------------
 

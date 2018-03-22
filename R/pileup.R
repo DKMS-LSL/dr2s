@@ -394,7 +394,7 @@ plot_pileup_basecall_frequency <- function(x, threshold = 0.20, label = "", drop
 #
 #
 # }
-.getInsertions <- function(bamfile, inpos, reference) {
+.getInsertions <- function(bamfile, inpos, reference, reads = NULL) {
   stopifnot(is.numeric(inpos))
   inpos <- sort(inpos)
   flog.info("  Extracting insertions at position %s ...", comma(inpos), name = "info")
@@ -403,11 +403,36 @@ plot_pileup_basecall_frequency <- function(x, threshold = 0.20, label = "", drop
   ##  matching position, so +1
   inpos <- inpos + 1
 
+ #  #########################################üü
+ #  positionHP
+ #  start <- positionHP -10
+ #  end <- positionHP + len + 10
+ #  inposRanges <- GenomicRanges::GRanges(reference, IRanges::IRanges(start = positionHP-10, end = positionHP+len+10))
+ #  bamParam    <- Rsamtools::ScanBamParam(what = "seq", which = inposRanges)
+ #  bam <- GenomicAlignments::readGAlignments(bamfile, param = bamParam, use.names = TRUE)
+ #  ## Use only reads with an insertion
+ #  bamI <- bam[sapply(GenomicAlignments::cigar(bam), function(x) grepl("I",  x))]
+ #  insSeqs <- foreach(i = inpos) %do% {
+ #    message("Position: ", i)
+ #    bamPos <- bamI[GenomicAlignments::start(bamI) <= i & GenomicAlignments::end(bamI) >= 1]
+ #    insSeq <- lapply(bamPos, function(a) .extractInsertion(a, i))
+ #    Biostrings::DNAStringSet(insSeq)
+ #  }
+ #
+ #  ## decrement to last matching position again to work as expected with downstream
+ #  names(insSeqs) <- inpos - 1
+ #  insSeqs
+ # ###################################ü
+ #
+
   ## Get the reference
   reference   <- Rsamtools::seqinfo(Rsamtools::BamFile(bamfile))@seqnames[1]
   inposRanges <- GenomicRanges::GRanges(reference, IRanges::IRanges(start = inpos, end = inpos))
   bamParam    <- Rsamtools::ScanBamParam(what = "seq", which = inposRanges)
   bam <- GenomicAlignments::readGAlignments(bamfile, param = bamParam, use.names = TRUE)
+  ## Use only reads of interest if specified
+  if (!is.null(reads))
+    bam <- bam[names(bam) %in% reads]
   ## Use only reads with an insertion
   bamI <- bam[sapply(GenomicAlignments::cigar(bam), function(x) grepl("I",  x))]
   insSeqs <- foreach(i = inpos) %do% {
@@ -422,8 +447,27 @@ plot_pileup_basecall_frequency <- function(x, threshold = 0.20, label = "", drop
   insSeqs
 }
 
+# .extractQuerySequence <- function(read, start, end) {
+#   read <- bamI[1]
+#   Biostrings::subseq(read@elementMetadata$seq,
+#                      start = start - read@start,
+#                      end = end - GenomicAlignments::end(read))
+#   cigar <- read@cigar
+#   read[1]@end
+#   GenomicAlignments::end(read[1])
+#   seq <- Biostrings::DNAString("-")
+#   ## map insertion position to reference space, extract insertions from query space
+#   insertionQ <- GenomicAlignments::cigarRangesAlongQuerySpace(cigar, ops = "I")[[1]]
+#   insertionR <- GenomicAlignments::cigarRangesAlongReferenceSpace(cigar, ops = "I")[[1]]
+#   insertPos <- insertionQ[which((GenomicAlignments::start(read) + insertionR@start - 1) == i)]
+#   if (length(insertPos) > 0)
+#     seq <- unlist(Biostrings::subseq(read@elementMetadata$seq, start = IRanges::start(insertPos), end = IRanges::end(insertPos)))
+#   seq
+# }
+
 .extractInsertion <- function(read, i) {
   cigar <- read@cigar
+
   seq <- Biostrings::DNAString("-")
   ## map insertion position to reference space, extract insertions from query space
   insertionQ <- GenomicAlignments::cigarRangesAlongQuerySpace(cigar, ops = "I")[[1]]

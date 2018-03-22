@@ -336,3 +336,98 @@ get_seqs_from_mat <- function(mat){
 .seq2rle <- function(seq) {
   rle(strsplit1(as.character(seq), ""))
 }
+checkHomoPolymerCount <- function(x, count = 10, map = "mapFinal") {
+  map <- match.arg(map, c("mapFinal", "refine"))
+  stopifnot(is(x, "DR2S"))
+  hptypes <- x$getHapTypes()
+  if (map == "mapFinal") {
+    if (length(hptypes) > 1) {
+      lastIter <- x$mapIter[[max(names(x$mapIter))]]
+      refseqs <- sapply(hptypes, function(x) lastIter[[x]]$conseq)
+    } else {
+      refseqs <- list(A = x$mapInit$SR1$conseq)
+    }
+    x$mapFinal$homopolymers <- list()
+    bambase <- x$mapFinal$bamfile
+    plotname <- "plot.homopolymers.pdf"
+  } else if ( map == "refine" ) {
+    refseqs <- sapply(x$consensus$refine$ref, function(hp) {
+      seq <- Biostrings::readDNAStringSet(file.path(x$getOutdir(), hp))
+      names(seq) <- strsplit1(names(seq), " ")[1]
+      seq
+    })
+    x$consensus$homopolymers <- list()
+    bambase <- x$consensus$refine$bamfile
+    plotname <- "plot.homopolymers.refine.pdf"
+  }
+  p <- foreach(hp = hptypes) %do% {
+    seq <- refseqs[[hp]]
+    seqrle <- .seq2rle(seq)
+    n <- which(seqrle$lengths > count)
+    if (length(n) == 0) {
+      return(NULL)
+    }
+    bamfile <- file.path(x$getOutdir(), bambase[paste0("SR", hp)])
+    homopolymersHP <- foreach(pos = n, .combine = rbind) %do% {
+      positionHP <- sum(seqrle$length[1:(pos-1)])+1
+      lenHP <- seqrle$lengths[pos]
+      msa <- msa_from_bam(bamfile,
+                          refseq = seq,
+                          region = sprintf("%s:%s-%s",
+                                           names(seq),
+                                           positionHP-10,
+                                           positionHP + lenHP + 10))
+
+
+      covering <- sapply(msa, function(a) nchar(gsub(pattern = "\\+",
+                                                     "",
+                                                     toString(a))) == lenHP + 21)
+      msa <- msa[covering]
+      readsOI <- names(msa)
+      ins <- .getInsertions(bamfile, inpos = positionHP-1, reads = readsOI)[[1]]
+      msa <- unlist(Biostrings::DNAStringSetList(sapply(names(msa), function(a) {
+        if (a %in% names(ins)) {
+          firstSeq <- unlist(Biostrings::subseq(msa[a], start = 1, width = 10))
+          insert <- unlist(ins[a])
+          lastSeq <- unlist(Biostrings::subseq(msa[a], start = 11, width = lenHP + 10))
+          Biostrings::DNAStringSet(c(firstSeq, insert, lastSeq))
+        } else {
+          msa[a]
+        }
+      })))
+      msarle <- lapply(msa, .seq2rle)
+      lens <- sapply(msarle, function(a) max(a$lengths))
+      dplyr::data_frame(haptype = hp, position = positionHP, length = lens)
+    }
+
+    modes <- homopolymersHP %>%
+      dplyr::group_by(position) %>%
+      dplyr::summarize(mode = .getModeValue(length))
+    for (i in 1:NROW(modes)) {
+      modeHP <- modes[i,]
+      flog.info("%s: Mode for homopolymer at position %s: %s",
+                hp, modeHP$position, modeHP$mode)
+      if (map == "mapFinal") {
+        x$mapFinal$homopolymers[[hp]][[as.character(modeHP$position)]] <- modeHP$mode
+      } else if (map == "refine") {
+        x$consensus$homopolymers[[hp]][[as.character(modeHP$position)]] <- modeHP$mode
+      }
+    }
+    ggplot(data = homopolymersHP) +
+      geom_histogram(aes(length), binwidth = 1) +
+      scale_x_continuous(breaks = seq(min(homopolymersHP$length), max(homopolymersHP$length), 1)) +
+      facet_grid(position~., scales = "free_y") +
+      ggtitle(paste("Homopolymer length", hp)) +
+      theme_minimal()
+  }
+
+
+  if (!all(is.null(unlist(p)))) {
+    plotFile <- file.path(x$getOutdir(), "homopolymers.pdf")
+    pdf(file = plotFile, width = 7*length(hptypes))
+    multiplot(plotlist = p,
+              layout = matrix(1:length(p), nrow = 1))
+    dev.off()
+  }
+  return(invisible(x))
+}

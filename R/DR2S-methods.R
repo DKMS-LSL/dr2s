@@ -1370,14 +1370,15 @@ DR2S_$set("public", "runMapFinal", function(opts = list(),
 
   self$mapFinal = structure(
     list(
-      dir     = self$relPath(outdir),
-      sreads  = lapply(readpathsSR,self$relPath),
-      lreads  = self$relPath(readpathsLR),
-      ref     = self$relPath(refpaths),
-      bamfile = list(),
-      pileup  = list(),
-      tag     = list(),
-      seqpath = list()
+      dir          = self$relPath(outdir),
+      sreads       = lapply(readpathsSR,self$relPath),
+      lreads       = self$relPath(readpathsLR),
+      ref          = self$relPath(refpaths),
+      bamfile      = list(),
+      pileup       = list(),
+      tag          = list(),
+      seqpath      = list(),
+      homopolymers = NULL
     ), class = c("mapFinal", "list")
   )
 
@@ -1492,7 +1493,7 @@ DR2S_$set("public", "runMapFinal", function(opts = list(),
         ## Trim polymorphic ends
         fq <- trim_polymorphic_ends(fq)
         ## Write new shortread file to disc
-        fqdir  <- dir_create_if_not_exists(file.path(self$getOutdir(), "final"))
+        fqdir  <- dir_create_if_not_exists(file.path(self$getOutdir(), "mapFinal"))
         fqfile <- paste("sread", hptype, self$getSrMapper(), "trimmed", "fastq",
                         "gz", sep = ".")
         fqout  <- file_delete_if_exists(file.path(fqdir, fqfile))

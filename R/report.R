@@ -270,11 +270,16 @@ refineAlignment <- function(x, hptype){
   }
   reftag    <- "refine"
   outdir    <- dir_create_if_not_exists(x$absPath(reftag))
-  readpathLR  <- x$absPath(x$mapFinal$lreads[hptype])
+  if (length(x$getHapTypes()) == 1) {
+    readpathLR  <- paste0("/", x$mapInit$reads)
+    readpathSR <- x$absPath(x$mapInit$SR1$reads)
+  } else {
+    readpathLR  <- x$absPath(x$mapFinal$lreads[hptype])
+    readpathSR <- x$absPath(x$mapFinal$sreads[hptype])
+  }
   refpath   <- .getUpdatedSeqs(x, hptype)
   x$consensus$refine$ref[[hptype]] <- x$relPath(refpath)
   names(refpath) <- hptype
-  readpathSR <- x$absPath(x$mapFinal$sreads[hptype])
 
 
   ## Remap long reads to the same reference sequences as short reads
@@ -394,7 +399,9 @@ refineAlignment <- function(x, hptype){
 # Helpers -----------------------------------------------------------------
 
 .getUpdatedSeqs <- function(x, hptype){
-  ending <- ifelse(length(x$getHapTypes()) == 2, "psa", "msa")
+  ending <- ifelse(length(x$getHapTypes()) == 1, "fa",
+                   ifelse(length(x$getHapTypes()) == 2, "psa",
+                          "msa"))
   pairfile_checked <- paste("mapfinal.aln", x$getLrdType(), x$getLrMapper(),
                               "checked", ending, sep = ".")
   pairfile_checked <- normalizePath(x$absPath(file.path("report",

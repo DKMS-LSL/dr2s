@@ -9,6 +9,7 @@
 polish.DR2S <- function(x,
                         threshold = x$getThreshold(),
                         lower_limit = 0.80,
+                        check_hp_count = TRUE,
                         cache = TRUE) {
 
   flog.info("Step 5: polish ...", name = "info")
@@ -72,6 +73,32 @@ polish.DR2S <- function(x,
   ## Problematic Variants
   vars <- get_problematic_variants(x = rs, lower_limit = .6)
   vars <- dplyr::ungroup(vars)
+
+  ## Check homopolymer count; Only check if the count is found in both
+  if (check_hp_count) {
+    checkHomoPolymerCount(rs)
+    vars <- rbind(vars, foreach(hptype = hptypes, .combine = rbind) %do% {
+      if (hptype %in% names(rs$mapFinal$homopolymers)) {
+        seq <- rs$consensus$seq[[hptype]]
+        seqrle <- .seq2rle(seq)
+        n <- seqrle$length[seqrle$length > 10]
+        modeN <- sort(rs$mapFinal$homopolymers[[hptype]])
+        if (!all(modeN == n)) {
+          missingN <- modeN[which(!n == modeN)]
+          varsHP <- tibble::tibble(haplotype = hptype,
+                                   pos = names(missingN),
+                                   ref = "",
+                                   alt = "",
+                                   freq = "",
+                                   lower = "",
+                                   warning = sprintf("Homopolymer at position %s should be of length %s",
+                                                     names(missingN), missingN))
+          varsHP
+        }
+      }
+    })
+  }
+
   rs$consensus$problematic_variants = dplyr::arrange(vars, pos, haplotype)
 
   if (cache)
