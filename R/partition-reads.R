@@ -20,6 +20,7 @@
 
 # debug
 #x <- dpb1_3$partition$mat
+#sort_by <- "distance"
 # cl_method="ward.D"
 # min_len = 0.5
 # skip_gap_freq = 2/3
@@ -30,6 +31,7 @@
 partition_reads <- function(x, cl_method = "ward.D", min_len = 0.5,
                             skip_gap_freq = 2/3, deepSplit = 1,
                             threshold = 0.2, dist_alleles = 2, sort_by = "count"){
+  match.arg(sort_by, c("count", "distance"))
   # get SNPs
   ppos <- colnames(x)
   bad_ppos <- c()
@@ -95,7 +97,7 @@ partition_reads <- function(x, cl_method = "ward.D", min_len = 0.5,
       rC <- names(sort(table(subclades),decreasing = TRUE)[1:dist_alleles])
       # ## !!!!! HACK!!! rm following line; uncomment previous one; removed
       # rC <- c("A", "C")
-    } else {
+    } else if (sort_by == "distance"){
       rC <- sort(find_chimeric(seqs = hpseqs, dist_alleles = dist_alleles))
     }
     flog.info("  Use only clusters %s ...", comma(rC), name = "info")
@@ -105,6 +107,9 @@ partition_reads <- function(x, cl_method = "ward.D", min_len = 0.5,
 
   scores <- dplyr::bind_rows(
     lapply(1:length(xseqs),function(s) get_scores(s, xseqs, mats)))
+
+  s <- 1
+    lapply(1:length(xseqs),function(s) get_scores(s, xseqs, mats))
 
   clades <- scores %>%
     dplyr::group_by(read) %>%
@@ -252,8 +257,8 @@ find_chimeric <- function(seqs, dist_alleles, plot_seqs = FALSE) {
       }
       unname(quantile(f + r)[2])
     }
-  rownames(dm) <- names(seqs)
-  colnames(dm) <- names(seqs)
+  rownames(dm) <- sapply(names(seqs), function(x) strsplit1(x, ":")[1])
+  colnames(dm) <- sapply(names(seqs), function(x) strsplit1(x, ":")[1])
 
   c("A", (names(sort(unlist(dm[1,]), decreasing = TRUE)[1:(dist_alleles - 1)])))
 }

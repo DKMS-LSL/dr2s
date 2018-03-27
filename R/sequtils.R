@@ -344,11 +344,12 @@ checkHomoPolymerCount <- function(x, count = 10, map = "mapFinal") {
     if (length(hptypes) > 1) {
       lastIter <- x$mapIter[[max(names(x$mapIter))]]
       refseqs <- sapply(hptypes, function(x) lastIter[[x]]$conseq)
+      bambase <- x$mapFinal$bamfile
     } else {
       refseqs <- list(A = x$mapInit$SR1$conseq)
+      bambase <- x$mapInit$SR2$bamfile
     }
     x$mapFinal$homopolymers <- list()
-    bambase <- x$mapFinal$bamfile
     plotname <- "plot.homopolymers.pdf"
   } else if ( map == "refine" ) {
     refseqs <- sapply(x$consensus$refine$ref, function(hp) {
@@ -367,7 +368,8 @@ checkHomoPolymerCount <- function(x, count = 10, map = "mapFinal") {
     if (length(n) == 0) {
       return(NULL)
     }
-    bamfile <- file.path(x$getOutdir(), bambase[paste0("SR", hp)])
+    bamfile <- ifelse(length(hptypes) == 1, bambase, bambase[paste0("SR", hp)])
+    bamfile <- file.path(x$getOutdir(), bamfile)
     homopolymersHP <- foreach(pos = n, .combine = rbind) %do% {
       positionHP <- sum(seqrle$length[1:(pos-1)])+1
       lenHP <- seqrle$lengths[pos]

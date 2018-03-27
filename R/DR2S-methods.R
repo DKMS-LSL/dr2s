@@ -208,8 +208,10 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
 
     # debug
     # pileup$consmat[which(pileup$consmat[,6] > 15),]
-    if (max(rowSums(pileup$consmat)) / quantile(rowSums(pileup$consmat), 0.75) > 5) {
-      flog.warn(" Shortreads seem corrupted or the reference is bad!", name = "info")
+    if (max(rowSums(pileup$consmat)) /
+        quantile(rowSums(pileup$consmat), 0.75) > 5) {
+      flog.warn(" Shortreads seem corrupted or the reference is bad!",
+                name = "info")
       maxCov <- max(rowSums(pileup$consmat))
       q75Cov <- quantile(rowSums(pileup$consmat), .75)
       flog.warn(paste0("   Maximum of coverage %s / 75%% quantile %s: %s > 5.",
@@ -217,8 +219,8 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
                        " Have a look at the mapInit plot"),
                 maxCov, q75Cov, maxCov/q75Cov, name = "info")
       if (!forceBadMapping) {
-        gfile <- self$absPath(paste0("plot.MapInit.SR.",
-                                     sub("bam$", "pdf", usc(basename(bamfile)))))
+        file <- self$absPath(paste0("plot.MapInit.SR.",
+                                    sub("bam$", "pdf", usc(basename(bamfile)))))
         plt <- plot_pileup_coverage(
           x = pileup,
           thin = 0.25,
@@ -226,9 +228,11 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
           label = self$getMapTag("init", "SR"),
           drop.indels = TRUE
         )
-        flog.error(" Aborting. If you want to force processing set forceBadMapping = TRUE in DR2S object initialisation",
+        flog.error(paste(" Aborting. If you want to force processing set ",
+                         "forceBadMapping = TRUE in DR2S object initialisation",
+                         " "),
                    name = "info")
-        suppressWarnings(ggsave(gfile, plt, width = 12, height = 10,
+        suppressWarnings(ggsave(file, plt, width = 12, height = 10,
                                 onefile = TRUE,
                                 title = paste(self$getLocus(),
                                               self$getSampleId(), sep = ".")))
@@ -246,7 +250,8 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
 
     conseq <- conseq(pileup$consmat, name = "mapInit", type = "prob",
                      threshold = self$getThreshold(), force_exclude_gaps = TRUE)
-    conseq_name <- paste0("Init.consensus.", sub(".sam.gz", "", basename(samfile)))
+    conseq_name <- paste0("Init.consensus.",
+                          sub(".sam.gz", "", basename(samfile)))
     conseqpath  <- file.path(outdir, paste0(conseq_name, ".fa"))
     Biostrings::writeXStringSet(
       Biostrings::DNAStringSet(gsub("[-+]", "N", conseq)),
@@ -309,15 +314,16 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
       if (include_insertions && is.null(ins(pileup$consmat))) {
         pileup <- pileup_include_insertions(pileup, threshold = 0.1)
       }
-      ## distribution of gaps not necessary for shortreads (need to check if also
-      ## true for homopolymer regions > 15)
+      ## distribution of gaps not necessary for shortreads
+      ## (need to check if also true for homopolymer regions > 15)
       # pileup$consmat <- .distributeGaps(pileup$consmat, removeError = FALSE)
 
       # Infer initial consensus
       flog.info(" Construct second consensus from shortreads with refined repeats", name = "info")
       conseq <- conseq(pileup$consmat, name = "mapInit1.2", type = "prob",
                        threshold = 0.2, force_exclude_gaps = TRUE)
-      conseq_name <- paste0("Init.consensus.2", sub(".sam.gz", "", basename(samfile)))
+      conseq_name <- paste0("Init.consensus.2",
+                            sub(".sam.gz", "", basename(samfile)))
       conseqpath  <- file.path(outdir, paste0(conseq_name, ".fa"))
       Biostrings::writeXStringSet(
         Biostrings::DNAStringSet(gsub("[-+]", "N", conseq)),
@@ -544,29 +550,38 @@ partitionLongReads.DR2S <- function(x,
                                     threshold = NULL,
                                     skip_gap_freq = 2/3,
                                     dist_alleles = NULL,
-                                    nreads = NULL,
-                                    replace = FALSE,
+                                    noGapPartitioning = FALSE,
+                                    select_alleles_by = "count",
                                     plot = TRUE,
                                     ...) {
   x$runPartitionLongReads(threshold = threshold,
                           skip_gap_freq = skip_gap_freq,
+                          noGapPartitioning = noGapPartitioning,
+                          select_alleles_by = select_alleles_by,
                           dist_alleles = dist_alleles,
                           plot = plot)
   x$runSplitLongReadsByHaplotype(plot = plot)
-  x$runExtractLongReads(nreads = nreads, replace = replace)
+  x$runExtractLongReads()
   invisible(x)
 }
 
-DR2S_$set("public", "runPartitionLongReads", function(threshold = NULL,
-                                                      skip_gap_freq = 2/3,
-                                                      dist_alleles = NULL,
-                                                      plot = TRUE) {
+DR2S_$set("public",
+          "runPartitionLongReads",
+          function(threshold = NULL,
+                  skip_gap_freq = 2/3,
+                  dist_alleles = NULL,
+                  noGapPartitioning = FALSE,
+                  select_alleles_by = "count",
+                  plot = TRUE) {
   # debug
   # skip_gap_freq = 2/3
   # dist_alleles = 3
   # threshold = NULL
   # plot = TRUE
   # self <- dr2s
+  # noGapPartitioning = TRUE
+  # select_alleles_by = "distance"
+  # library(futile.logger)
 
   flog.info("Step 1: PartitionLongReads ...", name = "info")
   flog.info(" Partition longreads into haplotypes", name = "info")
@@ -625,12 +640,24 @@ DR2S_$set("public", "runPartitionLongReads", function(threshold = NULL,
   } else {
     self$partition$mat
   }
-  flog.info(" Partition %s longreads over %s SNPs", NROW(mat), NCOL(mat), name = "info")
+
+
+  if (noGapPartitioning) {
+    flog.info(" Use only non-gap positions for clustering", name = "info")
+    gapFreq <- apply(mat, 2,
+                     function(x) (sum(x == "-")/
+                                    sum(x %in% VALID_DNA())) < threshold)
+    mat <- mat[ ,gapFreq]
+  }
+
+  flog.info(" Partition %s longreads over %s SNPs",
+            NROW(mat), NCOL(mat), name = "info")
   prt <- partition_reads(x = mat,
                          skip_gap_freq = skip_gap_freq,
                          deepSplit = 1,
                          threshold = threshold,
-                         dist_alleles = dist_alleles)
+                         dist_alleles = dist_alleles,
+                         sort_by = select_alleles_by)
   ## Set sample haplotypes
   self$setHapTypes(levels(as.factor(PRT(prt))))
 

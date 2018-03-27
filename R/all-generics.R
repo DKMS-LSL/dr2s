@@ -329,7 +329,13 @@ mapFinal <- function(x,
 #'   polish() %>%
 #'   report(block_width = 60)
 #' }
-partitionLongReads <- function(x, ...) {
+partitionLongReads <- function(x,
+                               skip_gap_freq = 2/3,
+                               dist_alleles = NULL,
+                               noGapPartitioning = FALSE,
+                               select_alleles_by = "count",
+                               ...
+                               ) {
   UseMethod("partitionLongReads")
 }
 
