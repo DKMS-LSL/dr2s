@@ -187,6 +187,7 @@ get_clusts <- function(xseqs, xmat, min_len = 0.80, cl_method = "ward.D",
   hcc <-  hclust(dist, method = cl_method)
   ## do a dynamic cut. Need to be evaluated
   clusts <- dynamicTreeCut::cutreeHybrid(hcc,
+                                         minClusterSize = 15,
                                          distM = as.matrix(dist),
                                          deepSplit = deepSplit,
                                          verbose = FALSE)
@@ -194,6 +195,7 @@ get_clusts <- function(xseqs, xmat, min_len = 0.80, cl_method = "ward.D",
   clades <- as.factor(sapply(unname(clusts$labels), function(i) {
     rawToChar(as.raw(as.integer(i) + 64))
   }))
+  clades
   names(clades) <- hcc$labels
   return(list(clades = clades, tree = hcc))
 }

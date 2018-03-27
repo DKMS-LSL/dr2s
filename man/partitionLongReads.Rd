@@ -4,7 +4,8 @@
 \alias{partitionLongReads}
 \title{Partition mapped long reads into haplotypes}
 \usage{
-partitionLongReads(x, ...)
+partitionLongReads(x, skip_gap_freq = 2/3, dist_alleles = NULL,
+  noGapPartitioning = FALSE, select_alleles_by = "count", ...)
 }
 \arguments{
 \item{x}{A \code{\link[=DR2S_]{DR2S}} object.}

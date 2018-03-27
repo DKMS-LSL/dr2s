@@ -336,6 +336,19 @@ get_seqs_from_mat <- function(mat){
 .seq2rle <- function(seq) {
   rle(strsplit1(as.character(seq), ""))
 }
+
+
+#' Get a distribution of homopolymer count in alleles;
+#'
+#' @param x a DR2S object
+#' @param count the minimal length of a homopolymer to be found (10)
+#' @param map Which result to use. Either "mapFinal" or "refine"
+#'
+#' @return plot a pdf with length histogram and write mode to log
+#' @examples
+#' ###
+
+#' @export
 checkHomoPolymerCount <- function(x, count = 10, map = "mapFinal") {
   map <- match.arg(map, c("mapFinal", "refine"))
   stopifnot(is(x, "DR2S"))

@@ -641,7 +641,6 @@ DR2S_$set("public",
     self$partition$mat
   }
 
-
   if (noGapPartitioning) {
     flog.info(" Use only non-gap positions for clustering", name = "info")
     gapFreq <- apply(mat, 2,
