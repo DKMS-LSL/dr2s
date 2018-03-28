@@ -693,7 +693,7 @@ print.PartList <- function(x, ...) {
   print(x$hpl)
 }
 
-#self <- dpb1_3
+# self <- dr2s
 DR2S_$set("public", "runSplitLongReadsByHaplotype", function(plot = TRUE) {
 
   flog.info(" Split partitioned longreads by score", name = "info")
@@ -754,12 +754,33 @@ DR2S_$set("public", "runSplitLongReadsByHaplotype", function(plot = TRUE) {
     pdf(file = outf, width = 10, height = 12, onefile = TRUE,
         title = paste(self$getLocus(), self$getSampleId(), sep = "." ))
     self$plotPartitionSummary(label = tag, limits = unlist(self$getLimits()))
-    # debug
-    # label = tag
-    # limits = unlist(self$getLimits())
     dev.off()
-  }
 
+    outf  <- self$absPath(paste0("plot.sequence.", sub("bam$", "pdf", usc(bnm))))
+    ppos <- SNP(self$getPartition())
+    names(ppos) <- 1:length(ppos)
+    pwm <- lapply(PWM(self$getPartition()), function(pwm) {
+      pwm[pwm < 0.1] <- 0
+      pwm
+    })
+    p <- ggplot()+
+      ggseqlogo::geom_logo(pwm, method = "bits", seq_type = "dna",
+                           stack_width = 0.9) +
+      facet_wrap(~seq_group, ncol = 1, strip.position = "left") +
+      ggseqlogo::theme_logo() +
+        scale_x_continuous(labels = ppos, breaks = 1:length(ppos)) +
+        theme(axis.text.x = element_text(face="bold", size=14, angle=60),
+              axis.title.y=element_blank(),
+              axis.text.y=element_blank(),
+              axis.ticks.y=element_blank(),
+              strip.text.y = element_text(face = "bold", size = 56, angle = 180) )
+    ggsave(filename = outf,
+           plot     = p,
+           width    = 0.3*length(ppos),
+           height   = 2.5*length(pwm),
+           title = paste(self$getLocus(), self$getSampleId(), sep = "." ))
+
+  }
   return(invisible(self))
 })
 

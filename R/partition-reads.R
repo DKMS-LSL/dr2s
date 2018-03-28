@@ -55,6 +55,7 @@ partition_reads <- function(x, cl_method = "ward.D", min_len = 0.5,
     }
   }
 
+
   ## Get the SNP matrix as sequences
   xseqs <- get_seqs_from_mat(xm)
   ## if only one SNP, remove every read without it
@@ -140,6 +141,7 @@ partition_reads <- function(x, cl_method = "ward.D", min_len = 0.5,
   mcoef(part_)  <- clades$score
   scores(part_) <- scores
   SQS(part_)    <- hpseqs
+  PWM(part_)    <- mats
 
   return(part_)
 }
@@ -344,6 +346,20 @@ mcoef.HapPart <- function(x) {
 #' @export
 `mcoef<-.HapPart` <- function(x, value) {
   attr(x, "mcoef") <- value
+  x
+}
+
+#' The PWM matrix of a cluster
+#' @export
+PWM <- function(x) UseMethod("PWM")
+#' @export
+PWM.HapPart <- function(x) {
+  attr(x, "PWM")
+}
+`PWM<-` <- function(x, value) UseMethod("PWM<-")
+#' @export
+`PWM<-.HapPart` <- function(x, value) {
+  attr(x, "PWM") <- value
   x
 }
 

@@ -441,7 +441,8 @@ readPairFile <- function(pairfile) {
       Biostrings::DNAStringSet(collapse_pair_lines_(rsA)),
       Biostrings::DNAStringSet(collapse_pair_lines_(rsB))
     )
-    names(hap) <- c("hapA", "hapB")
+
+    names(hap) <- c("hapA", strsplit1(rsB, "\\s")[1])
   } else if (endsWith(pairfile, "msa")){
     hap <- readMSA(pairfile)
   } else if (endsWith(pairfile, "fa")){
