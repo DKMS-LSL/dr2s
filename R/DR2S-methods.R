@@ -568,11 +568,11 @@ partitionLongReads.DR2S <- function(x,
 DR2S_$set("public",
           "runPartitionLongReads",
           function(threshold = NULL,
-                  skip_gap_freq = 2/3,
-                  dist_alleles = NULL,
-                  noGapPartitioning = FALSE,
-                  select_alleles_by = "count",
-                  plot = TRUE) {
+                   skip_gap_freq = 2/3,
+                   dist_alleles = NULL,
+                   noGapPartitioning = FALSE,
+                   select_alleles_by = "count",
+                   plot = TRUE) {
   # debug
   # skip_gap_freq = 2/3
   # dist_alleles = 3
@@ -620,6 +620,20 @@ DR2S_$set("public",
   }
   ppos <- self$polymorphicPositions(useSR = useSR)
 
+  if (noGapPartitioning) {
+    flog.info(" Use only non-gap positions for clustering", name = "info")
+    ppos <- ppos %>%
+      dplyr::filter(a1 != "-" & a2 != "-")
+  }
+
+  ## Check if already finished because it is a homozygous sample
+  if (NROW(ppos) == 0) {
+    flog.warn(" No polymorphic positions for clustering! Only single allele?",
+              name = "info")
+    flog.info(" Entering polish and report pipeline", name = "info")
+    return(invisible(finish_cn1(self)))
+  }
+
   mat <- if (tryCatch(
     !is(self$partition, "PartList"),
     error = function(e)
@@ -636,19 +650,10 @@ DR2S_$set("public",
   if (noGapPartitioning) {
     flog.info(" Use only non-gap positions for clustering", name = "info")
     gapFreq <- apply(mat, 2,
-                     function(x) (sum(x == "-")/
+                     function(x) (sum(x == "-") /
                                     sum(x %in% VALID_DNA())) < threshold)
     mat <- mat[ ,gapFreq]
   }
-
-  ## Check if already finished because it is a homozygous sample
-  if (NCOL(mat) == 0) {
-    flog.warn(" No polymorphic positions for clustering! Only single allele?",
-              name = "info")
-    flog.info(" Entering polish and report pipeline", name = "info")
-    return(invisible(finish_cn1(self)))
-  }
-
 
   flog.info(" Partition %s longreads over %s SNPs",
             NROW(mat), NCOL(mat), name = "info")
