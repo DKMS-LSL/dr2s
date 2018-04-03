@@ -568,11 +568,11 @@ partitionLongReads.DR2S <- function(x,
 DR2S_$set("public",
           "runPartitionLongReads",
           function(threshold = NULL,
-                  skip_gap_freq = 2/3,
-                  dist_alleles = NULL,
-                  noGapPartitioning = FALSE,
-                  select_alleles_by = "count",
-                  plot = TRUE) {
+                   skip_gap_freq = 2/3,
+                   dist_alleles = NULL,
+                   noGapPartitioning = FALSE,
+                   select_alleles_by = "count",
+                   plot = TRUE) {
   # debug
   # skip_gap_freq = 2/3
   # dist_alleles = 3
@@ -609,9 +609,9 @@ DR2S_$set("public",
   tag  <- self$getMapTag("init", "LR")
 
   ## Get the reference sequence
-  if (!is.null(self$mapInit$SR1)) {
+  if (!is.null(self$mapInit$SR2)) {
     useSR <- TRUE
-    refseq <- self$mapInit$SR1$conseq
+    refseq <- self$mapInit$SR2$conseq
     flog.info(" Construct SNP matrix from shortreads", name = "info")
   } else {
     useSR <- FALSE
@@ -619,6 +619,12 @@ DR2S_$set("public",
     flog.info(" Construct SNP matrix from longreads", name = "info")
   }
   ppos <- self$polymorphicPositions(useSR = useSR)
+
+  if (noGapPartitioning) {
+    flog.info(" Use only non-gap positions for clustering", name = "info")
+    ppos <- ppos %>%
+      dplyr::filter(a1 != "-" & a2 != "-")
+  }
 
   ## Check if already finished because it is a homozygous sample
   if (NROW(ppos) == 0) {
@@ -644,9 +650,9 @@ DR2S_$set("public",
   if (noGapPartitioning) {
     flog.info(" Use only non-gap positions for clustering", name = "info")
     gapFreq <- apply(mat, 2,
-                     function(x) (sum(x == "-")/
+                     function(x) (sum(x == "-") /
                                     sum(x %in% VALID_DNA())) < threshold)
-    mat <- mat[ ,gapFreq]
+    mat <- mat[, gapFreq]
   }
 
   flog.info(" Partition %s longreads over %s SNPs",
