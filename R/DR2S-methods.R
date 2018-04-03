@@ -620,14 +620,6 @@ DR2S_$set("public",
   }
   ppos <- self$polymorphicPositions(useSR = useSR)
 
-  ## Check if already finished because it is a homozygous sample
-  if (NROW(ppos) == 0) {
-    flog.warn(" No polymorphic positions for clustering! Only single allele?",
-              name = "info")
-    flog.info(" Entering polish and report pipeline", name = "info")
-    return(invisible(finish_cn1(self)))
-  }
-
   mat <- if (tryCatch(
     !is(self$partition, "PartList"),
     error = function(e)
@@ -648,6 +640,15 @@ DR2S_$set("public",
                                     sum(x %in% VALID_DNA())) < threshold)
     mat <- mat[ ,gapFreq]
   }
+
+  ## Check if already finished because it is a homozygous sample
+  if (NCOL(mat) == 0) {
+    flog.warn(" No polymorphic positions for clustering! Only single allele?",
+              name = "info")
+    flog.info(" Entering polish and report pipeline", name = "info")
+    return(invisible(finish_cn1(self)))
+  }
+
 
   flog.info(" Partition %s longreads over %s SNPs",
             NROW(mat), NCOL(mat), name = "info")
