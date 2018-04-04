@@ -25,6 +25,7 @@
 # min_len = 0.5
 # skip_gap_freq = 2/3
 # deepSplit = 1
+#  sort_by <- "distance"
 # x <- dpb1_3$partition$mat
 # x <- mat
 
@@ -135,7 +136,7 @@ partition_reads <- function(x, cl_method = "ward.D", min_len = 0.5,
   part_ <- HapPart(read_name = clades$read, snp_pos = colnames(x))
   PRT(part_) <- clades$clade
   HTR(part_) <- tree
-  SNP(part_) <- ppos
+  SNP(part_) <- colnames(xm)
   K(part_)   <- length(ppos) - length(bad_ppos)
   oc(part_)  <- as.character(unique(subclades))
   mcoef(part_)  <- clades$score
