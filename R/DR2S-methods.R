@@ -652,7 +652,7 @@ DR2S_$set("public",
     gapFreq <- apply(mat, 2,
                      function(x) (sum(x == "-") /
                                     sum(x %in% VALID_DNA())) < threshold)
-    mat <- mat[ ,gapFreq]
+    mat <- mat[, gapFreq]
   }
 
   flog.info(" Partition %s longreads over %s SNPs",
@@ -719,8 +719,7 @@ DR2S_$set("public", "runSplitLongReadsByHaplotype", function(plot = TRUE) {
   haplotypes <- levels(prt$haplotype)
 
   # Set all limits to NULL
-  self.setLimits <- sapply(haplotypes, function(x) NULL)
-
+  self$setLimits(sapply(haplotypes, function(x) NULL))
   prts <-  lapply(haplotypes, function(x) prt[prt$haplotype == x,])
   names(prts) <- haplotypes
   scores <- lapply(prts, function(x) x$mcoef)
@@ -769,22 +768,23 @@ DR2S_$set("public", "runSplitLongReadsByHaplotype", function(plot = TRUE) {
       pwm[pwm < 0.1] <- 0
       pwm
     })
-    p <- ggplot()+
-      ggseqlogo::geom_logo(pwm, method = "bits", seq_type = "dna",
-                           stack_width = 0.9) +
-      facet_wrap(~seq_group, ncol = 1, strip.position = "left") +
+    p <- ggplot2::ggplot() +
+      ggplot2::scale_x_continuous(labels = ppos, breaks = 1:length(ppos)) +
+      ggseqlogo::geom_logo(pwm, method = "bits", seq_type = "dna", stack_width = 0.9) +
+      ggplot2::facet_wrap(~seq_group, ncol = 1, strip.position = "left") +
       ggseqlogo::theme_logo() +
-        scale_x_continuous(labels = ppos, breaks = 1:length(ppos)) +
-        theme(axis.text.x = element_text(face="bold", size=14, angle=60),
-              axis.title.y=element_blank(),
-              axis.text.y=element_blank(),
-              axis.ticks.y=element_blank(),
-              strip.text.y = element_text(face = "bold", size = 56, angle = 180) )
-    ggsave(filename = outf,
-           plot     = p,
-           width    = 0.3*length(ppos),
-           height   = 2.5*length(pwm),
-           title = paste(self$getLocus(), self$getSampleId(), sep = "." ))
+      ggplot2::theme(axis.text.x  = ggplot2::element_text(size = 10, angle = 60),
+                     axis.title.y = ggplot2::element_blank(),
+                     axis.text.y  = ggplot2::element_blank(),
+                     axis.ticks.y = ggplot2::element_blank(),
+                     strip.text.y = ggplot2::element_text(face = "bold", size = 42, angle = 180))
+    ggplot2::ggsave(filename  = outf,
+                    plot      = p,
+                    width     = 0.3*length(ppos),
+                    height    = 2.5*length(pwm),
+                    title     = paste(self$getLocus(), self$getSampleId(), sep = "." ),
+                    units     = "cm",
+                    limitsize = FALSE)
 
   }
   return(invisible(self))
