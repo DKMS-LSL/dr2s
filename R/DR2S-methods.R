@@ -647,14 +647,6 @@ DR2S_$set("public",
     self$partition$mat
   }
 
-  if (noGapPartitioning) {
-    flog.info(" Use only non-gap positions for clustering", name = "info")
-    gapFreq <- apply(mat, 2,
-                     function(x) (sum(x == "-") /
-                                    sum(x %in% VALID_DNA())) < threshold)
-    mat <- mat[, gapFreq]
-  }
-
   flog.info(" Partition %s longreads over %s SNPs",
             NROW(mat), NCOL(mat), name = "info")
   prt <- partition_reads(x = mat,

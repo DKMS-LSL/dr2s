@@ -272,7 +272,11 @@ refineAlignment <- function(x, hptype){
   outdir    <- dir_create_if_not_exists(x$absPath(reftag))
   if (length(x$getHapTypes()) == 1) {
     readpathLR  <- paste0("/", x$mapInit$reads)
-    readpathSR <- x$absPath(x$mapInit$SR1$reads)
+    if (x$getFilterScores()) {
+      readpathSR <- x$absPath(x$mapInit$SR1$reads)
+    } else {
+      readpathSR <- x$getShortreads()
+    }
   } else {
     readpathLR  <- x$absPath(x$mapFinal$lreads[hptype])
     readpathSR <- x$absPath(x$mapFinal$sreads[hptype])
