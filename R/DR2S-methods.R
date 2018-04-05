@@ -574,13 +574,13 @@ DR2S_$set("public",
                    select_alleles_by = "count",
                    plot = TRUE) {
   # debug
-  # skip_gap_freq = 2/3
-  # dist_alleles = 3
   # threshold = NULL
+  # skip_gap_freq = 2/3
+  # dist_alleles = NULL
+  # noGapPartitioning = TRUE
+  # select_alleles_by = "count"
   # plot = TRUE
   # self <- dr2s
-  # noGapPartitioning = TRUE
-  # select_alleles_by = "distance"
   # library(futile.logger)
 
   flog.info("Step 1: PartitionLongReads ...", name = "info")
@@ -647,8 +647,7 @@ DR2S_$set("public",
     self$partition$mat
   }
 
-  flog.info(" Partition %s longreads over %s SNPs",
-            NROW(mat), NCOL(mat), name = "info")
+  flog.info(" Partition %s longreads over %s SNPs", NROW(mat), NCOL(mat), name = "info")
   prt <- partition_reads(x = mat,
                          skip_gap_freq = skip_gap_freq,
                          deepSplit = 1,
