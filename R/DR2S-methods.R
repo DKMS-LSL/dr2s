@@ -754,30 +754,43 @@ DR2S_$set("public", "runSplitLongReadsByHaplotype", function(plot = TRUE) {
 
     outf  <- self$absPath(paste0("plot.sequence.", sub("bam$", "pdf", usc(bnm))))
     ppos <- SNP(self$getPartition())
-    names(ppos) <- 1:length(ppos)
+    names(ppos) <- seq_along(ppos)
     pwm <- lapply(PWM(self$getPartition()), function(pwm) {
       pwm[pwm < 0.1] <- 0
       pwm
     })
+
+    ## !!HACK!!
+    ## Work around some limitation in ggseqlogo::geom_logo that produces a crash
+    ## if there is a single column in pwm by adding a dummy column
+    if (all(sapply(pwm, NCOL) == 1)) {
+      pwm <- lapply(pwm, function(pwm) {
+        cbind(pwm, rep(0, 6))
+      })
+    }
+
     p <- ggplot2::ggplot() +
-      ggplot2::scale_x_continuous(labels = ppos, breaks = 1:length(ppos)) +
       ggseqlogo::geom_logo(pwm, method = "bits", seq_type = "dna", stack_width = 0.9) +
       ggplot2::facet_wrap(~seq_group, ncol = 1, strip.position = "left") +
+      ggplot2::scale_x_continuous(labels = unname(ppos), breaks = seq_along(ppos)) +
       ggseqlogo::theme_logo() +
-      ggplot2::theme(axis.text.x  = ggplot2::element_text(size = 10, angle = 60),
-                     axis.title.y = ggplot2::element_blank(),
-                     axis.text.y  = ggplot2::element_blank(),
-                     axis.ticks.y = ggplot2::element_blank(),
-                     strip.text.y = ggplot2::element_text(face = "bold", size = 42, angle = 180))
+      ggplot2::theme(
+        axis.text.x  = ggplot2::element_text(size = 10, angle = 60),
+        axis.title.y = ggplot2::element_blank(),
+        axis.text.y  = ggplot2::element_blank(),
+        axis.ticks.y = ggplot2::element_blank(),
+        strip.text.y = ggplot2::element_text(face = "bold", size = 42, angle = 180)
+      )
     ggplot2::ggsave(filename  = outf,
                     plot      = p,
-                    width     = 0.3*length(ppos),
+                    width     = 3 + 0.3*length(ppos),
                     height    = 2.5*length(pwm),
                     title     = paste(self$getLocus(), self$getSampleId(), sep = "." ),
                     units     = "cm",
                     limitsize = FALSE)
 
   }
+
   return(invisible(self))
 })
 
