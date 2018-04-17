@@ -1,10 +1,11 @@
 #' @export
 #debug
-# x <- dpb1_3
+# x <- dr2s
 # threshold <- x$getThreshold()
 # lower_limit <- 0.6
 # cache = TRUE
 # library(foreach)
+# library(futile.logger)
 #x <- a
 polish.DR2S <- function(x,
                         threshold = x$getThreshold(),
@@ -40,6 +41,7 @@ polish.DR2S <- function(x,
   rtypes  <- names(x$mapFinal$pileup)
   hptypes <- x$getHapTypes()
   menv <- MergeEnv(x, threshold)
+
   for (hptype in hptypes) {
     menv$init(hptype)
     menv$walk(hptype)

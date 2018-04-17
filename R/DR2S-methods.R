@@ -109,9 +109,9 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
     maptag  <- sprintf(mapfmt, self$getReference(), self$getSrdType(),
                        self$getSrMapper(), optstring(opts, optsname))
     readfile <- self$getShortreads()
-    if (threshold != self$getThreshold()) {
-      self$setThreshold(threshold)
-    }
+    # if (threshold != self$getThreshold()) {
+    #   self$setThreshold(threshold)
+    # }
 
     flog.info(" Map shortreads to provided reference", name = "info")
 

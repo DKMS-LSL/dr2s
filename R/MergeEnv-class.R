@@ -49,7 +49,8 @@ MergeEnv_ <- R6::R6Class(
     x = NA,
     initialize = function(x, threshold = x$getThreshold()) {
       assertthat::assert_that(is(x, "DR2S"))
-      self$hptypes <- foreach(hptype = x$getHapTypes(), .final = function(h) setNames(h, x$getHapTypes())) %do% {
+      self$hptypes <- foreach(hptype = x$getHapTypes(),
+                              .final = function(h) setNames(h, x$getHapTypes())) %do% {
        structure(as.environment(list(haplotype = hptype)), class = "HapEnv")
       }
       self$threshold = threshold
@@ -81,7 +82,7 @@ MergeEnv_ <- R6::R6Class(
 #self$init("A")
 #self$init("B")
 #self$hptypes$B$SR[478,]
-# hapEnv <- "A"
+#hapEnv <- "B"
 #self <- menv
 MergeEnv_$set("public", "init", function(hapEnv) {
   hapEnv <- match.arg(hapEnv, self$x$getHapTypes())
@@ -275,6 +276,12 @@ expand_longread_consmat <- function(lrm, srm) {
         add <- ((NROW(m)+1):NROW(srm))
         m <- rbind(m, srm[add,])
         m[add,] <- rep.int(0, 6*length(add))
+      } else if (NROW(m) > NROW(srm)){
+        flog.info(" fill shortreads with gapsfrom %s to %s",
+                NROW(srm), NROW(m), name = "info")
+        add <- ((NROW(srm)+1):NROW(m))
+        srm <- rbind(srm, m[add,])
+        srm[add,] <- rep.int(0, 6*length(add))
       }
     }
     stopifnot(NROW(m) == NROW(srm))
