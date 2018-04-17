@@ -70,7 +70,6 @@ Collate:
     'multiplot.R'
     'partition-reads.R'
     'partitionShortReads.R'
-    'phasing.R'
     'pileup.R'
     'polish-utils.R'
     'polish.R'

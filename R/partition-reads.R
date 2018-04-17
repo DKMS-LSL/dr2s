@@ -36,18 +36,18 @@ partition_reads <- function(x, cl_method = "ward.D", min_len = 0.5,
   # get SNPs
   ppos <- colnames(x)
   bad_ppos <- c()
-  xm <- as.matrix(x[order(rownames(x)),])
+  xm <- as.matrix(x[order(rownames(x)), , drop = FALSE])
   ## if there is only one SNP for clustering, use it! If it does not match both
   ## sequencing types it will be reported
   if (length(ppos) > 1) {
     bad_ppos <- apply(xm, 2, function(x) {
       NROW(x[x == "+"])/NROW(x) > skip_gap_freq
     })
-    xm <- as.matrix(xm[,!bad_ppos])
+    xm <- as.matrix(xm[, !bad_ppos])
     bad_ppos <- ppos[bad_ppos]
     flog.info(paste0("  %s SNPs are covered by less than %g%% of sequences and",
                      " discarded. Using the remaining %s SNPs for clustering ..."),
-              length(bad_ppos), 1 - skip_gap_freq, ncol(xm), name = "info")
+              length(bad_ppos), 1 - skip_gap_freq, NCOL(xm), name = "info")
     if (NCOL(xm) == 0) {
       flog.error(paste0("  Aborting. No SNP remaining for clustering!",
                         " Check your reads and reference and have a look",
@@ -55,7 +55,6 @@ partition_reads <- function(x, cl_method = "ward.D", min_len = 0.5,
       stop("No SNPs remaining for clustering. Check mapInit plots!")
     }
   }
-
 
   ## Get the SNP matrix as sequences
   xseqs <- get_seqs_from_mat(xm)
@@ -70,14 +69,15 @@ partition_reads <- function(x, cl_method = "ward.D", min_len = 0.5,
   tree <- clustres$tree
   hptypes <- levels(subclades)
 
-  if (length(subclades) == 0){
+  if (length(subclades) == 0) {
     flog.error("  Two few longreads for clustering", name = "info")
     stop("To few longreads for clustering")
   }
 
   flog.info("  Initial clustering results in %s haplotypes %s",
             length(hptypes), comma(hptypes), name = "info")
-  # Get scores and assign clades by freq mat
+
+  ## Get scores and assign clades by freq mat
   ## Position Weight Matrix: Use frequency plus pseudocount/ basefrequency
   ## (here 0.25 for each).
   msa <- lapply(levels(subclades), function(x) {
@@ -87,19 +87,18 @@ partition_reads <- function(x, cl_method = "ward.D", min_len = 0.5,
   mats <- lapply(msa, function(x) create_PWM(x))
   hpseqs <- Biostrings::DNAStringSet(sapply(msa, function(x) {
     unlist(simple_consensus(
-      t(Biostrings::consensusMatrix(x)[c(VALID_DNA(), "+"),])))
+      t(Biostrings::consensusMatrix(x)[c(VALID_DNA(), "+"), ])))
   }))
   names(hpseqs) <- sapply(hptypes, function(hptype)
     paste(hptype, sum(subclades == hptype), sep = ":"))
 
   if (length(hptypes) > dist_alleles) {
-    flog.info("  Trying to identify chimeric reads/haplotypes ...",
-              name = "info")
+    flog.info("  Trying to identify chimeric reads/haplotypes ...", name = "info")
     if (sort_by == "count") {
       rC <- names(sort(table(subclades),decreasing = TRUE)[1:dist_alleles])
       # ## !!!!! HACK!!! rm following line; uncomment previous one; removed
       # rC <- c("A", "C")
-    } else if (sort_by == "distance"){
+    } else if (sort_by == "distance") {
       rC <- sort(find_chimeric(seqs = hpseqs, dist_alleles = dist_alleles))
     }
     flog.info("  Use only clusters %s ...", comma(rC), name = "info")
@@ -108,10 +107,7 @@ partition_reads <- function(x, cl_method = "ward.D", min_len = 0.5,
   hptypes <- names(mats)
 
   scores <- dplyr::bind_rows(
-    lapply(1:length(xseqs),function(s) get_scores(s, xseqs, mats)))
-
-  s <- 1
-    lapply(1:length(xseqs),function(s) get_scores(s, xseqs, mats))
+    lapply(1:length(xseqs), function(s) get_scores(s, xseqs, mats)))
 
   clades <- scores %>%
     dplyr::group_by(read) %>%
@@ -133,10 +129,9 @@ partition_reads <- function(x, cl_method = "ward.D", min_len = 0.5,
   }
 
   # Create the partition table
-  part_ <- HapPart(read_name = clades$read, snp_pos = colnames(x))
+  part_ <- HapPart(read_name = clades$read, snp_pos = colnames(xm))
   PRT(part_) <- clades$clade
   HTR(part_) <- tree
-  SNP(part_) <- colnames(xm)
   K(part_)   <- length(ppos) - length(bad_ppos)
   oc(part_)  <- as.character(unique(subclades))
   mcoef(part_)  <- clades$score
@@ -150,7 +145,7 @@ partition_reads <- function(x, cl_method = "ward.D", min_len = 0.5,
 
 # Helpers -----------------------------------------------------------------
 
-get_clusts <- function(xseqs, xmat, min_len = 0.80, cl_method = "ward.D",
+get_clusts <- function(xseqs, min_len = 0.80, cl_method = "ward.D",
                        deepSplit = 1, min_reads_frac = 1/3, threshold = 0.2) {
 
   assertthat::assert_that(

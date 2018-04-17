@@ -220,31 +220,29 @@ MergeEnv_$set("public", "showMatrix", function(envir, pos, left = 6, right = lef
 MergeEnv_$set("public", "export", function() {
   cons <- structure(
     c(
-      foreach (hptype = self$x$getHapTypes(),
-                 .final = function(x) setNames(x, self$x$getHapTypes())) %do% {
-        envir <- self$hptypes[[hptype]]
-        list(
-        matrix       = ifelse(!is.null(envir$SR), envir$SR, envir$LR),
-        variants     = compact(envir$variants),
-        phasemat     = envir$phasemat,
-        phasebreaks  = envir$phasebreaks
-        )
-        },
+      foreach(hptype = self$x$getHapTypes(),
+              .final = function(x) setNames(x, self$x$getHapTypes())) %do% {
+                envir <- self$hptypes[[hptype]]
+                list(
+                  matrix   = ifelse(!is.null(envir$SR), envir$SR, envir$LR),
+                  variants = compact(envir$variants)
+                )
+              },
       seq = list(foreach(hptype = self$x$getHapTypes(),
-                            .final = function(x) setNames(x, self$x$getHapTypes())) %do% {
-                              self$x$mapFinal$pileup
-        if(!is.null(self$hptypes[[hptype]]$SR)){
-          reads <- self$hptypes[[hptype]]$SR
-        } else {
-          reads <- self$x$mapFinal$pileup[[paste0("LR",hptype)]]$consmat
-        }
-        cseq <- conseq(reads, paste0("hap", hptype), "ambig", exclude_gaps = TRUE, threshold = 0.3)
-        metadata(cseq) <- list()
-        cseq
-      })
+                         .final = function(x) setNames(x, self$x$getHapTypes())) %do% {
+                           self$x$mapFinal$pileup
+                           if (!is.null(self$hptypes[[hptype]]$SR)){
+                             reads <- self$hptypes[[hptype]]$SR
+                           } else {
+                             reads <- self$x$mapFinal$pileup[[paste0("LR",hptype)]]$consmat
+                           }
+                           cseq <- conseq(reads, paste0("hap", hptype), "ambig", exclude_gaps = TRUE, threshold = 0.3)
+                           metadata(cseq) <- list()
+                           cseq
+                         })
     ),
     class = c("ConsList", "list")
-    )
+  )
 
   cons
   self$x$setConsensus(cons)
