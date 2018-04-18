@@ -55,6 +55,7 @@ create_dr2s_conf <- function(sample,
 }
 
 # conf <- read_dr2s_conf(config_file)
+#' @export
 read_dr2s_conf <- function(config_file) {
   conf <- yaml::yaml.load_file(config_file)
   ## set defaults if necessary
@@ -87,7 +88,7 @@ read_dr2s_conf <- function(config_file) {
   if (is.null(conf$opts))
     conf["opts"] <-  list(NULL)
 
-  structure(conf, class = c("DR2Sconf", "list"))
+  expand_dr2s_conf(structure(conf, class = c("DR2Sconf", "list")))
 }
 expand_dr2s_conf <- function(conf) {
   ## we can have more than one sample
