@@ -54,23 +54,27 @@ create_dr2s_conf <- function(sample,
   structure(conf1, class = c("DR2Sconf", "list"))
 }
 
+# conf <- read_dr2s_conf(config_file)
 read_dr2s_conf <- function(config_file) {
   conf <- yaml::yaml.load_file(config_file)
   ## set defaults if necessary
   conf$datadir    <- conf$datadir    %||% normalizePath(".", mustWork = TRUE)
   conf$outdir     <- conf$outdir     %||% file.path(conf$datadir, "output")
   conf$threshold  <- conf$threshold  %||% 0.2
-  conf$iterations <- conf$iterations %||% 1
+  conf$iterations <- conf$iterations %||% 2
   conf$microsatellite <- conf$microsatellite %||% FALSE
   conf$dist_alleles <- conf$dist_alleles %||% 2
   conf$filterScores <- conf$filterScores %||% TRUE
   conf$partSR <- conf$partSR %||% TRUE
-  conf$forceBadMapping <- forceBadMapping %||% FALSE
+  conf$forceBadMapping <- conf$forceBadMapping %||% FALSE
   conf$lrmapper     <- conf$lrmapper      %||% "minimap"
   conf$srmapper     <- conf$srmapper      %||% "bwamem"
   conf$limits     <- conf$limits     %||% list(NULL)
   conf$haptypes   <- conf$haptypes   %||% list(NULL)
-  conf$pipeline   <- conf$pipeline   %||% c("clear", "mapInit", "partLR", "mapIter", "partSR", "mapFinal", "polish", "report")
+  conf$pipeline   <- conf$pipeline   %||% c("clear", "mapInit",
+                                            "partitionLongReads", "mapIter",
+                                            "partitionShortReads", "mapFinal",
+                                            "polish", "report")
   conf$longreads  <- conf$longreads  %||% list(type = "pacbio", dir = "pacbio")
   conf$shortreads <- conf$shortreads %||% list(type = "illumina", dir = "illumina")
 
@@ -85,7 +89,6 @@ read_dr2s_conf <- function(config_file) {
 
   structure(conf, class = c("DR2Sconf", "list"))
 }
-
 expand_dr2s_conf <- function(conf) {
   ## we can have more than one sample
   samples <- conf$samples
@@ -101,15 +104,18 @@ expand_dr2s_conf <- function(conf) {
   nrds <- conf$nreads %||% list(NULL)
   conf$nreads <- NULL
   ## we can have different consensus calling methods
-  cnss <- conf$consensus %||% list("multialign")
+  cnss <- conf$consensus %||% list("mapping")
   conf$consensus <- NULL
+
+  sample <- samples[[1]]
+  sample_id <- sample_ids[[1]]
+  locus <- samples
   foreach(sample = samples, sample_id = sample_ids, .combine = "c") %:%
-    foreach(locus = sample, .combine = "c") %:%
     foreach(nrd = nrds, .combine = "c") %:%
     foreach(lrd = lrds, .combine = "c") %:%
     foreach(cns = cnss, .combine = "c") %:%
-    foreach(ref = iter(locus$reference %||% ""), alt = iter(locus$alternate %||% ""), .combine = "c") %do% {
-      update_conf(conf, lrd, nrd, sample_id, locus, ref, alt, cns)
+    foreach(ref = sample$reference, .combine = "c") %do% {
+      update_conf(conf, lrd, nrd, sample_id, sample, ref, alternate = "", cns)
     }
 }
 
@@ -186,7 +192,7 @@ validate_dr2s_conf <- function(conf) {
   conf$srmapper <- match.arg(conf$srmapper, c("bwamem", "graphmap", "minimap"))
   ## Check pipeline
   pipesteps <- c("clear", "cache", "mapInit", "mapIter", "mapFinal",
-                 "partLR", "partSR", "polish", "report")
+                 "partitionLongReads", "partitionShortReads", "polish", "report")
   if (!all(conf$pipeline %in% pipesteps)) {
     stop("Invalid pipeline step <", comma(conf$pipeline[!conf$pipeline %in% pipesteps]), ">", call. = FALSE)
   }

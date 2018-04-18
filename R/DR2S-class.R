@@ -937,12 +937,12 @@ DR2S_ <- R6::R6Class(
         step,
         clear          = self$clear(),
         cache          = self$cache(),
-        partLR         = {
+        partitionLongReads         = {
           self$runPartitionLongReads()
           self$runSplitLongReadsByHaplotype()
           self$runExtractLongReads()
         },
-        partSR         = self$runPartitionShortReads(),
+        partitionShortReads         = self$runPartitionShortReads(),
         mapInit        = self$runMapInit(),
         mapIter        = self$runMapIter(),
         mapFinal       = self$runMapFinal(),

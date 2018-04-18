@@ -1,24 +1,30 @@
-datadir: /home/gerhard/bioinf/Refseq/benchmarking2
-outdir: /home/gerhard/bioinf/Refseq/benchmarking2/benchmark1
-threshold: 0.20
-consensus: ['multialign', 'mapping']
-shortreads:
-  - { type: illumina, dir: illumina }
-longreads:
-  - { type: pacbio, dir: pacbio }
-  - { type: nanopore, dir: nanopore }
+datadir: ~/bioinf/DR2S_KIR/20171130/3DL3/
+outdir: ~/storage/testdata/20171130/3DL3
+threshold: 0.10
+consensus: 'mapping'
+forceBadMapping: FALSE
+iterations: 2
+microsatellite: TRUE
+dist_alleles: 2
+srmapper: bwamem
+lrmapper: minimap
+partSR: TRUE
+filterScores: FALSE
 opts:
-  map0:
-    recode_header: true
-  extract:
-    nalign: 25
-nreads: [50, 100, 150]
+  partitionLongReads:
+    noGapPartitioning: FALSE
+    select_alleles_by: distance
+  polish:
+    check_hp_count: TRUE
+shortreads:
+  - { type: illumina, dir: Illumina }
+longreads:
+  - { type: pacbio, dir: Sequel }
+
 samples:
-  ID12912701:
-    - locus: A
-      reference: ['01:01:01:01', '']
-      alternate: ['26:01:01:01', '']
-  ID12912702:
-    - locus: A
-      reference: ['24:02:01:01', '']
-      alternate: ['02:01:01:01', '']
+  7203477:
+    reference: 'KIR3DL3*0140201'
+    locus: 'KIR3DL3'
+  DEDKM7055610:
+    reference: 'KIR3DL3*0140201'
+    locus: 'KIR3DL3'

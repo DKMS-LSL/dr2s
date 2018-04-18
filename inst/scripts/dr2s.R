@@ -15,9 +15,7 @@ suppressPackageStartupMessages(stopifnot(
   require("optparse", quietly = TRUE),
   require("yaml", quietly = TRUE),
   require("foreach", quietly = TRUE),
-  require("itertools", quietly = TRUE),
-  suppressMessages(require("hlatools", quietly = TRUE)),
-  suppressMessages(require("IPDdata", quietly = TRUE)),
+  suppressMessages(require("ipd.Hsapiens.db", quietly = TRUE)),
   suppressMessages(require("DR2S", quietly = TRUE))
 ))
 
@@ -28,10 +26,12 @@ oparser <- OptionParser(usage = "%prog [-h] <config>",
                         epilogue = '')
 arguments   <- parse_args(oparser, positional_arguments = TRUE)
 config_file <- arguments$args
-configs     <- DR2S:::expand_dr2s_conf(DR2S:::read_dr2s_conf(config_file))
+configs     <- expand_dr2s_conf(read_dr2s_conf(config_file))
 
+configs[[1]]
+# config_file <- "./tests/config1.yaml"
 rs <- foreach(conf = configs) %do% {
-  mapper <- DR2S::DR2Smap(conf)
+  mapper <- DR2Smap(conf)
   cat("\nRunning\n", sep = "")
   print(mapper$getConfig())
   cat("\n")
