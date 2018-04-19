@@ -40,7 +40,9 @@ create_dr2s_conf <- function(sample,
     srmapper   = conf0$srmapper %||% "bwamem",
     limits     = conf0$limits   %||% NULL,
     haptypes   = conf0$haptypes %||% NULL,
-    pipeline   = conf0$pipeline %||% c("clear", "mapInit", "partLR", "mapIter", "partSR", "mapFinal", "polish", "report"),
+    pipeline   = conf0$pipeline %||% c("clear", "mapInit", "partitionLongReads",
+                                       "mapIter", "partitionShortReads",
+                                       "mapFinal", "polish", "report"),
     longreads  = longreads,
     shortreads = shortreads,
     nreads     = conf0$nreads   %||% NULL,
@@ -54,7 +56,12 @@ create_dr2s_conf <- function(sample,
   structure(conf1, class = c("DR2Sconf", "list"))
 }
 
+## debug
 # conf <- read_dr2s_conf(config_file)
+#config_file <- "~/bioinf/DR2S_KIR/config1.yaml"
+#library(DR2S)
+# configs <- read_dr2s_conf(config_file)
+# DR2Smap(configs[[1]])
 #' @export
 read_dr2s_conf <- function(config_file) {
   conf <- yaml::yaml.load_file(config_file)

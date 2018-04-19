@@ -14,6 +14,8 @@
 suppressPackageStartupMessages(stopifnot(
   require("optparse", quietly = TRUE),
   require("yaml", quietly = TRUE),
+  require("DR2S", quietly = TRUE),
+  require("foreach", quietly = TRUE)
 ))
 
 ## Options ####
@@ -25,8 +27,6 @@ arguments   <- parse_args(oparser, positional_arguments = TRUE)
 config_file <- arguments$args
 configs     <- read_dr2s_conf(config_file)
 
-configs[[1]]
-# config_file <- "./tests/config1.yaml"
 rs <- foreach(conf = configs) %do% {
   mapper <- DR2Smap(conf)
   cat("\nRunning\n", sep = "")

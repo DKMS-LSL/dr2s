@@ -72,9 +72,6 @@ run_igv <- function(x, position, map = "mapFinal", open_now = TRUE, ...) {
   assertthat::assert_that(
     is(x, "DR2S")
   )
-  if (!nzchar(exe_path <- normalizePath(Sys.which("igv"), mustWork = FALSE))) {
-    stop("No IGV executable found on the PATH", call. = FALSE)
-  }
   map <- match.arg(map, c("mapInit",
                           "mapFinal",
                           "mapIter",
@@ -83,6 +80,7 @@ run_igv <- function(x, position, map = "mapFinal", open_now = TRUE, ...) {
   basedir <- normalizePath(x$getOutdir(), mustWork = TRUE)
   igvdir <- file.path(basedir, ".pplib")
   dir_create_if_not_exists(igvdir)
+  dir_create_if_not_exists(file.path(basedir, "win"))
   if (.Platform$OS.type == "windows") {
     fsep <- "\\"
   } else {
@@ -155,18 +153,19 @@ run_igv <- function(x, position, map = "mapFinal", open_now = TRUE, ...) {
   write(cmds, igvCommand)
   Sys.chmod(igvCommand, mode = "775")
 
+  ## for windows
+  igvCommandWin <- file.path(basedir, "win", paste0("runIGV_", map, ".bat"))
+  cmdsWin <- paste0("igv ", "..\\", gsub("/", "\\\\", igvConfigs))
+  write(cmdsWin, igvCommandWin)
+
   if (open_now) {
     if (.Platform$OS.type != "windows") {
       cwd <- getwd()
       setwd(basedir)
       system(igvCommand)
       setwd(cwd)
-    } else if (.Platform$OS.type == "windows") {
-      msg <- sprintf(
-        "\nOpen an instances of the command prompt and paste in the command:\n%s\n",
-        paste0(shQuote(exe_path), " ", shQuote(file.path(basedir, igv)))
-      )
-      message(msg)
+    } else {
+      message("\nOpen IGV manually")
     }
   }
 }

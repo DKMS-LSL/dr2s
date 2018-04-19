@@ -40,7 +40,7 @@ DR2Smap.default <- function(sample,
 }
 
 #' @export
-DR2Smap.DR2Sconf <- function(sample) DR2S_$new(conf)
+DR2Smap.DR2Sconf <- function(conf) DR2S_$new(conf)
 
 #' @export
 cache.DR2S <- function(x, outname, ...) {
