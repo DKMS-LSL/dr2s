@@ -199,7 +199,7 @@ report_checked_consensus <- function(x, which = "mapFinal") {
 #' system editor, "subl" for sublime, "gvim" or "gedit"
 #' @export
 check_alignment_file <- function(x, which = "mapFinal", where = 0,
-                                 editor = "xdg-open") {
+                                 editor = "xdg-open", openEditor = TRUE) {
   which <- match.arg(tolower(which), c("mapfinal", "mapiter"))
   ending <- ifelse(length(x$getHapTypes()) == 2,
                    "psa",
@@ -224,7 +224,10 @@ check_alignment_file <- function(x, which = "mapFinal", where = 0,
     file.copy(pairfile_unchecked, pairfile_checked, overwrite = FALSE)
   }
   where <- 23 + 4*floor((where - 1)/80)
-  editor(pairfile_checked, where, use_editor = editor)
+  if (openEditor) {
+    editor(pairfile_checked, where, use_editor = editor)
+  }
+  pairfile_checked
 }
 
 check_report_status <- function(x){
