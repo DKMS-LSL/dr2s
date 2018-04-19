@@ -58,7 +58,7 @@ create_dr2s_conf <- function(sample,
 
 ## debug
 # conf <- read_dr2s_conf(config_file)
-#config_file <- "~/bioinf/DR2S_KIR/config1.yaml"
+#config_file <- "./tests/config1.yaml"
 #library(DR2S)
 # configs <- read_dr2s_conf(config_file)
 # DR2Smap(configs[[1]])

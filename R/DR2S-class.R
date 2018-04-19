@@ -225,6 +225,25 @@ DR2S_ <- R6::R6Class(
       ))
       invisible(self)
     },
+    run_         = function(step) {
+      switch(
+        step,
+        clear          = self$clear(),
+        cache          = self$cache(),
+        partitionLongReads         = {
+          self$runPartitionLongReads()
+          self$runSplitLongReadsByHaplotype()
+          self$runExtractLongReads()
+        },
+        partitionShortReads         = self$runPartitionShortReads(),
+        mapInit        = self$runMapInit(),
+        mapIter        = self$runMapIter(),
+        mapFinal       = self$runMapFinal(),
+        polish         = DR2S::polish(self),
+        report         = DR2S::report(self),
+        stop("<", step, "> is not a valid step in the mapping pipeline")
+      )
+    },
     ##
     ## Getters and Setters ####
     ##
@@ -931,26 +950,7 @@ DR2S_ <- R6::R6Class(
   ##
   private = list(
     conf         = NULL,
-    reportStatus = NULL,
-    run_         = function(step) {
-      switch(
-        step,
-        clear          = self$clear(),
-        cache          = self$cache(),
-        partitionLongReads         = {
-          self$runPartitionLongReads()
-          self$runSplitLongReadsByHaplotype()
-          self$runExtractLongReads()
-        },
-        partitionShortReads         = self$runPartitionShortReads(),
-        mapInit        = self$runMapInit(),
-        mapIter        = self$runMapIter(),
-        mapFinal       = self$runMapFinal(),
-        polish         = DR2S::polish(self),
-        report         = DR2S::report(self),
-        stop("<", step, "> is not a valid step in the mapping pipeline")
-      )
-    }
+    reportStatus = NULL
   )
 )
 

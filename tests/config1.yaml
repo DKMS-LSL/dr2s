@@ -10,6 +10,9 @@ srmapper: bwamem
 lrmapper: minimap
 partSR: TRUE
 filterScores: FALSE
+pipeline:
+  - clear
+  - mapInit
 opts:
   partitionLongReads:
     noGapPartitioning: FALSE
