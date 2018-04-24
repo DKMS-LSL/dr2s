@@ -23,6 +23,7 @@ Imports:
     Rsamtools,
     dplyr,
     ggplot2,
+    cowplot,
     data.table,
     Biostrings,
     DECIPHER,
@@ -67,7 +68,6 @@ Collate:
     'errors.R'
     'log-config.R'
     'minimap.R'
-    'multiplot.R'
     'partition-reads.R'
     'partitionShortReads.R'
     'pileup.R'

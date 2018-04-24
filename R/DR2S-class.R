@@ -824,19 +824,21 @@ DR2S_ <- R6::R6Class(
     },
     ##
     plotmapInitSummary = function(thin = 0.2, width = 4, label = "", readtype = "LR") {
-      # debug
-      # readtype = "SR"
-      tag <- self$getMapTag(ref = readtype)
-      multiplot(
+      readtypes <- if (self$getPartSR()) {
+        c("SR", "LR")
+      } else {
+        c("LR")
+      }
+      plotlist <- foreach(readtype = readtypes) %do% {
+        tag <- self$getMapTag(ref = readtype)
         self$plotCoverage(
-          thin = thin,
+          thin =thin,
           width = width,
           label = label %|ch|% tag,
           readtype = readtype
-        ),
-        self$plotBasecallFrequency(threshold = self$getThreshold(), label = " "),
-        layout = matrix(c(1, 2, 2, 2), ncol = 1)
-      )
+        )
+      }
+      cowplot::plot_grid(plotlist = plotlist, labels = readtypes, nrow = length(plotlist))
     },
     ##
     plotPartitionSummary = function(label = "", limits = NULL) {
@@ -845,33 +847,26 @@ DR2S_ <- R6::R6Class(
         ggplot2::theme(legend.position = "none")
       p2 <- self$plotPartitionTree()
       p3 <- self$plotPartitionRadar()
-      if (!is.null(p2)) {
-        multiplot(p1, p2, p3, layout = matrix(c(1, 2, 2, 2, 3), ncol = 1))
+      if (is.null(p2)) {
+        cowplot::plot_grid(p1, p3, ncol = 1)
       } else {
-        multiplot(p1,p3, layout = matrix(c(1,2)))
+        cowplot::plot_grid(p1, p2, p3, ncol = 1, rel_heights = c(1,2,1))
       }
     },
     ##
     plotmapIterSummary = function(thin = 0.2, width = 10, iteration = 0, drop.indels = TRUE) {
       hptypes <- self$getHapTypes()
-      if (iteration > 2) {
+      if (iteration == self$getIterations()) {
         drop.indels <- FALSE
         width <- 10
       }
       plotlist <- foreach(hp = hptypes) %do% {
         tag <- self$getMapTag(iteration, hp)
-        list(self$plotGroupCoverage(hp, ref = NULL, iteration = iteration,
+        self$plotGroupCoverage(hp, ref = NULL, iteration = iteration,
                                     threshold = NULL, range = NULL, thin, width,
-                                    label = tag, drop.indels = drop.indels),
-             self$plotGroupBasecallFrequency(hp, NULL, iteration, NULL, " ", drop.indels = drop.indels))
+                                    label = tag, drop.indels = drop.indels)
       }
-      plotlist <- unlist(plotlist, recursive = FALSE)
-      layout_vector <- rep(1:length(plotlist), rep(c(1,3), length(hptypes)))
-      layout = matrix(layout_vector, ncol = length(hptypes))
-
-      multiplot(
-        plotlist = plotlist,
-        layout = layout)
+      cowplot::plot_grid(plotlist = plotlist, labels = hptypes)
     },
     ##
     plotmapFinalSummary = function(readtype, thin = 0.2, width = 10, iteration = "final") {
@@ -883,21 +878,9 @@ DR2S_ <- R6::R6Class(
         self$plotGroupCoverage(group = hp, ref = readtype, iteration = iteration,
                                threshold = NULL, range = NULL, thin = thin,
                                width = width, label = tag)
-        list(
-          self$plotGroupCoverage(group = hp, ref = readtype, iteration = iteration,
-                                 threshold = NULL, range = NULL, thin = thin,
-                                 width = width, label = tag),
-          self$plotGroupBasecallFrequency(group = hp, ref = readtype, iteration = iteration,
-                                          threshold = NULL, label = " "))
       }
-      self$plotGroupBasecallFrequency(group = hp, ref = readtype, iteration = iteration,
-                                      threshold = NULL, label = " ")
-      plotlist <- unlist(plotlist, recursive = FALSE)
-      layout_vector <- rep(1:length(plotlist), rep(c(1,3), length(hptypes)))
-      layout = matrix(layout_vector, ncol = length(hptypes))
-      multiplot(
-        plotlist = plotlist,
-        layout = layout)
+      
+      cowplot::plot_grid(plotlist = plotlist, labels = hptypes)
     },
     ##
     plotmapIterSummaryConseqProb = function(iteration = 0,

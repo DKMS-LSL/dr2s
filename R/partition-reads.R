@@ -496,7 +496,6 @@ plot_partition_histogram <- function(x, label = "", limits = NULL) {
                colour = "grey80") +
     xlab("Haplotype membership coefficient") +
     ylab("Number of reads") +
-    ggtitle(label = label) +
     theme_bw()
 }
 

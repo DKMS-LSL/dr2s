@@ -435,14 +435,15 @@ checkHomoPolymerCount <- function(x, count = 10, map = "mapFinal") {
       ggtitle(paste("Homopolymer length", hp)) +
       theme_minimal()
   }
-
-
   if (!all(is.null(unlist(p)))) {
-    plotFile <- file.path(x$getOutdir(), "homopolymers.pdf")
-    pdf(file = plotFile, width = 7*length(hptypes))
-    multiplot(plotlist = p,
-              layout = matrix(1:length(p), nrow = 1))
-    dev.off()
+    p1 <- cowplot::plot_grid(plotlist = p, nrow = length(n))
+    cowplot::save_plot(p1, filename = x$absPath("plot.Homopolymers.pdf"),
+                base_width = 7*length(hptypes),
+                title     = paste(x$getLocus(), x$getSampleId(), sep = "." ),
+                base_height = 7*length(n))
+    cowplot::save_plot(p1, filename = x$absPath(".plots/plot.Homopolymers.png"),
+              base_width = 7*length(hptypes),
+              base_height = 7*length(n))
   }
   return(invisible(x))
 }

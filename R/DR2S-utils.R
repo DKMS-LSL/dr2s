@@ -66,8 +66,8 @@ finish_cn1 <- function(x){
 }
 
 #' @export
-# x <- dedk.report
-#position = 5000
+#x <- dr2s
+#position = 1000
 run_igv <- function(x, position, map = "mapFinal", open_now = TRUE, ...) {
   assertthat::assert_that(
     is(x, "DR2S")
@@ -145,6 +145,21 @@ run_igv <- function(x, position, map = "mapFinal", open_now = TRUE, ...) {
     xml$closeTag()
     xml$closeTag()
     XML::saveXML(xml, file = igv)
+    
+    
+    xml <- XML::xmlTree()
+    suppressWarnings(xml$addTag("Global",
+                                attrs = c(genome = file.path("..", gsub("/", "\\\\", ref), fsep = "\\"),
+                                          locus = locus),
+                                close = FALSE))
+    xml$addTag("Resources", close = FALSE)
+    xml$addTag("Resource", attrs = c(path = file.path("..", gsub("/", "\\\\", bamLR), fsep = "\\")))
+    if (exists("bamSR"))
+      xml$addTag("Resource", attrs = c(path = file.path("..", gsub("/", "\\\\", bamSR), fsep = "\\")))
+    xml$closeTag()
+    xml$closeTag()
+    XML::saveXML(xml, file = gsub(".xml", ".win.xml", igv))
+    
 
     igvConfigs[[hp]] <- x$relPath(igv)
   }
@@ -155,7 +170,8 @@ run_igv <- function(x, position, map = "mapFinal", open_now = TRUE, ...) {
 
   ## for windows
   igvCommandWin <- file.path(basedir, "win", paste0("runIGV_", map, ".bat"))
-  cmdsWin <- paste0("igv ", "..\\", gsub("/", "\\\\", igvConfigs))
+  cmdsWin <- paste0("START P:\\IGV_2.4.10\\jre1.8.0_131\\bin\\javaw -Xmx2G -jar P:\\IGV_2.4.10\\lib\\igv.jar  ", "%~dp0..\\", 
+                    gsub("/", "\\\\", gsub(".xml", ".win.xml", igvConfigs)))
   write(cmdsWin, igvCommandWin)
 
   if (open_now) {

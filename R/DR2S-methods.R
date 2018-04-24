@@ -79,7 +79,9 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
   # library(ggplot2)
   # library(foreach)
   # library(futile.logger)
-
+  # library(cowplot)
+  # self <-dr2s
+  
   stopifnot(pct > 0 && pct <= 100)
   ## TODO recode_header useless so
   recode_header <- FALSE
@@ -95,6 +97,7 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
   forceBadMapping <- self$getForceBadMapping()
   filterScores    <- self$getFilterScores()
   outdir          <- dir_create_if_not_exists(self$absPath("mapInit"))
+  dir_create_if_not_exists(path = file.path(self$absPath(".plots")))
 
   if (recode_header) {
     stopifnot(
@@ -499,35 +502,19 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
   if (plot) {
     flog.info(" Plot MapInit summary ", name = "info")
     ## Coverage and frequency of minor alleles
-    gfile <- self$absPath(paste0("plot.MapInit.LR.",
-                                 sub("bam$", "pdf",
-                                     usc(basename(self$mapInit$bamfile)))))
-    pdf(file = gfile, width = 12, height = 10, onefile = TRUE,
-        title = paste(self$getLocus(), self$getSampleId(), sep = "." ))
-    self$plotmapInitSummary(
+    p <- self$plotmapInitSummary(
       thin = 0.25,
-      width = 2,
-      label = self$getMapTag("init", "LR"),
-      readtype = "LR"
+      width = 2
     )
-    dev.off()
-
-    if (partSR) {
-      gfile <- self$absPath(paste0("plot.MapInit.SR.",
-                                   sub("bam$", "pdf",
-                                       usc(basename(self$mapInit$SR2$bamfile)))))
-      pdf(file = gfile, width = 12, height = 10, onefile = TRUE,
-          title = paste(self$getLocus(), self$getSampleId(), sep = "." ))
-      self$plotmapInitSummary(
-        thin = 0.25,
-        width = 2,
-        label = self$getMapTag("init", "SR"),
-        readtype = "SR"
-      )
-      dev.off()
-    }
+    plotRows <- ifelse(partSR, 2, 1)
+    cowplot::save_plot(self$absPath("plot.MapInit.pdf"), plot = p, 
+              ncol = 1, nrow = plotRows,
+              base_aspect_ratio = as.numeric(paste(5, plotRows, sep = ".")),
+              title = paste(self$getLocus(), self$getSampleId(), sep = "." ))
+    cowplot::save_plot(self$absPath(".plots/plot.MapInit.png"), plot = p, 
+              ncol = 1, nrow = plotRows,
+              base_aspect_ratio = as.numeric(paste(5, plotRows, sep = ".")))
   }
-
   return(invisible(self))
 })
 
@@ -744,15 +731,17 @@ DR2S_$set("public", "runSplitLongReadsByHaplotype", function(plot = TRUE) {
   names(resStruct) <- haplotypes
   self$partition$hpl = structure(resStruct, class = c("HapList", "list"))
   if (plot) {
-    tag   <- self$getMapTag("init", "LR")
-    bnm   <- basename(self$mapInit$bamfile)
-    outf  <- self$absPath(paste0("plot.partition.", sub("bam$", "pdf", usc(bnm))))
-    pdf(file = outf, width = 10, height = 12, onefile = TRUE,
-        title = paste(self$getLocus(), self$getSampleId(), sep = "." ))
-    self$plotPartitionSummary(label = tag, limits = unlist(self$getLimits()))
-    dev.off()
+    p <- self$plotPartitionSummary(label = tag, limits = unlist(self$getLimits()))
+    
+    cowplot::save_plot(self$absPath("plot.Partition.pdf"), plot = p, 
+              title = paste(self$getLocus(), self$getSampleId(), sep = "." ),
+              base_height = 12, base_width = 10
+              )
+    cowplot::save_plot(self$absPath(".plots/plot.Partition.png"), plot = p, 
+              base_aspect_ratio = 1.2)
 
-    outf  <- self$absPath(paste0("plot.sequence.", sub("bam$", "pdf", usc(bnm))))
+              
+    outf  <- self$absPath("plot.Sequence")
     ppos <- SNP(self$getPartition())
     names(ppos) <- 1:length(ppos)
     pwm <- lapply(PWM(self$getPartition()), function(pwm) {
@@ -769,11 +758,17 @@ DR2S_$set("public", "runSplitLongReadsByHaplotype", function(plot = TRUE) {
                      axis.text.y  = ggplot2::element_blank(),
                      axis.ticks.y = ggplot2::element_blank(),
                      strip.text.y = ggplot2::element_text(face = "bold", size = 42, angle = 180))
-    ggplot2::ggsave(filename  = outf,
+    cowplot::save_plot(filename  = self$absPath("plot.Sequence.pdf"),
                     plot      = p,
-                    width     = 0.3*length(ppos),
-                    height    = 2.5*length(pwm),
+                    base_width     = 0.4*length(ppos)+1.4,
+                    base_height    = 2.5*length(pwm),
                     title     = paste(self$getLocus(), self$getSampleId(), sep = "." ),
+                    units     = "cm",
+                    limitsize = FALSE)
+    cowplot::save_plot(filename  = self$absPath(".plots/plot.Sequence.png"),
+                    plot      = p,
+                    base_width     = 0.4*length(ppos)+1.4,
+                    base_height    = 2.5*length(pwm),
                     units     = "cm",
                     limitsize = FALSE)
 
@@ -842,11 +837,6 @@ DR2S_$set("public", "runExtractLongReads", function(nreads = NULL,
       normalizePath(file.path(self$getOutdir(), "mapIter", (hptype)), mustWork = FALSE)
     )
     qnames <- self$getHapList(hptype)
-
-    # x = self$mapInit$bamfile
-    # qnames = qnames
-    # n = self$getNreads()
-    # replace = replace
 
     fq  <- .extractFastq(
       x = self$absPath(self$mapInit$bamfile),
@@ -1119,30 +1109,23 @@ DR2S_$set("public", "runMapIter", function(opts = list(),
       self$mapIter[[iterationC]][[hptype]]$tag = maptag
     }
 
-    if (plot) {
-      flog.info(" Plot MapIter summary", name = "info")
-      ## Coverage and base frequency
-      gfile <- self$absPath(paste("plot.MapIter", iteration, self$getLrdType(), self$getLrMapper(),
-                                  "pdf", sep = ".")
-      )
-      pdf(file = gfile, width = 8 * length(hptypes), height = 8, onefile = TRUE,
-          title = paste(self$getLocus(), self$getSampleId(), sep = "." ))
+  }
+  if (plot) {
+    flog.info(" Plot MapIter summary", name = "info")
+    ## Coverage and base frequency
+    plotlist <- foreach(iteration = 1:self$getIterations()) %do% {
       self$plotmapIterSummary(thin = 0.1, width = 4, iteration = iteration,
                               drop.indels = TRUE)
-      ## map1: 0.1; 4
-      dev.off()
-      ## Consensus sequence probability
-      gfile <- self$absPath(paste("plot.MapIter.conseq", iteration, self$getLrdType(),
-                                  self$getLrMapper(), "pdf", sep = ".")
-      )
-      pdf(file = gfile, width = 16, height = 4*length(hptypes), onefile = TRUE,
-          title = paste(self$getLocus(), self$getSampleId(), sep = "." ))
-      self$plotmapIterSummaryConseqProb(text_size = 1.75,
-                                        iteration = iteration,
-                                        point_size = 0.75,
-                                        threshold = "auto")
-      dev.off()
     }
+    p <- cowplot::plot_grid(plotlist = plotlist, nrow = self$getIterations())
+    cowplot::save_plot(p, filename = self$absPath("plot.MapIter.pdf"),
+              base_width = 24*length(hptypes),
+              title     = paste(self$getLocus(), self$getSampleId(), sep = "." ),
+              base_height = 6*self$getIterations())
+    cowplot::save_plot(p, filename = self$absPath(".plots/plot.MapIter.png"),
+              base_width = 24*length(hptypes),
+              base_height = 6*self$getIterations())
+    
   }
   run_igv(self,map = "mapIter", open_now = "FALSE")
 
@@ -1605,30 +1588,22 @@ DR2S_$set("public", "runMapFinal", function(opts = list(),
     ## Coverage and base frequency
 
     if (!is.null(self$mapFinal$sreads$A)) {
-      for (readtype in c("LR", "SR")) {
-        #readtype <- "LR"
-        gfile <- self$absPath(paste("plot.mapFinal", readtype,
-                                    self$getLrdType(), self$getLrMapper(),
-                                    "pdf", sep = "."))
-        pdf(file = gfile, width = 8 * length(hptypes), height = 8,
-            onefile = TRUE,  title = paste(self$getLocus(),
-                                           self$getSampleId(), sep = "." ))
+      readtypes <- c("LR", "SR")
+    } else {
+      readtypes <- c("LR")
+    }
+      plotlist <- foreach (readtype = readtypes) %do% {
         self$plotmapFinalSummary(iteration = "final", readtype = readtype,
                                  thin = 0.25, width = 20)
-        dev.off()
       }
-    } else {
-      gfile <- self$absPath(paste("plot.mapFinal.LR",
-                                  self$getLrdType(),
-                                  self$getLrMapper(), "pdf",
-                                  sep = "."))
-      pdf(file = gfile, width = 8 * length(hptypes), height = 8,
-          onefile = TRUE, title = paste(self$getLocus(), self$getSampleId(),
-                                        sep = "." ))
-      self$plotmapFinalSummary(iteration = "final", readtype = "LR",
-                               thin = 0.25, width = 20)
-      dev.off()
-    }
+      p <- cowplot::plot_grid(plotlist = plotlist, nrow = 2, labels = readtypes)
+      cowplot::save_plot(p, filename = self$absPath("plot.MapFinal.pdf"),
+                base_width = 24*length(hptypes),
+                title     = paste(self$getLocus(), self$getSampleId(), sep = "." ),
+                base_height = 6*length(readtypes))
+      cowplot::save_plot(p, filename = self$absPath(".plots/plot.MapFinal.png"),
+                base_width = 24*length(hptypes),
+                base_height = 6*length(readtypes))
   }
   run_igv(self, map = "mapFinal", open_now = FALSE)
 
