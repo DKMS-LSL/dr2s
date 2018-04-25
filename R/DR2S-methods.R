@@ -511,7 +511,7 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
               ncol = 1, nrow = plotRows,
               base_aspect_ratio = as.numeric(paste(5, plotRows, sep = ".")),
               title = paste(self$getLocus(), self$getSampleId(), sep = "." ))
-    cowplot::save_plot(self$absPath(".plots/plot.MapInit.png"), plot = p, 
+    cowplot::save_plot(self$absPath(".plots/plot.MapInit.svg"), plot = p, 
               ncol = 1, nrow = plotRows,
               base_aspect_ratio = as.numeric(paste(5, plotRows, sep = ".")))
   }
@@ -737,7 +737,7 @@ DR2S_$set("public", "runSplitLongReadsByHaplotype", function(plot = TRUE) {
               title = paste(self$getLocus(), self$getSampleId(), sep = "." ),
               base_height = 12, base_width = 10
               )
-    cowplot::save_plot(self$absPath(".plots/plot.Partition.png"), plot = p, 
+    cowplot::save_plot(self$absPath(".plots/plot.Partition.svg"), plot = p, 
               base_aspect_ratio = 1.2)
 
               
@@ -765,7 +765,7 @@ DR2S_$set("public", "runSplitLongReadsByHaplotype", function(plot = TRUE) {
                     title     = paste(self$getLocus(), self$getSampleId(), sep = "." ),
                     units     = "cm",
                     limitsize = FALSE)
-    cowplot::save_plot(filename  = self$absPath(".plots/plot.Sequence.png"),
+    cowplot::save_plot(filename  = self$absPath(".plots/plot.Sequence.svg"),
                     plot      = p,
                     base_width     = 0.4*length(ppos)+1.4,
                     base_height    = 2.5*length(pwm),
@@ -1122,7 +1122,7 @@ DR2S_$set("public", "runMapIter", function(opts = list(),
               base_width = 24*length(hptypes),
               title     = paste(self$getLocus(), self$getSampleId(), sep = "." ),
               base_height = 6*self$getIterations())
-    cowplot::save_plot(p, filename = self$absPath(".plots/plot.MapIter.png"),
+    cowplot::save_plot(p, filename = self$absPath(".plots/plot.MapIter.svg"),
               base_width = 24*length(hptypes),
               base_height = 6*self$getIterations())
     
@@ -1586,7 +1586,6 @@ DR2S_$set("public", "runMapFinal", function(opts = list(),
 
   if (plot) {
     ## Coverage and base frequency
-
     if (!is.null(self$mapFinal$sreads$A)) {
       readtypes <- c("LR", "SR")
     } else {
@@ -1601,7 +1600,7 @@ DR2S_$set("public", "runMapFinal", function(opts = list(),
                 base_width = 24*length(hptypes),
                 title     = paste(self$getLocus(), self$getSampleId(), sep = "." ),
                 base_height = 6*length(readtypes))
-      cowplot::save_plot(p, filename = self$absPath(".plots/plot.MapFinal.png"),
+      cowplot::save_plot(p, filename = self$absPath(".plots/plot.MapFinal.svg"),
                 base_width = 24*length(hptypes),
                 base_height = 6*length(readtypes))
   }

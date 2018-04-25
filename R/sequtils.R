@@ -441,7 +441,7 @@ checkHomoPolymerCount <- function(x, count = 10, map = "mapFinal") {
                 base_width = 7*length(hptypes),
                 title     = paste(x$getLocus(), x$getSampleId(), sep = "." ),
                 base_height = 7*length(n))
-    cowplot::save_plot(p1, filename = x$absPath(".plots/plot.Homopolymers.png"),
+    cowplot::save_plot(p1, filename = x$absPath(".plots/plot.Homopolymers.svg"),
               base_width = 7*length(hptypes),
               base_height = 7*length(n))
   }
