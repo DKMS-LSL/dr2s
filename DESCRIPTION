@@ -19,6 +19,7 @@ Encoding: UTF-8
 LinkingTo: Rcpp
 Imports:
     Rcpp,
+    svglite,
     readr,
     Rsamtools,
     dplyr,
