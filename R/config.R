@@ -71,7 +71,6 @@ read_dr2s_conf <- function(config_file) {
   conf$threshold  <- conf$threshold  %||% 0.2
   conf$iterations <- conf$iterations %||% 2
   conf$microsatellite <- conf$microsatellite %||% FALSE
-  conf$dist_alleles <- conf$dist_alleles %||% 2
   conf$filterScores <- conf$filterScores %||% TRUE
   conf$partSR <- conf$partSR %||% TRUE
   conf$forceBadMapping <- conf$forceBadMapping %||% FALSE
@@ -86,6 +85,7 @@ read_dr2s_conf <- function(config_file) {
   conf$longreads  <- conf$longreads  %||% list(type = "pacbio", dir = "pacbio")
   conf$shortreads <- conf$shortreads %||% list(type = "illumina", dir = "illumina")
 
+  
   if (length(conf$shortreads) == 1 && is.list(conf$shortreads[[1]]))
     conf$shortreads <- conf$shortreads[[1]]
 
@@ -115,22 +115,21 @@ expand_dr2s_conf <- function(conf) {
   cnss <- conf$consensus %||% list("mapping")
   conf$consensus <- NULL
 
-  sample <- samples[[1]]
-  sample_id <- sample_ids[[1]]
-  locus <- samples
   foreach(sample = samples, sample_id = sample_ids, .combine = "c") %:%
     foreach(nrd = nrds, .combine = "c") %:%
     foreach(lrd = lrds, .combine = "c") %:%
     foreach(cns = cnss, .combine = "c") %:%
+    foreach(dst = sample$dist_alleles, .combine = "c") %:%
     foreach(ref = sample$reference, .combine = "c") %do% {
-      update_conf(conf, lrd, nrd, sample_id, sample, ref, alternate = "", cns)
+      update_conf(conf, lrd, nrd, sample_id, sample, ref, alternate = "", cns, dst)
     }
 }
 
-update_conf <- function(conf0, lrd, nrd, sample_id, locus, reference, alternate, consensus) {
+update_conf <- function(conf0, lrd, nrd, sample_id, locus, reference, alternate, consensus, dst) {
   conf0$datadir   <- normalizePath(conf0$datadir, mustWork = TRUE)
   conf0$outdir    <- normalizePath(conf0$outdir, mustWork = FALSE)
   conf0$longreads <- lrd
+  conf0$dist_alleles  <- dst
   conf0['nreads'] <- nrd %||% list(NULL)
   conf0$sample_id <- sample_id
   conf0["reference"] <- reference %|ch|% list(NULL)
