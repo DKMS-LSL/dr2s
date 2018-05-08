@@ -171,15 +171,4 @@ x %>%
   report()
 ```
 
-Installation
-------------
-
-This package is only available via gitlab now. It depends on a local installation of `samtools`, `bwa` (&gt;= 0.7.11), python and the pysam library, and a C++11 compliant compiler. An alternative mapper with better results is `minimap2`, a successor of `bwa` For installation over git via SSH, you need to have installed libssh2-1 and libssh2-1-dev prior to install git2r/devtools or reinstall the package afterwards. You do also need to have set up your ssh key in gitlab. Otherwise you need to give your gitlab password in plain.
-
-``` r
-install.packages("devtools")  # if not already installed
-library("devtools")
-install_git("git@srvddgit01.labor.local:rlib/IPDdata.git")
-install_git("git@srvddgit01.labor.local:rlib/hlatools.git")
-install_git("git@srvddgit01.labor.local:sklas/gDR2S.git")
 ```
