@@ -119,36 +119,6 @@
   )
 }
 
-# #' Filter a bamfile by qnames
-# #'
-# #' @param x Path to bamfile.
-# #' @param qnames Sample a fixed subset of reads.
-# #' @param dest Location where the filtered output file will be created.
-# #'
-# #' @return A character vector
-# #' @export
-# #'
-# #' @examples
-# #' ###
-# filterBam <- function(x, qnames, dest) {
-#   stopifnot(is.character(x) && length(x) == 1)
-#   filt <- S4Vectors::FilterRules(list(function(x) x$qname %in% qnames))
-#   Rsamtools::filterBam(x, dest, filter = filt, indexDestination = TRUE)
-# }
-
-# inject_deletions <- function(seq) {
-#   mdata <- metadata(seq)
-#   if (!is.null(mdata$deletions) || length(mdata$deletions) > 0) {
-#     dels <- itertools::ihasNext(iter(mdata$deletions))
-#     while(itertools::hasNext(dels)) {
-#       d <- nextElem(dels)
-#       XVector::subseq(seq, d, d - 1) <- "-"
-#     }
-#     metadata(seq) <- mdata
-#   }
-#   seq
-# }
-
 #' Generate reference sequences in a FASTA file
 #'
 #' @param HLA A \code{HLAGene} object
@@ -166,7 +136,9 @@ generateReferenceSequence <- function(allele, locus, outdir, dirtag=NULL,
     return(NULL)
   }
   locus <- normalise_locus(locus)
-  stopifnot(allele %in% ipd.Hsapiens.db::getAlleles(locus))
+  if (!allele %in% ipd.Hsapiens.db::getAlleles(locus)) 
+    stop(sprintf("Allele %s not found in database", allele))
+    
   dir_create_if_not_exists(normalizePath(
     file.path(outdir, dirtag), mustWork=FALSE))
   assertthat::assert_that(
