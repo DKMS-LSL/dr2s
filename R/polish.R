@@ -1,5 +1,6 @@
 #' @export
 #debug
+#x <- readDR2S("~/bioinf/DR2S/KIR/20171130/3DL3/out/7203477/")
 # x <- dr2s
 # threshold <- x$getThreshold()
 # lower_limit <- 0.6
@@ -12,10 +13,9 @@ polish.DR2S <- function(x,
                         lower_limit = 0.80,
                         check_hp_count = TRUE,
                         cache = TRUE) {
-
   flog.info("Step 5: polish ...", name = "info")
 
-  ## Check if reporting is already finished and exit safely for downstream analysis
+  ## Check if reporting is finished and exit safely for downstream analysis
   if (x$getReportStatus()) {
     currentCall <- strsplit1(deparse(sys.call()), "\\.")[1]
     flog.info(paste0("%s: Reporting already done! Nothing to do.",
@@ -64,12 +64,13 @@ polish.DR2S <- function(x,
         if (!all(modeN == n)) {
           missingN <- modeN[which(!n == modeN)]
           varsHP <- tibble::tibble(haplotype = hptype,
-                                   pos = names(missingN),
-                                   ref = "",
-                                   alt = "",
-                                   freq = "",
-                                   lower = "",
-                                   warning = sprintf("Homopolymer at position %s should be of length %s",
+                                   pos       = names(missingN),
+                                   ref       = "",
+                                   alt       = "",
+                                   freq      = "",
+                                   lower     = "",
+                                   warning   = sprintf(
+                                     "Homopolymer at position %s should be %s",
                                                      names(missingN), missingN))
           varsHP
         }

@@ -50,7 +50,8 @@ MergeEnv_ <- R6::R6Class(
     initialize = function(x, threshold = x$getThreshold()) {
       assertthat::assert_that(is(x, "DR2S"))
       self$hptypes <- foreach(hptype = x$getHapTypes(),
-                              .final = function(h) setNames(h, x$getHapTypes())) %do% {
+                              .final = function(h) 
+                                setNames(h, x$getHapTypes())) %do% {
        structure(as.environment(list(haplotype = hptype)), class = "HapEnv")
       }
       self$threshold = threshold
@@ -91,15 +92,16 @@ MergeEnv_$set("public", "init", function(hapEnv) {
   readtype <- ifelse(!is.null(self$x$mapFinal$sreads[[hapEnv]]), "SR", "LR")
 
   if (readtype == "SR"){
-    envir$SR <- self$x$mapFinal$pileup[[paste0("SR", hapEnv)]]$consmat ## consmat short reads
-    lr <- self$x$mapFinal$pileup[[paste0("LR", hapEnv)]]$consmat ## consmat long reads
-    envir$LR <- expand_longread_consmat(lrm = lr, srm = envir$SR)
+    envir$SR <- self$x$mapFinal$pileup[[paste0("SR", hapEnv)]]$consmat 
+    lr <- self$x$mapFinal$pileup[[paste0("LR", hapEnv)]]$consmat 
+    envir$LR <- expandLongreadConsmat(lrm = lr, srm = envir$SR)
   } else {
-    envir$LR <- self$x$mapFinal$pileup[[paste0("LR", hapEnv)]]$consmat ## consmat long reads
+    envir$LR <- self$x$mapFinal$pileup[[paste0("LR", hapEnv)]]$consmat 
     envir$SR <- NULL
   }
 
-  envir$POSit = itertools::ihasNext(iter(apos <- ambiguous_positions(envir[[readtype]], self$threshold)))
+  envir$POSit = itertools::ihasNext(
+    iter(apos <- ambiguous_positions(envir[[readtype]], self$threshold)))
   envir$balance = apply(as.matrix(envir[[readtype]][apos, ]), 1, function(x) {
     tmp <- sort(x, decreasing = TRUE)[1:2]
     tmp[1] / tmp[2]
@@ -108,7 +110,9 @@ MergeEnv_$set("public", "init", function(hapEnv) {
   envir$pos = 1L
   envir$current_variant = NULL
   envir$init = TRUE
-  envir$balance_upper_confint <- sum(mean(envir$balance, na.rm = TRUE), 1.96*sd(envir$balance, na.rm = TRUE) , na.rm = TRUE)
+  envir$balance_upper_confint <- sum(mean(
+    envir$balance, na.rm = TRUE), 1.96*sd(envir$balance, na.rm = TRUE) , 
+    na.rm = TRUE)
 })
 
 ## self$walk_one() ####
@@ -173,7 +177,9 @@ MergeEnv_$set("private", "step_through", function(envir) {
 )
 
 ## self$showConsensus() ####
-MergeEnv_$set("public", "showConsensus", function(envir, pos, left = 6, right = left, offset = 0) {
+MergeEnv_$set("public", "showConsensus", function(envir, 
+                                                  pos, left = 6, right = left, 
+                                                  offset = 0) {
   # debug
   # envir <- self$a
   #self$a$init()
@@ -188,16 +194,20 @@ MergeEnv_$set("public", "showConsensus", function(envir, pos, left = 6, right = 
   lr <- envir$LR[min:(pos + offset + right), , drop = FALSE]
   sr <- envir$SR[min:(pos + offset + right), , drop = FALSE]
   ## Conseq
-  lcs <- tolower(make_ambig_consensus_(lr, threshold = self$threshold, exclude_gaps = FALSE, as_string = TRUE))
+  lcs <- tolower(make_ambig_consensus_(lr, threshold = self$threshold, 
+                                       exclude_gaps = FALSE, as_string = TRUE))
   substr(lcs, left + 1, left + 1) <- toupper(substr(lcs, left + 1, left + 1))
-  scs <- tolower(make_ambig_consensus_(sr, threshold = self$threshold, exclude_gaps = FALSE, as_string = TRUE))
+  scs <- tolower(make_ambig_consensus_(sr, threshold = self$threshold, 
+                                       exclude_gaps = FALSE, as_string = TRUE))
   substr(scs, left + 1, left + 1) <- toupper(substr(scs, left + 1, left + 1))
-  show <- sprintf(" Haplotype %s [%s] \nlr: %s\nsr: %s\n\n", envir$haplotype, pos, lcs, scs)
+  show <- sprintf(" Haplotype %s [%s] \nlr: %s\nsr: %s\n\n", 
+                  envir$haplotype, pos, lcs, scs)
   cat(show)
 })
 
 ## self$showMatrix() ####
-MergeEnv_$set("public", "showMatrix", function(envir, pos, left = 6, right = left, offset = 0) {
+MergeEnv_$set("public", "showMatrix", function(envir, pos, left = 6, 
+                                               right = left, offset = 0) {
   if (is.null(envir$init)) {
     cat("Haplotype", envir$haplotype, "not initialised.")
     return(invisible(NULL))
@@ -208,9 +218,12 @@ MergeEnv_$set("public", "showMatrix", function(envir, pos, left = 6, right = lef
   min <- minimum(pos + offset - left, 1)
   lr <- envir$LR[min:(pos + offset + right), , drop = FALSE]
   sr <- envir$SR[min:(pos + offset + right), , drop = FALSE]
-  lcs <- make_ambig_consensus_(lr, threshold = self$threshold, exclude_gaps = FALSE, as_string = TRUE)
-  scs <- make_ambig_consensus_(sr, threshold = self$threshold, exclude_gaps = FALSE, as_string = TRUE)
-  cat("Haplotype ", envir$haplotype, "\nLong read map position [", pos + offset, "] Consensus [", lcs, "]\n")
+  lcs <- make_ambig_consensus_(lr, threshold = self$threshold, 
+                               exclude_gaps = FALSE, as_string = TRUE)
+  scs <- make_ambig_consensus_(sr, threshold = self$threshold, 
+                               exclude_gaps = FALSE, as_string = TRUE)
+  cat("Haplotype ", envir$haplotype, 
+      "\nLong read map position [", pos + offset, "] Consensus [", lcs, "]\n")
   print(lr, n = NROW(lr), noHead = TRUE, transpose = TRUE)
   cat("Short read map position [", pos + offset, "] Consensus [", scs, "]\n")
   print(sr, n = NROW(sr), noHead = TRUE, transpose = TRUE)
@@ -229,17 +242,36 @@ MergeEnv_$set("public", "export", function() {
                 )
               },
       seq = list(foreach(hptype = self$x$getHapTypes(),
-                         .final = function(x) setNames(x, self$x$getHapTypes())) %do% {
+                         .final = function(x) 
+                           setNames(x, self$x$getHapTypes())) %do% {
                            self$x$mapFinal$pileup
                            if (!is.null(self$hptypes[[hptype]]$SR)){
                              reads <- self$hptypes[[hptype]]$SR
                            } else {
-                             reads <- self$x$mapFinal$pileup[[paste0("LR",hptype)]]$consmat
+                             reads <- self$x$mapFinal$pileup[[
+                               paste0("LR",hptype)]]$consmat
                            }
-                           cseq <- conseq(reads, paste0("hap", hptype), "ambig", exclude_gaps = TRUE, threshold = 0.3)
+                           seqname = 
+                           cseq <- conseq(reads, paste0("hap", hptype), "ambig", 
+                                          exclude_gaps = TRUE, threshold = 0.3)
                            metadata(cseq) <- list()
                            cseq
-                         })
+                         }),
+      
+      noAmbig = list(foreach(hptype = self$x$getHapTypes(),
+                             .final = function(x) 
+                               setNames(x, self$x$getHapTypes())) %do% {
+                                 if (!is.null(self$hptypes[[hptype]]$SR)){
+                                   reads <- self$hptypes[[hptype]]$SR
+                                 } else {
+                                   reads <- self$x$mapFinal$pileup[[
+                                     paste0("LR",hptype)]]$consmat
+                                 }
+                                 cseq <- conseq(reads, paste0("hap", hptype), 
+                                                "prob", exclude_gaps = TRUE)
+                                 metadata(cseq) <- list()
+                                 cseq
+                               })
     ),
     class = c("ConsList", "list")
   )
@@ -252,7 +284,7 @@ MergeEnv_$set("public", "export", function() {
 
 # Helpers -----------------------------------------------------------------
 
-expand_longread_consmat <- function(lrm, srm) {
+expandLongreadConsmat <- function(lrm, srm) {
   m <- as.matrix(lrm)
   if (NCOL(lrm) == 5) {
     m <- cbind(m, `+` = 0)
@@ -267,15 +299,15 @@ expand_longread_consmat <- function(lrm, srm) {
       m <- rbind(m[1:(i - 1), ], insert, m[i:NROW(m), ])
     }
     if (! NROW(m) == NROW(srm)){
-      warning("shortreads and longreads are of different length! Check problem file")
+      warning("SR and LR of different length! Check problem file")
       if (NROW(m) < NROW(srm)){
-        flog.info(" fill longreads with gapsfrom %s to %s",
+        flog.info(" fill longreads with gaps from %s to %s",
                 NROW(m), NROW(srm), name = "info")
         add <- ((NROW(m)+1):NROW(srm))
         m <- rbind(m, srm[add,])
         m[add,] <- rep.int(0, 6*length(add))
       } else if (NROW(m) > NROW(srm)){
-        flog.info(" fill shortreads with gapsfrom %s to %s",
+        flog.info(" fill shortreads with gaps from %s to %s",
                 NROW(srm), NROW(m), name = "info")
         add <- ((NROW(srm)+1):NROW(m))
         srm <- rbind(srm, m[add,])

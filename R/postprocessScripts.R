@@ -12,7 +12,7 @@ scriptName <- sub(fileArgName, "", args[grep(fileArgName, args)])
 scriptBaseName <- dirname(scriptName)
 setwd(scriptBaseName)
 
-x <- read_dr2s("..")
+x <- readDR2S("..")
 tryCatch(report_checked_consensus(x),
          error = function(e) {
            system(paste(
@@ -41,7 +41,7 @@ scriptName <- sub(fileArgName, "", args[grep(fileArgName, args)])
 scriptBaseName <- dirname(scriptName)
 setwd(scriptBaseName)
 
-x <- read_dr2s("..")
+x <- readDR2S("..")
 tryCatch(check_alignment_file(x),
          error = function(e) {
            system(paste(
@@ -70,7 +70,7 @@ scriptName <- sub(fileArgName, "", args[grep(fileArgName, args)])
 scriptBaseName <- dirname(scriptName)
 setwd(scriptBaseName)
 
-x <- read_dr2s("..")
+x <- readDR2S("..")
 tryCatch({refineAlignment(x, "', hptype, '")
          },
          error = function(e) {

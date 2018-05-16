@@ -499,13 +499,6 @@ DR2S_ <- R6::R6Class(
         ipd.Hsapiens.db::getClosestComplete(self$getAlternate(),
                                             self$getLocus())
       } else NULL
-      # if (!is.null(self$getAlternate())) {
-      #   if (!is.null(self$getIPD())) {
-      #     self$getIPD()$get_reference_sequence(self$getAlternate())
-      #   } else {
-      #     Biostrings::readDNAStringSet(self$getAltPath())
-      #   }
-      # } else NULL
     },
     ##
     getOpts = function(name = "mapInit") {
@@ -522,10 +515,6 @@ DR2S_ <- R6::R6Class(
       }
     },
     ##
-    # getIPD = function() {
-    #   private$ipd
-    # },
-    # ##
     getPileup = function() {
       self$mapInit$pileup
     },
@@ -895,6 +884,29 @@ DR2S_ <- R6::R6Class(
                                     label = tag, drop.indels = drop.indels)
       }
       cowplot::plot_grid(plotlist = plotlist, labels = hptypes)
+    },
+    ##
+    plotSeqLogo = function(ppos = NULL, pwm = NULL) {
+      if (is.null(ppos)) {
+        ppos <- SNP(self$getPartition())
+        names(ppos) <- 1:length(ppos)
+      }
+      if (is.null(pwm)) {
+        pwm <- lapply(PWM(self$getPartition()), function(pwm) {
+          pwm[pwm < 0.1] <- 0
+          pwm
+        })
+      }
+      ggplot2::ggplot() +
+        ggplot2::scale_x_continuous(labels = ppos, breaks = 1:length(ppos)) +
+        ggseqlogo::geom_logo(pwm, method = "bits", seq_type = "dna", stack_width = 0.9) +
+        ggplot2::facet_wrap(~seq_group, ncol = 1, strip.position = "left") +
+        ggseqlogo::theme_logo() +
+        ggplot2::theme(axis.text.x  = ggplot2::element_text(size = 10, angle = 60),
+                       axis.title.y = ggplot2::element_blank(),
+                       axis.text.y  = ggplot2::element_blank(),
+                       axis.ticks.y = ggplot2::element_blank(),
+                       strip.text.y = ggplot2::element_text(face = "bold", size = 42, angle = 180))
     },
     ##
     plotmapFinalSummary = function(readtype, thin = 0.2, width = 10, 

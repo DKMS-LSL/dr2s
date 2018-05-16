@@ -317,12 +317,10 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
       if (include_insertions && is.null(ins(pileup$consmat))) {
         pileup <- pileup_include_insertions(pileup, threshold = 0.1)
       }
-      ## distribution of gaps not necessary for shortreads
-      ## (need to check if also true for homopolymer regions > 15)
-      # pileup$consmat <- .distributeGaps(pileup$consmat, removeError = FALSE)
 
       # Infer initial consensus
-      flog.info(" Construct second consensus from shortreads with refined repeats", name = "info")
+      flog.info(paste0(" Construct second consensus from shortreads ",
+                       "with refined repeats"), name = "info")
       conseq <- conseq(pileup$consmat, name = "mapInit1.2", type = "prob",
                        threshold = 0.2, force_exclude_gaps = TRUE)
       conseq_name <- paste0("Init.consensus.2",
@@ -394,15 +392,6 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
       include_deletions = include_deletions,
       include_insertions = include_insertions
     )
-
-    ## check if calling insertions is necessary; Problem: insertions are not
-    ## used for clustering in either way
-    # if (include_insertions && is.null(ins(pileup$consmat))) {
-    #   pileup <- pileup_include_insertions(pileup, threshold = 0.1)
-    # }
-
-    ## distribution of gaps seems not necessary for shortreads
-    # pileup$consmat <- .distributeGaps(pileup$consmat, removeError = FALSE)
 
     mapInitSR2 = structure(
       list(
@@ -478,7 +467,8 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
     include_insertions = FALSE
   )
 
-  pileup$consmat <- .distributeGaps(pileup$consmat, bamfile, reference = refseq, removeError = TRUE)
+  pileup$consmat <- .distributeGaps(pileup$consmat, bamfile, reference = refseq,
+                                    removeError = TRUE)
 
   self$mapInit = structure(
     list(
@@ -634,7 +624,8 @@ DR2S_$set("public",
     self$partition$mat
   }
 
-  flog.info(" Partition %s longreads over %s SNPs", NROW(mat), NCOL(mat), name = "info")
+  flog.info(" Partition %s longreads over %s SNPs", NROW(mat), NCOL(mat), 
+            name = "info")
   prt <- partition_reads(x = mat,
                          skip_gap_freq = skip_gap_freq,
                          deepSplit = 1,
@@ -731,7 +722,8 @@ DR2S_$set("public", "runSplitLongReadsByHaplotype", function(plot = TRUE) {
   names(resStruct) <- haplotypes
   self$partition$hpl = structure(resStruct, class = c("HapList", "list"))
   if (plot) {
-    p <- self$plotPartitionSummary(label = tag, limits = unlist(self$getLimits()))
+    p <- self$plotPartitionSummary(label = tag, 
+                                   limits = unlist(self$getLimits()))
     
     cowplot::save_plot(self$absPath("plot.Partition.pdf"), plot = p, 
               title = paste(self$getLocus(), self$getSampleId(), sep = "." ),
@@ -748,21 +740,13 @@ DR2S_$set("public", "runSplitLongReadsByHaplotype", function(plot = TRUE) {
       pwm[pwm < 0.1] <- 0
       pwm
     })
-    p <- ggplot2::ggplot() +
-      ggplot2::scale_x_continuous(labels = ppos, breaks = 1:length(ppos)) +
-      ggseqlogo::geom_logo(pwm, method = "bits", seq_type = "dna", stack_width = 0.9) +
-      ggplot2::facet_wrap(~seq_group, ncol = 1, strip.position = "left") +
-      ggseqlogo::theme_logo() +
-      ggplot2::theme(axis.text.x  = ggplot2::element_text(size = 10, angle = 60),
-                     axis.title.y = ggplot2::element_blank(),
-                     axis.text.y  = ggplot2::element_blank(),
-                     axis.ticks.y = ggplot2::element_blank(),
-                     strip.text.y = ggplot2::element_text(face = "bold", size = 42, angle = 180))
+    p <- self$plotSeqLogo(ppos, pwm)
     cowplot::save_plot(filename  = self$absPath("plot.Sequence.pdf"),
                     plot      = p,
                     base_width     = 0.4*length(ppos)+1.4,
                     base_height    = 2.5*length(pwm),
-                    title     = paste(self$getLocus(), self$getSampleId(), sep = "." ),
+                    title     = paste(self$getLocus(), self$getSampleId(), 
+                                      sep = "." ),
                     units     = "cm",
                     limitsize = FALSE)
     cowplot::save_plot(filename  = self$absPath(".plots/plot.Sequence.svg"),
@@ -825,7 +809,8 @@ DR2S_$set("public", "runExtractLongReads", function() {
   hptypes <- self$getHapTypes()
   for (hptype in hptypes) {
     dir <- dir_create_if_not_exists(
-      normalizePath(file.path(self$getOutdir(), "mapIter", (hptype)), mustWork = FALSE)
+      normalizePath(file.path(self$getOutdir(), "mapIter", (hptype)), 
+                    mustWork = FALSE)
     )
     qnames <- self$getHapList(hptype)
 
@@ -945,7 +930,8 @@ DR2S_$set("public", "runMapIter", function(opts = list(),
   # distGaps <- FALSE
 
   # Construct consensus from initial mapping with the clustered reads
-  flog.info(" Construct consensus sequences using the mapInit reference", name = "info")
+  flog.info(" Construct consensus sequences using the mapInit reference", 
+            name = "info")
   bamfile <- self$absPath(self$mapInit$bamfile)
   if (self$getPartSR()) {
     ref <- self$mapInit$SR1$conseq
@@ -956,13 +942,16 @@ DR2S_$set("public", "runMapIter", function(opts = list(),
 
   #hptype <- "A"
   foreach(hptype = hptypes) %do% {
-    flog.info("  Constructing a consensus for haplotype %s ...", hptype, name = "info")
+    flog.info("  Constructing a consensus for haplotype %s ...", 
+              hptype, name = "info")
     readIds <- self$getHapList(hptype)
     cmat <- consmat(t(
-      Biostrings::consensusMatrix(mat[readIds], as.prob = FALSE)[VALID_DNA(include = "indel"), ]
+      Biostrings::consensusMatrix(mat[readIds], as.prob = FALSE)[
+        VALID_DNA(include = "indel"), ]
     ), freq = FALSE)
     conseq_name <- paste0("consensus.mapIter.0.", hptype)
-    conseq <- conseq(cmat, name = conseq_name, type = "prob", exclude_gaps = FALSE)
+    conseq <- conseq(cmat, name = conseq_name, type = "prob", 
+                     exclude_gaps = FALSE)
     seqpath <- self$absPath(
       file.path(self$mapIter[["0"]][[hptype]]$dir, paste0(conseq_name, ".fa")))
     self$mapIter[["0"]][[hptype]]$ref     <- "mapIter0"
@@ -991,7 +980,7 @@ DR2S_$set("public", "runMapIter", function(opts = list(),
       refpath  <- self$absPath(prevIteration[[hptype]]$seqpath)
       refseq   <- prevIteration[[hptype]]$conseq
 
-      optsname <- sprintf("%s [%s]", hptype)
+      optsname <- sprintf("%s", hptype)
       mapfmt  <- "mapIter <%s> <%s> <%s> <%s>"
       maptag  <- sprintf(mapfmt, iteration, hptype, self$getLrdType(),
                          self$getLrMapper(), optstring(opts, optsname))
@@ -1011,7 +1000,8 @@ DR2S_$set("public", "runMapIter", function(opts = list(),
         class = c("mapIter", "list")
       )
 
-      flog.info("  Map partitioned longreads of haplotype %s", hptype, name = "info")
+      flog.info("  Map partitioned longreads of haplotype %s", hptype, 
+                name = "info")
 
       ## Run mapper
       flog.info("   Mapping ...", name = "info")
@@ -1091,7 +1081,8 @@ DR2S_$set("public", "runMapIter", function(opts = list(),
     p <- cowplot::plot_grid(plotlist = plotlist, nrow = self$getIterations())
     cowplot::save_plot(p, filename = self$absPath("plot.MapIter.pdf"),
               base_width = 24*length(hptypes),
-              title     = paste(self$getLocus(), self$getSampleId(), sep = "." ),
+              title     = paste(self$getLocus(), 
+                                self$getSampleId(), sep = "." ),
               base_height = 6*self$getIterations())
     cowplot::save_plot(p, filename = self$absPath(".plots/plot.MapIter.svg"),
               base_width = 24*length(hptypes),
@@ -1144,7 +1135,8 @@ DR2S_$set("public", "runPartitionShortReads", function(opts = list(),
   # min_mapq = 0
 
   flog.info("Step 3: PartitionShortReads ...", name = "info")
-  flog.info(" Partition shortreads based on initial mapping and longread clustering", name = "info")
+  flog.info(paste0(" Partition shortreads based on initial mapping and ", 
+                   "longread clustering"), name = "info")
 
   ## Check if reporting is already finished and exit safely
   if (check_report_status(self)) return(invisible(self))
@@ -1250,7 +1242,8 @@ DR2S_$set("public", "runPartitionShortReads", function(opts = list(),
         file.path(
           self$mapIter$`0`[[hptype]]$dir,
           dot(c(strsplit1(basename(fq), "\\.")[1], hptype, "fastq.gz"))))
-      write_part_fq(fq = fq, srFastqHap = srFastqHap, dontUseReads = dontUseReads)
+      write_part_fq(fq = fq, srFastqHap = srFastqHap, 
+                    dontUseReads = dontUseReads)
       srfilenames <- c(srfilenames, srFastqHap)
       self$srpartition[[hptype]]$srpartition <- srpartition
     }
@@ -1336,7 +1329,8 @@ DR2S_$set("public", "runMapFinal", function(opts = list(),
   # self <- dr2s
 
   flog.info("Step 4: mapFinal ...", name = "info")
-  flog.info(" Map shortreads and longreads against refined consensus sequences", name = "info")
+  flog.info(" Map shortreads and longreads against refined consensus sequences", 
+            name = "info")
 
   ## Check if reporting is already finished and exit safely
   if (check_report_status(self)) return(invisible(self))
@@ -1358,12 +1352,16 @@ DR2S_$set("public", "runMapFinal", function(opts = list(),
   outdir       <- dir_create_if_not_exists(self$absPath(reftag))
   lastIter     <- self$mapIter[[max(names(self$mapIter))]]
   hptypes      <- self$getHapTypes()
-  readpathsLR  <- sapply(hptypes, function(x) self$absPath(lastIter[[x]]$reads))
+  readpathsLR  <- sapply(hptypes, function(x) 
+    self$absPath(lastIter[[x]]$reads))
   names(readpathsLR) <- hptypes
-  refpaths     <- sapply(hptypes, function(x) self$absPath(lastIter[[x]]$seqpath))
-  refseqs      <- sapply(hptypes, function(x) lastIter[[x]]$conseq)
+  refpaths     <- sapply(hptypes, function(x) 
+    self$absPath(lastIter[[x]]$seqpath))
+  refseqs      <- sapply(hptypes, function(x) 
+    lastIter[[x]]$conseq)
   names(refpaths) <- hptypes
-  readpathsSR <- lapply(hptypes, function(x) self$absPath(unlist(self$srpartition[[x]]$SR)))
+  readpathsSR <- lapply(hptypes, function(x) 
+    self$absPath(unlist(self$srpartition[[x]]$SR)))
   names(readpathsSR) <- hptypes
 
   self$mapFinal = structure(
@@ -1468,9 +1466,6 @@ DR2S_$set("public", "runMapFinal", function(opts = list(),
       samfile <- map_fun(
         reffile  = refpath,
         readfile = readfiles,
-        # if we run shortreads against both pacbio and nanopore data
-        # this hack makes sure that we can distinguish the bam files ->
-        # we get pacbio.illumina.bwamem.A...bam and nanopore.illumina.bwamem.A...bam
         allele   = paste0(mapgroupSR, ".", self$getLrdType()),
         readtype = self$getSrdType(),
         opts     = opts,
@@ -1481,7 +1476,8 @@ DR2S_$set("public", "runMapFinal", function(opts = list(),
       )
 
       if (clip) {
-        flog.info("  Trimming softclips and polymorphic ends ...", name = "info")
+        flog.info("  Trimming softclips and polymorphic ends ...",
+                  name = "info")
         ## Run bam - sort - index pipeline
         bamfile <- bam_sort_index(samfile, refpath, pct / 100, min_mapq,
                                   force = force, clean = TRUE)
@@ -1491,7 +1487,8 @@ DR2S_$set("public", "runMapFinal", function(opts = list(),
         ## Trim polymorphic ends
         fq <- trim_polymorphic_ends(fq)
         ## Write new shortread file to disc
-        fqdir  <- dir_create_if_not_exists(file.path(self$getOutdir(), "mapFinal"))
+        fqdir  <- dir_create_if_not_exists(file.path(self$getOutdir(), 
+                                                     "mapFinal"))
         fqfile <- paste("sread", hptype, self$getSrMapper(), "trimmed", "fastq",
                         "gz", sep = ".")
         fqout  <- file_delete_if_exists(file.path(fqdir, fqfile))
@@ -1569,7 +1566,8 @@ DR2S_$set("public", "runMapFinal", function(opts = list(),
       p <- cowplot::plot_grid(plotlist = plotlist, nrow = 2, labels = readtypes)
       cowplot::save_plot(p, filename = self$absPath("plot.MapFinal.pdf"),
                 base_width = 24*length(hptypes),
-                title     = paste(self$getLocus(), self$getSampleId(), sep = "." ),
+                title     = paste(self$getLocus(), self$getSampleId(), 
+                                  sep = "." ),
                 base_height = 6*length(readtypes))
       cowplot::save_plot(p, filename = self$absPath(".plots/plot.MapFinal.svg"),
                 base_width = 24*length(hptypes),
@@ -1612,7 +1610,8 @@ DR2S_$set("public", "runPipeline", function() {
 #'
 #' #' @export
 #' polish.DR2S <- function(x) {
-#'   flog.info("Step 6: Infer problematic positions and consensus sequence ...", name = "info")
+#'   flog.info("Step 6: Infer problematic positions and consensus sequence ...", 
+#'   name = "info")
 #'   Sys.sleep(1)
 #'   x$polish()
 #'   message("  Done!\n")
@@ -1627,7 +1626,8 @@ DR2S_$set("public", "runPipeline", function() {
 #'
 #' #' @export
 #' mapFinal.DR2S <- function(x) {
-#'   flog.info("Step 7: report consensus sequences and problematic positions ...", name = "info")
+#'   flog.info("Step 7: report consensus sequences and problematic positions", 
+#'   name = "info")
 #'   Sys.sleep(1)
 #'   x$report()
 #'   message("  Done!\n")

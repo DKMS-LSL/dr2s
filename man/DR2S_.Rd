@@ -6,11 +6,12 @@
 \title{Class \code{"DR2S"}}
 \format{An object of class \code{R6ClassGenerator} of length 24.}
 \usage{
-DR2Smap(sample, locus, longreads = list(type = "pacbio", dir = "pacbio"),
-shortreads = list(type = "illumina", dir = "illumina"), datadir = ".",
-outdir = "./output", reference = NULL, consensus = "mapping",
+DR2Smap(sample, locus, longreads = list(type = "pacbio", 
+dir = "pacbio"), shortreads = list(type = "illumina", dir = "illumina"), 
+datadir = ".", outdir = "./output", reference = NULL, consensus = "mapping",
 threshold = 0.20, iterations = 1, microsatellite = FALSE, dist_alleles = 2,
-filterScores = TRUE, partSR = TRUE, fullname = TRUE, create_outdir = TRUE, ...)
+filterScores = TRUE, partSR = TRUE, fullname = TRUE, create_outdir = TRUE, 
+...)
 }
 \value{
 Object of \code{\link{R6Class}} representing a DR2S analysis.
@@ -21,7 +22,8 @@ Class \code{"DR2S"}
 \section{Fields}{
 
 \describe{
-\item{\code{mapInit}}{\code{[mapInit]}; the mapping of long reads to \code{reference}.}
+\item{\code{mapInit}}{\code{[mapInit]}; the mapping of long reads to 
+\code{reference}.}
 
 \item{\code{partition}}{\code{[PartList]}; the partitioning of full-length mapped
 long reads into different haplotypes.}
@@ -29,8 +31,8 @@ long reads into different haplotypes.}
 \item{\code{mapIter}}{\code{[mapIter]}; the mapping of A and B reads to consensus
 sequences produced in the previous step.}
 
-\item{\code{mapFinal}}{\code{[mapFinal]}; the mapping of A, B, and short reads to consensus
-sequences produced in the previous step.}
+\item{\code{mapFinal}}{\code{[mapFinal]}; the mapping of A, B, and short reads to 
+consensus sequences produced in the previous step.}
 
 \item{\code{consensus}}{\code{[ConsList]}; final consensus sequences for A and B.}
 }}
@@ -38,11 +40,11 @@ sequences produced in the previous step.}
 \section{Public Methods}{
 
 \describe{
-\item{\code{x$runMapInit(opts = list(), optsname = "", pct = 100, threshold = 0.20,
-iterations = 1, microsatellite = FALSE, dist_alleles = 2, filterScores = TRUE,
-partSR = TRUE, min_base_quality = 3, min_mapq = 0, max_depth = 1e4, min_nucleotide_depth = 3,
-include_deletions = FALSE, include_insertions = FALSE, force = FALSE,
-fullname = TRUE, plot = TRUE)}}{
+\item{\code{x$runMapInit(opts = list(), optsname = "", pct = 100, 
+threshold = 0.20, iterations = 1, microsatellite = FALSE, dist_alleles = 2, 
+filterScores = TRUE, partSR = TRUE, min_base_quality = 3, min_mapq = 0, 
+max_depth = 1e4, min_nucleotide_depth = 3, include_deletions = FALSE, 
+include_insertions = FALSE, force = FALSE, fullname = TRUE, plot = TRUE)}}{
 Run the inital mapping step (long reads against the reference allele)}
 \item{\code{x$runHaplotypePartitioning(max_depth = 1e4, shuffle = TRUE,
 skip_gap_freq = 2/3, plot = TRUE)}}{

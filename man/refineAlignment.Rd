@@ -4,7 +4,7 @@
 \alias{refineAlignment}
 \title{Refine the mapping of an allele by remap to the checked consensus}
 \usage{
-refineAlignment(x, hptype)
+refineAlignment(x, hptype, report = FALSE)
 }
 \arguments{
 \item{x}{A \code{\link[=DR2S_]{DR2S}} object.}

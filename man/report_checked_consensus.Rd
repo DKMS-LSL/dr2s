@@ -19,7 +19,8 @@ Report haplotype consensus files as verified
 }
 \details{
 \code{report_checked_consensus} will create a \code{checked} directory
-containing the consensus sequences \code{\{A,B\}.\{readtype\}.\{mapper\}.checked.fa}
+containing the consensus sequences 
+\code{\{A,B\}.\{readtype\}.\{mapper\}.checked.fa}
 and a html alignment file \code{aln.\{readtype\}.\{mapper\}.checked.html}.
 }
 \seealso{

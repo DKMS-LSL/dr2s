@@ -1,5 +1,5 @@
 #' @export
-read_dr2s <- function(path) {
+readDR2S <- function(path) {
   outdir <- normalizePath(path, mustWork = TRUE)
   rds_path <- dir(outdir, pattern = "^DR2S(YAML)?.*.rds", full.names = TRUE)
   if (length(rds_path) == 0) {
