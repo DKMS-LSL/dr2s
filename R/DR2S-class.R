@@ -232,7 +232,7 @@ DR2S_ <- R6::R6Class(
       cat(sprintf(fmt0, self$getSampleId(), self$getLocus()))
       fmt1 <- paste0("Reference alleles: <%s%s>\n", 
                      "Longreads: <%s> Shortreads: <%s>\n", 
-                     "Mapper: <%s>\nDatadir: <%s>\nOutdir: <%s>\n"
+                     "Mapper: <%s>\nDatadir: <%s>\nOutdir: <%s>\n")
       cat(sprintf(fmt1,
                   self$getReference(),
                   if (is.null(self$getAlternate())) 
