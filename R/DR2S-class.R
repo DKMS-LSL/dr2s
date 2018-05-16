@@ -898,9 +898,9 @@ DR2S_ <- R6::R6Class(
         })
       }
       ggplot2::ggplot() +
-        ggplot2::scale_x_continuous(labels = ppos, breaks = 1:length(ppos)) +
         ggseqlogo::geom_logo(pwm, method = "bits", seq_type = "dna", stack_width = 0.9) +
         ggplot2::facet_wrap(~seq_group, ncol = 1, strip.position = "left") +
+        ggplot2::scale_x_continuous(labels = ppos, breaks = 1:length(ppos)) +
         ggseqlogo::theme_logo() +
         ggplot2::theme(axis.text.x  = ggplot2::element_text(size = 10, angle = 60),
                        axis.title.y = ggplot2::element_blank(),
