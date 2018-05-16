@@ -1,3 +1,16 @@
+# DR2S 0.0.4
+ 
+* adapt everything to use with the shiny app
+* create svg files for all plots to use within the shiny app
+* Make windows executables for running igv
+* Add refineAlignment to usual reporting workflow
+* Refine invocation from config files in yaml format
+* move to cowplot for saving figures
+* Print a seqlogo
+* Add option to choose between read count and distance for alleles from LR partitioning.
+* Add option to prevent clustering by gaps. Useful if only few other SNPs are present.
+* Add homopolymer count by mode value
+* Adapt refineAlignment to cn 1 samples
 # DR2S 0.0.3
  
 * Add complete workflow for samples with > 2 alleles and 1 allele.
