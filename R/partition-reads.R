@@ -31,7 +31,8 @@
 
 partition_reads <- function(x, cl_method = "ward.D", min_len = 0.5,
                             skip_gap_freq = 2/3, deepSplit = 1,
-                            threshold = 0.2, dist_alleles = 2, sort_by = "count"){
+                            threshold = 0.2, dist_alleles = 2, 
+                            sort_by = "count"){
   match.arg(sort_by, c("count", "distance"))
   # get SNPs
   ppos <- colnames(x)
@@ -46,7 +47,8 @@ partition_reads <- function(x, cl_method = "ward.D", min_len = 0.5,
     xm <- as.matrix(xm[, !bad_ppos])
     bad_ppos <- ppos[bad_ppos]
     flog.info(paste0("  %s SNPs are covered by less than %g%% of sequences and",
-                     " discarded. Using the remaining %s SNPs for clustering ..."),
+                     " discarded. Using the remaining %s ", 
+                     "SNPs for clustering ..."),
               length(bad_ppos), 1 - skip_gap_freq, NCOL(xm), name = "info")
     if (NCOL(xm) == 0) {
       flog.error(paste0("  Aborting. No SNP remaining for clustering!",
@@ -93,7 +95,8 @@ partition_reads <- function(x, cl_method = "ward.D", min_len = 0.5,
     paste(hptype, sum(subclades == hptype), sep = ":"))
 
   if (length(hptypes) > dist_alleles) {
-    flog.info("  Trying to identify chimeric reads/haplotypes ...", name = "info")
+    flog.info("  Trying to identify chimeric reads/haplotypes ...", 
+              name = "info")
     if (sort_by == "count") {
       rC <- names(sort(table(subclades),decreasing = TRUE)[1:dist_alleles])
       # ## !!!!! HACK!!! rm following line; uncomment previous one; removed
@@ -166,7 +169,8 @@ get_clusts <- function(xseqs, min_len = 0.80, cl_method = "ward.D",
                    " of the reamaining %s sequences ..."),
             length(x_sub), name = "info")
   consmat  <- as.matrix(
-    Biostrings::consensusMatrix(x_sub, as.prob = TRUE)[c(VALID_DNA(), "+" ), ] + 1/length(x_sub)
+    Biostrings::consensusMatrix(x_sub, as.prob = TRUE)[c(VALID_DNA(), "+" ), ] + 
+      1/length(x_sub)
   )
   # Remove gaps below a threshold as they are probably sequencing artifacts
   consmat <- foreach(col = 1:ncol(consmat), .combine = cbind) %do% {
@@ -277,7 +281,7 @@ HapPart <- function(read_name, snp_pos) {
     k       = 0L,            # total number of polymorphic positions
     q       = rep(0, n),     # cluster weight
     # add mcoef and tree
-    mcoef   = rep(0, n),     # coefficient of membership to one cluster vs all other clusters
+    mcoef   = rep(0, n),     
     tree    = NULL,          # Add tree from hclust
     scores   = NULL,
     mats    = NULL,
@@ -663,7 +667,8 @@ plot_partition_tree <- function(x){
     dendr$segments <- dendr$segments %>%
       dplyr::mutate(cluster = dplyr::if_else( line == 1, 1, ifelse(
         cluster == 0, NA, cluster)))
-    dendr$segments$cluster <- sapply(1:NROW(dendr$segments$cluster), function(x) {
+    dendr$segments$cluster <- sapply(1:NROW(dendr$segments$cluster), 
+                                     function(x) {
       getCl(x, dendr$segments$cluster, change)})
 
     # Correct order
