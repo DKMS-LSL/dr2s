@@ -49,11 +49,9 @@ skip_gap_freq = 2/3, plot = TRUE)}}{
 Partition mapped long reads into haplotypes}
 \item{\code{x$splitReadsByHaplotype(limit = list(), #' plot = TRUE)}}{
 Partition mapped long reads into haplotypes}
-\item{\code{x$extractFastq(nreads = NULL, replace = FALSE, nalign = 30)}}{
+\item{\code{x$extractFastq()}}{
 Extract FASTQs for partitioned reads and if the consensus method is
-\code{multialign} contruct a multiple sequence alignment from the best
-\code{nalign} reads.}
-}
+}}
 }
 
 \section{Internals}{

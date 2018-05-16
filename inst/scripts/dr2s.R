@@ -25,7 +25,7 @@ oparser <- OptionParser(usage = "%prog [-h] <config>",
                         epilogue = '')
 arguments   <- parse_args(oparser, positional_arguments = TRUE)
 config_file <- arguments$args
-configs     <- read_dr2s_conf(config_file)
+configs     <- readDR2SConf(config_file)
 
 rs <- foreach(conf = configs) %do% {
   mapper <- DR2Smap(conf)

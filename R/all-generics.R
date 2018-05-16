@@ -53,7 +53,7 @@
 #' @param microsatellite FALSE Perform a second mapping of shortreads to the inferred reference in
 #' mapInit. Set to TRUE if you know you have repeats like in microsatellites. Usually extends the
 #' reference to a maximum length and enables a better mapping.
-#' @param forceBadMapping FALSE set to TRUE if you want to force processing of bad shortreads, i.e.
+#' @param forceMapping FALSE set to TRUE if you want to force processing of bad shortreads, i.e.
 #' when the distribution of coverage is bad. Aborts the program if maximum coverage > 75 \% quantile * 5.
 #' @return A \code{\link[=DR2S_]{DR2S}} object.
 #' @family DR2S mapper functions

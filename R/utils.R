@@ -393,7 +393,6 @@ plot_diagnostic_alignment <- function(x, onlyFinal = FALSE) {
   # Given Ref
   seqs1 <- x$getRefSeq()
   names(seqs1) <- paste0("0 ", names(seqs1))
-  # References from multialign or ref; and mapIter steps
   seqs2 <- Biostrings::DNAStringSet(unlist(lapply(x$mapIter, function(y) sapply(y, function(a) unlist(a$conseq)))))
   names(seqs2) <- unlist(lapply(names(x$mapIter), function(y) paste(x$getHapTypes(), "map", y)))
 

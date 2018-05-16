@@ -16,7 +16,7 @@ mapInit.DR2S <- function(x,
                          force = FALSE,
                          fullname = TRUE,
                          filterScores = TRUE,
-                         forceBadMapping = FALSE,
+                         forceMapping = FALSE,
                          plot = TRUE) {
   x$runMapInit(opts = opts,
                optsname = optsname,
@@ -33,7 +33,7 @@ mapInit.DR2S <- function(x,
                force = force,
                fullname = fullname,
                filterScores = filterScores,
-               forceBadMapping = forceBadMapping,
+               forceMapping = forceMapping,
                plot = plot)
   invisible(x)
 }
@@ -53,7 +53,7 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
                                            force = FALSE,
                                            fullname = TRUE,
                                            filterScores = TRUE,
-                                           forceBadMapping = FALSE,
+                                           forceMapping = FALSE,
                                            plot = TRUE) {
 
   flog.info("Step 0: mapInit ...", name = "info")
@@ -74,7 +74,7 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
   # fullname = TRUE
   # plot = TRUE
   # microsatellite = TRUE
-  # forceBadMapping = FALSE
+  # forceMapping = FALSE
   # filterScores = FALSE
   # library(ggplot2)
   # library(foreach)
@@ -94,7 +94,7 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
 
   microsatellite  <- self$getMicrosatellite()
   partSR          <- self$getPartSR()
-  forceBadMapping <- self$getForceBadMapping()
+  forceMapping <- self$getForceMapping()
   filterScores    <- self$getFilterScores()
   outdir          <- dir_create_if_not_exists(self$absPath("mapInit"))
   dir_create_if_not_exists(path = file.path(self$absPath(".plots")))
@@ -221,7 +221,7 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
                        " No equal distribution of coverage!",
                        " Have a look at the mapInit plot"),
                 maxCov, q75Cov, maxCov/q75Cov, name = "info")
-      if (!forceBadMapping) {
+      if (!forceMapping) {
         file <- self$absPath(paste0("plot.MapInit.SR.",
                                     sub("bam$", "pdf", usc(basename(bamfile)))))
         plt <- plot_pileup_coverage(
@@ -232,7 +232,7 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
           drop.indels = TRUE
         )
         flog.error(paste(" Aborting. If you want to force processing set ",
-                         "forceBadMapping = TRUE in DR2S object initialisation",
+                         "forceMapping = TRUE in DR2S object initialisation",
                          " "),
                    name = "info")
         suppressWarnings(ggsave(file, plt, width = 12, height = 10,
@@ -241,7 +241,7 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
                                               self$getSampleId(), sep = ".")))
 
         stop("Shortreads probably of bad quality. Bad coverage distribution.
-             Run with forceBadMapping = TRUE to force processing.")
+             Run with forceMapping = TRUE to force processing.")
       } else {
         flog.warn(" Continue. Be aware that resulsts may not be correct!!",
                   name = "info")
@@ -805,12 +805,7 @@ summary.HapList <- function(object, ....) {
 
 # debug
 #self <- dr2s
-DR2S_$set("public", "runExtractLongReads", function(nreads = NULL,
-                                                    replace = FALSE) {
-
-  # debug
-  # nreads = NULL
-  # replace = FALSE
+DR2S_$set("public", "runExtractLongReads", function() {
 
   flog.info(" Extract haplotyped longreads", name = "info")
 
@@ -826,10 +821,6 @@ DR2S_$set("public", "runExtractLongReads", function(nreads = NULL,
     list2env(args, envir = env)
   }
 
-  ## override nreads in config if not NULL
-  if (!is.null(nreads))
-    self$setNreads(nreads)
-
   ## do this for each haptype
   hptypes <- self$getHapTypes()
   for (hptype in hptypes) {
@@ -840,15 +831,8 @@ DR2S_$set("public", "runExtractLongReads", function(nreads = NULL,
 
     fq  <- .extractFastq(
       x = self$absPath(self$mapInit$bamfile),
-      qnames = qnames,
-      n = self$getNreads(),
-      replace = replace
+      qnames = qnames
     )
-    if (!is.null(nreads)) {
-      attr(self$partition$hpl[hptype], "index") <-
-        which(qnames %in% as.character(ShortRead::id(fq)))
-      attr(self$partition$hpl[hptype], "n") <- self$getNreads()
-    }
     file <- paste("hap", hptype, self$getLrdType(), self$getLrMapper(),
                   paste0("lim", 100 * abs(attr(self$getHapList(hptype),
                                                "limit"))),
@@ -1007,16 +991,7 @@ DR2S_$set("public", "runMapIter", function(opts = list(),
       refpath  <- self$absPath(prevIteration[[hptype]]$seqpath)
       refseq   <- prevIteration[[hptype]]$conseq
 
-      ## try collapsing homopolymers; Did not seem to improve the mapping
-      # if (iteration %% 2 == 1)
-      #   refpath <- .collapseHomopolymers(refpath,4)
-
-      nreads <- if (!is.null(attr(self$getHapList(hptype), "n"))) {
-        attr(self$getHapList(hptype), "n")
-      } else {
-        length(self$getHapList(hptype))
-      }
-      optsname <- sprintf("%s [%s]", hptype, nreads)
+      optsname <- sprintf("%s [%s]", hptype)
       mapfmt  <- "mapIter <%s> <%s> <%s> <%s>"
       maptag  <- sprintf(mapfmt, iteration, hptype, self$getLrdType(),
                          self$getLrMapper(), optstring(opts, optsname))
@@ -1036,10 +1011,6 @@ DR2S_$set("public", "runMapIter", function(opts = list(),
         class = c("mapIter", "list")
       )
 
-      # self$mapIter[["0"]][[hptype]]$ref <- "multialign"
-      # self$mapIter[["0"]][[hptype]]$conseq <- cons
-      # self$mapIter[["0"]][[hptype]]$seqpath <- consout
-      # self$mapIter[["0"]][[hptype]]$tag <- "multialign"
       flog.info("  Map partitioned longreads of haplotype %s", hptype, name = "info")
 
       ## Run mapper

@@ -1,19 +1,22 @@
-create_dr2s_conf <- function(sample,
+createDR2SConf <- function(sample,
                              locus,
-                             longreads = list(type = "pacbio", dir = "pacbio"),
-                             shortreads = list(type = "illumina", dir = "illumina"),
-                             datadir = ".",
-                             outdir = "./output",
-                             reference = NULL,
-                             consensus = NULL,
-                             threshold = 0.20,
-                             iterations = 1,
-                             microsatellite = FALSE,
-                             dist_alleles = 2,
-                             filterScores = TRUE,
-                             partSR = TRUE,
-                             forceBadMapping = FALSE,
-                             fullname = TRUE,
+                             longreads       = list(type = "pacbio", 
+                                                    dir = "pacbio"),
+                             shortreads      = list(type = "illumina", 
+                                                    dir = "illumina"),
+                             datadir         = ".",
+                             outdir          = "./output",
+                             reference       = NULL,
+                             consensus       = NULL,
+                             threshold       = 0.20,
+                             iterations      = 1,
+                             microsatellite  = FALSE,
+                             dist_alleles    = 2,
+                             filterScores    = TRUE,
+                             partSR          = TRUE,
+                             forceMapping = FALSE,
+                             fullname        = TRUE,
+                             note            = NULL,
                              ...) {
   conf0 <- list(...)
   if (length(reference) == 0) {
@@ -35,7 +38,7 @@ create_dr2s_conf <- function(sample,
     dist_alleles    = dist_alleles,
     filterScores    = filterScores,
     partSR          = partSR,
-    forceBadMapping = forceBadMapping,
+    forceMapping = forceMapping,
     lrmapper   = conf0$lrmapper %||% "minimap",
     srmapper   = conf0$srmapper %||% "bwamem",
     limits     = conf0$limits   %||% NULL,
@@ -45,59 +48,63 @@ create_dr2s_conf <- function(sample,
                                        "mapFinal", "polish", "report"),
     longreads  = longreads,
     shortreads = shortreads,
-    nreads     = conf0$nreads   %||% NULL,
     opts       = conf0$opts     %||% NULL,
     sample_id  = sample,
     locus      = locus,
     reference  = ref,
     alternate  = alt,
-    consensus  = consensus      %||% "mapping"
+    consensus  = consensus      %||% "mapping",
+    note       = note           %||% NULL
   )
   structure(conf1, class = c("DR2Sconf", "list"))
 }
 
 ## debug
-# conf <- read_dr2s_conf(config_file)
+# conf <- readDR2SConf(config_file)
 #config_file <- "./tests/config1.yaml"
 #library(DR2S)
-# configs <- read_dr2s_conf(config_file)
+# configs <- readDR2SConf(config_file)
 # DR2Smap(configs[[1]])
 #' @export
-read_dr2s_conf <- function(config_file) {
+readDR2SConf <- function(config_file) {
   conf <- yaml::yaml.load_file(config_file)
   ## set defaults if necessary
-  conf$datadir    <- conf$datadir    %||% normalizePath(".", mustWork = TRUE)
-  conf$outdir     <- conf$outdir     %||% file.path(conf$datadir, "output")
-  conf$threshold  <- conf$threshold  %||% 0.2
-  conf$iterations <- conf$iterations %||% 2
+  conf$datadir        <- conf$datadir        %||% normalizePath(".", 
+                                                                mustWork = TRUE)
+  conf$outdir         <- conf$outdir         %||% file.path(conf$datadir, 
+                                                            "output")
+  conf$threshold      <- conf$threshold      %||% 0.2
+  conf$iterations     <- conf$iterations     %||% 2
   conf$microsatellite <- conf$microsatellite %||% FALSE
-  conf$filterScores <- conf$filterScores %||% TRUE
-  conf$partSR <- conf$partSR %||% TRUE
-  conf$forceBadMapping <- conf$forceBadMapping %||% FALSE
-  conf$lrmapper     <- conf$lrmapper      %||% "minimap"
-  conf$srmapper     <- conf$srmapper      %||% "bwamem"
-  conf$limits     <- conf$limits     %||% list(NULL)
-  conf$haptypes   <- conf$haptypes   %||% list(NULL)
-  conf$pipeline   <- conf$pipeline   %||% c("clear", "mapInit",
-                                            "partitionLongReads", "mapIter",
-                                            "partitionShortReads", "mapFinal",
-                                            "polish", "report")
-  conf$longreads  <- conf$longreads  %||% list(type = "pacbio", dir = "pacbio")
-  conf$shortreads <- conf$shortreads %||% list(type = "illumina", dir = "illumina")
-
+  conf$filterScores   <- conf$filterScores   %||% TRUE
+  conf$partSR         <- conf$partSR         %||% TRUE
+  conf$forceMapping   <- conf$forceMapping   %||% FALSE
+  conf$lrmapper       <- conf$lrmapper       %||% "minimap"
+  conf$srmapper       <- conf$srmapper       %||% "bwamem"
+  conf$limits         <- conf$limits         %||% list(NULL)
+  conf$haptypes       <- conf$haptypes       %||% list(NULL)
+  conf$dist_alleles   <- conf$dist_alleles   %||% 2
+  conf$pipeline       <- conf$pipeline       %||% c("clear", "mapInit",
+                                                     "partitionLongReads", 
+                                                     "mapIter", 
+                                                     "partitionShortReads", 
+                                                     "mapFinal",
+                                                     "polish", "report")
+  conf$longreads       <- conf$longreads     %||% list(type = "pacbio", 
+                                                        dir = "pacbio")
+  conf$shortreads      <- conf$shortreads    %||% list(type = "illumina", 
+                                                       dir = "illumina")
+  conf$note            <- conf$note          %||% NULL
   
   if (length(conf$shortreads) == 1 && is.list(conf$shortreads[[1]]))
     conf$shortreads <- conf$shortreads[[1]]
 
-  if (is.null(conf$nreads))
-    conf["nreads"] <-  list(NULL)
-
   if (is.null(conf$opts))
     conf["opts"] <-  list(NULL)
 
-  expand_dr2s_conf(structure(conf, class = c("DR2Sconf", "list")))
+  expandDR2SConf(structure(conf, class = c("DR2Sconf", "list")))
 }
-expand_dr2s_conf <- function(conf) {
+expandDR2SConf <- function(conf) {
   ## we can have more than one sample
   samples <- conf$samples
   conf$samples <- NULL
@@ -108,9 +115,6 @@ expand_dr2s_conf <- function(conf) {
     lrds <- list(lrds)
   }
   conf$longreads <- NULL
-  ## we can have subsampling of longreads
-  nrds <- conf$nreads %||% list(NULL)
-  conf$nreads <- NULL
   ## we can have different consensus calling methods
   cnss <- conf$consensus %||% list("mapping")
   conf$consensus <- NULL
@@ -121,16 +125,17 @@ expand_dr2s_conf <- function(conf) {
     foreach(cns = cnss, .combine = "c") %:%
     foreach(dst = sample$dist_alleles, .combine = "c") %:%
     foreach(ref = sample$reference, .combine = "c") %do% {
-      update_conf(conf, lrd, nrd, sample_id, sample, ref, alternate = "", cns, dst)
+      updateDR2SConf(conf, lrd, nrd, sample_id, sample, ref, alternate = "", 
+                     cns, dst)
     }
 }
 
-update_conf <- function(conf0, lrd, nrd, sample_id, locus, reference, alternate, consensus, dst) {
+updateDR2SConf <- function(conf0, lrd, nrd, sample_id, locus, reference, 
+                           alternate, consensus, dst) {
   conf0$datadir   <- normalizePath(conf0$datadir, mustWork = TRUE)
   conf0$outdir    <- normalizePath(conf0$outdir, mustWork = FALSE)
   conf0$longreads <- lrd
   conf0$dist_alleles  <- dst
-  conf0['nreads'] <- nrd %||% list(NULL)
   conf0$sample_id <- sample_id
   conf0["reference"] <- reference %|ch|% list(NULL)
   locus$reference    <- NULL
@@ -142,37 +147,46 @@ update_conf <- function(conf0, lrd, nrd, sample_id, locus, reference, alternate,
   list(merge_list(conf0, locus, update = TRUE))
 }
 
-initialise_dr2s <- function(conf, create_outdir = TRUE) {
-  conf <- validate_dr2s_conf(conf)
+initialiseDR2S <- function(conf, create_outdir = TRUE) {
+  conf <- validateDR2SConf(conf)
   if (create_outdir) {
     conf$outdir <- dir_create_if_not_exists(path = gsub("//+", "/", file.path(
       conf$outdir,
       conf$sample_id#,
       ## Use only sample id
-      # sprintf("N%03i", conf$nreads) %||% "",
       # conf$longreads$name %||% conf$longreads$dir %||% "",
-      # paste0(normalise_locus(conf$locus), ".", conf$longreads$type, ".", conf$reftype, ".", conf$consensus)
+      # paste0(normalise_locus(conf$locus), ".", conf$longreads$type, ".", 
+      # conf$reftype, ".", conf$consensus)
     )))
   }
   conf
 }
 
-validate_dr2s_conf <- function(conf) {
-  fields <- c("datadir", "outdir", "threshold", "iterations", "microsatellite", "dist_alleles", "filterScores", "partSR", "forceBadMapping", "lrmapper", "srmapper", "limits", "haptypes",
-              "pipeline", "longreads", "shortreads", "nreads", "opts",
-              "sample_id", "locus", "reference", "alternate", "consensus")#"limitA", "limitB",
+validateDR2SConf <- function(conf) {
+  fields <- c("datadir", "outdir", "threshold", "iterations", "microsatellite", 
+              "dist_alleles", "filterScores", "partSR", "forceMapping", 
+              "lrmapper", "srmapper", "limits", "haptypes", "pipeline", 
+              "longreads", "shortreads", "opts", "sample_id", "locus", 
+              "reference", "alternate", "consensus", "note")
   if (!all(fields %in% names(conf))) {
-    stop("Missing fields <", comma(fields[!fields %in% names(conf)]), "> in config", call. = FALSE)
+    stop("Missing fields <", comma(fields[!fields %in% names(conf)]), 
+         "> in config", call. = FALSE)
   }
   conf <- structure(conf[fields], class = c("DR2Sconf", "list"))
   conf$datadir <- normalizePath(conf$datadir, mustWork = TRUE)
   conf$outdir  <- normalizePath(conf$outdir, mustWork = FALSE)
-  if (!is.numeric(conf$threshold) || (conf$threshold <= 0 || conf$threshold >= 1)) {
-    stop("The polymorphism threshold must be a number between 0 ans 1", call. = FALSE)
+  if (!is.numeric(conf$threshold) || 
+      (conf$threshold <= 0 || 
+       conf$threshold >= 1)) {
+    stop("The polymorphism threshold must be a number between 0 ans 1", 
+         call. = FALSE)
   }
   # check iterations
-  if (!is.numeric(conf$iterations) || !conf$iterations&&1 ==  0 || conf$iterations > 10) {
-    stop("The number of iterations must be integers between 1 and 10", call. = FALSE)
+  if (!is.numeric(conf$iterations) || 
+      !conf$iterations&&1 ==  0 || 
+      conf$iterations > 10) {
+    stop("The number of iterations must be integers between 1 and 10", 
+         call. = FALSE)
   }
   # check partSR
   if (!is.logical(conf$partSR)){
@@ -188,25 +202,31 @@ validate_dr2s_conf <- function(conf) {
   }
   # check number of distinct alleles
   if (!is.numeric(conf$dist_alleles)){
-    stop("Number of distinct alleles (dist_alleles) must be numeric", call. = FALSE)
+    stop("Number of distinct alleles (dist_alleles) must be numeric", 
+         call. = FALSE)
   }
-  # check forceBadMapping
-  if (!is.logical(conf$forceBadMapping)){
-    stop("forceBadMapping must be logical", call. = FALSE)
+  # check forceMapping
+  if (!is.logical(conf$forceMapping)){
+    stop("forceMapping must be logical", call. = FALSE)
   }
   ## Check mapper
   conf$lrmapper <- match.arg(conf$lrmapper, c("bwamem", "graphmap", "minimap"))
   conf$srmapper <- match.arg(conf$srmapper, c("bwamem", "graphmap", "minimap"))
   ## Check pipeline
   pipesteps <- c("clear", "cache", "mapInit", "mapIter", "mapFinal",
-                 "partitionLongReads", "partitionShortReads", "polish", "report")
+                 "partitionLongReads", "partitionShortReads", "polish", 
+                 "report")
   if (!all(conf$pipeline %in% pipesteps)) {
-    stop("Invalid pipeline step <", comma(conf$pipeline[!conf$pipeline %in% pipesteps]), ">", call. = FALSE)
+    stop("Invalid pipeline step <", 
+         comma(conf$pipeline[!conf$pipeline %in% pipesteps]), ">", 
+         call. = FALSE)
   }
-  ## Long reads must have a "type" and a "dir" field. "name" and "opts" are optional
+  ## Long reads must have a "type" and a "dir" field. 
   lrdfields <- c("type", "dir")
   if (!all(lrdfields %in% names(conf$longreads))) {
-    stop("Missing fields <", comma(lrdfields[!lrdfields %in% names(conf$longreads)]), "> in longreads config", call. = FALSE)
+    stop("Missing fields <", 
+         comma(lrdfields[!lrdfields %in% names(conf$longreads)]), 
+         "> in longreads config", call. = FALSE)
   }
   ## Type must be one of "pacbio" or "nanopore"
   if (!conf$longreads$type %in% c("pacbio", "nanopore")) {
@@ -217,36 +237,39 @@ validate_dr2s_conf <- function(conf) {
     stop("No long read directory <", longreaddir, ">", call. = FALSE)
   }
   if (length(dir(longreaddir, pattern = ".+fast(q|a)(.gz)?")) == 0) {
-    stop("No FASTQ files in long read directory <", longreaddir, ">", call. = FALSE)
+    stop("No FASTQ files in long read directory <", longreaddir, ">", 
+         call. = FALSE)
   }
   ## Check short reads (short reads are optional i.e. the field can be NULL)
   if (!is.null(conf$shortreads)) {
     srdfields <- c("type", "dir")
     if (!all(srdfields %in% names(conf$shortreads))) {
-      stop("Missing fields <", comma(srdfields[!srdfields %in% names(conf$shortreads)]), "> in shortreads config", call. = FALSE)
+      stop("Missing fields <", 
+           comma(srdfields[!srdfields %in% names(conf$shortreads)]), 
+           "> in shortreads config", call. = FALSE)
     }
     if (!conf$shortreads$type %in% c("illumina")) {
-      stop("Unsupported shortread type <", conf$shortreads$type, ">", call. = FALSE)
+      stop("Unsupported shortread type <", conf$shortreads$type, ">", 
+           call. = FALSE)
     }
     shortreaddir <- file.path(conf$datadir, conf$shortreads$dir)
     if (!file.exists(longreaddir)) {
-      warning("No short read directory <", shortreaddir, ">", call. = FALSE, immediate. = TRUE)
+      warning("No short read directory <", shortreaddir, ">", call. = FALSE, 
+              immediate. = TRUE)
     }
     if (length(dir(shortreaddir, pattern = ".+fastq(.gz)?")) == 0) {
-      warning("No FASTQ files in short read directory <", shortreaddir, ">", call. = FALSE, immediate. = TRUE)
+      warning("No FASTQ files in short read directory <", 
+              shortreaddir, ">", call. = FALSE, immediate. = TRUE)
     }
   }
   ## Normalise locus
   ##conf$locus   <- sub("^(HLA-|KIR)", "", normalise_locus(conf$locus))
   conf$locus   <- sub("^HLA-", "", normalise_locus(conf$locus))
   ## Check consensus method
-  conf$consensus <- match.arg(conf$consensus, c("multialign", "mapping"))
-  if (conf$consensus == "multialign") {
-    conf['alternate'] <- list(NULL)
-  }
+  conf$consensus <- match.arg(conf$consensus, c("mapping"))
   ## Reference type
   conf$reftype <- if (is.null(conf$reference) && is.null(conf$alternate)) {
-    stop("Need to provide a reference, either as fasta or from ipd")
+    stop("Need to provide a reference, either as fasta or as ipd identifier")
   } else if (!is.null(conf$reference) && is.null(conf$alternate)) {
     "ref"
   } else if (!is.null(conf$reference) && !is.null(conf$alternate)) {
@@ -254,10 +277,15 @@ validate_dr2s_conf <- function(conf) {
   }
   conf
 }
-
 #' @export
 print.DR2Sconf <- function(x, ...) {
-  cat(yaml::as.yaml(x, indent = 4))
+  cat(yaml::as.yaml(x$getConfig, indent = 4))
   invisible(x)
 }
 
+writeDR2SConf <- function(x, outFile = NULL) {
+  if (is.null(outFile)) {
+    outFile <- file.path(x$getOutdir(), "config.yaml")
+  }
+  yaml::write_yaml(yaml::as.yaml(x$getConfig(), indent = 4), outFile)
+}

@@ -1,21 +1,11 @@
 ## Extract (a subset of) reads from a bamfile
-.extractFastq <- function(x, qnames=NULL, n=100, replace=TRUE) {
+.extractFastq <- function(x, qnames=NULL) {
   stopifnot(is.character(x) && length(x) == 1)
   bam <- Rsamtools::scanBam(x)[[1]]
   qn <-
-    if (!is.null(qnames) && is.null(n)) {
+    if (!is.null(qnames)) {
       qnames
-    } else if (!is.null(qnames) && !is.null(n)) {
-      qn <- sample(qnames, size=n, replace=replace)
-      q  <- attr(qnames, "q")[match(qn, qnames)]
-      o  <- order(q, decreasing=TRUE)
-      qn <- qn[o]
-      q  <- q[o]
-      attr(qn, "q") <- q
-      qn
-    } else if (is.null(qnames) && !is.null(n)) {
-      sample(bam$qname, size=n, replace=replace)
-    } else if (is.null(qnames) && is.null(n)) {
+    } else if (is.null(qnames)) {
       bam$qname
     }
   .trimSoftclippedEnds(bam, qn)
@@ -164,43 +154,6 @@ generateReferenceSequence <- function(allele, locus, outdir, dirtag=NULL,
 
   Biostrings::writeXStringSet(sref, outpath)
   filename
-}
-
-multialign <- function(x, hptype, n, align = list(
-  iterations = 0,
-  refinements = 0,
-  gapOpening = -2,
-  gapExtension = -1,
-  perfectMatch = 2,
-  misMatch = -5,
-  terminalGap = -5,
-  gapPower = 0,
-  normPower = 1
-)) {
-  stopifnot(is(x$mapIter[["0"]][[hptype]], "mapIter"))
-  hptype <- match.arg(hptype, x$getHapTypes())
-  readfile <- x$mapIter[["0"]][[hptype]]$reads
-  fq <- ShortRead::readFastq(readfile)
-  ids  <- as.character(ShortRead::id(fq))
-  q    <- as.numeric(DR2S:::strsplitN(DR2S:::strsplitN(ids, " ", 2, fixed = TRUE), "=", 2, fixed = TRUE))
-  w    <- Biostrings::width(fq)
-  wq   <- (w/max(w)) * q^2
-  n    <- if (length(wq) > n) n else length(wq)
-  i    <- which(wq > quantile(wq, 1 - n/length(wq)))
-  seqs <- ShortRead::sread(fq[i])
-  DECIPHER::AlignSeqs(seqs,
-                      iterations   = align$iterations,
-                      refinements  = align$refinements,
-                      gapOpening   = align$gapOpening,
-                      gapExtension = align$gapExtension,
-                      perfectMatch = align$perfectMatch,
-                      misMatch     = align$misMatch,
-                      terminalGap  = align$terminalGap,
-                      gapPower     = align$gapPower,
-                      normPower    = align$normPower,
-                      processors   = 8
-                      )
-
 }
 
 multialign_consensus <- function(aln) {
