@@ -3,17 +3,6 @@ yield.HapEnv <- function(envir, pos = NULL) {
   lr <- envir$LR
   sr <- envir$SR
 
-  # if (!all(VALID_DNA(include = "indel") %in% colnames(sr))) {
-  #   addSymbol <- VALID_DNA(include = "indel")[
-  #     !VALID_DNA(include = "indel") %in% colnames(sr)]
-  #   if (addSymbol == "+")
-  #     sr <- cbind(sr, "+" = 0)
-  #   sr <- consmat(sr, freq = FALSE)
-  #   envir$SR <- sr
-  # }
-  # v <- VALID_DNA("indel")
-  # v[which(!v %in% colnames(sr))]
-
   pos <- if (is.null(pos)) envir$pos else pos
   structure(list(
     ## class: variant
@@ -30,9 +19,7 @@ yield.HapEnv <- function(envir, pos = NULL) {
       sr = ifelse(is.null(sr), 0, offset(sr))
     ),
     ##
-    haplotype = envir$haplotype,
-    ## 95% confidence limit of allelic balance
-    balance_upper_confint = envir$balance_upper_confint
+    haplotype = envir$haplotype
     ##
   ), class = c("variant_list", "list"))
 }
@@ -81,142 +68,161 @@ disambiguate_variant <- function(x,
   stopifnot(is(x, "variant_list"))
 
   warning_msg <- ""
+  
+  ## Start with long reads. They have to be there
   lr <- as.matrix(x$lr)
-  varl <- filter_variant(cm = lr, threshold)
+  varl <- .filterVariant(cm = lr, threshold)
+  
+  ## Look if its ambiguous
+  if (length(varl) > 1 ){
+    warning_msg <- warning_msg %<<% "|Ambiguous position in long reads"
+  }
 
+  ## Look for deletions
+  if ("-" %in% names(varl)) { 
+    if (lr[varl["-"]]/sum(lr[varl]) > threshold/(2/3)) {
+      warning_msg <- warning_msg %<<% "|Gap overrepresented in long reads"
+    }
+  }
+  
+  ## Check for > 2 alleles
+  if (length(varl) > 2) {
+    warning_msg <- warning_msg %<<% "|More than two long read variants"
+  }
+
+  ## Set the ambiguous bases
+  bases <- names(varl) 
+  
   if (!is.null(x$sr)){
     sr <- as.matrix(x$sr)
-    vars <- filter_variant(cm = sr, threshold)
+    vars <- .filterVariant(cm = sr, threshold)
+    
+    ## State which reads are ambiguous
+    if (length(vars) > 1 ){
+      warning_msg <- warning_msg %<<% "|Ambiguous position in short reads"
+    }
 
     ## Spurious insertion in short reads that should have been set to zero.
     if ("+" %in% names(vars)) {
       warning_msg <- warning_msg %<<% "|Insertion signal in short reads"
-      # vars <- vars[!names(vars) %in% "+"]
-      # sr[, "+"] <- 0
     }
-
+    
     ## Mismatch in variant bases between long and short reads
-    if (length(varl) > 1 && any(!names(varl) %in% names(vars))) {
+    ## not the same order or base
+    if (any(!varl == vars)) {
+      ## No base matches
       if (length(intersect(names(varl), names(vars))) == 0) {
-        warning_msg <- warning_msg %<<% paste0("|No intersect between between",
-                                               " long and short read variants")
-      } else if ("-" %in% names(varl)) {
-        if (lr[varl["-"]]/sum(lr[varl]) > threshold/(2/3)) {
-          warning_msg <- warning_msg %<<% "|Gap overrepresented in long reads"
-        }
+        warning_msg <- warning_msg %<<% 
+          "|No intersect between long and short read variants"
+      } else if (any(!sort(varl) == sort(vars))) { # different order
+          warning_msg <- warning_msg %<<% 
+            "|Major/minor variant different in long and short reads"
+      } else if (length(varl) > length(vars)) { 
+          warning_msg <- warning_msg %<<% 
+            "|Variant in long but not in short reads"
+      } else if (length(vars) > length(varl)) { 
+          warning_msg <- warning_msg %<<% 
+            "|Variant in short but not in long reads"
       } else {
-        warning_msg <- warning_msg %<<% paste0("|Mismatch between long and ",
-                                               "short read variants")
+        warning_msg <- warning_msg %<<% 
+          "|Mismatch between long and short read variants"
       }
     }
-
-    vlr <- lr[, vars] + 1L ## ensure that no div/zero can occur
-    vsr <- sr[, vars]
-
-    ## total number of long reads
-    N_lr <- sum(vlr)
-    N_sr <- sum(vsr)
-    ## Variant allele frequency
-    vaf_lr <- sort(vlr/N_lr, decreasing = TRUE)
-    vaf_sr <- sort(vsr/N_sr, decreasing = TRUE)
-    if (length(vaf_sr) > 2) {
+    
+    ## Check for deletions
+    if ("-" %in% names(vars)) { 
+      if ((sr[vars["-"]]/sum(sr[vars])) %|na|% 0  > threshold/(2/3)) {
+        warning_msg <- warning_msg %<<% "|Gap overrepresented in short reads"
+      }
+    }
+    
+    ## Check for more than two alleles
+    if (length(vars) > 2) {
       warning_msg <- warning_msg %<<% "|More than two short read variants"
-      vaf_lr <- vaf_lr[1:2]
-      vaf_sr <- vaf_lr[1:2]
     }
-    ## Error margins
-    standard_error <- sqrt(prod(vaf_sr)/N_sr)
-    margin_of_error <- 1.96*standard_error + (0.5/N_lr)
-
-    overrep_sr <- vaf_sr[1]/vaf_sr[2]
-    # if (overrep_sr > max_overrep_sr) {
-    #   fmt <- "|Variant [%s] is %s-fold overrepresented in short reads"
-    #   warning_msg <- warning_msg %<<% sprintf(fmt, names(overrep_sr), round(overrep_sr, 1))
-    # }
-    if (!is.na(overrep_sr) && overrep_sr < min_overrep_lr){
-      fmt <- "|Variant [%s] is only %s-fold overrepresented in short reads; Keep it ambiguous"
-      warning_msg <- warning_msg %<<% sprintf(fmt, names(overrep_sr), round(overrep_sr, 1))
-    }
-    overrep_lr <- vaf_lr[1]/vaf_lr[2]
-    if (!is.na(overrep_lr) && overrep_lr < min_overrep_lr) {
-      fmt <- "|Variant [%s] is only %s-fold overrepresented in long reads"
-      warning_msg <- warning_msg %<<% sprintf(fmt, names(overrep_lr), round(overrep_lr, 1))
-    }
-
-    ## build variant
-    bases <- names(vaf_sr)
-    names(bases) <- c("ref", "alt")
-    warning_msg <- sub("|", "", trimws(warning_msg), fixed = TRUE)
-    x$lr_ <- lr
-    x$sr_ <- sr
-
-    x$variant <- variant(bases = bases, proportion = unname(1 - vaf_lr[2]), margin_of_error = margin_of_error, warning = warning_msg, vlist = x)
-  } else {
-    ## Spurious deletion signal in long reads
-    if (length(varl) > 2 && "-" %in% names(varl)) {
-      lrm <- lr[, varl]
-      if (names(which.min(lrm/sum(lrm))) == "-") {
-        ## it should be safe to silently remove the deletion if the signal
-        ## for it is the weakest among the variants.
-        varl <- varl[!names(varl) %in% "-"]
-      }
-    }
-
-    vlr <- lr[, varl] + 1L ## ensure that no div/zero can occur
-    ## total number of long reads
-    N_lr <- sum(vlr)
-    ## Variant allele frequency
-    vaf_lr <- sort(vlr/N_lr, decreasing = TRUE)
-    ## Error margins
-    standard_error <- sqrt(prod(vaf_lr)/N_lr)
-    margin_of_error <- 1.96*standard_error + (0.5/N_lr)
-    overrep_lr <- vaf_lr[1]/vaf_lr[2]
-    if (overrep_lr < min_overrep_lr) {
-      fmt <- "|Variant [%s] is only %s-fold overrepresented in long reads"
-      warning_msg <- warning_msg %<<% sprintf(fmt, names(overrep_lr), round(overrep_lr, 1))
-    }
-    ## build variant
-    bases <- names(vaf_lr)
-    names(bases) <- c("ref", "alt")
-    warning_msg <- sub("|", "", trimws(warning_msg), fixed = TRUE)
-    x$lr_ <- lr
-    x$sr_ <- NULL
-    x$variant <- variant(bases = bases, proportion = unname(1 - vaf_lr[2]), margin_of_error = margin_of_error, warning = warning_msg, vlist = x)
+    
+    ## Set the ambiguous bases to short read variants if not fewer
+    if (!length(vars) < length(varl))  
+      bases <- names(vars)
   }
+  
+  # names(bases) <- c("ref", "alt")
+  warning_msg <- sub("|", "", trimws(warning_msg), fixed = TRUE)
+  
+  x$variant <- variant(bases = bases, warning = warning_msg, vlist = x)
+  # x <- x$variant
+  x
+  # } 
+  # x$variant <- variant(bases = bases, warning = warning_msg, vlist = x)
+    # x$variant <- variant(bases = bases, proportion = unname(1 - vaf_lr[2]), margin_of_error = margin_of_error, warning = warning_msg, vlist = x)
+    # ## Spurious deletion signal in long reads
+    # if (length(varl) > 2 && "-" %in% names(varl)) {
+    #   lrm <- lr[, varl]
+    #   if (names(which.min(lrm/sum(lrm))) == "-") {
+    #     ## it should be safe to silently remove the deletion if the signal
+    #     ## for it is the weakest among the variants.
+    #     varl <- varl[!names(varl) %in% "-"]
+    #   }
+    # }
+
+    # vlr <- lr[, varl] + 1L ## ensure that no div/zero can occur
+    # ## total number of long reads
+    # N_lr <- sum(vlr)
+    # ## Variant allele frequency
+    # vaf_lr <- sort(vlr/N_lr, decreasing = TRUE)
+    # ## Error margins
+    # standard_error <- sqrt(prod(vaf_lr)/N_lr)
+    # margin_of_error <- 1.96*standard_error + (0.5/N_lr)
+    # overrep_lr <- vaf_lr[1]/vaf_lr[2]
+    # if (overrep_lr < min_overrep_lr) {
+    #   fmt <- "|Variant [%s] is only %s-fold overrepresented in long reads"
+    #   warning_msg <- warning_msg %<<% sprintf(fmt, names(overrep_lr), round(overrep_lr, 1))
+    # }
+    ## build variant
+    # bases <- names(vaf_lr)
+    # names(bases) <- c("ref", "alt")
+    # warning_msg <- sub("|", "", trimws(warning_msg), fixed = TRUE)
+    # x$lr_ <- lr
+    # x$sr_ <- NULL
+    # x$variant <- variant(bases = bases, proportion = unname(1 - vaf_lr[2]), margin_of_error = margin_of_error, warning = warning_msg, vlist = x)
+  # }
   x
 }
 
-filter_variant <- function(cm, threshold) {
+.filterVariant <- function(cm, threshold) {
   cmf <- sweep(cm, 1, .rowSums(cm, NROW(cm), NCOL(cm)), `/`)
   which(apply(cmf, 2, function(col) all(col > threshold)))
 }
 
-variant <- function(bases, proportion, margin_of_error, warning, vlist) {
-  refbase <- bases[["ref"]]
-  altbase <- bases[["alt"]]
+variant <- function(bases, warning, vlist) {
+  refbase <- bases[[1]]
+  altbase <- bases[[2]]
   base_ref_ <- if (altbase == "-") c(refbase, "+") else refbase
   base_alt_ <- if (refbase == "-") c(altbase, "+") else altbase
   if (!is.null(vlist$sr)){
     pos <- as.integer(row.names(vlist$sr))
-    cm <- rbind(as.matrix(vlist$lr), vlist$lr_, as.matrix(vlist$sr), vlist$sr_)
-    rownames(cm) <- c("LR1", "LR2", "SR1", "SR2")
+    cm <- rbind(as.matrix(vlist$lr), as.matrix(vlist$sr))
+    rownames(cm) <- c("LR", "SR")
   } else {
     pos <- as.integer(row.names(vlist$lr))
-    cm <- rbind(as.matrix(vlist$lr), vlist$lr_)
-    rownames(cm) <- c("LR1", "LR2")
+    cm <- as.matrix(vlist$lr)
+    rownames(cm) <- "LR"
   }
+  
   structure(
     bases,
     class = "variant",
     position = pos,
-    proportion = proportion,
-    margin_of_error = margin_of_error,
     warning = warning,
     haplotype = vlist$haplotype,
     cm = cm,
     offset = ifelse(!is.null(vlist$sr),
                     vlist$offset[["sr"]],
-                    vlist$offset[["lr"]])
+                    vlist$offset[["lr"]]),
+    reads_ref_sr = vlist$sr[,refbase],
+    reads_ref_lr = vlist$lr[,altbase],
+    reads_alt_sr = vlist$sr[,refbase],
+    reads_alt_lr = vlist$lr[,altbase]
     ## here we have to remove the offsets we incurred at previous
     ## ambiguous positions to match the original polymorhic positions
     ## in the pileup
@@ -225,28 +231,22 @@ variant <- function(bases, proportion, margin_of_error, warning, vlist) {
 
 #' @export
 print.variant <- function(x, ...) {
-  cat(sprintf("Variant at position [%s]\n", paste0(attr(x, "position") - attr(x, "offset"), collapse = "~")), sep = "")
+  cat(sprintf("Variant at position [%s]\n", 
+              paste0(attr(x, "position") - attr(x, "offset"), 
+                     collapse = "~")), sep = "")
 
-  if (nrow(attr(x, "cm")) == 4){
-    m <- attr(x, "cm")[c(1, 3), ]
-    rownames(m) <- c("LR", "SR")
-    m_ <- attr(x, "cm")[c(2, 4), ]
-    rownames(m_) <- c("LR", "SR")
-  } else {
-    m <- t(as.matrix(attr(x, "cm")[1, ]))
-    rownames(m) <- "LR"
-    m_ <- t(as.matrix(attr(x, "cm")[2, ]))
-    rownames(m_) <- "LR"
-  }
-  cat("\nOriginal consensus matrix:\n")
+  m <- attr(x, "cm")
+  cat("\nConsensus matrix:\n")
   print(m, right = TRUE, quote = FALSE)
-  cat("\nDisambiguated consensus matrix:\n")
-  print(m_, right = TRUE, quote = FALSE)
 
-  cat("\nReference: ", sQuote(x[["ref"]]), "; #Sreads: ", length(attr(x, "reads_ref")), "\n", sep = "")
-  cat("Alternate: ", sQuote(x[["alt"]]), "; #Sreads: ", length(attr(x, "reads_alt")), "\n", sep = "")
-  cat("Shortreads reference frequency: ", round(attr(x, "proportion"), 2), "\n", sep = "")
-  cat("Lower 95% limit: ", round(attr(x, "proportion") - attr(x, "margin_of_error"), 2), "\n", sep = "")
+  cat("\nReference: ", sQuote(x[[1]]), 
+      "; #Sreads: ", attr(x, "reads_ref_sr"), 
+      "; #Lreads: ", attr(x, "reads_ref_lr"), 
+      "\n", sep = "")
+  cat("\nAlternate: ", sQuote(x[[2]]), 
+      "; #Sreads: ", attr(x, "reads_alt_sr"), 
+      "; #Lreads: ", attr(x, "reads_alt_lr"), 
+      "\n", sep = "")
 
   if (nzchar(attr(x, "warning"))) {
     cat("\nWARNING: ", attr(x, "warning"), "\n", sep = "")
@@ -256,20 +256,15 @@ print.variant <- function(x, ...) {
 `update<-` <- function(envir, pos = NULL, value) UseMethod("update<-")
 `update<-.HapEnv` <- function(envir, pos = NULL, value) {
   pos <- if (is.null(pos)) envir$pos else pos
-  envir$LR <- do_update_(cm = envir$LR, val = value$lr_, pos)
-  if (!is.null(envir$SR)) envir$SR <- do_update_(cm = envir$SR, val = value$sr_, pos)
+  envir$LR <- do_update_(cm = envir$LR, pos)
+  if (!is.null(envir$SR)) envir$SR <- do_update_(cm = envir$SR, pos)
   envir$variants <- c(envir$variants, list(value$variant))
   envir$current_variant <- value$variant
   invisible(envir)
 }
 
-do_update_ <- function(cm, val, pos) {
-  if ((n_ <- NROW(val)) > 1) {
-    pos_ <- pos:(pos + n_ - 1L)
-  } else {
-    pos_ <- pos
-  }
-  cm[pos_, ] <- val
+do_update_ <- function(cm, pos) {
+  pos_ <- pos
   if (anyNA(cm)) {
     d <- dim(cm)
     omit <- seq_along(cm)[is.na(cm)]

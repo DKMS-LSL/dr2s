@@ -7,7 +7,7 @@
 # cache = TRUE
 # library(foreach)
 # library(futile.logger)
-#x <- self
+#x <- dr2s
 polish.DR2S <- function(x,
                         threshold = x$getThreshold(),
                         lower_limit = 0.80,
@@ -48,9 +48,8 @@ polish.DR2S <- function(x,
 
   rs <- menv$export()
 
-  ## Problematic Variants
-  vars <- get_problematic_variants(x = rs, lower_limit = 0.6)
-  vars <- dplyr::ungroup(vars)
+  ## Get variants
+  vars <- .getVariants(x = rs)
 
   ## Check homopolymer count; Only check if the count is found in both
   if (check_hp_count) {
@@ -67,8 +66,6 @@ polish.DR2S <- function(x,
                                    pos       = names(missingN),
                                    ref       = "",
                                    alt       = "",
-                                   freq      = "",
-                                   lower     = "",
                                    warning   = sprintf(
                                      "Homopolymer at position %s should be %s",
                                                      names(missingN), missingN))
@@ -78,7 +75,7 @@ polish.DR2S <- function(x,
     })
   }
 
-  rs$consensus$problematic_variants = dplyr::arrange(vars, pos, haplotype)
+  rs$consensus$variants = dplyr::arrange(vars, pos, haplotype)
 
   if (cache)
     rs$cache()
@@ -89,18 +86,9 @@ polish.DR2S <- function(x,
 
 # Helpers -----------------------------------------------------------------
 
-# x <- rs
-
-get_problematic_variants <- function(x, lower_limit) {
-  stopifnot(is(x, "DR2S"))
-  vars <- collect_variants(x)
-  vars <- dplyr::group_by(vars, haplotype)
-  vars <- dplyr::filter(vars, lower < lower_limit | nzchar(warning))
-  dplyr::mutate(vars, freq = round(freq, 3), lower = round(lower, 3))
-}
 
 
-collect_variants <- function(x) {
+.getVariants <- function(x) {
   hptypes <- x$getHapTypes()
   hvars <- lapply(hptypes, function(t) x$consensus[[t]]$variants)
   names(hvars) <- hptypes
@@ -109,8 +97,7 @@ collect_variants <- function(x) {
     return(
       dplyr::data_frame(
         haplotype = character(0), pos = integer(0), ref = character(0),
-        alt = character(0), freq = double(0), lower = double(0),
-        warning = character(0)
+        alt = character(0), warning = character(0)
       )
     )
   }
@@ -126,10 +113,8 @@ extract_variant_ <- function(v, h) {
   data.frame(
     haplotype = h,
     pos = attr(v, "position") %||% NA,
-    ref = v[["ref"]] %||% NA,
-    alt = v[["alt"]] %||% NA,
-    freq = attr(v, "proportion") %||% NA,
-    lower = (attr(v, "proportion") - attr(v, "margin_of_error")) %||% NA,
+    ref = v[[1]] %||% NA,
+    alt = v[[2]] %||% NA,
     warning = attr(v, "warning") %||% NA,
     stringsAsFactors = FALSE
   )

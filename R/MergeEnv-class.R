@@ -94,25 +94,23 @@ MergeEnv_$set("public", "init", function(hapEnv) {
   if (readtype == "SR"){
     envir$SR <- self$x$mapFinal$pileup[[paste0("SR", hapEnv)]]$consmat 
     lr <- self$x$mapFinal$pileup[[paste0("LR", hapEnv)]]$consmat 
-    envir$LR <- expandLongreadConsmat(lrm = lr, srm = envir$SR)
+    envir$LR <- .expandLongreadConsmat(lrm = lr, srm = envir$SR)
   } else {
     envir$LR <- self$x$mapFinal$pileup[[paste0("LR", hapEnv)]]$consmat 
     envir$SR <- NULL
   }
-
+  
+  apos <- foreach(rt = c("LR", "SR"), .combine = c) %do% {
+    ambiguous_positions(envir[[rt]], self$threshold)
+  }
+  apos <- unique(sort(apos))
+  
   envir$POSit = itertools::ihasNext(
-    iter(apos <- ambiguous_positions(envir[[readtype]], self$threshold)))
-  envir$balance = apply(as.matrix(envir[[readtype]][apos, ]), 1, function(x) {
-    tmp <- sort(x, decreasing = TRUE)[1:2]
-    tmp[1] / tmp[2]
-  })
+    iter(apos))
   envir$variants = list()
   envir$pos = 1L
   envir$current_variant = NULL
   envir$init = TRUE
-  envir$balance_upper_confint <- sum(mean(
-    envir$balance, na.rm = TRUE), 1.96*sd(envir$balance, na.rm = TRUE) , 
-    na.rm = TRUE)
 })
 
 ## self$walk_one() ####
@@ -139,13 +137,14 @@ MergeEnv_$set("public", "walk_one", function(hapEnv, verbose = FALSE) {
 #self$walk(hapEnv, TRUE)
 # self$walk("B", TRUE)
 # self$hptypes$B$SR[478,]
+
 MergeEnv_$set("public", "walk", function(hapEnv, verbose = FALSE) {
   hapEnv <- match.arg(hapEnv, self$x$getHapTypes())
   if (!self$isInitialised(hapEnv)) {
     self$init(hapEnv)
   }
   envir <- self$getHapEnv(hapEnv)
-  while (private$step_through(envir)) {
+  while (step_through(envir)) {
     if (verbose) {
       self$currentVariant(envir)
       cat("\nConsensus sequence:\n")
@@ -156,25 +155,22 @@ MergeEnv_$set("public", "walk", function(hapEnv, verbose = FALSE) {
   invisible(self)
 })
 ## private$step_through() ####
-MergeEnv_$set("private", "step_through", function(envir) {
-##step_through <- function(envir) {
+# MergeEnv_$set("private", "step_through", function(envir) {
+step_through <- function(envir) {
   if (!itertools::hasNext(envir$POSit)) {
     return(FALSE)
   }
   envir$pos <- ifelse(!is.null(envir$SR),
                       iterators::nextElem(envir$POSit) + offset(envir$SR),
                       iterators::nextElem(envir$POSit) + offset(envir$LR))
-  # debug
-  # 3010
-  #envir$pos <- 478
-  #envir$balance_upper_confint
   p <- envir$pos
   x <- yield(envir)
   rs <- disambiguate_variant(yield(envir), threshold = self$threshold)
+  
   update(envir) <- rs
   TRUE
 }
-)
+
 
 ## self$showConsensus() ####
 MergeEnv_$set("public", "showConsensus", function(envir, 
@@ -241,6 +237,7 @@ MergeEnv_$set("public", "export", function() {
                   variants = compact(envir$variants)
                 )
               },
+      ## consensus for checking
       seq = list(foreach(hptype = self$x$getHapTypes(),
                          .final = function(x) 
                            setNames(x, self$x$getHapTypes())) %do% {
@@ -258,6 +255,7 @@ MergeEnv_$set("public", "export", function() {
                            cseq
                          }),
       
+      ## consensus for remapping without ambig characters
       noAmbig = list(foreach(hptype = self$x$getHapTypes(),
                              .final = function(x) 
                                setNames(x, self$x$getHapTypes())) %do% {
@@ -284,7 +282,7 @@ MergeEnv_$set("public", "export", function() {
 
 # Helpers -----------------------------------------------------------------
 
-expandLongreadConsmat <- function(lrm, srm) {
+.expandLongreadConsmat <- function(lrm, srm) {
   m <- as.matrix(lrm)
   if (NCOL(lrm) == 5) {
     m <- cbind(m, `+` = 0)
