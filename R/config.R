@@ -150,7 +150,7 @@ updateDR2SConf <- function(conf0, lrd, nrd, sample_id, locus, reference,
 initialiseDR2S <- function(conf, create_outdir = TRUE) {
   conf <- validateDR2SConf(conf)
   if (create_outdir) {
-    conf$outdir <- dir_create_if_not_exists(path = gsub("//+", "/", file.path(
+    conf$outdir <- .dirCreateIfNotExists(path = gsub("//+", "/", file.path(
       conf$outdir,
       conf$sample_id#,
       ## Use only sample id

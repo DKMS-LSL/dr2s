@@ -129,7 +129,7 @@ generateReferenceSequence <- function(allele, locus, outdir, dirtag=NULL,
   if (!allele %in% ipd.Hsapiens.db::getAlleles(locus)) 
     stop(sprintf("Allele %s not found in database", allele))
     
-  dir_create_if_not_exists(normalizePath(
+  .dirCreateIfNotExists(normalizePath(
     file.path(outdir, dirtag), mustWork=FALSE))
   assertthat::assert_that(
     file.exists(outdir),

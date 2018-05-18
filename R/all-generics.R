@@ -429,7 +429,7 @@ polish <- function(x, threshold = x$getThreshold(), lower_limit = 1.6, cache = T
 #' To finalise the consensus sequences open the pairwise alignment file and save
 #' it replacing \strong{unchecked} with \strong{checked} in the file name.
 #' In the \strong{checked} file manual edits can be performed. After the pairwise
-#' alignment is verified call \code{\link{report_checked_consensus}}.
+#' alignment is verified call \code{\link{reportCheckedConsensus}}.
 #'
 #' @return Side effect
 #' @family DR2S mapper functions

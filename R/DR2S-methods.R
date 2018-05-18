@@ -96,8 +96,8 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
   partSR          <- self$getPartSR()
   forceMapping <- self$getForceMapping()
   filterScores    <- self$getFilterScores()
-  outdir          <- dir_create_if_not_exists(self$absPath("mapInit"))
-  dir_create_if_not_exists(path = file.path(self$absPath(".plots")))
+  outdir          <- .dirCreateIfNotExists(self$absPath("mapInit"))
+  .dirCreateIfNotExists(path = file.path(self$absPath(".plots")))
 
   if (recode_header) {
     stopifnot(
@@ -146,11 +146,11 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
                                   what = c("qname", "pos", "cigar")
                                 ))[[1]]
       readfilter <- .filterReads(bam = bam, preserve_ref_ends = TRUE)
-      file_delete_if_exists(bamfile)
+      .fileDeleteIfExists(bamfile)
 
       flog.info(" Write new shortread fastqs to file", name = "info")
       fqs <- self$getShortreads()
-      fqdir <- dir_create_if_not_exists(file.path(outdir,self$getSrdType()))
+      fqdir <- .dirCreateIfNotExists(file.path(outdir,self$getSrdType()))
       # write fastq's
       readfile <- c()
       readfile <- foreach(fq = fqs, .combine = c) %do% {
@@ -674,7 +674,7 @@ DR2S_$set("public", "runSplitLongReadsByHaplotype", function(plot = TRUE) {
   flog.info(" Split partitioned longreads by score", name = "info")
 
   ## Check if reporting is already finished and exit safely
-  if (check_report_status(self)) return(invisible(self))
+  if (.checkReportStatus(self)) return(invisible(self))
   stopifnot(self$hasPartition())
 
   ## Overide default arguments
@@ -794,7 +794,7 @@ DR2S_$set("public", "runExtractLongReads", function() {
   flog.info(" Extract haplotyped longreads", name = "info")
 
   ## Check if reporting is already finished and exit safely
-  if (check_report_status(self)) return(invisible(self))
+  if (.checkReportStatus(self)) return(invisible(self))
 
   stopifnot(self$hasHapList())
 
@@ -808,7 +808,7 @@ DR2S_$set("public", "runExtractLongReads", function() {
   ## do this for each haptype
   hptypes <- self$getHapTypes()
   for (hptype in hptypes) {
-    dir <- dir_create_if_not_exists(
+    dir <- .dirCreateIfNotExists(
       normalizePath(file.path(self$getOutdir(), "mapIter", (hptype)), 
                     mustWork = FALSE)
     )
@@ -823,7 +823,7 @@ DR2S_$set("public", "runExtractLongReads", function() {
                                                "limit"))),
                   paste0("n", length(fq)),
                   "fastq", "gz", sep = ".")
-    out <- file_delete_if_exists(file.path(dir, file))
+    out <- .fileDeleteIfExists(file.path(dir, file))
     ShortRead::writeFastq(fq, out, compress = TRUE)
     self$mapIter[["0"]][[hptype]] = structure(
       list(
@@ -912,7 +912,7 @@ DR2S_$set("public", "runMapIter", function(opts = list(),
   flog.info(" Iterative mapping of partitioned longreads", name = "info")
 
   ## Check if reporting is already finished and exit safely
-  if (check_report_status(self)) return(invisible(self))
+  if (.checkReportStatus(self)) return(invisible(self))
 
   ## Overide default arguments
   args <- self$getOpts("mapIter")
@@ -1139,7 +1139,7 @@ DR2S_$set("public", "runPartitionShortReads", function(opts = list(),
                    "longread clustering"), name = "info")
 
   ## Check if reporting is already finished and exit safely
-  if (check_report_status(self)) return(invisible(self))
+  if (.checkReportStatus(self)) return(invisible(self))
 
   ## Overide default arguments
   args <- self$getOpts("partitionSR")
@@ -1333,7 +1333,7 @@ DR2S_$set("public", "runMapFinal", function(opts = list(),
             name = "info")
 
   ## Check if reporting is already finished and exit safely
-  if (check_report_status(self)) return(invisible(self))
+  if (.checkReportStatus(self)) return(invisible(self))
 
   ## Overide default arguments
   args <- self$getOpts("mapFinal")
@@ -1349,7 +1349,7 @@ DR2S_$set("public", "runMapFinal", function(opts = list(),
   }
 
   reftag       <- "mapFinal"
-  outdir       <- dir_create_if_not_exists(self$absPath(reftag))
+  outdir       <- .dirCreateIfNotExists(self$absPath(reftag))
   lastIter     <- self$mapIter[[max(names(self$mapIter))]]
   hptypes      <- self$getHapTypes()
   readpathsLR  <- sapply(hptypes, function(x) 
@@ -1487,13 +1487,13 @@ DR2S_$set("public", "runMapFinal", function(opts = list(),
         ## Trim polymorphic ends
         fq <- trim_polymorphic_ends(fq)
         ## Write new shortread file to disc
-        fqdir  <- dir_create_if_not_exists(file.path(self$getOutdir(), 
+        fqdir  <- .dirCreateIfNotExists(file.path(self$getOutdir(), 
                                                      "mapFinal"))
         fqfile <- paste("sread", hptype, self$getSrMapper(), "trimmed", "fastq",
                         "gz", sep = ".")
-        fqout  <- file_delete_if_exists(file.path(fqdir, fqfile))
+        fqout  <- .fileDeleteIfExists(file.path(fqdir, fqfile))
         ShortRead::writeFastq(fq, fqout, compress = TRUE)
-        file_delete_if_exists(bamfile)
+        .fileDeleteIfExists(bamfile)
         ## Rerun mapper
         flog.info("   Mapping trimmed short reads against latest consensus ...",
                   name = "info")
@@ -1509,7 +1509,7 @@ DR2S_$set("public", "runMapFinal", function(opts = list(),
           outdir   = outdir
         )
         # cleanup
-        file_delete_if_exists(fqout)
+        .fileDeleteIfExists(fqout)
       }
 
       ## Run bam - sort - index pipeline

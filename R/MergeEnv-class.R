@@ -144,7 +144,8 @@ MergeEnv_$set("public", "walk", function(hapEnv, verbose = FALSE) {
     self$init(hapEnv)
   }
   envir <- self$getHapEnv(hapEnv)
-  while (step_through(envir)) {
+  # while (step_through(envir)) {
+  while (private$step_through(envir)) {
     if (verbose) {
       self$currentVariant(envir)
       cat("\nConsensus sequence:\n")
@@ -155,8 +156,8 @@ MergeEnv_$set("public", "walk", function(hapEnv, verbose = FALSE) {
   invisible(self)
 })
 ## private$step_through() ####
-# MergeEnv_$set("private", "step_through", function(envir) {
-step_through <- function(envir) {
+MergeEnv_$set("private", "step_through", function(envir) {
+# step_through <- function(envir) {
   if (!itertools::hasNext(envir$POSit)) {
     return(FALSE)
   }
@@ -164,13 +165,14 @@ step_through <- function(envir) {
                       iterators::nextElem(envir$POSit) + offset(envir$SR),
                       iterators::nextElem(envir$POSit) + offset(envir$LR))
   p <- envir$pos
+  print(self$threshold)
   x <- yield(envir)
-  rs <- disambiguate_variant(yield(envir), threshold = self$threshold)
+  rs <- disambiguateVariant(yield(envir), threshold = self$threshold)
   
-  update(envir) <- rs
+  .update(envir) <- rs
   TRUE
 }
-
+)
 
 ## self$showConsensus() ####
 MergeEnv_$set("public", "showConsensus", function(envir, 

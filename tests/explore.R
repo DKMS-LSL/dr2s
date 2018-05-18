@@ -181,13 +181,13 @@ fq <- trim_polymorphic_ends(fq)
 
 
 
-fqdir  <- dir_create_if_not_exists(file.path(self$getOutdir(), "merged"))
+fqdir  <- .dirCreateIfNotExists(file.path(self$getOutdir(), "merged"))
 fqfile <- paste("sread", group, self$getMapper(), "trimmed", "fastq", "gz", sep = ".")
-fqout  <- file_delete_if_exists(file.path(fqdir, fqfile))
+fqout  <- .fileDeleteIfExists(file.path(fqdir, fqfile))
 fqout <- "~/tmp/out.fq"
 
 ShortRead::writeFastq(fq, fqout, compress = TRUE)
-file_delete_if_exists(bamfile)
+.fileDeleteIfExists(bamfile)
 
 
 x2 <- DR2Smap(

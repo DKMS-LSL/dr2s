@@ -23,7 +23,6 @@ polish.DR2S <- function(x,
               currentCall, name = "info")
     return(invisible(x))
   }
-
   assertthat::assert_that(
     is(x$mapFinal, "mapFinal"),
     all(unlist(foreach(rtype = x$mapFinal$pileup) %do% {
@@ -45,9 +44,7 @@ polish.DR2S <- function(x,
     menv$init(hptype)
     menv$walk(hptype)
   }
-
   rs <- menv$export()
-
   ## Get variants
   vars <- .getVariants(x = rs)
 
@@ -105,11 +102,11 @@ polish.DR2S <- function(x,
   df <- do.call("rbind",
                 lapply(hptypes, function(h)
                   do.call("rbind", lapply(hvars[[h]],
-                                          extract_variant_, h = h))))
+                                          .extractVariant_, h = h))))
   df
 }
 
-extract_variant_ <- function(v, h) {
+.extractVariant_ <- function(v, h) {
   data.frame(
     haplotype = h,
     pos = attr(v, "position") %||% NA,

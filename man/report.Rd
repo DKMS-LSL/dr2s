@@ -33,7 +33,7 @@ positions with potentially problematic results.
 To finalise the consensus sequences open the pairwise alignment file and save
 it replacing \strong{unchecked} with \strong{checked} in the file name.
 In the \strong{checked} file manual edits can be performed. After the pairwise
-alignment is verified call \code{\link{report_checked_consensus}}.
+alignment is verified call \code{\link{reportCheckedConsensus}}.
 }
 \examples{
 \dontrun{
@@ -61,5 +61,5 @@ Other DR2S mapper functions: \code{\link{DR2Smap}},
   \code{\link{mapFinal}}, \code{\link{mapInit}},
   \code{\link{mapIter}}, \code{\link{partitionLongReads}},
   \code{\link{polish}}, \code{\link{refineAlignment}},
-  \code{\link{report_checked_consensus}}
+  \code{\link{reportCheckedConsensus}}
 }

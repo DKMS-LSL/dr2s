@@ -153,7 +153,7 @@ DR2S_ <- R6::R6Class(
         } else {
           private$conf$alternate = expand_allele(private$conf$alternate, 
                                                  private$conf$locus)
-          outdir <- dir_create_if_not_exists(normalizePath(
+          outdir <- .dirCreateIfNotExists(normalizePath(
             file.path(private$conf$outdir, "mapInit"), mustWork = FALSE))
           private$conf$ref_path  = generateReferenceSequence(
             private$conf$alternate,
@@ -179,7 +179,7 @@ DR2S_ <- R6::R6Class(
     },
     clear = function() {
       unlink(self$getOutdir(), recursive = TRUE)
-      dir_create_if_not_exists(file.path(self$getOutdir()))
+      .dirCreateIfNotExists(file.path(self$getOutdir()))
 
       if (file.exists(ref_path <- private$conf$reference)) {
         private$conf$reference = basename(ref_path)
@@ -187,7 +187,7 @@ DR2S_ <- R6::R6Class(
       } else {
         private$conf$reference = expand_allele(private$conf$reference, 
                                                private$conf$locus)
-        outdir <- dir_create_if_not_exists(normalizePath(
+        outdir <- .dirCreateIfNotExists(normalizePath(
           file.path(private$conf$outdir, "mapInit"), mustWork = FALSE))
         private$conf$ref_path  = generateReferenceSequence(
           self$getReference(),
@@ -206,7 +206,7 @@ DR2S_ <- R6::R6Class(
         } else {
           private$conf$alternate = expand_allele(private$conf$alternate, 
                                                  private$conf$locus)
-          outdir <- dir_create_if_not_exists(normalizePath(
+          outdir <- .dirCreateIfNotExists(normalizePath(
             file.path(private$conf$outdir, "mapInit"), mustWork = FALSE))
           private$conf$ref_path  = generateReferenceSequence(
             self$getAlternate(),

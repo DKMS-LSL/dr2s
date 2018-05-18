@@ -248,7 +248,7 @@ det2 <- function(m) {
   function(...) f(g(...))
 }
 
-dir_create_if_not_exists <- function(path) {
+.dirCreateIfNotExists <- function(path) {
   path <- normalizePath(path, mustWork = FALSE)
   if (!dir.exists(path)) {
     dir.create(path, recursive = TRUE)
@@ -259,7 +259,7 @@ dir_create_if_not_exists <- function(path) {
   normalizePath(path, mustWork = TRUE)
 }
 
-file_delete_if_exists <- function(path) {
+.fileDeleteIfExists <- function(path) {
   path <- normalizePath(path, mustWork = FALSE)
   if (file.exists(path)) {
     unlink(path)
@@ -293,35 +293,24 @@ recode_fastq_header <- function(fqpath) {
   FALSE
 }
 
-file_create_if_not_exists <- function(file) {
-  path <- file.path(
-    dir_create_if_not_exists(dirname(file)),
-    basename(file)
-  )
-  if (!file.exists(path)) {
-    file.create(path)
-  }
-  normalizePath(path, mustWork = TRUE)
-}
-
 has_command <- function(cmd) {
   stopifnot(assertthat::is.string(cmd))
   unname(Sys.which(cmd) != "")
 }
 
-editor <- function(x, pos = NULL, use_editor = "xdg-open") {
-  use_editor <- match.arg(use_editor, c("xdg-open", "subl", "gvim", "gedit"))
-  assertthat::assert_that(has_command(use_editor))
+editor <- function(x, pos = NULL, useEditor = "xdg-open") {
+  useEditor <- match.arg(useEditor, c("xdg-open", "subl", "gvim", "gedit"))
+  assertthat::assert_that(has_command(useEditor))
   if (tryCatch(assertthat::is.readable(x), assertError = function(e) FALSE)) {
     x <- normalizePath(x, mustWork = TRUE)
-    if (!is.null(pos) && use_editor == "subl") {
+    if (!is.null(pos) && useEditor == "subl") {
       x <- paste0(x, ":", pos)
     }
-    system(paste(use_editor, x, sep = " "))
+    system(paste(useEditor, x, sep = " "))
   } else {
     tmp <- tempfile()
     write(x, file = tmp)
-    system(paste(use_editor, tmp, sep = " "))
+    system(paste(useEditor, tmp, sep = " "))
   }
 }
 
@@ -356,7 +345,7 @@ browse_seqs <- function(seq,
 }
 
 #' @export
-browse_align <- function(seq,
+.browseAlign <- function(seq,
                          file = tempfile(fileext = ".html"),
                          openURL = TRUE,
                          patterns = CODE_PATTERN(),

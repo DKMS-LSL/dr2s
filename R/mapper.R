@@ -84,12 +84,12 @@ run_bwamem <- function(reffile,
     system(cmd$cmd)
   }
   ## cleanup
-  file_delete_if_exists(paste0(cmd$reffile, ".amb"))
-  file_delete_if_exists(paste0(cmd$reffile, ".ann"))
-  file_delete_if_exists(paste0(cmd$reffile, ".bwt"))
-  file_delete_if_exists(paste0(cmd$reffile, ".fai"))
-  file_delete_if_exists(paste0(cmd$reffile, ".pac"))
-  file_delete_if_exists(paste0(cmd$reffile, ".sa"))
+  .fileDeleteIfExists(paste0(cmd$reffile, ".amb"))
+  .fileDeleteIfExists(paste0(cmd$reffile, ".ann"))
+  .fileDeleteIfExists(paste0(cmd$reffile, ".bwt"))
+  .fileDeleteIfExists(paste0(cmd$reffile, ".fai"))
+  .fileDeleteIfExists(paste0(cmd$reffile, ".pac"))
+  .fileDeleteIfExists(paste0(cmd$reffile, ".sa"))
 
   cmd$outfile
 }
@@ -128,7 +128,7 @@ generate_mapping_commands <- function(mapper,
   mapper   <- match.arg(mapper, c("minimap", "bwamem"))
   readtype <- match.arg(readtype, c("pacbio", "nanopore", "illumina"))
   mapfun <- match.fun(paste0(mapper, "_cmd"))
-  outdir <- dir_create_if_not_exists(outdir)
+  outdir <- .dirCreateIfNotExists(outdir)
 
   reffile <- normalizePath(reffile, mustWork = TRUE)
   ref <- file.path(outdir, basename(reffile))

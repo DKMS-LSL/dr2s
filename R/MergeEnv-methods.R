@@ -21,9 +21,9 @@ yield.HapEnv <- function(envir, pos = NULL) {
     ##
     haplotype = envir$haplotype
     ##
-  ), class = c("variant_list", "list"))
+  ), class = c("variantList", "list"))
 }
-print.variant_list <- function(x, threshold = 0.2, ...) {
+print.variantList <- function(x, threshold = 0.2, ...) {
   if (!is.null(x$variant)) {
     print(x$variant)
   } else {
@@ -46,29 +46,27 @@ print.variant_list <- function(x, threshold = 0.2, ...) {
 
 #' Disambiguate a variant
 #'
-#' @param x A \code{variant_list}.
+#' @param x A \code{variantList}.
 #' @param threshold Minimum frequency for a variant.
 #' @param min_overrep_lr Issue a warning if the majority variant in the
 #' long reads is only overrepresented by less than \code{min_overrep_lr}.
 #' @param max_overrep_sr Issue a warning if the majority variant in the
 #' short reads is overrepresented by more than \code{max_overrep_sr}.
 #'
-#' @return A \code{variant_list}.
+#' @return A \code{variantList}.
 #' @keywords internal
 #' @examples
 #' ###
 #'
-                                 # min_overrep_lr = 1.5
-                                 # max_overrep_sr = 2
-#x <- a
-disambiguate_variant <- function(x,
+disambiguateVariant <- function(x,
                                  threshold,
                                  min_overrep_lr = 2,
                                  max_overrep_sr = 2) {
-  stopifnot(is(x, "variant_list"))
+  stopifnot(is(x, "variantList"))
 
   warning_msg <- ""
   
+  print(threshold)
   ## Start with long reads. They have to be there
   lr <- as.matrix(x$lr)
   varl <- .filterVariant(cm = lr, threshold)
@@ -149,7 +147,7 @@ disambiguate_variant <- function(x,
   # names(bases) <- c("ref", "alt")
   warning_msg <- sub("|", "", trimws(warning_msg), fixed = TRUE)
   
-  x$variant <- variant(bases = bases, warning = warning_msg, vlist = x)
+  x$variant <- .variant(bases = bases, warning = warning_msg, vlist = x)
   # x <- x$variant
   x
   # } 
@@ -194,7 +192,7 @@ disambiguate_variant <- function(x,
   which(apply(cmf, 2, function(col) all(col > threshold)))
 }
 
-variant <- function(bases, warning, vlist) {
+.variant <- function(bases, warning, vlist) {
   refbase <- bases[[1]]
   altbase <- bases[[2]]
   base_ref_ <- if (altbase == "-") c(refbase, "+") else refbase
@@ -253,17 +251,17 @@ print.variant <- function(x, ...) {
   }
 }
 
-`update<-` <- function(envir, pos = NULL, value) UseMethod("update<-")
-`update<-.HapEnv` <- function(envir, pos = NULL, value) {
+`.update<-` <- function(envir, pos = NULL, value) UseMethod(".update<-")
+`.update<-.HapEnv` <- function(envir, pos = NULL, value) {
   pos <- if (is.null(pos)) envir$pos else pos
-  envir$LR <- do_update_(cm = envir$LR, pos)
-  if (!is.null(envir$SR)) envir$SR <- do_update_(cm = envir$SR, pos)
+  envir$LR <- .doUpdate_(cm = envir$LR, pos)
+  if (!is.null(envir$SR)) envir$SR <- .doUpdate_(cm = envir$SR, pos)
   envir$variants <- c(envir$variants, list(value$variant))
   envir$current_variant <- value$variant
   invisible(envir)
 }
 
-do_update_ <- function(cm, pos) {
+.doUpdate_ <- function(cm, pos) {
   pos_ <- pos
   if (anyNA(cm)) {
     d <- dim(cm)

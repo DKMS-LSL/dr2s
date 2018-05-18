@@ -1,6 +1,6 @@
 ## Make Rscript files for direct postprocessing
 ##
-writeReportCheckedConsensus <- function(path, libpath = ".pplib") {
+.writeReportCheckedConsensus <- function(path, libpath = ".pplib") {
   bashFile <- file.path(path, "run_reportCheckedConsensus.sh")
   rFile <- file.path(libpath, "reportCheckedConsensus.R")
   script <-
@@ -13,7 +13,7 @@ scriptBaseName <- dirname(scriptName)
 setwd(scriptBaseName)
 
 x <- readDR2S("..")
-tryCatch(report_checked_consensus(x),
+tryCatch(reportCheckedConsensus(x),
          error = function(e) {
            system(paste(
              shQuote("notify-send"),
@@ -28,7 +28,7 @@ tryCatch(report_checked_consensus(x),
   Sys.chmod(bashFile, mode = "775")
 }
 
-writeCheckConsensus <- function(path, libpath = ".pplib") {
+.writeCheckConsensus <- function(path, libpath = ".pplib") {
   bashFile <- file.path(path, "run_checkConsensus.sh")
   rFile <- file.path(libpath, "checkConsensus.R")
   script <-
@@ -56,8 +56,8 @@ tryCatch(check_alignment_file(x),
   Sys.chmod(bashFile, mode = "775")
 }
 
-writeRefineAlignments <- function(path, haptypes, libpath = ".pplib") {
-  writeScript <- function(hptype, path) {
+.writeRefineAlignments <- function(path, haptypes, libpath = ".pplib") {
+  .writeScript <- function(hptype, path) {
     bashFile <- file.path(path, paste0("run_remap", hptype, ".sh"))
     rFile    <- file.path(libpath, paste0("remap", hptype, ".R"))
     script   <- paste0(
@@ -85,5 +85,5 @@ tryCatch({refineAlignment(x, "', hptype, '")
     write(paste0("#!/usr/bin/env bash\nRscript ", rFile), bashFile)
     Sys.chmod(bashFile, mode = "775")
   }
-  invisible(lapply(haptypes, function(hp) writeScript(hp, path)))
+  invisible(lapply(haptypes, function(hp) .writeScript(hp, path)))
 }

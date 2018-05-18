@@ -79,8 +79,8 @@ run_igv <- function(x, position, map = "mapFinal", open_now = TRUE, ...) {
 
   basedir <- normalizePath(x$getOutdir(), mustWork = TRUE)
   igvdir <- file.path(basedir, ".pplib")
-  dir_create_if_not_exists(igvdir)
-  dir_create_if_not_exists(file.path(basedir, "win"))
+  .dirCreateIfNotExists(igvdir)
+  .dirCreateIfNotExists(file.path(basedir, "win"))
   if (.Platform$OS.type == "windows") {
     fsep <- "\\"
   } else {

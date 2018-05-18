@@ -1,10 +1,5 @@
 #' @export
-#report(i
-# x <-hla.mapFinal
-# debug
-#x <- dedk.bla
-#block_width = 80
-report.DR2S <- function(x, which, block_width = 80, noRemap = FALSE, ...) {
+report.DR2S <- function(x, which, blockWidth = 80, noRemap = FALSE, ...) {
   flog.info("Step 6: report ...", name = "info")
   
   ## Check if reporting is finished and exit safely for downstream analysis
@@ -22,22 +17,22 @@ report.DR2S <- function(x, which, block_width = 80, noRemap = FALSE, ...) {
     list2env(args, envir = env)
   }
 
-  outdir <- dir_create_if_not_exists(x$absPath("report"))
+  outdir <- .dirCreateIfNotExists(x$absPath("report"))
   if (missing(which)) {
     ## if `which` is unspecified choose `mapFinal` if available,
     ## otherwise try `mapIter`, then try `map1`
     if (is(x$mapFinal, "mapFinal")) {
-      report_map_(x, map = "mapFinal", outdir = outdir,
-                  block_width = block_width, 
+      .reportMap_(x, map = "mapFinal", outdir = outdir,
+                  blockWidth = blockWidth, 
                   noRemap = noRemap, ...)
     } else if (all(is(object = x$mapIter$`0`$A, class2 = "mapIter"))) {
-      report_map_(x, map = "mapIter", outdir = outdir,
-                  block_width = block_width, ...)
+      .reportMap_(x, map = "mapIter", outdir = outdir,
+                  blockWidth = blockWidth, ...)
     } else
       stop("Nothing to report")
   } else {
     which <- match.arg(tolower(which), c("mapFinal", "mapIter"))
-    report_map_(x, which, outdir, block_width = block_width, ...)
+    .reportMap_(x, which, outdir, blockWidth = blockWidth, ...)
   }
   flog.info("Done", name = "info")
   invisible(x)
@@ -45,7 +40,7 @@ report.DR2S <- function(x, which, block_width = 80, noRemap = FALSE, ...) {
 
 # debug
 #map = "mapFinal"
-report_map_ <- function(x, map, outdir, block_width, noRemap = FALSE,...) {
+.reportMap_ <- function(x, map, outdir, blockWidth, noRemap = FALSE,...) {
   map <- match.arg(tolower(map), c("mapfinal", "mapiter"))
   ref <-  Biostrings::BStringSet(x$getRefSeq())
   names(ref) <- strsplitN(names(ref), "~", 1, fixed = TRUE)
@@ -57,7 +52,7 @@ report_map_ <- function(x, map, outdir, block_width, noRemap = FALSE,...) {
   haps <- x$getLatestRef()
 
   ## Write html alignment file
-  aln_file <-  paste(map, "aln", x$getLrdType(), x$getLrMapper(), "unchecked", 
+  alnFile <-  paste(map, "aln", x$getLrdType(), x$getLrMapper(), "unchecked", 
                      sep = ".")
   # get all seqs as stringset
   seqs <- unlist(Biostrings::BStringSetList(haps))
@@ -67,63 +62,63 @@ report_map_ <- function(x, map, outdir, block_width, noRemap = FALSE,...) {
   # } else {
   seqs <- c(ref, seqs, addins)
   # }
-  browse_align(seqs, file = file.path(outdir, aln_file), openURL = FALSE)
+  .browseAlign(seqs, file = file.path(outdir, alnFile), openURL = FALSE)
 
   ## Write consensus FASTA files
   for (hptype in x$getHapTypes()) {
-    hap_file <- paste(map, hptype, x$getLrdType(), x$getLrMapper(),
+    hapFile <- paste(map, hptype, x$getLrdType(), x$getLrMapper(),
                       "unchecked.fa", sep = ".")
     seq <- haps[[hptype]]
     names(seq) <- paste0(names(seq), " LOCUS=", x$getLocus(), ";REF=", 
                          x$getReference())
     Biostrings::writeXStringSet(
       seq,
-      filepath = file.path(outdir, hap_file),
+      filepath = file.path(outdir, hapFile),
       format = "fasta"
     )
   }
 
   ## Write Pairwise or Multiple Alignment
   if (length(x$getHapTypes()) == 2) {
-    pair_file <- paste(map, "aln", x$getLrdType(), x$getLrMapper(), "unchecked", 
+    pairFile <- paste(map, "aln", x$getLrdType(), x$getLrMapper(), "unchecked", 
                        "psa", sep = ".")
     aln <- Biostrings::pairwiseAlignment(pattern = haps[[x$getHapTypes()[[1]]]],
                                          subject = haps[[x$getHapTypes()[[2]]]],
                                          type = "global")
-    Biostrings::writePairwiseAlignments(aln, file.path(outdir, pair_file),
-                                        block.width = block_width)
+    Biostrings::writePairwiseAlignments(aln, file.path(outdir, pairFile),
+                                        block.width = blockWidth)
 
   } else if (length(x$getHapTypes()) == 1) {
-    aln_file <- paste(map, "aln", x$getLrdType(), x$getLrMapper(), "unchecked", 
+    alnFile <- paste(map, "aln", x$getLrdType(), x$getLrMapper(), "unchecked", 
                       "fa", sep = ".")
     Biostrings::writeXStringSet(
       haps[[1]],
-      filepath = file.path(outdir,aln_file),
+      filepath = file.path(outdir,alnFile),
       format = "fasta")
   } else if (length(x$getHapTypes()) > 2) {
-    aln_file <- paste(map, "aln", x$getLrdType(), x$getLrMapper(), "unchecked", 
+    alnFile <- paste(map, "aln", x$getLrdType(), x$getLrMapper(), "unchecked", 
                       "msa", sep = ".")
     aln <- DECIPHER::AlignSeqs(Biostrings::DNAStringSet(
       foreach(h = haps, .combine = c) %do% h
     ), verbose = FALSE)
-    writeMSA(aln , file = file.path(outdir, aln_file))
+    writeMSA(aln , file = file.path(outdir, alnFile))
     # Biostrings::write.phylip(Biostrings::DNAMultipleAlignment(aln),
-                             # file.path(outdir, aln_file))
+                             # file.path(outdir, alnFile))
   }
 
   if (map == "mapfinal") {
     ## Report problematic Variants
-    probvar_file <- paste("problems", x$getLrdType(), x$getLrMapper(), "tsv", 
+    probvarFile <- paste("problems", x$getLrdType(), x$getLrMapper(), "tsv", 
                           sep = ".")
-    vars <- x$consensus$problematic_variants %>%
+    vars <- x$consensus$variants %>%
       dplyr::arrange(pos, haplotype)
-    readr::write_tsv(vars, path = file.path(outdir, probvar_file),
+    readr::write_tsv(vars, path = file.path(outdir, probvarFile),
                      append = FALSE, col_names = TRUE)
 
     ## Write postprocessing scripts
-    writeCheckConsensus(path = x$getOutdir())
-    writeReportCheckedConsensus(path = x$getOutdir())
-    writeRefineAlignments(path = x$getOutdir(), haptypes = x$getHapTypes())
+    .writeCheckConsensus(path = x$getOutdir())
+    .writeReportCheckedConsensus(path = x$getOutdir())
+    .writeRefineAlignments(path = x$getOutdir(), haptypes = x$getHapTypes())
     
     if (!noRemap) {
       flog.info("Remapping final sequences", name = "info")
@@ -142,37 +137,35 @@ report_map_ <- function(x, map, outdir, block_width, noRemap = FALSE,...) {
 #' @param which Which mapping do we want to update.
 #' @return Side effect
 #' @details
-#' \code{report_checked_consensus} will create a \code{checked} directory
+#' \code{reportCheckedConsensus} will create a \code{checked} directory
 #' containing the consensus sequences 
 #' \code{\{A,B\}.\{readtype\}.\{mapper\}.checked.fa}
 #' and a html alignment file \code{aln.\{readtype\}.\{mapper\}.checked.html}.
 #' @family DR2S mapper functions
 #' @export
-#x <- dpb1_2.rep
-
-report_checked_consensus <- function(x, which = "mapFinal") {
+reportCheckedConsensus <- function(x, which = "mapFinal") {
   map <- match.arg(tolower(which), c("mapfinal", "mapiter", noRemap = FALSE))
   ending <- ifelse(length(x$getHapTypes()) == 2,
                    "psa",
                    ifelse(length(x$getHapTypes()) == 1,
                           "fa",
                           "msa"))
-  pairfile_unchecked <- paste(map, "aln", x$getLrdType(), x$getLrMapper(),
+  pairfileUnchecked <- paste(map, "aln", x$getLrdType(), x$getLrMapper(),
                               "unchecked", ending, sep = ".")
-  pairfile_checked   <- paste(map, "aln", x$getLrdType(), x$getLrMapper(),
+  pairfileChecked   <- paste(map, "aln", x$getLrdType(), x$getLrMapper(),
                               "checked", ending, sep = ".")
-  pairfile_checked   <- normalizePath(x$absPath(file.path("report",
-                                                pairfile_checked)),
+  pairfileChecked   <- normalizePath(x$absPath(file.path("report",
+                                                pairfileChecked)),
                                       mustWork = FALSE)
 
-  if (!file.exists(pairfile_checked)) {
+  if (!file.exists(pairfileChecked)) {
     msg <- sprintf("'%s' must be saved as '%s' before invoking this function",
-                   pairfile_unchecked, pairfile_checked)
+                   pairfileUnchecked, pairfileChecked)
     stop(msg, call. = FALSE)
   }
 
-  outdir <- dir_create_if_not_exists(x$absPath("checked"))
-  rs <- readPairFile(pairfile_checked)
+  outdir <- .dirCreateIfNotExists(x$absPath("checked"))
+  rs <- readPairFile(pairfileChecked)
   seqs <- Biostrings::DNAStringSet(
     sapply(rs, function(s) Biostrings::DNAString(gsub("-", "", s))))
 
@@ -181,8 +174,8 @@ report_checked_consensus <- function(x, which = "mapFinal") {
   names(ref) <- strsplitN(names(ref), "~", 1, fixed = TRUE)
 
   seqsAll <- c(ref, seqs)
-  aln_file <-  paste("aln", x$getLrdType(), x$getLrMapper(), "html", sep = ".")
-  browse_align(seqsAll, file = file.path(outdir,aln_file), openURL = FALSE)
+  alnFile <-  paste("aln", x$getLrdType(), x$getLrMapper(), "html", sep = ".")
+  .browseAlign(seqsAll, file = file.path(outdir,alnFile), openURL = FALSE)
 
   ## Export FASTA
   files <- sapply(1:length(seqs), function(sq) {
@@ -211,7 +204,7 @@ report_checked_consensus <- function(x, which = "mapFinal") {
 #' @param editor Which editor to use. Either "xdg-open" (default) for standard
 #' system editor, "subl" for sublime, "gvim" or "gedit"
 #' @export
-check_alignment_file <- function(x, which = "mapFinal", where = 0,
+checkAlignmentFile <- function(x, which = "mapFinal", where = 0,
                                  editor = "xdg-open", openEditor = TRUE) {
   which <- match.arg(tolower(which), c("mapfinal", "mapiter"))
   ending <- ifelse(length(x$getHapTypes()) == 2,
@@ -219,31 +212,31 @@ check_alignment_file <- function(x, which = "mapFinal", where = 0,
                    ifelse(length(x$getHapTypes()) == 1,
                           "fa",
                           "msa"))
-  pairfile_unchecked <- paste(which, "aln", x$getLrdType(), x$getLrMapper(),
+  pairfileUnchecked <- paste(which, "aln", x$getLrdType(), x$getLrMapper(),
                               "unchecked", ending, sep = ".")
-  pairfile_unchecked <- normalizePath(x$absPath(file.path("report",
-                                                pairfile_unchecked)),
+  pairfileUnchecked <- normalizePath(x$absPath(file.path("report",
+                                                pairfileUnchecked)),
                                       mustWork = FALSE)
   assertthat::assert_that(
-    file.exists(pairfile_unchecked),
-    assertthat::is.readable(pairfile_unchecked)
+    file.exists(pairfileUnchecked),
+    assertthat::is.readable(pairfileUnchecked)
   )
-  pairfile_checked <- paste(which, "aln", x$getLrdType(), x$getLrMapper(),
+  pairfileChecked <- paste(which, "aln", x$getLrdType(), x$getLrMapper(),
                             "checked", ending, sep = ".")
-  pairfile_checked <- normalizePath(x$absPath(file.path("report",
-                                              pairfile_checked)),
+  pairfileChecked <- normalizePath(x$absPath(file.path("report",
+                                              pairfileChecked)),
                                     mustWork = FALSE)
-  if (!file.exists(pairfile_checked)) {
-    file.copy(pairfile_unchecked, pairfile_checked, overwrite = FALSE)
+  if (!file.exists(pairfileChecked)) {
+    file.copy(pairfileUnchecked, pairfileChecked, overwrite = FALSE)
   }
   where <- 23 + 4*floor((where - 1)/80)
   if (openEditor) {
-    editor(pairfile_checked, where, use_editor = editor)
+    editor(pairfileChecked, where, useEditor = editor)
   }
-  pairfile_checked
+  pairfileChecked
 }
 
-check_report_status <- function(x){
+.checkReportStatus <- function(x){
   if (x$getReportStatus()) {
     currentCall <- strsplit1(strsplit1(deparse(sys.call()), "\\$")[2], "\\(")[1]
     flog.info(paste0("%s: Reporting already done! Nothing to do.",
@@ -284,7 +277,7 @@ refineAlignment <- function(x, hptype, report = FALSE){
     )
   }
   reftag    <- "refine"
-  outdir    <- dir_create_if_not_exists(x$absPath(reftag))
+  outdir    <- .dirCreateIfNotExists(x$absPath(reftag))
   if (length(x$getHapTypes()) == 1) {
     readpathLR  <- paste0("/", x$mapInit$reads)
     if (x$getFilterScores()) {
@@ -325,11 +318,11 @@ refineAlignment <- function(x, hptype, report = FALSE){
   maptagLR   <- paste("refine", mapgroupLR, x$getLrdType(),
                       x$getLrMapper(), sep = ".")
   ## Mapper
-  map_fun <- x$getLrMapFun()
+  .mapFun <- x$getLrMapFun()
   ## Run mapper
   flog.info("   Mapping long reads against final consensus sequence ...",
             name = "info")
-  samfile <- map_fun(
+  samfile <- .mapFun(
     reffile  = refpath,
     readfile = readpathLR,
     allele   = mapgroupLR,
@@ -341,6 +334,7 @@ refineAlignment <- function(x, hptype, report = FALSE){
 
   ## Run bam - sort - index pipeline
   flog.info("  Indexing ...", name = "info")
+  ## Niceify up to here
   bamfile <- bam_sort_index(
     samfile = samfile,
     reffile = refpath,
@@ -356,12 +350,12 @@ refineAlignment <- function(x, hptype, report = FALSE){
     readfiles <- unlist(readpathSR)
 
     ## Mapper
-    map_fun <- x$getSrMapFun()
+    .mapFun <- x$getSrMapFun()
 
     ## Run mapper
     flog.info("  Mapping short reads against final consensus ...",
               name = "info")
-    samfile <- map_fun(
+    samfile <- .mapFun(
       reffile  = refpath,
       readfile = readfiles,
       allele   = mapgroupSR,
@@ -383,16 +377,16 @@ refineAlignment <- function(x, hptype, report = FALSE){
     ## Trim polymorphic ends
     fq <- trim_polymorphic_ends(fq)
     ## Write new shortread file to disc
-    fqdir  <- dir_create_if_not_exists(file.path(x$getOutdir(), "refine"))
+    fqdir  <- .dirCreateIfNotExists(file.path(x$getOutdir(), "refine"))
     fqfile <- paste("sread", hptype, x$getSrMapper(), "trimmed", "fastq",
                     "gz", sep = ".")
-    fqout  <- file_delete_if_exists(file.path(fqdir, fqfile))
+    fqout  <- .fileDeleteIfExists(file.path(fqdir, fqfile))
     ShortRead::writeFastq(fq, fqout, compress = TRUE)
-    file_delete_if_exists(bamfile)
+    .fileDeleteIfExists(bamfile)
     ## Rerun mapper
     flog.info("  Mapping trimmed short reads against latest consensus ... ",
               name = "info")
-    samfile <- map_fun(
+    samfile <- .mapFun(
       reffile  = refpath,
       readfile = fqout,
       allele   = mapgroupSR,
@@ -402,7 +396,7 @@ refineAlignment <- function(x, hptype, report = FALSE){
       outdir   = outdir
     )
     # cleanup
-    file_delete_if_exists(fqout)
+    .fileDeleteIfExists(fqout)
 
     ## Run bam - sort - index pipeline
     flog.info("  Indexing ...", name = "info")
@@ -439,12 +433,12 @@ refineAlignment <- function(x, hptype, report = FALSE){
   ending <- ifelse(length(x$getHapTypes()) == 1, "fa",
                    ifelse(length(x$getHapTypes()) == 2, "psa",
                           "msa"))
-  pairfile_checked <- paste("mapfinal.aln", x$getLrdType(), x$getLrMapper(),
+  pairfileChecked <- paste("mapfinal.aln", x$getLrdType(), x$getLrMapper(),
                               "checked", ending, sep = ".")
-  pairfile_checked <- normalizePath(x$absPath(file.path("report",
-                                                pairfile_checked)),
+  pairfileChecked <- normalizePath(x$absPath(file.path("report",
+                                                pairfileChecked)),
                                       mustWork = FALSE)
-  rs <- readPairFile(pairfile_checked)
+  rs <- readPairFile(pairfileChecked)
   seqs <- Biostrings::DNAStringSet(
     sapply(rs, function(s) Biostrings::DNAString(gsub("-", "", s))))
 

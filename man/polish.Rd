@@ -51,6 +51,6 @@ Other DR2S mapper functions: \code{\link{DR2Smap}},
   \code{\link{mapFinal}}, \code{\link{mapInit}},
   \code{\link{mapIter}}, \code{\link{partitionLongReads}},
   \code{\link{refineAlignment}},
-  \code{\link{report_checked_consensus}},
+  \code{\link{reportCheckedConsensus}},
   \code{\link{report}}
 }
