@@ -66,16 +66,17 @@ disambiguateVariant <- function(x,
   varl <- .filterVariant(cm = lr, threshold)
   
   ## Look if its ambiguous
-  if (length(varl) > 1 ){
-    warningMsg <- warningMsg %<<% "|Ambiguous position in long reads"
-  }
-
-  ## Look for deletions
-  if ("-" %in% names(varl)) { 
-    if (lr[varl["-"]]/sum(lr[varl]) > threshold/(2/3)) {
-      warningMsg <- warningMsg %<<% "|Gap overrepresented in long reads"
+  if (length(varl) > 1) {
+    ## Look for deletions
+    if ("-" %in% names(varl)) { 
+      if (lr[varl["-"]]/sum(lr[varl]) > max(threshold/(2/3), 0.3)) {
+        warningMsg <- warningMsg %<<% "|Gap overrepresented in long reads"
+      }
+    } else {
+      warningMsg <- warningMsg %<<% "|Ambiguous position in long reads"
     }
   }
+
   
   ## Check for > 2 alleles
   if (length(varl) > 2) {

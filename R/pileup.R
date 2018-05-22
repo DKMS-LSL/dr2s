@@ -216,7 +216,6 @@ print.pileup <- function(x, asString = FALSE, ...) {
   # i <- 1
   for (i in seq_along(ins_)) {
     j <- as.integer(names(ins_[i])) + offset
-    # cm[(j-1):(j+1), ]
     cm[j, "+"] <- 0L
     cm <- rbind(cm[1:j, ], ins_[[i]], cm[(j + 1):NROW(cm), ])
     insLen <- NROW(ins_[[i]])

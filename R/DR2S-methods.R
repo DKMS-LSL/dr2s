@@ -5,7 +5,7 @@ mapInit.DR2S <- function(x,
                          optsname = "",
                          partSR = TRUE,
                          pct = 100,
-                         threshold = 0.20,
+                         threshold = NULL,
                          minBaseQuality = 3,
                          minMapq = 50,
                          maxDepth = 1e4,
@@ -42,7 +42,7 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
                                            optsname = "",
                                            partSR = TRUE,
                                            pct = 100,
-                                           threshold = 0.20,
+                                           threshold = NULL,
                                            minBaseQuality = 3,
                                            minMapq = 50,
                                            maxDepth = 1e4,
@@ -89,6 +89,10 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
     env  <- environment()
     list2env(args, envir = env)
   }
+  if (is.null(threshold)) {
+    threshold <- self$getThreshold()
+  }
+  message(threshold)
 
   microsatellite  <- self$getMicrosatellite()
   partSR          <- self$getPartSR()
@@ -102,10 +106,6 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
     maptag  <- sprintf(mapfmt, self$getReference(), self$getSrdType(),
                        self$getSrMapper(), optstring(opts, optsname))
     readfile <- self$getShortreads()
-    # if (threshold != self$getThreshold()) {
-    #   self$setThreshold(threshold)
-    # }
-
     flog.info(" Map shortreads to provided reference", name = "info")
 
     ## Fetch mapper
@@ -183,7 +183,7 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
     flog.info("  Piling up ...", name = "info")
     pileup <- Pileup(
       bamfile,
-      self$getThreshold(),
+      threshold,
       maxDepth,
       minBaseQuality = minBaseQuality,
       minMapq = minMapq,
@@ -242,7 +242,7 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
     flog.info(" Construct initial consensus from shortreads", name = "info")
 
     conseq <- conseq(pileup$consmat, name = "mapInit", type = "prob",
-                     threshold = self$getThreshold(), forceExcludeGaps = TRUE)
+                     threshold = threshold, forceExcludeGaps = TRUE)
     conseqName <- paste0("Init.consensus.",
                           sub(".sam.gz", "", basename(samfile)))
     conseqpath  <- file.path(outdir, paste0(conseqName, ".fa"))
@@ -255,9 +255,6 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
       maptag  <- sprintf(mapfmt, conseqName, self$getSrdType(),
                          self$getSrMapper(), optstring(opts, optsname))
       readfile = self$getShortreads()
-      if (threshold != self$getThreshold()) {
-        self$setThreshold(threshold)
-      }
 
       flog.info(" Refine microsatellites or repeats by extending the reference",
                 name = "info")
@@ -295,7 +292,7 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
       flog.info("  Piling up ...", name = "info")
       pileup <- Pileup(
         bamfile,
-        self$getThreshold(),
+        threshold,
         maxDepth,
         minBaseQuality = minBaseQuality,
         minMapq = minMapq,
@@ -374,7 +371,7 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
     flog.info("  Piling up ...", name = "info")
     pileup <- Pileup(
       bamfile,
-      self$getThreshold(),
+      threshold,
       maxDepth,
       minBaseQuality = minBaseQuality,
       minMapq = minMapq,
@@ -414,9 +411,6 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
   mapfmt  <- "mapInit <%s> <%s> <%s> <%s>"
   maptag  <- sprintf(mapfmt, allele, self$getLrdType(), self$getLrMapper(),
                      optstring(opts, optsname))
-  if (threshold != self$getThreshold()) {
-    self$setThreshold(threshold)
-  }
   ## Fetch mapper
   mapFun <- self$getLrMapFun()
   ## Run mapper
@@ -448,7 +442,7 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
   flog.info("  Piling up ...", name = "info")
   pileup <- Pileup(
     bamfile,
-    self$getThreshold(),
+    threshold,
     maxDepth,
     minBaseQuality = minBaseQuality,
     minMapq = minMapq,
@@ -868,6 +862,7 @@ mapIter.DR2S <- function(x,
 
 DR2S_$set("public", "runMapIter", function(opts = list(),
                                            iterations = 1,
+                                           threshold = NULL,
                                            pct = 100,
                                            minBaseQuality = 3,
                                            minMapq = 0,
@@ -907,6 +902,10 @@ DR2S_$set("public", "runMapIter", function(opts = list(),
   if (!is.null(args)) {
     env  <- environment()
     list2env(args, envir = env)
+  }
+  
+  if (is.null(threshold)) {
+    threshold <- self$getThreshold()
   }
   hptypes <- self$getHapTypes()
   iterations <- self$getIterations()
@@ -1022,7 +1021,7 @@ DR2S_$set("public", "runMapIter", function(opts = list(),
       flog.info("   Piling up ...", name = "info")
       pileup <- Pileup(
         bamfile,
-        self$getThreshold(),
+        threshold,
         maxDepth = maxDepth,
         minBaseQuality = minBaseQuality,
         minMapq = minMapq,
@@ -1111,7 +1110,6 @@ DR2S_$set("public", "runPartitionShortReads", function(opts = list(),
                                                        force = FALSE,
                                                        optsname = "",
                                                        pct = 100,
-                                                       threshold = 0.20,
                                                        minMapq = 0) {
 
   ## debug
@@ -1119,7 +1117,6 @@ DR2S_$set("public", "runPartitionShortReads", function(opts = list(),
   # force = FALSE
   # optsname = ""
   # pct = 100
-  # threshold = 0.20
   # minMapq = 0
 
   flog.info("Step 3: PartitionShortReads ...", name = "info")
@@ -1154,10 +1151,6 @@ DR2S_$set("public", "runPartitionShortReads", function(opts = list(),
     mapfmt  <- "mapPartSR <%s> <%s> <%s> <%s>"
     maptag  <- sprintf(mapfmt, self$mapInit$SR1$ref, self$getSrdType(),
                        self$getSrMapper(), optstring(opts, optsname))
-
-    if (threshold != self$getThreshold()) {
-      self$setThreshold(threshold)
-    }
 
     flog.warn(" Found no shortread mapping from MapInit", name = "info")
     flog.info(" Map shortreads against provided reference", name = "info")
@@ -1290,6 +1283,7 @@ mapFinal.DR2S <- function(x,
 DR2S_$set("public", "runMapFinal", function(opts = list(),
                                             pct = 100,
                                             minBaseQuality = 3,
+                                            threshold = NULL,
                                             minMapq = 50,
                                             maxDepth = 1e5,
                                             minNucleotideDepth = 3,
@@ -1327,6 +1321,9 @@ DR2S_$set("public", "runMapFinal", function(opts = list(),
   if (!is.null(args)) {
     env  <- environment()
     list2env(args, envir = env)
+  }
+  if (is.null(threshold)) {
+    threshold <- self$getThreshold()
   }
 
   ## stop if no shortreads provided
@@ -1411,7 +1408,7 @@ DR2S_$set("public", "runMapFinal", function(opts = list(),
     flog.info("  Piling up ...", name = "info")
     pileup <- Pileup(
       bamfile,
-      self$getThreshold(),
+      threshold,
       maxDepth = maxDepth,
       minBaseQuality = minBaseQuality,
       minMapq = minMapq,
@@ -1515,7 +1512,7 @@ DR2S_$set("public", "runMapFinal", function(opts = list(),
       flog.info("  Piling up ...", name = "info")
       pileup <- Pileup(
         bamfile,
-        self$getThreshold(),
+        threshold,
         maxDepth = maxDepth,
         minBaseQuality = minBaseQuality + 10,
         minMapq = minMapq,
@@ -1525,7 +1522,7 @@ DR2S_$set("public", "runMapFinal", function(opts = list(),
       )
 
       if (includeInsertions && is.null(ins(pileup$consmat))) {
-        pileup <- .pileupIncludeInsertions(pileup, threshold = 0.2)
+        pileup <- .pileupIncludeInsertions(pileup, threshold = threshold)
       }
       self$mapFinal$pileup[[mapgroupSR]] = pileup
 
