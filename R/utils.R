@@ -86,19 +86,19 @@ VALID_LOCI <- function() {
 
 HLA_LOCI <- function() {
   loci <- VALID_LOCI()
-  hla_loci <- loci[startsWith(loci, "HLA")]
-  unname(sapply(hla_loci, function(x) strsplit1(x, "-")[2]))
+  hlaLoci <- loci[startsWith(loci, "HLA")]
+  unname(sapply(hlaLoci, function(x) strsplit1(x, "-")[2]))
 }
 
 KIR_LOCI <- function() {
   loci <- VALID_LOCI()
-  kir_loci <- loci[startsWith(loci, "KIR")]
-  gsub(pattern = "KIR", "", kir_loci)
+  kirLoci <- loci[startsWith(loci, "KIR")]
+  gsub(pattern = "KIR", "", kirLoci)
 }
 
 # Helpers -----------------------------------------------------------------
 
-normalise_locus <- function(locus) {
+.normaliseLocus <- function(locus) {
   locus <- sub("(HLA[-_]?|KIR[-_]?)", "", toupper(locus))
   if (locus %in% HLA_LOCI()) {
     paste0("HLA-", locus)
@@ -113,8 +113,8 @@ normalise_locus <- function(locus) {
   }
 }
 
-expand_allele <- function(allele, locus) {
-  locus <- normalise_locus(locus)
+.expandAllele <- function(allele, locus) {
+  locus <- .normaliseLocus(locus)
   locus <- sub("KIR", "", toupper(locus))
   locus <- sub("HLA-", "", toupper(locus))
   if (locus %in% HLA_LOCI()) {
@@ -181,7 +181,7 @@ colon <- function(...) paste0(..., collapse = ":")
 
 dot <- function(...) paste0(..., collapse = ".")
 
-merge_list <- function(x, y, update = FALSE) {
+.mergeList <- function(x, y, update = FALSE) {
   if (length(x) == 0)
     return(y)
   if (length(y) == 0)
@@ -267,13 +267,13 @@ det2 <- function(m) {
   invisible(path)
 }
 
-recode_fastq_header <- function(fqpath) {
+.recodeFastqHeader <- function(fqpath) {
   fq <- ShortRead::readFastq(fqpath)
   ids <- as.character(ShortRead::id(fq))
   if (any(grepl(" MD:Z:", ids))) {
     return(TRUE)
   }
-  read_id <- sub("(;|\\s+).+$", "", ids)
+  readId <- sub("(;|\\s+).+$", "", ids)
   mdata <- sub("^[^; ]+[; ]+", "", ids)
   mdata <- if (all(grepl(";", mdata))) {
     paste0(strsplitN(mdata, " ", 1), paste0(";BARCODE=", gsub("(\\]|\\[)", "", strsplitN(mdata, " ", 2))))
@@ -282,7 +282,7 @@ recode_fastq_header <- function(fqpath) {
   } else {
     gsub("(\\s+|:)", ";", mdata)
   }
-  ids <- Biostrings::BStringSet(paste0(read_id, " MD:Z:", mdata))
+  ids <- Biostrings::BStringSet(paste0(readId, " MD:Z:", mdata))
   fq@id <- ids
   fq2 <- paste0(fqpath, "~")
   ShortRead::writeFastq(fq, file = fq2, compress = FALSE)
@@ -293,14 +293,14 @@ recode_fastq_header <- function(fqpath) {
   FALSE
 }
 
-has_command <- function(cmd) {
+.hasCommand <- function(cmd) {
   stopifnot(assertthat::is.string(cmd))
   unname(Sys.which(cmd) != "")
 }
 
 editor <- function(x, pos = NULL, useEditor = "xdg-open") {
   useEditor <- match.arg(useEditor, c("xdg-open", "subl", "gvim", "gedit"))
-  assertthat::assert_that(has_command(useEditor))
+  assertthat::assert_that(.hasCommand(useEditor))
   if (tryCatch(assertthat::is.readable(x), assertError = function(e) FALSE)) {
     x <- normalizePath(x, mustWork = TRUE)
     if (!is.null(pos) && useEditor == "subl") {
@@ -324,7 +324,7 @@ editor <- function(x, pos = NULL, useEditor = "xdg-open") {
 
 
 #' @export
-browse_seqs <- function(seq,
+browseSeqs <- function(seq,
                         file = tempfile(fileext = ".html"),
                         openURL = TRUE,
                         patterns = CODE_PATTERN(),
@@ -354,9 +354,9 @@ browse_seqs <- function(seq,
                          gapOpening = -14,
                          gapExtension = -2,
                          ...) {
-  dna_seq <- Biostrings::DNAStringSet(gsub("+", "N", seq, fixed = TRUE))
+  dnaSeq <- Biostrings::DNAStringSet(gsub("+", "N", seq, fixed = TRUE))
   aln <- DECIPHER::AlignSeqs(
-    dna_seq,
+    dnaSeq,
     verbose = FALSE,
     gapOpening = gapOpening,
     gapExtension = gapExtension#,
@@ -377,7 +377,7 @@ browse_seqs <- function(seq,
 }
 
 #' @export
-plot_diagnostic_alignment <- function(x, onlyFinal = FALSE) {
+plotDiagnosticAlignment <- function(x, onlyFinal = FALSE) {
 
   # Given Ref
   seqs1 <- x$getRefSeq()

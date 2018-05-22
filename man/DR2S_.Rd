@@ -9,8 +9,8 @@
 DR2Smap(sample, locus, longreads = list(type = "pacbio", 
 dir = "pacbio"), shortreads = list(type = "illumina", dir = "illumina"), 
 datadir = ".", outdir = "./output", reference = NULL, consensus = "mapping",
-threshold = 0.20, iterations = 1, microsatellite = FALSE, dist_alleles = 2,
-filterScores = TRUE, partSR = TRUE, fullname = TRUE, create_outdir = TRUE, 
+threshold = 0.20, iterations = 1, microsatellite = FALSE, distAlleles = 2,
+filterScores = TRUE, partSR = TRUE, fullname = TRUE, createOutdir = TRUE, 
 ...)
 }
 \value{
@@ -41,13 +41,13 @@ consensus sequences produced in the previous step.}
 
 \describe{
 \item{\code{x$runMapInit(opts = list(), optsname = "", pct = 100, 
-threshold = 0.20, iterations = 1, microsatellite = FALSE, dist_alleles = 2, 
-filterScores = TRUE, partSR = TRUE, min_base_quality = 3, min_mapq = 0, 
-max_depth = 1e4, min_nucleotide_depth = 3, include_deletions = FALSE, 
-include_insertions = FALSE, force = FALSE, fullname = TRUE, plot = TRUE)}}{
+threshold = 0.20, iterations = 1, microsatellite = FALSE, distAlleles = 2, 
+filterScores = TRUE, partSR = TRUE, minBaseQuality = 3, minMapq = 0, 
+maxDepth = 1e4, minNucleotideDepth = 3, includeDeletions = FALSE, 
+includeInsertions = FALSE, force = FALSE, fullname = TRUE, plot = TRUE)}}{
 Run the inital mapping step (long reads against the reference allele)}
-\item{\code{x$runHaplotypePartitioning(max_depth = 1e4, shuffle = TRUE,
-skip_gap_freq = 2/3, plot = TRUE)}}{
+\item{\code{x$runHaplotypePartitioning(maxDepth = 1e4, shuffle = TRUE,
+skipGapFreq = 2/3, plot = TRUE)}}{
 Partition mapped long reads into haplotypes}
 \item{\code{x$splitReadsByHaplotype(limit = list(), #' plot = TRUE)}}{
 Partition mapped long reads into haplotypes}
@@ -59,7 +59,7 @@ Extract FASTQs for partitioned reads and if the consensus method is
 \section{Internals}{
 
 \describe{
-\item{\code{x$new(conf, create_outdir = TRUE)}}{Initialise object of class
+\item{\code{x$new(conf, createOutdir = TRUE)}}{Initialise object of class
  \code{DR2S}.}
 \item{x$getConfig(name = NULL}{Extract configuration}
 \item{x$setConfig(name, value}{Modify configuration}

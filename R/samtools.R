@@ -1,7 +1,7 @@
-bam_sort_index <- function(samfile,
+.bamSortIndex <- function(samfile,
                            reffile,
                            sample = -1,
-                           min_mapq = 0,
+                           minMapq = 0,
                            threads = 12,
                            threadmem = "4G",
                            force = FALSE,
@@ -13,8 +13,8 @@ bam_sort_index <- function(samfile,
                    (sample * 100) %+% "pct."
                  else
                    "",
-                 if (min_mapq > 0)
-                   min_mapq %+% "MAPQ."
+                 if (minMapq > 0)
+                   minMapq %+% "MAPQ."
                  else
                    "")
   sorted <- sub("sam(.gz)?$", ext, samfile)
@@ -23,7 +23,7 @@ bam_sort_index <- function(samfile,
   fmt <-
     "samtools view -@%s -F2308 %s -q%s -bT '%s' '%s' | samtools sort -T /tmp/sorted -m%s -@%s -o '%s' - && samtools index '%s'"
   cmd <-
-    sprintf(fmt, threads, if (sample > 0) "-s" %+% sample else "", min_mapq,
+    sprintf(fmt, threads, if (sample > 0) "-s" %+% sample else "", minMapq,
             reffile, samfile, threadmem, threads, sorted, sorted)
   ## Don't execute if file exists and force is false
   if (force || !file.exists(sorted)) {

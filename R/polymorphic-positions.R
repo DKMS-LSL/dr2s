@@ -8,16 +8,16 @@
 #' @export
 #' @examples
 #' ##
-polymorphic_positions <- function(x, theshold, ...) UseMethod("polymorphic_positions")
+polymorphicPositions <- function(x, theshold, ...) UseMethod("polymorphicPositions")
 #' @export
-polymorphic_positions.consmat <- function(x, threshold = 0.20) {
+polymorphicPositions.consmat <- function(x, threshold = 0.20) {
   if (!is.freq(x)) {
     x <- consmat(x, freq = TRUE)
   }
   nuc <- colnames(x)
   pos <- rownames(x)
-  i <- cpp_polymorphic_positions(x, threshold)
-  rs <- cpp_top2_cols(x[i, ])
+  i <- cpp_polymorphicPositions(x, threshold)
+  rs <- cpp_top2Cols(x[i, ])
   dplyr::data_frame(
     position = pos[i],
     a1 = nuc[rs$i1],
@@ -27,21 +27,20 @@ polymorphic_positions.consmat <- function(x, threshold = 0.20) {
   )
 }
 #' @export
-polymorphic_positions.pileup <- function(x, threshold = NULL, ...) {
+polymorphicPositions.pileup <- function(x, threshold = NULL, ...) {
   if (is.null(threshold)) {
     threshold <- x$threshold
   }
-  polymorphic_positions(consmat(x, freq = TRUE), threshold = threshold)
+  polymorphicPositions(consmat(x, freq = TRUE), threshold = threshold)
 }
 
 #' @keywords internal
 #' @export
-ambiguous_positions <- function(x, threshold, ...) UseMethod("ambiguous_positions")
+ambiguousPositions <- function(x, threshold, ...) UseMethod("ambiguousPositions")
 
 #' @keywords internal
 #' @export
-ambiguous_positions.consmat <- function(x, threshold) {
-  #f_ <- function(row) sum(row > threshold) > 1 || names(which.max(row)) == "-"
+ambiguousPositions.consmat <- function(x, threshold) {
   f_ <- function(row) {
     sum(row > threshold) > 1L
   }
@@ -53,27 +52,27 @@ ambiguous_positions.consmat <- function(x, threshold) {
 
 #' @keywords internal
 #' @export
-ambiguous_positions.pileup <- function(x, threshold = NULL) {
+ambiguousPositions.pileup <- function(x, threshold = NULL) {
   if (is.null(threshold)) {
     threshold <- x$threshold
   }
-  ambiguous_positions(consmat(x, freq = TRUE), threshold = threshold)
+  ambiguousPositions(consmat(x, freq = TRUE), threshold = threshold)
 }
 
 #' @keywords internal
 #' @export
-consensus_bases <- function(x, ...) UseMethod("consensus_bases")
+consensusBases <- function(x, ...) UseMethod("consensusBases")
 
 #' @keywords internal
 #' @export
-consensus_bases.consmat <- function(x) {
+consensusBases.consmat <- function(x) {
   nucs <- x[, c("A", "C", "G", "T")]
   f <- sweep(nucs, 1, .rowSums(nucs, NROW(nucs), NCOL(nucs)), `/`)
   colnames(nucs)[apply(f, 1, which.max)]
 }
 
-n_polymorphic_positions <- function(cm, threshold = 0.2) {
+nPolymorphicPositions <- function(cm, threshold = 0.2) {
   cm[, "-"] <- 0
   cm <- cm[rowSums(cm) != 0, ]
-  length(cpp_polymorphic_positions(consmat(cm, freq = TRUE),threshold))
+  length(cpp_polymorphicPositions(consmat(cm, freq = TRUE),threshold))
 }

@@ -18,13 +18,13 @@ conseq(x, ...)
 \item{threshold}{If \code{type == "ambig"}, threshold to call an ambiguous
 consensus call.}
 
-\item{exclude_gaps}{Exclude gaps at insertion position from consensus
+\item{excludeGaps}{Exclude gaps at insertion position from consensus
 calling.}
 
-\item{gap_suppression_ratio}{The ratio of base/gap above which gaps at
+\item{gapSuppressionRatio}{The ratio of base/gap above which gaps at
 insertion position are excluded from from consensus calling.}
 
-\item{force_exclude_gaps}{Exclude gaps at from consensus calling irrespective
+\item{forceExcludeGaps}{Exclude gaps at from consensus calling irrespective
 of the frequency of the gap.}
 }
 \value{

@@ -4,7 +4,7 @@
 \alias{report}
 \title{Report the final haplotype sequences.}
 \usage{
-report(x, which, block_width = 80, ...)
+report(x, which, blockWidth = 80, ...)
 }
 \arguments{
 \item{x}{A \code{\link[=DR2S_]{DR2S}} object.}
@@ -12,7 +12,7 @@ report(x, which, block_width = 80, ...)
 \item{which}{Which mapping do we want to report. Will choose \code{mapFinal},
 \code{mapIter} in this order if available.}
 
-\item{block_width}{Maximum number of sequence letters per line in pairwise alignment.}
+\item{blockWidth}{Maximum number of sequence letters per line in pairwise alignment.}
 
 \item{...}{Additional arguments passed to methods.}
 }
@@ -52,7 +52,7 @@ x <- DR2Smap(
   partitionShortReads() \%>\%
   mapFinal() \%>\%
   polish() \%>\%
-  report(block_width = 60)
+  report(blockWidth = 60)
 }
 }
 \seealso{

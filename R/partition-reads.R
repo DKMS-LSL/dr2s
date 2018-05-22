@@ -1,15 +1,15 @@
-# partition_reads -----------------------------------------------------------
+# partitionReads -----------------------------------------------------------
 
 #' Cluster a SNP matrix into haplotype groups
 #'
 #' @param x A \code{[read x position]} SNP matrix.
-#' @param skip_gap_freq Skip a badly behaved polymorphic position if the
-#' frequency of gaps within a haplotype group exceeds \code{skip_gap_freq}.
-#' @param min_len Minimal fraction of SNPs that need to be covered by a read
+#' @param skipGapFreq Skip a badly behaved polymorphic position if the
+#' frequency of gaps within a haplotype group exceeds \code{skipGapFreq}.
+#' @param minLen Minimal fraction of SNPs that need to be covered by a read
 #' to be used
 #' @param threshold  Only gaps above threshold will be treated as gaps.
 #' Removes noisy positions in longreads.
-#' @param cl_method clustering method passed to \code{\link[stats]{hclust}}.
+#' @param clMethod clustering method passed to \code{\link[stats]{hclust}}.
 #' @param deepSplit sensitivity parameter passed to
 #' \code{\link[dynamicTreeCut]{cutreeHybrid}}.
 #'
@@ -18,38 +18,27 @@
 #' @examples
 #' ###
 
-# debug
-#x <- dpb1_3$partition$mat
-#sort_by <- "distance"
-# cl_method="ward.D"
-# min_len = 0.5
-# skip_gap_freq = 2/3
-# deepSplit = 1
-#  sort_by <- "distance"
-# x <- dpb1_3$partition$mat
-# x <- mat
-
-partition_reads <- function(x, cl_method = "ward.D", min_len = 0.5,
-                            skip_gap_freq = 2/3, deepSplit = 1,
-                            threshold = 0.2, dist_alleles = 2, 
-                            sort_by = "count"){
-  match.arg(sort_by, c("count", "distance"))
+partitionReads <- function(x, clMethod = "ward.D", minLen = 0.5,
+                            skipGapFreq = 2/3, deepSplit = 1,
+                            threshold = 0.2, distAlleles = 2, 
+                            sortBy = "count"){
+  match.arg(sortBy, c("count", "distance"))
   # get SNPs
   ppos <- colnames(x)
-  bad_ppos <- c()
+  badPpos <- c()
   xm <- as.matrix(x[order(rownames(x)), , drop = FALSE])
   ## if there is only one SNP for clustering, use it! If it does not match both
   ## sequencing types it will be reported
   if (length(ppos) > 1) {
-    bad_ppos <- apply(xm, 2, function(x) {
-      NROW(x[x == "+"])/NROW(x) > skip_gap_freq
+    badPpos <- apply(xm, 2, function(x) {
+      NROW(x[x == "+"])/NROW(x) > skipGapFreq
     })
-    xm <- as.matrix(xm[, !bad_ppos])
-    bad_ppos <- ppos[bad_ppos]
+    xm <- as.matrix(xm[, !badPpos])
+    badPpos <- ppos[badPpos]
     flog.info(paste0("  %s SNPs are covered by less than %g%% of sequences and",
                      " discarded. Using the remaining %s ", 
                      "SNPs for clustering ..."),
-              length(bad_ppos), 1 - skip_gap_freq, NCOL(xm), name = "info")
+              length(badPpos), 1 - skipGapFreq, NCOL(xm), name = "info")
     if (NCOL(xm) == 0) {
       flog.error(paste0("  Aborting. No SNP remaining for clustering!",
                         " Check your reads and reference and have a look",
@@ -59,13 +48,13 @@ partition_reads <- function(x, cl_method = "ward.D", min_len = 0.5,
   }
 
   ## Get the SNP matrix as sequences
-  xseqs <- get_seqs_from_mat(xm)
+  xseqs <- .getSeqsFromMat(xm)
   ## if only one SNP, remove every read without it
   if (NCOL(xm) == 1)
     xseqs <- xseqs[!xseqs == "+"]
 
-  ## Get only the fraction of reads that contain at least min_len of total SNPs
-  clustres <- get_clusts(xseqs, cl_method = cl_method, min_len = min_len,
+  ## Get only the fraction of reads that contain at least minLen of total SNPs
+  clustres <- .getClusts(xseqs, clMethod = clMethod, minLen = minLen,
                          deepSplit = deepSplit, threshold = threshold)
   subclades <- factor(clustres$clades[!clustres$clades == "@"])
   tree <- clustres$tree
@@ -86,23 +75,23 @@ partition_reads <- function(x, cl_method = "ward.D", min_len = 0.5,
     xseqs[names(subclades[subclades == x])]
   })
   names(msa) <- hptypes
-  mats <- lapply(msa, function(x) create_PWM(x))
+  mats <- lapply(msa, function(x) createPWM(x))
   hpseqs <- Biostrings::DNAStringSet(sapply(msa, function(x) {
-    unlist(simple_consensus(
+    unlist(simpleConsensus(
       t(Biostrings::consensusMatrix(x)[c(VALID_DNA(), "+"), ])))
   }))
   names(hpseqs) <- sapply(hptypes, function(hptype)
     paste(hptype, sum(subclades == hptype), sep = ":"))
 
-  if (length(hptypes) > dist_alleles) {
+  if (length(hptypes) > distAlleles) {
     flog.info("  Trying to identify chimeric reads/haplotypes ...", 
               name = "info")
-    if (sort_by == "count") {
-      rC <- names(sort(table(subclades),decreasing = TRUE)[1:dist_alleles])
+    if (sortBy == "count") {
+      rC <- names(sort(table(subclades),decreasing = TRUE)[1:distAlleles])
       # ## !!!!! HACK!!! rm following line; uncomment previous one; removed
       # rC <- c("A", "C")
-    } else if (sort_by == "distance") {
-      rC <- sort(find_chimeric(seqs = hpseqs, dist_alleles = dist_alleles))
+    } else if (sortBy == "distance") {
+      rC <- sort(.findChimeric(seqs = hpseqs, distAlleles = distAlleles))
     }
     flog.info("  Use only clusters %s ...", comma(rC), name = "info")
     mats <- mats[rC]
@@ -110,7 +99,7 @@ partition_reads <- function(x, cl_method = "ward.D", min_len = 0.5,
   hptypes <- names(mats)
 
   scores <- dplyr::bind_rows(
-    lapply(1:length(xseqs), function(s) get_scores(s, xseqs, mats)))
+    lapply(1:length(xseqs), function(s) .getScores(s, xseqs, mats)))
 
   clades <- scores %>%
     dplyr::group_by(read) %>%
@@ -132,10 +121,10 @@ partition_reads <- function(x, cl_method = "ward.D", min_len = 0.5,
   }
 
   # Create the partition table
-  part_ <- HapPart(read_name = clades$read, snp_pos = colnames(xm))
+  part_ <- HapPart(readName = clades$read, snpPos = colnames(xm))
   PRT(part_) <- clades$clade
   HTR(part_) <- tree
-  K(part_)   <- length(ppos) - length(bad_ppos)
+  K(part_)   <- length(ppos) - length(badPpos)
   oc(part_)  <- as.character(unique(subclades))
   mcoef(part_)  <- clades$score
   scores(part_) <- scores
@@ -148,29 +137,29 @@ partition_reads <- function(x, cl_method = "ward.D", min_len = 0.5,
 
 # Helpers -----------------------------------------------------------------
 
-get_clusts <- function(xseqs, min_len = 0.80, cl_method = "ward.D",
-                       deepSplit = 1, min_reads_frac = 1/3, threshold = 0.2) {
+.getClusts <- function(xseqs, minLen = 0.80, clMethod = "ward.D",
+                       deepSplit = 1, minReadsFrac = 1/3, threshold = 0.2) {
 
   assertthat::assert_that(
-    is.double(min_len),
-    is.double(min_reads_frac),
+    is.double(minLen),
+    is.double(minReadsFrac),
     is.double(threshold)
   )
 
   # heuristic for how many reads should be used
-  min_len <- .getMinLenClust(min_reads_frac, min_len, xseqs)
+  minLen <- .getMinLenClust(minReadsFrac, minLen, xseqs)
   flog.info("  Using only longreads containing at least %s%% of all SNPs ...",
-            min_len*100, name = "info")
-  x_sub <- xseqs[Biostrings::width(gsub("\\+", "", xseqs)) >
-                   min_len*Biostrings::width(xseqs[1])]
+            minLen*100, name = "info")
+  xSub <- xseqs[Biostrings::width(gsub("\\+", "", xseqs)) >
+                   minLen*Biostrings::width(xseqs[1])]
 
   ## Consensus matrix with pseudocount
   flog.info(paste0("  Constructing a Position Specific Distance Matrix",
                    " of the reamaining %s sequences ..."),
-            length(x_sub), name = "info")
+            length(xSub), name = "info")
   consmat  <- as.matrix(
-    Biostrings::consensusMatrix(x_sub, as.prob = TRUE)[c(VALID_DNA(), "+" ), ] + 
-      1/length(x_sub)
+    Biostrings::consensusMatrix(xSub, as.prob = TRUE)[c(VALID_DNA(), "+" ), ] + 
+      1/length(xSub)
   )
   # Remove gaps below a threshold as they are probably sequencing artifacts
   consmat <- foreach(col = 1:ncol(consmat), .combine = cbind) %do% {
@@ -179,14 +168,14 @@ get_clusts <- function(xseqs, min_len = 0.80, cl_method = "ward.D",
     a
   }
   ## Get Position Specific Distance Matrix
-  dist <- PSDM(x_sub, as.matrix(consmat))
+  dist <- PSDM(xSub, as.matrix(consmat))
   dist <- as.dist(dist)
 
   ## replace "na" with mean for a being able to cluster
   dist[is.na(dist)] <- mean(dist,na.rm = TRUE)
 
   ## Perform a hierarchical clustering
-  hcc <-  hclust(dist, method = cl_method)
+  hcc <-  hclust(dist, method = clMethod)
   ## do a dynamic cut. Need to be evaluated
   clusts <- dynamicTreeCut::cutreeHybrid(hcc,
                                          minClusterSize = 15,
@@ -203,27 +192,27 @@ get_clusts <- function(xseqs, min_len = 0.80, cl_method = "ward.D",
 }
 
 ## Get minimal fraction of SNPs needed for a read to be used
-.getMinLenClust <- function(min_reads_frac, min_len, xseqs){
-  adjusted_min_reads_frac <- min_reads_frac +
+.getMinLenClust <- function(minReadsFrac, minLen, xseqs){
+  adjustedMinReadsFrac <- minReadsFrac +
     (0.03*Biostrings::width(xseqs[1])/50) * 1500^2/length(xseqs)^2
-  adjusted_min_reads_frac <- min(0.5, adjusted_min_reads_frac)
+  adjustedMinReadsFrac <- min(0.5, adjustedMinReadsFrac)
   flog.info(paste0("  Adjusting minimal fraction of reads used for clustering",
-                   " from %g%% to %g%% ..."), min_reads_frac*100,
-            adjusted_min_reads_frac*100, name = "info")
+                   " from %g%% to %g%% ..."), minReadsFrac*100,
+            adjustedMinReadsFrac*100, name = "info")
   # get long reads containing sufficient number of SNPs
-  min_lens <- seq(1, 0, -0.01)
-  len_counts <- sapply(min_lens, function(minl) {
+  minLens <- seq(1, 0, -0.01)
+  lenCounts <- sapply(minLens, function(minl) {
     length(xseqs[
       Biostrings::width(gsub("\\+", "", xseqs)) >
         minl*Biostrings::width(xseqs[1])
       ])/length(xseqs)
   })
-  names(len_counts) <- min_lens
-  min_len <- max(as.numeric(names(
-    len_counts[which(len_counts > adjusted_min_reads_frac)][1])), min_len)
+  names(lenCounts) <- minLens
+  minLen <- max(as.numeric(names(
+    lenCounts[which(lenCounts > adjustedMinReadsFrac)][1])), minLen)
 }
 
-get_scores <- function(s, xseqs, mats){
+.getScores <- function(s, xseqs, mats){
   seq <- as.character(xseqs[[s]])
   seq <- unlist(strsplit(seq, split = ""))
   read <- names(xseqs[s])
@@ -238,7 +227,7 @@ get_scores <- function(s, xseqs, mats){
 }
 
 ## Identify chimeric clusters
-find_chimeric <- function(seqs, dist_alleles, plot_seqs = FALSE) {
+.findChimeric <- function(seqs, distAlleles, plotSeqs = FALSE) {
   # Use only non empty seqs
   seqs <- seqs[sapply(seqs, function(x) {
     !nchar(gsub("\\+|-","", as.character(x))) == 0})]
@@ -254,7 +243,7 @@ find_chimeric <- function(seqs, dist_alleles, plot_seqs = FALSE) {
       f <- sapply(forward, function(x) x[h,hp])
       r <- sapply(reverse, function(x) x[h,hp])
       # debug
-      if (plot_seqs) {
+      if (plotSeqs) {
         ggplot() +
           geom_line(aes(x = 1:length(r),y = f + r)) #+
         geom_line(aes(x = length(r):1, y = r))
@@ -264,20 +253,20 @@ find_chimeric <- function(seqs, dist_alleles, plot_seqs = FALSE) {
   rownames(dm) <- sapply(names(seqs), function(x) strsplit1(x, ":")[1])
   colnames(dm) <- sapply(names(seqs), function(x) strsplit1(x, ":")[1])
 
-  c("A", (names(sort(unlist(dm[1,]), decreasing = TRUE)[1:(dist_alleles - 1)])))
+  c("A", (names(sort(unlist(dm[1,]), decreasing = TRUE)[1:(distAlleles - 1)])))
 }
 
 # Class: HapPart -----------------------------------------------------------
 
 
-HapPart <- function(read_name, snp_pos) {
-  read_name <- as.character(read_name)
-  snp_pos   <- as.integer(snp_pos)
-  n <- length(read_name) # number of reads
-  k <- length(snp_pos)   # number of polymorphic positions
+HapPart <- function(readName, snpPos) {
+  readName <- as.character(readName)
+  snpPos   <- as.integer(snpPos)
+  n <- length(readName) # number of reads
+  k <- length(snpPos)   # number of polymorphic positions
   structure(
-    read_name,
-    snp_pos = snp_pos,
+    readName,
+    snpPos = snpPos,
     k       = 0L,            # total number of polymorphic positions
     q       = rep(0, n),     # cluster weight
     # add mcoef and tree
@@ -289,7 +278,7 @@ HapPart <- function(read_name, snp_pos) {
       rep("", n * k),
       nrow = n,
       ncol = k,
-      dimnames = list(NULL, snp_pos)
+      dimnames = list(NULL, snpPos)
     ),
     partition = rep("", n),  # final partitioning of reads into haplotypes
     class = c("HapPart", "character")
@@ -301,8 +290,8 @@ HapPart <- function(read_name, snp_pos) {
 
 
 #' @export
-print.HapPart <- function(x, sort_by = "none", nrows = 8, ...) {
-  sort_by <- match.arg(sort_by, c("none", "name", "mcoef"))
+print.HapPart <- function(x, sortBy = "none", nrows = 8, ...) {
+  sortBy <- match.arg(sortBy, c("none", "name", "mcoef"))
   n <- maximum(length(x), nrows)
   df0 <- data.frame(
     read      = paste0(substr(as.vector(x), 1, 12), "..."),
@@ -311,7 +300,7 @@ print.HapPart <- function(x, sort_by = "none", nrows = 8, ...) {
   )[1:n, ]
   cat("HapPart over", K(x), "polymorphic positions:\n")
   switch(
-    sort_by,
+    sortBy,
     none  = print(df0, ...),
     name  = print(df0[order(read),], ...),
     mcoef = print(df0[order(mcoef),], ...)
@@ -323,7 +312,7 @@ print.HapPart <- function(x, sort_by = "none", nrows = 8, ...) {
 `[.HapPart` <- function(x, i, j = NULL, drop = NULL) {
   i <- if (is.character(i)) x %in% i else i
   rs <- NextMethod()
-  attr(rs, "snp_pos") <- SNP(x)
+  attr(rs, "snpPos") <- SNP(x)
   attr(rs, "k") <- K(x)
   attr(rs, "q") <- Q(x)[i]
   # add mcoef attr
@@ -439,12 +428,12 @@ CLS.HapPart <- function(x) {
 
 SNP <- function(x) UseMethod("SNP")
 SNP.HapPart <- function(x) {
-  attr(x, "snp_pos")
+  attr(x, "snpPos")
 }
 
 `SNP<-` <- function(x, value) UseMethod("SNP<-")
 `SNP<-.HapPart` <- function(x, value) {
-  attr(x, "snp_pos") <- value
+  attr(x, "snpPos") <- value
   x
 }
 
@@ -484,7 +473,7 @@ HTR.HapPart <- function(x) {
 #' @export
 #' @examples
 #' ###
-plot_partition_histogram <- function(x, label = "", limits = NULL) {
+plotPartitionHistogram <- function(x, label = "", limits = NULL) {
   stopifnot(is(x, "HapPart"))
   if (is.null(limits)){
     limits <- self$getLimits()
@@ -514,7 +503,7 @@ plot_partition_histogram <- function(x, label = "", limits = NULL) {
 #' @examples
 #' ###
 #'
-plot_partition_histogram_multi <- function(x, limits, label = "") {
+plotPartitionHistogramMulti <- function(x, limits, label = "") {
   stopifnot(is(x, "HapPart"))
   data <- partition(x) %>%
     dplyr::mutate(limit = unlist(limits)[haplotype])
@@ -522,12 +511,9 @@ plot_partition_histogram_multi <- function(x, limits, label = "") {
   ggplot(data) +
     geom_histogram(aes(x = mcoef, fill = haplotype), bins = 100) +
     facet_grid(~ haplotype) +
-    # geom_vline(xintercept = c(0.25, 0.5, 0.75),
-    # linetype = "dashed", size = 0.2, colour = "grey80") +
     geom_vline( aes(xintercept = limit), colour = "grey40",
                 linetype = "dashed", size = 1) +
     scale_fill_manual(values = PARTCOL()) +
-    # xlim(c(0, 1.1)) +
     xlab("Haplotype membership coefficient") +
     ylab("Number of reads") +
     ggtitle(label = label) +
@@ -540,27 +526,27 @@ plot_partition_histogram_multi <- function(x, limits, label = "") {
 #' @param thin Subsample reads. [1]
 #' @param label Optional plot label.
 #' @param sort Sort [TRUE]
-#' @param name_reads Name reads [FALSE]
+#' @param nameReads Name reads [FALSE]
 #'
 #' @return A \code{ggplot} object.
 #' @export
 #' @examples
 #' ###
-plot_partition_haplotypes <- function(x, thin = 1, label = "", sort = TRUE,
-                                      name_reads = FALSE) {
+plotPartitionHaplotypes <- function(x, thin = 1, label = "", sort = TRUE,
+                                      nameReads = FALSE) {
   stopifnot(is(x, "HapPart"))
   q <- mcoef(x)
-  snp_pos <- SNP(x)
-  rs <- CLS(x)[, order(snp_pos), drop = FALSE]
+  snpPos <- SNP(x)
+  rs <- CLS(x)[, order(snpPos), drop = FALSE]
   i <- if (thin < 1) {
     sample(NROW(rs), thin*NROW(rs))
   } else seq_len(NROW(rs))
-  q_order <- if (sort) {
+  qOrder <- if (sort) {
     rev(order(q[i], decreasing = TRUE))
   } else i
-  rs2 <- rs <- rs[i, , drop = FALSE][q_order, , drop = FALSE]
+  rs2 <- rs <- rs[i, , drop = FALSE][qOrder, , drop = FALSE]
   dim(rs2) <- NULL
-  alpha_steps <- function(a) {
+  alphaSteps <- function(a) {
     a <- abs(a)
     a <- ifelse(a <= 0.25, 0L, ifelse(a <= 0.5, 1L, ifelse(a <= 0.75, 2L, 3L)))
     factor(a, levels = 0:3,
@@ -572,12 +558,12 @@ plot_partition_haplotypes <- function(x, thin = 1, label = "", sort = TRUE,
     snp   = rep(seq_len(NCOL(rs)), each = NROW(rs)),
     read  = rep.int(seq_len(NROW(rs)), NCOL(rs)),
     hap   = factor(rs2, levels = c("A", "B", "-"), ordered = TRUE),
-    trans = alpha_steps(a = rep(q[i][q_order], NCOL(rs))),
-    mcoef = rep(q[i][q_order], NCOL(rs))
+    trans = alphaSteps(a = rep(q[i][qOrder], NCOL(rs))),
+    mcoef = rep(q[i][qOrder], NCOL(rs))
   )
 
-  if (name_reads) {
-    readnames <- as.vector(x[i])[q_order]
+  if (nameReads) {
+    readnames <- as.vector(x[i])[qOrder]
     readnames <- factor(readnames, readnames, readnames, ordered = TRUE)
     df$read   <- rep(readnames, NCOL(rs))
   }
@@ -604,7 +590,7 @@ plot_partition_haplotypes <- function(x, thin = 1, label = "", sort = TRUE,
 #'
 #' @examples
 #' ###
-plot_radar_partition <- function(x){
+plotRadarPartition <- function(x){
   stopifnot(is(x, "HapPart"))
 
   df <- dplyr::full_join(scores(x), partition(x), by = "read")
@@ -615,7 +601,6 @@ plot_radar_partition <- function(x){
     geom_polygon(aes(group = read, color = haplotype), fill = NA, size = size,
                  show.legend = FALSE, alpha = 1) +
     facet_grid( ~ haplotype) +
-    # scale_fill_manual(PARTCOL()) +
     ggtitle("Similarity to clusters") +
     scale_color_manual(values = PARTCOL()) +
     theme_bw() +
@@ -624,7 +609,7 @@ plot_radar_partition <- function(x){
       axis.text.y  = element_blank(),
       axis.ticks  = element_blank()
     ) +
-    coord_radar()
+    .coordRadar()
 }
 
 #' Plot tree of initial clustering
@@ -635,8 +620,7 @@ plot_radar_partition <- function(x){
 #' @export
 #' @examples
 #' ###
-#x <- self$getPartition()
-plot_partition_tree <- function(x){
+plotPartitionTree <- function(x){
   stopifnot(
     is(x, "HapPart"),
     requireNamespace("ggdendro", quietly = TRUE)
@@ -710,7 +694,7 @@ getCl <- function(n, cluster, change) {
   )
 }
 # Helper function for the plotting of radar charts
-coord_radar <- function(theta = "x", start = 0, direction = 1)  {
+.coordRadar <- function(theta = "x", start = 0, direction = 1)  {
   theta <- match.arg(theta, c("x", "y"))
   r <- if (theta == "x")
     "y"
@@ -722,16 +706,17 @@ coord_radar <- function(theta = "x", start = 0, direction = 1)  {
 
 # Optimal partitioning ----------------------------------------------------
 
-optimal_partition_limits <- function(scores, f = 0.8) {
-  coeff_cuts <- seq(0, max(unlist(scores)), length.out = 100)
+.optimalPartitionLimits <- function(scores, f = 0.8) {
+  #here
+  coeffCuts <- seq(0, max(unlist(scores)), length.out = 100)
   rHap <- lapply(scores, function(x) {
-    sapply(coeff_cuts, function(cutoff) sum(x >= cutoff))})
+    sapply(coeffCuts, function(cutoff) sum(x >= cutoff))})
   df <- data.frame()
   for(hapType in names(rHap)) {
     l <- f * length(unlist(
       scores[!names(rHap) == hapType])) / length(scores[[hapType]])
     df <- dplyr::bind_rows(df,
-                           dplyr::data_frame(c = coeff_cuts,
+                           dplyr::data_frame(c = coeffCuts,
                                              r = unlist(rHap[hapType])) %>%
                              dplyr::mutate(haplotype = hapType,
                                            score = ((r^l)*c)) %>%

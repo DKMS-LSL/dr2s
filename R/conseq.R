@@ -10,11 +10,11 @@
 #' @param type One of "prob" or "ambig".
 #' @param threshold If \code{type == "ambig"}, threshold to call an ambiguous
 #' consensus call.
-#' @param exclude_gaps Exclude gaps at insertion position from consensus
+#' @param excludeGaps Exclude gaps at insertion position from consensus
 #' calling.
-#' @param gap_suppression_ratio The ratio of base/gap above which gaps at
+#' @param gapSuppressionRatio The ratio of base/gap above which gaps at
 #' insertion position are excluded from from consensus calling.
-#' @param force_exclude_gaps Exclude gaps at from consensus calling irrespective
+#' @param forceExcludeGaps Exclude gaps at from consensus calling irrespective
 #' of the frequency of the gap.
 #' @param ... Additional arguments.
 #'
@@ -38,17 +38,17 @@ conseq.pileup <- function(x,
                           name = "conseq",
                           type = c("prob", "ambig"),
                           threshold = NULL,
-                          exclude_gaps = TRUE,
-                          gap_suppression_ratio = 2/5,
-                          force_exclude_gaps = FALSE, ...) {
+                          excludeGaps = TRUE,
+                          gapSuppressionRatio = 2/5,
+                          forceExcludeGaps = FALSE, ...) {
   if (is.null(threshold)) {
     threshold <- x$threshold
   }
   x <- consmat(x, freq = FALSE)
   conseq(x, name = name, type = type, threshold = threshold,
-         exclude_gaps = exclude_gaps,
-         gap_suppression_ratio = gap_suppression_ratio,
-         force_exclude_gaps = force_exclude_gaps, ... )
+         excludeGaps = excludeGaps,
+         gapSuppressionRatio = gapSuppressionRatio,
+         forceExcludeGaps = forceExcludeGaps, ... )
 }
 
 #' @export
@@ -56,19 +56,19 @@ conseq.matrix <- function(x,
                           name = NULL,
                           type = c("prob", "ambig"),
                           threshold = NULL,
-                          exclude_gaps = TRUE,
-                          gap_suppression_ratio = 2/5,
-                          force_exclude_gaps = FALSE, ...) {
+                          excludeGaps = TRUE,
+                          gapSuppressionRatio = 2/5,
+                          forceExcludeGaps = FALSE, ...) {
   type <- match.arg(type, c("prob", "ambig"))
   if (type == "ambig" && is.null(threshold)) {
     stop("Must set threshold for ambiguity consensus calling!")
   }
   x <- consmat(x, freq = FALSE)
   conseq <- switch(type,
-    prob  = make_prob_consensus_(x, exclude_gaps = exclude_gaps,
-                                 force_exclude_gaps = force_exclude_gaps,
-                                 gap_suppression_ratio = gap_suppression_ratio),
-    ambig = make_ambig_consensus_(x, threshold, exclude_gaps = exclude_gaps)
+    prob  = .makeProbConsensus_(x, excludeGaps = excludeGaps,
+                                 forceExcludeGaps = forceExcludeGaps,
+                                 gapSuppressionRatio = gapSuppressionRatio),
+    ambig = .makeAmbigConsensus_(x, threshold, excludeGaps = excludeGaps)
   )
   names(conseq) <- name
   conseq
@@ -76,7 +76,7 @@ conseq.matrix <- function(x,
 
 #' @keywords internal
 #' @export
-simple_consensus <- function(x) {
+simpleConsensus <- function(x) {
   cmf <- consmat(x, freq = TRUE)
   if (any(na_ <- is.na(rowSums(cmf)))) {
     cmf[na_, ] <- 0
@@ -86,21 +86,21 @@ simple_consensus <- function(x) {
 }
 
 ## strict consensus based on z-scores
-## <exclude_gaps> affects behaviour at insertion positions
-## if <exclude_gaps> the gap count at insertion position is set to zero if
-## the ratio of base/gap >= gap_suppression_ratio (2/3), which allows calling
+## <excludeGaps> affects behaviour at insertion positions
+## if <excludeGaps> the gap count at insertion position is set to zero if
+## the ratio of base/gap >= gapSuppressionRatio (2/3), which allows calling
 ## the alternate base even if at lower frequency than the gap.
-## if <force_exclude_gaps> all gap counts will be set to zero.
-make_prob_consensus_ <- function(x,
-                                 exclude_gaps = TRUE,
-                                 force_exclude_gaps = FALSE,
-                                 gap_suppression_ratio = 2/5,
-                                 as_string = FALSE) {
-  x_ori <- x
-  if (exclude_gaps && length(ins_ <- as.character(ins(x))) > 0) {
-    x <- suppress_gaps_(x, ins = ins_, gap_suppression_ratio = gap_suppression_ratio)
+## if <forceExcludeGaps> all gap counts will be set to zero.
+.makeProbConsensus_ <- function(x,
+                                 excludeGaps = TRUE,
+                                 forceExcludeGaps = FALSE,
+                                 gapSuppressionRatio = 2/5,
+                                 asString = FALSE) {
+  xOri <- x
+  if (excludeGaps && length(ins_ <- as.character(ins(x))) > 0) {
+    x <- .suppressGaps_(x, ins = ins_, gapSuppressionRatio = gapSuppressionRatio)
   }
-  if (force_exclude_gaps) {
+  if (forceExcludeGaps) {
     x[, "-"] <- 0
   }
   # don't allow gaps at beginning and end
@@ -109,12 +109,12 @@ make_prob_consensus_ <- function(x,
   maxgap   <- which(maxbases == "-")
   if (!length(maxgap) == 0) {
     if (min(maxgap) < min(maxbase)) {
-      exclude_from_start <- min(which(maxbases == "-")):(min(which(maxbases != "-")) - 1)
-      x[exclude_from_start,"-"] <- 0
+      excludeFromStart <- min(which(maxbases == "-")):(min(which(maxbases != "-")) - 1)
+      x[excludeFromStart,"-"] <- 0
     }
     if (max(maxgap) > max(maxbase)) {
-      exclude_from_end <- (max(which(maxbases != "-")) + 1):max(which(maxbases == "-"))
-      x[exclude_from_end,"-"] <- 0
+      excludeFromEnd <- (max(which(maxbases != "-")) + 1):max(which(maxbases == "-"))
+      x[excludeFromEnd,"-"] <- 0
     }
   }
 
@@ -125,7 +125,7 @@ make_prob_consensus_ <- function(x,
   rowsd <- mean(n(x)) / 2
   z <- sweep(sweep(x, 1, .rowMeans(x, NROW(x), NCOL(x)), `-`), 1, rowsd, `/`)
   bases <- colnames(x)[apply(z, 1, which.max)]
-  if (as_string) {
+  if (asString) {
     return(paste0(bases, collapse = ""))
   }
   dels <- bases == "-"
@@ -138,22 +138,22 @@ make_prob_consensus_ <- function(x,
     zscore     = unname(apply(z, 1, max)),
     freq       = NULL,
     ambigs     = NULL,
-    insertions = ins(x_ori),
+    insertions = ins(xOri),
     deletions  = unname(which(dels)),
-    consmat    = x_ori
+    consmat    = xOri
   )
   return(seq)
 }
 
 ## consensus with ambiguities
-## <exclude_gaps> affects behaviour at polymorphic positions:
-## if <!exclude_gaps> a gap ambiguity will be called (small letter)
-## if <exclude_gaps> the alternate base(s) will be called irrespective
+## <excludeGaps> affects behaviour at polymorphic positions:
+## if <!excludeGaps> a gap ambiguity will be called (small letter)
+## if <excludeGaps> the alternate base(s) will be called irrespective
 ## of the frequency of the gap
-make_ambig_consensus_ <- function(x,
+.makeAmbigConsensus_ <- function(x,
                                   threshold,
-                                  exclude_gaps = FALSE,
-                                  as_string = FALSE) {
+                                  excludeGaps = FALSE,
+                                  asString = FALSE) {
   ## Filter all bases with a frequency > threshold
   cmf <- consmat(x, freq = TRUE)
   ## remove rows which have been set to zero
@@ -173,8 +173,8 @@ make_ambig_consensus_ <- function(x,
     else if (length(b) > 1) {
       ## sort by name
       b <- b[order(names(b))]
-      ## if we have a gap and exclude_gaps == TRUE
-      if (any(gap <- names(b) == "-") && exclude_gaps) {
+      ## if we have a gap and excludeGaps == TRUE
+      if (any(gap <- names(b) == "-") && excludeGaps) {
         b <- b[!gap]
       }
       NUC <- paste0(names(b), collapse = "")
@@ -188,7 +188,7 @@ make_ambig_consensus_ <- function(x,
     }
   })
   bases <- vapply(s, `[[`, "base", FUN.VALUE = "")
-  if (as_string) {
+  if (asString) {
     return(paste0(bases, collapse = ""))
   }
   ambigs <- x[which(!bases %in% DNA_BASES()), ]
@@ -206,12 +206,12 @@ make_ambig_consensus_ <- function(x,
   seq
 }
 
-# gap_suppression_ratio = base/gap
-suppress_gaps_ <- function(x, ins, gap_suppression_ratio = 2/5) {
+# gapSuppressionRatio = base/gap
+.suppressGaps_ <- function(x, ins, gapSuppressionRatio = 2/5) {
   x0 <- x[dimnames(x)$pos %in% ins, ]
   ## if the ratio of the most freqent base to gap is greater/equal to
-  ## gap_suppression_ratio set the gap count to zero (i.e. suppress the gap)
-  i <- which(apply(x0[, c("A", "C", "G", "T")], 1, max) / x0[, "-"] >= gap_suppression_ratio)
+  ## gapSuppressionRatio set the gap count to zero (i.e. suppress the gap)
+  i <- which(apply(x0[, c("A", "C", "G", "T")], 1, max) / x0[, "-"] >= gapSuppressionRatio)
   if (length(j <- dimnames(x0)$pos[i]) > 0) {
     x[j, "-"] <- 0
   }
@@ -227,8 +227,8 @@ suppress_gaps_ <- function(x, ins, gap_suppression_ratio = 2/5) {
 #'
 #' @param seqA consensus sequence A.
 #' @param seqB consensus sequence B.
-#' @param text_size Text size.
-#' @param point_size Point size.
+#' @param textSize Text size.
+#' @param pointSize Point size.
 #' @param labelA Label A.
 #' @param labelB Label B.
 #'
@@ -238,12 +238,12 @@ suppress_gaps_ <- function(x, ins, gap_suppression_ratio = 2/5) {
 #' @examples
 #' ##
 # threshold = "auto"
-# text_size = 3
-# point_size = 1
-plot_conseq_probability <- function(cseqs,
+# textSize = 3
+# pointSize = 1
+plotConseqProbability <- function(cseqs,
                                     threshold = "auto",
-                                    text_size = 3,
-                                    point_size = 1) {
+                                    textSize = 3,
+                                    pointSize = 1) {
   labels <- sapply(cseqs, function(x) x$label)
   seqs   <- sapply(cseqs, function(x) x$cseq)
   # get labels and tags
@@ -287,10 +287,10 @@ plot_conseq_probability <- function(cseqs,
   df2 <- dplyr::filter(dplyr::left_join(df, lower, by = "group"), prob <= lower)
   ggplot(df, aes(pos, prob)) +
     facet_grid(group ~ .) +
-    geom_point(aes(colour = base), alpha = 0.5, size = point_size) +
+    geom_point(aes(colour = base), alpha = 0.5, size = pointSize) +
     scale_color_manual(values = NUCCOL()) +
     geom_label(aes(x = pos, y = prob - prob*0.05, label = pos), data = df2,
-               colour = "black", size = text_size) +
+               colour = "black", size = textSize) +
     geom_hline(aes(yintercept = lower), linetype = "dashed", colour = "gray20", data = lower) +
     ylim(c(0.25, 1)) +
     xlab("Position [bp]") +
@@ -298,17 +298,3 @@ plot_conseq_probability <- function(cseqs,
     ggtitle(label) +
     theme_bw()
 }
-
-# plot_logo <- function(file) {
-#   file <- file.path(outdir, "t.l")
-#   logo$height[1:10]
-#   ggplot
-#   logo
-#   l <- Biostrings::width(conseq)
-#   logo[1:l,]
-#   View(logo)
-#
-# }
-
-
-

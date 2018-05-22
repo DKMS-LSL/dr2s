@@ -31,7 +31,7 @@
 #' @export
 #' @examples
 #' ###
-get_SR_partition_scores <- function(refname, bamfile, mats,
+getSRPartitionScores <- function(refname, bamfile, mats,
                                     cores = "auto"){
   stopifnot(
     requireNamespace("parallel", quietly = TRUE),
@@ -58,7 +58,7 @@ get_SR_partition_scores <- function(refname, bamfile, mats,
                                                     use.names = TRUE)
     dplyr::bind_cols(read = rep(names(stack), each = length(mats)),
                      dplyr::bind_rows(lapply(stack, function(x)
-                       part_read(x, mats, pos))))
+                       .partRead(x, mats, pos))))
   }
   structure(
     list(
@@ -89,7 +89,7 @@ get_SR_partition_scores <- function(refname, bamfile, mats,
 #' @examples
 #' ### Score
 #
-score_highest_SR <- function(srpartition, diffThreshold = 0.001) {
+scoreHighestSR <- function(srpartition, diffThreshold = 0.001) {
   sr <- unique(data.table::as.data.table(srpartition)
                [, clade := sum(prob), by = list(read, haplotype)] # Get the sum of each read and hptype
                [,max := max(clade), by = read] # get the max of the sums of each
@@ -107,7 +107,7 @@ score_highest_SR <- function(srpartition, diffThreshold = 0.001) {
       srtmp <- sr[abs(1 - (clade/max)) < diffThreshold]
     }
     correctScoring <- sapply(unique(srtmp$pos), function(position)
-      check_SR_scoring(position, srtmp[pos == position]))
+      .checkSRScoring(position, srtmp[pos == position]))
     if (all(correctScoring)) {
       if (NROW(sr2) == 0)
         sr2 <- srtmp
@@ -119,7 +119,7 @@ score_highest_SR <- function(srpartition, diffThreshold = 0.001) {
   return(sr2)
 }
 
-write_part_fq <- function(fq, srFastqHap, dontUseReads = NULL, useReads = NULL) {
+.writePartFq <- function(fq, srFastqHap, dontUseReads = NULL, useReads = NULL) {
   fqstream = ShortRead::FastqStreamer(fq)
   .fileDeleteIfExists(srFastqHap)
   repeat {
@@ -142,13 +142,13 @@ write_part_fq <- function(fq, srFastqHap, dontUseReads = NULL, useReads = NULL) 
 
 # --- Helper ---
 
-part_read <- function(a, mats, pos){
+.partRead <- function(a, mats, pos){
   l <- sapply(mats, function(x) x[,pos][as.character(a)])
   list(prob = l,  haplotype = names(mats), pos = rep(pos, length(l)))
 }
 
-check_SR_scoring <- function(position, dfpos){
-  score_ok <- all(sapply(unique(dfpos$haplotype), function(hp)
+.checkSRScoring <- function(position, dfpos){
+  scoreOk <- all(sapply(unique(dfpos$haplotype), function(hp)
     sum( dfpos$read %in% dfpos[haplotype == hp]$read)/NROW(dfpos) > 0.2))
-  return(score_ok)
+  return(scoreOk)
 }

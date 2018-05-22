@@ -4,15 +4,12 @@
 \alias{polish}
 \title{Polish final haplotype sequences.}
 \usage{
-polish(x, threshold = x$getThreshold(), lower_limit = 1.6, cache = TRUE,
-  ...)
+polish(x, threshold = x$getThreshold(), cache = TRUE, ...)
 }
 \arguments{
 \item{x}{A \code{\link[=DR2S_]{DR2S}} object.}
 
 \item{threshold}{When do we call a variant a variant.}
-
-\item{lower_limit}{When do we report a variant as uncertain.}
 
 \item{cache}{Cache the updated \code{DR2S} object after assembling the haplotypes.}
 
@@ -42,7 +39,7 @@ x <- DR2Smap(
   partitionShortReads() \%>\%
   mapFinal() \%>\%
   polish() \%>\%
-  report(block_width = 60)
+  report(blockwidth = 60)
 }
 }
 \seealso{

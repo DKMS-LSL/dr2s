@@ -42,7 +42,7 @@ scriptBaseName <- dirname(scriptName)
 setwd(scriptBaseName)
 
 x <- readDR2S("..")
-tryCatch(check_alignment_file(x),
+tryCatch(checkAlignmentFile(x),
          error = function(e) {
            system(paste(
              shQuote("notify-send"),

@@ -105,7 +105,7 @@ x <- DR2Smap(
   partitionShortReads() \%>\%
   mapFinal() \%>\%
   polish() \%>\%
-  report(block_width = 60)
+  report(blockWidth = 60)
 }
 }
 \seealso{

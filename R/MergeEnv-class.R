@@ -67,8 +67,8 @@ MergeEnv_ <- R6::R6Class(
       self$hptypes[[hapEnv]]
     },
     currentVariant = function(envir) {
-      if (!is.null(envir$current_variant)) {
-        print(envir$current_variant)
+      if (!is.null(envir$currentVariant)) {
+        print(envir$currentVariant)
       } else NULL
     },
     print = function(left = 3, right = left, ...) {
@@ -101,7 +101,7 @@ MergeEnv_$set("public", "init", function(hapEnv) {
   }
   
   apos <- foreach(rt = c("LR", "SR"), .combine = c) %do% {
-    ambiguous_positions(envir[[rt]], self$threshold)
+    ambiguousPositions(envir[[rt]], self$threshold)
   }
   apos <- unique(sort(apos))
   
@@ -109,19 +109,19 @@ MergeEnv_$set("public", "init", function(hapEnv) {
     iter(apos))
   envir$variants = list()
   envir$pos = 1L
-  envir$current_variant = NULL
+  envir$currentVariant = NULL
   envir$init = TRUE
 })
 
-## self$walk_one() ####
-MergeEnv_$set("public", "walk_one", function(hapEnv, verbose = FALSE) {
+## self$walkOne() ####
+MergeEnv_$set("public", "walkOne", function(hapEnv, verbose = FALSE) {
   hapEnv <- match.arg(hapEnv, self$x$getHapTypes())
   if (!self$isInitialised(hapEnv)) {
     self$init(hapEnv)
   }
 
   envir <- self$getHapEnv(hapEnv)
-  private$step_through(envir)
+  private$stepThrough(envir)
   if (verbose) {
     self$currentVariant(envir)
     cat("\nConsensus sequence:\n")
@@ -144,8 +144,8 @@ MergeEnv_$set("public", "walk", function(hapEnv, verbose = FALSE) {
     self$init(hapEnv)
   }
   envir <- self$getHapEnv(hapEnv)
-  # while (step_through(envir)) {
-  while (private$step_through(envir)) {
+  # while (stepThrough(envir)) {
+  while (private$stepThrough(envir)) {
     if (verbose) {
       self$currentVariant(envir)
       cat("\nConsensus sequence:\n")
@@ -155,9 +155,9 @@ MergeEnv_$set("public", "walk", function(hapEnv, verbose = FALSE) {
 
   invisible(self)
 })
-## private$step_through() ####
-MergeEnv_$set("private", "step_through", function(envir) {
-# step_through <- function(envir) {
+## private$stepThrough() ####
+MergeEnv_$set("private", "stepThrough", function(envir) {
+# stepThrough <- function(envir) {
   if (!itertools::hasNext(envir$POSit)) {
     return(FALSE)
   }
@@ -192,11 +192,12 @@ MergeEnv_$set("public", "showConsensus", function(envir,
   lr <- envir$LR[min:(pos + offset + right), , drop = FALSE]
   sr <- envir$SR[min:(pos + offset + right), , drop = FALSE]
   ## Conseq
-  lcs <- tolower(make_ambig_consensus_(lr, threshold = self$threshold, 
-                                       exclude_gaps = FALSE, as_string = TRUE))
+  lcs <- tolower(.makeAmbigConsensus_(lr, threshold = self$threshold, 
+                                       excludeGaps = FALSE, asString = TRUE))
+    # here
   substr(lcs, left + 1, left + 1) <- toupper(substr(lcs, left + 1, left + 1))
-  scs <- tolower(make_ambig_consensus_(sr, threshold = self$threshold, 
-                                       exclude_gaps = FALSE, as_string = TRUE))
+  scs <- tolower(.makeAmbigConsensus_(sr, threshold = self$threshold, 
+                                       excludeGaps = FALSE, asString = TRUE))
   substr(scs, left + 1, left + 1) <- toupper(substr(scs, left + 1, left + 1))
   show <- sprintf(" Haplotype %s [%s] \nlr: %s\nsr: %s\n\n", 
                   envir$haplotype, pos, lcs, scs)
@@ -216,10 +217,10 @@ MergeEnv_$set("public", "showMatrix", function(envir, pos, left = 6,
   min <- minimum(pos + offset - left, 1)
   lr <- envir$LR[min:(pos + offset + right), , drop = FALSE]
   sr <- envir$SR[min:(pos + offset + right), , drop = FALSE]
-  lcs <- make_ambig_consensus_(lr, threshold = self$threshold, 
-                               exclude_gaps = FALSE, as_string = TRUE)
-  scs <- make_ambig_consensus_(sr, threshold = self$threshold, 
-                               exclude_gaps = FALSE, as_string = TRUE)
+  lcs <- .makeAmbigConsensus_(lr, threshold = self$threshold, 
+                               excludeGaps = FALSE, asString = TRUE)
+  scs <- .makeAmbigConsensus_(sr, threshold = self$threshold, 
+                               excludeGaps = FALSE, asString = TRUE)
   cat("Haplotype ", envir$haplotype, 
       "\nLong read map position [", pos + offset, "] Consensus [", lcs, "]\n")
   print(lr, n = NROW(lr), noHead = TRUE, transpose = TRUE)
@@ -252,7 +253,7 @@ MergeEnv_$set("public", "export", function() {
                            }
                            seqname = 
                            cseq <- conseq(reads, paste0("hap", hptype), "ambig", 
-                                          exclude_gaps = TRUE, threshold = 0.3)
+                                          excludeGaps = TRUE, threshold = 0.3)
                            metadata(cseq) <- list()
                            cseq
                          }),
@@ -268,7 +269,7 @@ MergeEnv_$set("public", "export", function() {
                                      paste0("LR",hptype)]]$consmat
                                  }
                                  cseq <- conseq(reads, paste0("hap", hptype), 
-                                                "prob", exclude_gaps = TRUE)
+                                                "prob", excludeGaps = TRUE)
                                  metadata(cseq) <- list()
                                  cseq
                                })
@@ -291,9 +292,9 @@ MergeEnv_$set("public", "export", function() {
   }
   if (length(ins(srm)) > 0) {
     insert <- matrix(c(0, 0, 0, 0, median(rowSums(m)), 0), ncol = 6)
-    my_ins <- sort(ins(srm))
-    my_ins <- my_ins[my_ins < nrow(lrm)]
-    INSit <- itertools::ihasNext(iter(my_ins))
+    myIns <- sort(ins(srm))
+    myIns <- myIns[myIns < nrow(lrm)]
+    INSit <- itertools::ihasNext(iter(myIns))
     while (itertools::hasNext(INSit)) {
       i <- iterators::nextElem(INSit)
       m <- rbind(m[1:(i - 1), ], insert, m[i:NROW(m), ])

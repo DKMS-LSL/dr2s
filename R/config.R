@@ -11,7 +11,7 @@ createDR2SConf <- function(sample,
                              threshold       = 0.20,
                              iterations      = 1,
                              microsatellite  = FALSE,
-                             dist_alleles    = 2,
+                             distAlleles    = 2,
                              filterScores    = TRUE,
                              partSR          = TRUE,
                              forceMapping = FALSE,
@@ -35,7 +35,7 @@ createDR2SConf <- function(sample,
     threshold  = threshold,
     iterations = iterations,
     microsatellite  = microsatellite,
-    dist_alleles    = dist_alleles,
+    distAlleles    = distAlleles,
     filterScores    = filterScores,
     partSR          = partSR,
     forceMapping = forceMapping,
@@ -49,7 +49,7 @@ createDR2SConf <- function(sample,
     longreads  = longreads,
     shortreads = shortreads,
     opts       = conf0$opts     %||% NULL,
-    sample_id  = sample,
+    sampleId  = sample,
     locus      = locus,
     reference  = ref,
     alternate  = alt,
@@ -59,15 +59,9 @@ createDR2SConf <- function(sample,
   structure(conf1, class = c("DR2Sconf", "list"))
 }
 
-## debug
-# conf <- readDR2SConf(config_file)
-#config_file <- "./tests/config1.yaml"
-#library(DR2S)
-# configs <- readDR2SConf(config_file)
-# DR2Smap(configs[[1]])
 #' @export
-readDR2SConf <- function(config_file) {
-  conf <- yaml::yaml.load_file(config_file)
+readDR2SConf <- function(configFile) {
+  conf <- yaml::yaml.load_file(configFile)
   ## set defaults if necessary
   conf$datadir        <- conf$datadir        %||% normalizePath(".", 
                                                                 mustWork = TRUE)
@@ -83,7 +77,7 @@ readDR2SConf <- function(config_file) {
   conf$srmapper       <- conf$srmapper       %||% "bwamem"
   conf$limits         <- conf$limits         %||% list(NULL)
   conf$haptypes       <- conf$haptypes       %||% list(NULL)
-  conf$dist_alleles   <- conf$dist_alleles   %||% 2
+  conf$distAlleles   <- conf$distAlleles   %||% 2
   conf$pipeline       <- conf$pipeline       %||% c("clear", "mapInit",
                                                      "partitionLongReads", 
                                                      "mapIter", 
@@ -108,7 +102,7 @@ expandDR2SConf <- function(conf) {
   ## we can have more than one sample
   samples <- conf$samples
   conf$samples <- NULL
-  sample_ids <- names(samples)
+  sampleIds <- names(samples)
   ## we can have more than one longread type
   lrds <- conf$longreads
   if (!is.null(names(lrds))) {
@@ -119,24 +113,24 @@ expandDR2SConf <- function(conf) {
   cnss <- conf$consensus %||% list("mapping")
   conf$consensus <- NULL
 
-  foreach(sample = samples, sample_id = sample_ids, .combine = "c") %:%
+  foreach(sample = samples, sampleId = sampleIds, .combine = "c") %:%
     foreach(nrd = nrds, .combine = "c") %:%
     foreach(lrd = lrds, .combine = "c") %:%
     foreach(cns = cnss, .combine = "c") %:%
-    foreach(dst = sample$dist_alleles, .combine = "c") %:%
+    foreach(dst = sample$distDlleles, .combine = "c") %:%
     foreach(ref = sample$reference, .combine = "c") %do% {
-      updateDR2SConf(conf, lrd, nrd, sample_id, sample, ref, alternate = "", 
+      updateDR2SConf(conf, lrd, nrd, sampleId, sample, ref, alternate = "", 
                      cns, dst)
     }
 }
 
-updateDR2SConf <- function(conf0, lrd, nrd, sample_id, locus, reference, 
+updateDR2SConf <- function(conf0, lrd, nrd, sampleId, locus, reference, 
                            alternate, consensus, dst) {
   conf0$datadir   <- normalizePath(conf0$datadir, mustWork = TRUE)
   conf0$outdir    <- normalizePath(conf0$outdir, mustWork = FALSE)
   conf0$longreads <- lrd
-  conf0$dist_alleles  <- dst
-  conf0$sample_id <- sample_id
+  conf0$distAlleles  <- dst
+  conf0$sampleId <- sampleId
   conf0["reference"] <- reference %|ch|% list(NULL)
   locus$reference    <- NULL
   conf0["alternate"] <- alternate %|ch|% list(NULL)
@@ -144,18 +138,18 @@ updateDR2SConf <- function(conf0, lrd, nrd, sample_id, locus, reference,
   conf0["consensus"] <- consensus %|ch|% list(NULL)
   locus$consensus    <- NULL
   ## add overides if they exist
-  list(merge_list(conf0, locus, update = TRUE))
+  list(.mergeList(conf0, locus, update = TRUE))
 }
 
-initialiseDR2S <- function(conf, create_outdir = TRUE) {
+initialiseDR2S <- function(conf, createOutdir = TRUE) {
   conf <- validateDR2SConf(conf)
-  if (create_outdir) {
+  if (createOutdir) {
     conf$outdir <- .dirCreateIfNotExists(path = gsub("//+", "/", file.path(
       conf$outdir,
-      conf$sample_id#,
+      conf$sampleId#,
       ## Use only sample id
       # conf$longreads$name %||% conf$longreads$dir %||% "",
-      # paste0(normalise_locus(conf$locus), ".", conf$longreads$type, ".", 
+      # paste0(.normaliseLocus(conf$locus), ".", conf$longreads$type, ".", 
       # conf$reftype, ".", conf$consensus)
     )))
   }
@@ -164,9 +158,9 @@ initialiseDR2S <- function(conf, create_outdir = TRUE) {
 
 validateDR2SConf <- function(conf) {
   fields <- c("datadir", "outdir", "threshold", "iterations", "microsatellite", 
-              "dist_alleles", "filterScores", "partSR", "forceMapping", 
+              "distAlleles", "filterScores", "partSR", "forceMapping", 
               "lrmapper", "srmapper", "limits", "haptypes", "pipeline", 
-              "longreads", "shortreads", "opts", "sample_id", "locus", 
+              "longreads", "shortreads", "opts", "sampleId", "locus", 
               "reference", "alternate", "consensus", "note")
   if (!all(fields %in% names(conf))) {
     stop("Missing fields <", comma(fields[!fields %in% names(conf)]), 
@@ -201,8 +195,8 @@ validateDR2SConf <- function(conf) {
     stop("microsatellite must be logical", call. = FALSE)
   }
   # check number of distinct alleles
-  if (!is.numeric(conf$dist_alleles)){
-    stop("Number of distinct alleles (dist_alleles) must be numeric", 
+  if (!is.numeric(conf$distAlleles)){
+    stop("Number of distinct alleles (distAlleles) must be numeric", 
          call. = FALSE)
   }
   # check forceMapping
@@ -263,8 +257,8 @@ validateDR2SConf <- function(conf) {
     }
   }
   ## Normalise locus
-  ##conf$locus   <- sub("^(HLA-|KIR)", "", normalise_locus(conf$locus))
-  conf$locus   <- sub("^HLA-", "", normalise_locus(conf$locus))
+  ##conf$locus   <- sub("^(HLA-|KIR)", "", .normaliseLocus(conf$locus))
+  conf$locus   <- sub("^HLA-", "", .normaliseLocus(conf$locus))
   ## Check consensus method
   conf$consensus <- match.arg(conf$consensus, c("mapping"))
   ## Reference type

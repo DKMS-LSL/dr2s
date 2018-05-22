@@ -203,9 +203,9 @@ is.freq.consmat <- function(x) attr(x, "freq")
 
 ## Note for me: flattens the matrix; compare rowsum to rowsums upstream of pos;
 ## if > t set all to 0
-prune_consensus_matrix <- function(cm, n_look_behind = 36, cutoff = 0.6, verbose = TRUE) {
+.pruneConsensusMatrix <- function(cm, nLookBehind = 36, cutoff = 0.6, verbose = TRUE) {
   rowsum <- rowSums(cm[, 1:4]) ## only consider bases
-  m0 <- do.call(cbind, Map(function(n) dplyr::lag(rowsum, n), n_look_behind:1))
+  m0 <- do.call(cbind, Map(function(n) dplyr::lag(rowsum, n), nLookBehind:1))
   wquant <- suppressWarnings(apply(m0, 1, quantile, probs = 0.75, na.rm = TRUE))
   devi <- (wquant - rowsum)/wquant
   i <- which(devi > cutoff)
@@ -214,7 +214,7 @@ prune_consensus_matrix <- function(cm, n_look_behind = 36, cutoff = 0.6, verbose
       message("  Pruning positions ", comma(i))
     }
     cm[i, ] <- 0L
-    attr(cm, "pruning_positions") <- unname(i)
+    attr(cm, "pruningPositions") <- unname(i)
   }
   cm
 }
@@ -232,7 +232,7 @@ prune_consensus_matrix <- function(cm, n_look_behind = 36, cutoff = 0.6, verbose
 #' @export
 #' @examples
 #' ###
-create_PWM <- function(msa){
+createPWM <- function(msa){
   # Need to calc first a count based consensus matrix, while removing "+". Prob is calculated afterwards.
   cmat <- as.matrix(as.matrix(Biostrings::consensusMatrix(msa, as.prob = FALSE))[VALID_DNA(include = "del"),])
   cmat <- sweep(cmat, 2, colSums(cmat), "/")
@@ -260,7 +260,7 @@ create_PWM <- function(msa){
     seqEnd <- seqStart + seq$lengths[i] - 1
     region <- paste0(names(reference), ":", seqStart, "-", seqEnd)
 
-    msa <- msa_from_bam(bamfile, reference, paddingLetter = "+", region = region)
+    msa <- .msaFromBam(bamfile, reference, paddingLetter = "+", region = region)
     ## Use only sequences spanning the complete region! Every other sequence
     ## gives no Info
     msa <- msa[sapply(msa, function(x) !"+" %in% Biostrings::uniqueLetters(x))]

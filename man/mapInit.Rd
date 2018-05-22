@@ -5,9 +5,9 @@
 \title{Initial mapping step (long reads).}
 \usage{
 mapInit(x, opts = list(), refname = "ref", optsname = "", pct = 100,
-  threshold = 0.2, min_base_quality = 7, min_mapq = 0,
-  max_depth = 10000, min_nucleotide_depth = 3, include_deletions = FALSE,
-  include_insertions = FALSE, force = FALSE, fullname = TRUE,
+  threshold = 0.2, minBaseQuality = 7, minMapq = 0, maxDepth = 10000,
+  minNucleotideDepth = 3, includeDeletions = FALSE,
+  includeInsertions = FALSE, force = FALSE, fullname = TRUE,
   plot = TRUE, ...)
 }
 \arguments{
@@ -24,21 +24,21 @@ mapInit(x, opts = list(), refname = "ref", optsname = "", pct = 100,
 
 \item{threshold}{Threshold to call a variant.}
 
-\item{min_base_quality}{Minimum \sQuote{QUAL} value for each nucleotide in an
+\item{minBaseQuality}{Minimum \sQuote{QUAL} value for each nucleotide in an
 alignment.}
 
-\item{min_mapq}{Minimum \sQuote{MAPQ} value for an alignment to be included
+\item{minMapq}{Minimum \sQuote{MAPQ} value for an alignment to be included
 in pileup.}
 
-\item{max_depth}{Maximum number of overlapping alignments considered for
+\item{maxDepth}{Maximum number of overlapping alignments considered for
 each position in the pileup.}
 
-\item{min_nucleotide_depth}{Minimum count of each nucleotide at a given
+\item{minNucleotideDepth}{Minimum count of each nucleotide at a given
 position required for that nucleotide to appear in the result.}
 
-\item{include_deletions}{If \code{TRUE}, include deletions in pileup.}
+\item{includeDeletions}{If \code{TRUE}, include deletions in pileup.}
 
-\item{include_insertions}{If \code{TRUE}, include insertions in pileup.}
+\item{includeInsertions}{If \code{TRUE}, include insertions in pileup.}
 
 \item{force}{If \code{TRUE}, overwrite existing bam file.}
 
@@ -72,7 +72,7 @@ x <- DR2Smap(
   partitionShortReads() \%>\%
   mapFinal() \%>\%
   polish() \%>\%
-  report(block_width = 60)
+  report(blockWidth = 60)
 }
 }
 \seealso{

@@ -10,8 +10,8 @@
 #x <- dr2s
 polish.DR2S <- function(x,
                         threshold = x$getThreshold(),
-                        lower_limit = 0.80,
-                        check_hp_count = TRUE,
+                        lowerLimit = 0.80,
+                        checkHpCount = TRUE,
                         cache = TRUE) {
   flog.info("Step 5: polish ...", name = "info")
 
@@ -49,7 +49,7 @@ polish.DR2S <- function(x,
   vars <- .getVariants(x = rs)
 
   ## Check homopolymer count; Only check if the count is found in both
-  if (check_hp_count) {
+  if (checkHpCount) {
     checkHomoPolymerCount(rs)
     vars <- rbind(vars, foreach(hptype = hptypes, .combine = rbind) %do% {
       if (hptype %in% names(rs$mapFinal$homopolymers)) {

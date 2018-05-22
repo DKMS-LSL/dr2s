@@ -78,7 +78,7 @@
 #'   partitionShortReads() %>%
 #'   mapFinal() %>%
 #'   polish() %>%
-#'   report(block_width = 60)
+#'   report(blockWidth = 60)
 #' }
 DR2Smap <- function(sample,
                     locus,
@@ -112,16 +112,16 @@ DR2Smap <- function(sample,
 #' @param optsname Additional text to describe the options used.
 #' @param pct Percentage of templates to subsample (before sorting the bam file).
 #' @param threshold Threshold to call a variant.
-#' @param min_base_quality Minimum \sQuote{QUAL} value for each nucleotide in an
+#' @param minBaseQuality Minimum \sQuote{QUAL} value for each nucleotide in an
 #' alignment.
-#' @param min_mapq Minimum \sQuote{MAPQ} value for an alignment to be included
+#' @param minMapq Minimum \sQuote{MAPQ} value for an alignment to be included
 #' in pileup.
-#' @param max_depth Maximum number of overlapping alignments considered for
+#' @param maxDepth Maximum number of overlapping alignments considered for
 #' each position in the pileup.
-#' @param min_nucleotide_depth Minimum count of each nucleotide at a given
+#' @param minNucleotideDepth Minimum count of each nucleotide at a given
 #' position required for that nucleotide to appear in the result.
-#' @param include_deletions If \code{TRUE}, include deletions in pileup.
-#' @param include_insertions If \code{TRUE}, include insertions in pileup.
+#' @param includeDeletions If \code{TRUE}, include deletions in pileup.
+#' @param includeInsertions If \code{TRUE}, include insertions in pileup.
 #' @param force If \code{TRUE}, overwrite existing bam file.
 #' @param fullname If \code{TRUE}, use the full name in reference fasta.
 #' @param plot Produce diagnostic plots.
@@ -147,7 +147,7 @@ DR2Smap <- function(sample,
 #'   partitionShortReads() %>%
 #'   mapFinal() %>%
 #'   polish() %>%
-#'   report(block_width = 60)
+#'   report(blockWidth = 60)
 #' }
 mapInit <- function(x,
                     opts = list(),
@@ -155,12 +155,12 @@ mapInit <- function(x,
                     optsname = "",
                     pct = 100,
                     threshold = 0.20,
-                    min_base_quality = 7,
-                    min_mapq = 0,
-                    max_depth = 1e4,
-                    min_nucleotide_depth = 3,
-                    include_deletions = FALSE,
-                    include_insertions = FALSE,
+                    minBaseQuality = 7,
+                    minMapq = 0,
+                    maxDepth = 1e4,
+                    minNucleotideDepth = 3,
+                    includeDeletions = FALSE,
+                    includeInsertions = FALSE,
                     force = FALSE,
                     fullname = TRUE,
                     plot = TRUE,
@@ -177,17 +177,17 @@ mapInit <- function(x,
 #' @param x A \code{\link[=DR2S_]{DR2S}} object.
 #' @param opts Mapper options.
 #' @param pct Percentage of templates to subsample (before sorting the bam file).
-#' @param min_base_quality Minimum \sQuote{QUAL} value for each nucleotide in an
+#' @param minBaseQuality Minimum \sQuote{QUAL} value for each nucleotide in an
 #' alignment.
-#' @param min_mapq Minimum \sQuote{MAPQ} value for an alignment to be included
+#' @param minMapq Minimum \sQuote{MAPQ} value for an alignment to be included
 #' in pileup.
-#' @param max_depth Maximum number of overlapping alignments considered for
+#' @param maxDepth Maximum number of overlapping alignments considered for
 #' each position in the pileup.
-#' @param min_nucleotide_depth Minimum count of each nucleotide at a given
+#' @param minNucleotideDepth Minimum count of each nucleotide at a given
 #' position required for that nucleotide to appear in the result.
-#' @param include_deletions If \code{TRUE}, include deletions in pileup.
-#' @param include_insertions If \code{TRUE}, include insertions in pileup.
-#' @param gap_suppression_ratio The ratio of base/gap above which gaps at
+#' @param includeDeletions If \code{TRUE}, include deletions in pileup.
+#' @param includeInsertions If \code{TRUE}, include insertions in pileup.
+#' @param gapSuppressionRatio The ratio of base/gap above which gaps at
 #' insertion position are excluded from from consensus calling.
 #' @param force If \code{TRUE}, overwrite existing bam file.
 #' @param fullname If \code{TRUE}, use the full name in reference fasta.
@@ -214,18 +214,18 @@ mapInit <- function(x,
 #'   partitionShortReads() %>%
 #'   mapFinal() %>%
 #'   polish() %>%
-#'   report(block_width = 60)
+#'   report(blockwidth = 60)
 #' }
 mapIter <- function(x,
                     opts = list(),
                     pct = 100,
-                    min_base_quality = 7,
-                    min_mapq = 0,
-                    max_depth = 1e4,
-                    min_nucleotide_depth = 3,
-                    include_deletions = TRUE,
-                    include_insertions = TRUE,
-                    gap_suppression_ratio = 2/5,
+                    minBaseQuality = 7,
+                    minMapq = 0,
+                    maxDepth = 1e4,
+                    minNucleotideDepth = 3,
+                    includeDeletions = TRUE,
+                    includeInsertions = TRUE,
+                    gapSuppressionRatio = 2/5,
                     force = FALSE,
                     fullname = TRUE,
                     plot = TRUE,
@@ -242,16 +242,16 @@ mapIter <- function(x,
 #' @param x A \code{\link[=DR2S_]{DR2S}} object.
 #' @param opts Mapper options.
 #' @param pct Percentage of templates to subsample (before sorting the bam file).
-#' @param min_base_quality Minimum \sQuote{QUAL} value for each nucleotide in an
+#' @param minBaseQuality Minimum \sQuote{QUAL} value for each nucleotide in an
 #' alignment.
-#' @param min_mapq Minimum \sQuote{MAPQ} value for an alignment to be included
+#' @param minMapq Minimum \sQuote{MAPQ} value for an alignment to be included
 #' in pileup.
-#' @param max_depth Maximum number of overlapping alignments considered for
+#' @param maxDepth Maximum number of overlapping alignments considered for
 #' each position in the pileup.
-#' @param min_nucleotide_depth Minimum count of each nucleotide at a given
+#' @param minNucleotideDepth Minimum count of each nucleotide at a given
 #' position required for that nucleotide to appear in the result.
-#' @param include_deletions If \code{TRUE}, include deletions in pileup.
-#' @param include_insertions If \code{TRUE}, include insertions in pileup.
+#' @param includeDeletions If \code{TRUE}, include deletions in pileup.
+#' @param includeInsertions If \code{TRUE}, include insertions in pileup.
 #' from bam files for variants ar polymorphic positions.
 #' @param force If \code{TRUE}, overwrite existing bam file.
 #' @param fullname If \code{TRUE}, use the full name in reference fasta.
@@ -279,17 +279,17 @@ mapIter <- function(x,
 #'   partitionShortReads() %>%
 #'   mapFinal() %>%
 #'   polish() %>%
-#'   report(block_width = 60)
+#'   report(blockWidth = 60)
 #' }
 mapFinal <- function(x,
                      opts = list(),
                      pct = 100,
-                     min_base_quality = 7,
-                     min_mapq = 0,
-                     max_depth = 1e5,
-                     min_nucleotide_depth = 3,
-                     include_deletions = TRUE,
-                     include_insertions = TRUE,
+                     minBaseQuality = 7,
+                     minMapq = 0,
+                     maxDepth = 1e5,
+                     minNucleotideDepth = 3,
+                     includeDeletions = TRUE,
+                     includeInsertions = TRUE,
                      force = FALSE,
                      fullname = TRUE,
                      plot = TRUE,
@@ -327,13 +327,13 @@ mapFinal <- function(x,
 #'   partitionShortReads() %>%
 #'   mapFinal() %>%
 #'   polish() %>%
-#'   report(block_width = 60)
+#'   report(blockWidth = 60)
 #' }
 partitionLongReads <- function(x,
-                               skip_gap_freq = 2/3,
-                               dist_alleles = NULL,
+                               skipGapFreq = 2/3,
+                               distAlleles = NULL,
                                noGapPartitioning = FALSE,
-                               select_alleles_by = "count",
+                               selectAllelesBy = "count",
                                ...
                                ) {
   UseMethod("partitionLongReads")
@@ -365,7 +365,7 @@ partitionLongReads <- function(x,
 #'   partitionShortReads() %>%
 #'   mapFinal() %>%
 #'   polish() %>%
-#'   report(block_width = 60)
+#'   report(blockWidth = 60)
 #' }
 partitionShortReads <- function(x,
                                 force = TRUE,
@@ -379,7 +379,6 @@ partitionShortReads <- function(x,
 #'
 #' @param x A \code{\link[=DR2S_]{DR2S}} object.
 #' @param threshold When do we call a variant a variant.
-#' @param lower_limit When do we report a variant as uncertain.
 #' @param cache Cache the updated \code{DR2S} object after assembling the haplotypes.
 #' @param ... Additional arguments passed to methods.
 #'
@@ -404,9 +403,9 @@ partitionShortReads <- function(x,
 #'   partitionShortReads() %>%
 #'   mapFinal() %>%
 #'   polish() %>%
-#'   report(block_width = 60)
+#'   report(blockwidth = 60)
 #' }
-polish <- function(x, threshold = x$getThreshold(), lower_limit = 1.6, cache = TRUE, ...) {
+polish <- function(x, threshold = x$getThreshold(), cache = TRUE, ...) {
   UseMethod("polish")
 }
 
@@ -416,7 +415,7 @@ polish <- function(x, threshold = x$getThreshold(), lower_limit = 1.6, cache = T
 #' @param x A \code{\link[=DR2S_]{DR2S}} object.
 #' @param which Which mapping do we want to report. Will choose \code{mapFinal},
 #' \code{mapIter} in this order if available.
-#' @param block_width Maximum number of sequence letters per line in pairwise alignment.
+#' @param blockWidth Maximum number of sequence letters per line in pairwise alignment.
 #' @param ... Additional arguments passed to methods.
 #' @details
 #' \code{report} will create a \code{report} directory containing the consensus
@@ -451,9 +450,9 @@ polish <- function(x, threshold = x$getThreshold(), lower_limit = 1.6, cache = T
 #'   partitionShortReads() %>%
 #'   mapFinal() %>%
 #'   polish() %>%
-#'   report(block_width = 60)
+#'   report(blockWidth = 60)
 #' }
-report <- function(x, which, block_width = 80, ...) {
+report <- function(x, which, blockWidth = 80, ...) {
   UseMethod("report")
 }
 
@@ -486,7 +485,7 @@ report <- function(x, which, block_width = 80, ...) {
 #'   partitionShortReads() %>%
 #'   mapFinal() %>%
 #'   polish() %>%
-#'   report(block_width = 60)
+#'   report(blockWidth = 60)
 #' }
 clear <- function(x, ...) {
   UseMethod("clear")
@@ -517,7 +516,7 @@ clear <- function(x, ...) {
 #'   partitionShortReads() %>%
 #'   mapFinal() %>%
 #'   polish() %>%
-#'   report(block_width = 60)
+#'   report(blockWidth = 60)
 #' }
 cache <- function(x, ...) {
   UseMethod("cache")

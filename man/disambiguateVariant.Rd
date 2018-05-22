@@ -4,18 +4,12 @@
 \alias{disambiguateVariant}
 \title{Disambiguate a variant}
 \usage{
-disambiguateVariant(x, threshold, min_overrep_lr = 2, max_overrep_sr = 2)
+disambiguateVariant(x, threshold)
 }
 \arguments{
 \item{x}{A \code{variantList}.}
 
 \item{threshold}{Minimum frequency for a variant.}
-
-\item{min_overrep_lr}{Issue a warning if the majority variant in the
-long reads is only overrepresented by less than \code{min_overrep_lr}.}
-
-\item{max_overrep_sr}{Issue a warning if the majority variant in the
-short reads is overrepresented by more than \code{max_overrep_sr}.}
 }
 \value{
 A \code{variantList}.

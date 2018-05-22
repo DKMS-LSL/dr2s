@@ -4,9 +4,9 @@
 \alias{mapIter}
 \title{Iterative mapping step (long reads).}
 \usage{
-mapIter(x, opts = list(), pct = 100, min_base_quality = 7, min_mapq = 0,
-  max_depth = 10000, min_nucleotide_depth = 3, include_deletions = TRUE,
-  include_insertions = TRUE, gap_suppression_ratio = 2/5, force = FALSE,
+mapIter(x, opts = list(), pct = 100, minBaseQuality = 7, minMapq = 0,
+  maxDepth = 10000, minNucleotideDepth = 3, includeDeletions = TRUE,
+  includeInsertions = TRUE, gapSuppressionRatio = 2/5, force = FALSE,
   fullname = TRUE, plot = TRUE, ...)
 }
 \arguments{
@@ -16,23 +16,23 @@ mapIter(x, opts = list(), pct = 100, min_base_quality = 7, min_mapq = 0,
 
 \item{pct}{Percentage of templates to subsample (before sorting the bam file).}
 
-\item{min_base_quality}{Minimum \sQuote{QUAL} value for each nucleotide in an
+\item{minBaseQuality}{Minimum \sQuote{QUAL} value for each nucleotide in an
 alignment.}
 
-\item{min_mapq}{Minimum \sQuote{MAPQ} value for an alignment to be included
+\item{minMapq}{Minimum \sQuote{MAPQ} value for an alignment to be included
 in pileup.}
 
-\item{max_depth}{Maximum number of overlapping alignments considered for
+\item{maxDepth}{Maximum number of overlapping alignments considered for
 each position in the pileup.}
 
-\item{min_nucleotide_depth}{Minimum count of each nucleotide at a given
+\item{minNucleotideDepth}{Minimum count of each nucleotide at a given
 position required for that nucleotide to appear in the result.}
 
-\item{include_deletions}{If \code{TRUE}, include deletions in pileup.}
+\item{includeDeletions}{If \code{TRUE}, include deletions in pileup.}
 
-\item{include_insertions}{If \code{TRUE}, include insertions in pileup.}
+\item{includeInsertions}{If \code{TRUE}, include insertions in pileup.}
 
-\item{gap_suppression_ratio}{The ratio of base/gap above which gaps at
+\item{gapSuppressionRatio}{The ratio of base/gap above which gaps at
 insertion position are excluded from from consensus calling.}
 
 \item{force}{If \code{TRUE}, overwrite existing bam file.}
@@ -68,7 +68,7 @@ x <- DR2Smap(
   partitionShortReads() \%>\%
   mapFinal() \%>\%
   polish() \%>\%
-  report(block_width = 60)
+  report(blockwidth = 60)
 }
 }
 \seealso{

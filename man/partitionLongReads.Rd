@@ -4,8 +4,8 @@
 \alias{partitionLongReads}
 \title{Partition mapped long reads into haplotypes}
 \usage{
-partitionLongReads(x, skip_gap_freq = 2/3, dist_alleles = NULL,
-  noGapPartitioning = FALSE, select_alleles_by = "count", ...)
+partitionLongReads(x, skipGapFreq = 2/3, distAlleles = NULL,
+  noGapPartitioning = FALSE, selectAllelesBy = "count", ...)
 }
 \arguments{
 \item{x}{A \code{\link[=DR2S_]{DR2S}} object.}
@@ -35,7 +35,7 @@ x <- DR2Smap(
   partitionShortReads() \%>\%
   mapFinal() \%>\%
   polish() \%>\%
-  report(block_width = 60)
+  report(blockWidth = 60)
 }
 }
 \seealso{

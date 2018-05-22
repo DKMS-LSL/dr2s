@@ -1,25 +1,25 @@
 #' @export
 readDR2S <- function(path) {
   outdir <- normalizePath(path, mustWork = TRUE)
-  rds_path <- dir(outdir, pattern = "^DR2S(YAML)?.*.rds", full.names = TRUE)
-  if (length(rds_path) == 0) {
+  rdsPath <- dir(outdir, pattern = "^DR2S(YAML)?.*.rds", full.names = TRUE)
+  if (length(rdsPath) == 0) {
     warning("No DR2S analysis object found", call. = TRUE, immediate. = TRUE)
     return(NULL)
   }
-  rs <- lapply(rds_path, readRDS)
+  rs <- lapply(rdsPath, readRDS)
   ## update outdir
   rs <- lapply(rs, function(x) {
     x$setConfig("outdir", outdir)
     x
   })
-  conf_log(outdir = outdir, logName = "info")
+  .confLog(outdir = outdir, logName = "info")
   if (length(rs) == 1) {
     rs[[1]]
   } else rs
 }
 
 
-finish_cn1 <- function(x){
+.finishCn1 <- function(x){
   flog.info("Set only allele to A", name = "info")
   x$setHapTypes(c("A"))
 
@@ -51,9 +51,9 @@ finish_cn1 <- function(x){
   flog.info("Get latest consensus from last mapping ...", name = "info")
 
   if (!is.null(x$mapInit$SR1)) {
-    cseq <- conseq(x$mapInit$SR2$pileup$consmat, "mapFinalA", "ambig", exclude_gaps = TRUE, threshold = x$getThreshold())
+    cseq <- conseq(x$mapInit$SR2$pileup$consmat, "mapFinalA", "ambig", excludeGaps = TRUE, threshold = x$getThreshold())
   } else {
-    cseq <- conseq(x$mapInit$pileup$consmat, "mapFinalA", "ambig", exclude_gaps = TRUE, threshold = x$getThreshold())
+    cseq <- conseq(x$mapInit$pileup$consmat, "mapFinalA", "ambig", excludeGaps = TRUE, threshold = x$getThreshold())
   }
   x$mapFinal$seq$A <- cseq
 
@@ -68,7 +68,8 @@ finish_cn1 <- function(x){
 #' @export
 #x <- dr2s
 #position = 1000
-run_igv <- function(x, position, map = "mapFinal", open_now = TRUE, ...) {
+# ToDo: Document
+runIgv <- function(x, position, map = "mapFinal", open = TRUE, ...) {
   assertthat::assert_that(
     is(x, "DR2S")
   )
@@ -87,9 +88,9 @@ run_igv <- function(x, position, map = "mapFinal", open_now = TRUE, ...) {
     fsep <- "/"
   }
   if (missing(position)) {
-    position <- ifelse(NROW(x$consensus$problematic_variants) == 0,
+    position <- ifelse(NROW(x$consensus$variants) == 0,
                        50,
-                       as.integer(x$consensus$problematic_variants[1, "pos"]))
+                       as.integer(x$consensus$variants[1, "pos"]))
   }
   igvConfigs <- list()
   # hp = "A"
@@ -174,7 +175,7 @@ run_igv <- function(x, position, map = "mapFinal", open_now = TRUE, ...) {
                     gsub("/", "\\\\", gsub(".xml", ".win.xml", igvConfigs)))
   write(cmdsWin, igvCommandWin)
 
-  if (open_now) {
+  if (open) {
     if (.Platform$OS.type != "windows") {
       cwd <- getwd()
       setwd(basedir)

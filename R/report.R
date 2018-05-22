@@ -335,7 +335,7 @@ refineAlignment <- function(x, hptype, report = FALSE){
   ## Run bam - sort - index pipeline
   flog.info("  Indexing ...", name = "info")
   ## Niceify up to here
-  bamfile <- bam_sort_index(
+  bamfile <- .bamSortIndex(
     samfile = samfile,
     reffile = refpath,
     force   = TRUE
@@ -368,14 +368,14 @@ refineAlignment <- function(x, hptype, report = FALSE){
     ## Remove softclipping
     flog.info(" Trimming softclips and polymorphic ends ...", name = "info")
     ## Run bam - sort - index pipeline
-    bamfile <- bam_sort_index(samfile,
+    bamfile <- .bamSortIndex(samfile,
                               refpath,
                               force = TRUE)
     ## Trim softclips
     fq <- .trimSoftclippedEnds(bam = Rsamtools::scanBam(bamfile)[[1]],
-                                preserve_ref_ends = TRUE)
+                                preserveRefEnds = TRUE)
     ## Trim polymorphic ends
-    fq <- trim_polymorphic_ends(fq)
+    fq <- .trimPolymorphicEnds(fq)
     ## Write new shortread file to disc
     fqdir  <- .dirCreateIfNotExists(file.path(x$getOutdir(), "refine"))
     fqfile <- paste("sread", hptype, x$getSrMapper(), "trimmed", "fastq",
@@ -400,7 +400,7 @@ refineAlignment <- function(x, hptype, report = FALSE){
 
     ## Run bam - sort - index pipeline
     flog.info("  Indexing ...", name = "info")
-    bamfile <- bam_sort_index(
+    bamfile <- .bamSortIndex(
       samfile,
       refpath,
       force = TRUE
@@ -413,16 +413,16 @@ refineAlignment <- function(x, hptype, report = FALSE){
   pileup <- Pileup(
     bamfile,
     x$getThreshold(),
-    include_deletions = TRUE,
-    include_insertions = TRUE
+    includeDeletions = TRUE,
+    includeInsertions = TRUE
   )
 
   # calc new consensus
   cseq <- conseq(pileup$consmat, paste0("refine", hptype), "ambig",
-                 exclude_gaps = FALSE, threshold = x$getThreshold())
+                 excludeGaps = FALSE, threshold = x$getThreshold())
   x$consensus$refine$consensus[[hptype]] <- cseq
   x$cache()
-  run_igv(x, map = "refine", open_now = FALSE)
+  runIgv(x, map = "refine", open = FALSE)
   invisible(x)
 }
 
@@ -469,8 +469,8 @@ readPairFile <- function(pairfile) {
     rsA <- rs[grepl("^hapA", rs)]
     rsB <- rs[grepl("^hap[B-Z]", rs)]
     hap <- c(
-      Biostrings::DNAStringSet(collapse_pair_lines_(rsA)),
-      Biostrings::DNAStringSet(collapse_pair_lines_(rsB))
+      Biostrings::DNAStringSet(.collapsePairLines_(rsA)),
+      Biostrings::DNAStringSet(.collapsePairLines_(rsB))
     )
 
     names(hap) <- c("hapA", strsplit1(rsB, "\\s")[1])
@@ -498,7 +498,7 @@ readPairFile <- function(pairfile) {
   hap
 }
 
-collapse_pair_lines_ <- function(x) {
+.collapsePairLines_ <- function(x) {
   paste0(vapply(strsplit(x, split = "\\s+"), `[[`, 3, FUN.VALUE = ""), 
          collapse = "")
 }
@@ -546,7 +546,7 @@ writeMSA <- function(aln, file="", block.width = 50){
   if (!is.numeric(block.width))
     stop("'block.width' must be a single number")
 
-  get_cons_position <- function(pos) {
+  .getConsPosition <- function(pos) {
    if (length(unique(pos)) == 1) {
      return(".")
    } else if ("-" %in% pos){
@@ -556,10 +556,10 @@ writeMSA <- function(aln, file="", block.width = 50){
    }
   }
 
-  aln_mat <-as.matrix(aln)
-  aln_stat_line <- Biostrings::BStringSet(paste0(apply(aln_mat, 2, function(x) 
-    get_cons_position(x)), collapse = ""))
-  alignment <- c(Biostrings::BStringSet(aln), aln_stat_line)
+  alnMat <-as.matrix(aln)
+  alnStatLine <- Biostrings::BStringSet(paste0(apply(alnMat, 2, function(x) 
+    .getConsPosition(x)), collapse = ""))
+  alignment <- c(Biostrings::BStringSet(aln), alnStatLine)
 
   ## Write Header
   cat("#=======================================\n", file=file)
@@ -573,17 +573,17 @@ writeMSA <- function(aln, file="", block.width = 50){
   # Write sequences
   lstart <- 1L
   lend <- block.width
-  alignment_length <- Biostrings::width(alignment[1])
-  start_width <- nchar(as.character(1 + alignment_length))
-  name_width <- max(20L, nchar(names(alignment)))
-  nblock <- alignment_length %/% block.width
-  if (alignment_length %% block.width != 0L)
+  alignmentLength <- Biostrings::width(alignment[1])
+  startWidth <- nchar(as.character(1 + alignmentLength))
+  nameWidth <- max(20L, nchar(names(alignment)))
+  nblock <- alignmentLength %/% block.width
+  if (alignmentLength %% block.width != 0L)
     nblock <- nblock + 1L
   for (i in seq_len(nblock)) {
     to <- i * block.width
     from <- to - block.width + 1L
-    if (to > alignment_length)
-      to <- alignment_length
+    if (to > alignmentLength)
+      to <- alignmentLength
     names <- names(alignment)
     strings <- Biostrings::subseq(alignment, from, to)
 
@@ -591,14 +591,14 @@ writeMSA <- function(aln, file="", block.width = 50){
     sp <- "(.{10})"
     addSp <- "\\1 "
     a <- sapply(1:(length(alignment)-1), function(x) {
-      cat(format(names[x], width = name_width), " ",
-          format(lstart, justify = "right", width = start_width), " ",
+      cat(format(names[x], width = nameWidth), " ",
+          format(lstart, justify = "right", width = startWidth), " ",
           gsub(sp, addSp, Biostrings::toString(strings[x])), " ",
           format(lend, justify = "right"), "\n",
           sep = "", file = file, append = TRUE)
     })
-    cat(format(" ", width = name_width), " ",
-          format(" ", justify = "right", width = start_width), " ",
+    cat(format(" ", width = nameWidth), " ",
+          format(" ", justify = "right", width = startWidth), " ",
           gsub(sp, addSp, Biostrings::toString(strings[length(alignment)])),
         "\n\n", sep = "", file = file, append = TRUE)
 

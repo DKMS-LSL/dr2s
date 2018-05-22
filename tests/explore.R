@@ -11,8 +11,6 @@ x <- DR2Smap(
 )
 
 
-##run_igv(x, 100)
-
 y1 <- x %>%
   mapInit() %>%
   partition_haplotypes() %>%
@@ -34,7 +32,7 @@ y5 <- y4 %>%
 
 x <- DR2S::read_dr2s("~/dr2s_data/output/JVM/pacbio/KIR3DL2.pacbio.ref.multialign/")
 x
-run_igv(x, 100)
+runIgv(x, 100)
 
 
 xx <- DR2Smap(
@@ -63,7 +61,7 @@ yy5  <- yy4 %>%
   report()
 
 curr_r <- DR2S::read_dr2s("~/dr2s_data/output/KGU/pacbio/KIR3DL2.pacbio.ref.multialign/")
-run_igv(curr_r, 100)
+runIgv(curr_r, 100)
 ###############################################################################################
 
 se1 <- DR2Smap(
@@ -145,7 +143,7 @@ yy5_se3  <- yy4_se3 %>% polish() %>% report()
 
 
 debug(.trimSoftclippedEnds)
-debug(trim_polymorphic_ends)
+debug(.trimPolymorphicEnds)
 
 
 samfile <- "~/dr2s_data/output/JVM/pacbio/KIR3DL2.pacbio.ref.multialign/A/"
@@ -173,11 +171,11 @@ samfile <- mapfun(
   outdir   = "~/tmp/"
 )
 ## Run bam - sort - index pipeline
-bamfile <- bam_sort_index(samfile, refpath, clean = TRUE)
+bamfile <- .bamSortIndex(samfile, refpath, clean = TRUE)
 ## Trim softclips
-fq <- .trimSoftclippedEnds(bam = Rsamtools::scanBam(bamfile)[[1]], preserve_ref_ends = TRUE)
+fq <- .trimSoftclippedEnds(bam = Rsamtools::scanBam(bamfile)[[1]], preserveRefEnds = TRUE)
 ## Trim polymorphic ends
-fq <- trim_polymorphic_ends(fq)
+fq <- .trimPolymorphicEnds(fq)
 
 
 

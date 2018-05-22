@@ -131,7 +131,7 @@ A typical post-processing workflow may look as follows:
 
 ``` r
 plot_diagnostic_alignment(x)
-run_igv(x, 3000)
+runIgv(x, 3000)
 checkAlignmentFile(x)
 refineAlignment(x, "A")
 run_igv(x, "refine")
