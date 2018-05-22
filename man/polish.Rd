@@ -4,14 +4,16 @@
 \alias{polish}
 \title{Polish final haplotype sequences.}
 \usage{
-polish(x, threshold = x$getThreshold(), cache = TRUE, ...)
+polish(x, threshold = x$getThreshold(), checkHpCount = TRUE, cache = TRUE,
+  ...)
 }
 \arguments{
 \item{x}{A \code{\link[=DR2S_]{DR2S}} object.}
 
 \item{threshold}{When do we call a variant a variant.}
 
-\item{cache}{Cache the updated \code{DR2S} object after assembling the haplotypes.}
+\item{cache}{Cache the updated \code{DR2S} object after assembling the 
+haplotypes.}
 
 \item{...}{Additional arguments passed to methods.}
 }

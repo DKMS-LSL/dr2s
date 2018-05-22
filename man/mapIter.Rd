@@ -4,7 +4,7 @@
 \alias{mapIter}
 \title{Iterative mapping step (long reads).}
 \usage{
-mapIter(x, opts = list(), pct = 100, minBaseQuality = 7, minMapq = 0,
+mapIter(x, opts = list(), minBaseQuality = 7, minMapq = 0,
   maxDepth = 10000, minNucleotideDepth = 3, includeDeletions = TRUE,
   includeInsertions = TRUE, gapSuppressionRatio = 2/5, force = FALSE,
   fullname = TRUE, plot = TRUE, ...)
@@ -13,8 +13,6 @@ mapIter(x, opts = list(), pct = 100, minBaseQuality = 7, minMapq = 0,
 \item{x}{A \code{\link[=DR2S_]{DR2S}} object.}
 
 \item{opts}{Mapper options.}
-
-\item{pct}{Percentage of templates to subsample (before sorting the bam file).}
 
 \item{minBaseQuality}{Minimum \sQuote{QUAL} value for each nucleotide in an
 alignment.}
@@ -47,9 +45,9 @@ insertion position are excluded from from consensus calling.}
 A \code{\link[=DR2S_]{DR2S}} object.
 }
 \description{
-Partitioned long reads are mapped against the consensus sequence from MSA of the best 40
-sequences for each haplotype. Indels are \strong{excluded} from pileup. New consensus sequences
-for both alleles are inferred.
+Partitioned long reads are mapped against the consensus sequence from MSA of
+the best 40 sequences for each haplotype. Indels are \strong{excluded} from 
+pileup. New consensus sequences for both alleles are inferred.
 }
 \examples{
 \dontrun{

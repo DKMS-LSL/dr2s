@@ -859,7 +859,8 @@ DR2S_ <- R6::R6Class(
     ##
     plotPartitionSummary = function(label = "", limits = NULL) {
       tag <- self$getMapTag()
-      p1 <-  self$plotPartitionHistogram(label = label %||% tag, limits = limits) +
+      p1 <-  self$plotPartitionHistogram(label = label %||% tag, 
+                                         limits = limits) +
         ggplot2::theme(legend.position = "none")
       p2 <- self$plotPartitionTree()
       p3 <- self$plotPartitionRadar()
@@ -898,7 +899,8 @@ DR2S_ <- R6::R6Class(
         })
       }
       ggplot() +
-        ggseqlogo::geom_logo(pwm, method = "bits", seq_type = "dna", stack_width = 0.9) +
+        ggseqlogo::geom_logo(pwm, method = "bits", seq_type = "dna", 
+                             stack_width = 0.9) +
         facet_wrap(~seq_group, ncol = 1, strip.position = "left") +
         scale_x_continuous(labels = ppos, breaks = 1:length(ppos)) +
         ggseqlogo::theme_logo() +
@@ -906,7 +908,8 @@ DR2S_ <- R6::R6Class(
               axis.title.y = ggplot2::element_blank(),
               axis.text.y  = ggplot2::element_blank(),
               axis.ticks.y = ggplot2::element_blank(),
-              strip.text.y = ggplot2::element_text(face = "bold", size = 42, angle = 180))
+              strip.text.y = ggplot2::element_text(face = "bold", 
+                                                   size = 42, angle = 180))
     },
     ##
     plotmapFinalSummary = function(readtype, thin = 0.2, width = 10, 

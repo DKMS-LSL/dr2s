@@ -21,7 +21,8 @@
 hammingDist <- function(x){
   stopifnot(is(x, "DNAStringSet"))
   xTmp <- as.matrix(x)
-  xTat<- plyr::revalue(xTmp, c("G" = 1, "A" = 2, "T" = 3, "C" = 4, "-" = 5, "+" = 6), warn_missing = FALSE)
+  dnaBaseMapping <- c("G" = 1, "A" = 2, "T" = 3, "C" = 4, "-" = 5, "+" = 6)
+  xTat<- plyr::revalue(xTmp, dnaBaseMapping, warn_missing = FALSE)
   xMat<- sapply(xMat, as.numeric)
   dim(xMat) <- dim(xTmp)
   rm(xTmp)
@@ -37,9 +38,8 @@ PSDM <- function(x, consmat){
 
   ## Create seq matrix as input for cpp_PSDM
   xTmp <- as.matrix(x)
-  xMat<- plyr::revalue(xTmp,
-                        c("G" = 1, "A" = 2, "T" = 3, "C" = 4, "-" = 5, "+" = 6),
-                        warn_missing = FALSE)
+  dnaBaseMapping <- c("G" = 1, "A" = 2, "T" = 3, "C" = 4, "-" = 5, "+" = 6)
+  xMat<- plyr::revalue(xTmp, dnaBaseMapping, warn_missing = FALSE)
   xMat<- sapply(xMat, as.numeric)
   dim(xMat) <- dim(xTmp)
   rm(xTmp)

@@ -8,7 +8,8 @@
 #' @export
 #' @examples
 #' ##
-polymorphicPositions <- function(x, theshold, ...) UseMethod("polymorphicPositions")
+polymorphicPositions <- function(x, theshold, ...) 
+  UseMethod("polymorphicPositions")
 #' @export
 polymorphicPositions.consmat <- function(x, threshold = 0.20) {
   if (!is.freq(x)) {
@@ -36,7 +37,8 @@ polymorphicPositions.pileup <- function(x, threshold = NULL, ...) {
 
 #' @keywords internal
 #' @export
-ambiguousPositions <- function(x, threshold, ...) UseMethod("ambiguousPositions")
+ambiguousPositions <- function(x, threshold, ...) 
+  UseMethod("ambiguousPositions")
 
 #' @keywords internal
 #' @export

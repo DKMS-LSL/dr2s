@@ -13,15 +13,14 @@ DR2Smap(sample, locus, longreads = list(type = "pacbio", dir = "pacbio"),
 \item{sample}{A unique sample identifier used to locate the long and short
 read FASTQ files.}
 
-\item{locus}{The HLA locus ("A", "B", "C", "DPB1", "DQB1", "DRB1") or KIR locus.}
+\item{locus}{The HLA or KIR locus.}
 
 \item{longreads}{The type and location of the long reads as a named list
 with the fields \code{type} ("pacbio" or "nanopore") and \code{dir}.
 Additional optional fields: \code{name} and \code{opts}.}
 
 \item{shortreads}{The type and location of the short reads as a named list
-with the fields \code{type} ("illumina") and \code{dir}. Short reads are optional.
-\code{NULL} can be provided.}
+with the fields \code{type} ("illumina") and \code{dir} (optional).}
 
 \item{datadir}{The data directory (See Note).}
 
@@ -35,17 +34,19 @@ with the fields \code{type} ("illumina") and \code{dir}. Short reads are optiona
 
 \item{iterations}{Number of iterations of the mapIter step.}
 
-\item{partSR}{Use shortreads in the mapInit step for getting polymorphic positions and
-a first reference.}
+\item{partSR}{Use shortreads in the mapInit step for getting polymorphic 
+positions and a first reference.}
 
 \item{fullname}{Truncate allele names.}
 
-\item{microsatellite}{FALSE Perform a second mapping of shortreads to the inferred reference in
-mapInit. Set to TRUE if you know you have repeats like in microsatellites. Usually extends the
-reference to a maximum length and enables a better mapping.}
+\item{microsatellite}{FALSE Perform a second mapping of shortreads to the 
+inferred reference in mapInit. Set to TRUE if you know you have repeats like 
+in microsatellites. Usually extends the reference to a maximum length and 
+enables a better mapping.}
 
-\item{forceMapping}{FALSE set to TRUE if you want to force processing of bad shortreads, i.e.
-when the distribution of coverage is bad. Aborts the program if maximum coverage > 75 \% quantile * 5.}
+\item{forceMapping}{FALSE set to TRUE if you want to force processing of bad
+shortreads, i.e. when the distribution of coverage is bad. Aborts the program
+if maximum coverage > 75 \% quantile * 5.}
 }
 \value{
 A \code{\link[=DR2S_]{DR2S}} object.
@@ -73,17 +74,18 @@ All output will be placed in directory hierarchy
 
 
 References can be specified as allele codes or a path to a fasta file
-containing the reference sequence. If \code{reference = NULL} a global generic reference
-for a given locus will be used.
+containing the reference sequence. If \code{reference = NULL} a global 
+generic reference for a given locus will be used.
 }
 
 \section{Consensus}{
 
-Right now, the consensus method of multialign is removed. A de novo assembly of
-longreads, maybe supported by shortreads might be implemented.
-\dQuote{\bold{\code{mapping}}}: The reference is refined from the initial provided reference
-during the mapInit step using short reads. Individual references for each found haplotype are
-constructed from this reference using only longreads that are assigned to the haplotype.
+Right now, the consensus method of multialign is removed. A de novo assembly 
+of longreads, maybe supported by shortreads might be implemented.
+\dQuote{\bold{\code{mapping}}}: The reference is refined from the initial 
+provided reference during the mapInit step using short reads. Individual 
+references for each found haplotype are constructed from this reference using
+only longreads that are assigned to the haplotype.
 }
 
 \examples{

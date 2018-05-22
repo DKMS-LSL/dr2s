@@ -156,7 +156,7 @@ generateReferenceSequence <- function(allele, locus, outdir, dirtag=NULL,
   aln
   n      <- length(aln)
   mat    <- t(Biostrings::consensusMatrix(aln))[, c(1:4, 16)]
-  ## always accept the first and last base irrespective of how many gaps there are
+  ## always accept the first and last base irrespective of how many gaps
   mat[1, 5] <- 0
   mat[NROW(mat), 5] <- 0
   ##
@@ -164,7 +164,8 @@ generateReferenceSequence <- function(allele, locus, outdir, dirtag=NULL,
   cutoff <- as.numeric(names(tbl)[which.min(tbl)])
   mat0   <- mat[mat[, 5]/n <= cutoff, 1:4]/n
   score  <- apply(mat0, 1, max)
-  cons   <- Biostrings::BStringSet(paste0(colnames(mat0)[apply(mat0, 1, which.max)], collapse = ""))
+  cons   <- Biostrings::BStringSet(paste0(
+    colnames(mat0)[apply(mat0, 1, which.max)], collapse = ""))
   cons@metadata <- list(score = score, cutoff = cutoff, gaptable = tbl)
   cons
 }
@@ -189,7 +190,9 @@ generateReferenceSequence <- function(allele, locus, outdir, dirtag=NULL,
     i <- i[Biostrings::width(sr[i]) > pos]
     if (length(i) == 0)
       next
-    i <- i[Biostrings::subseq(sr[i], pos, pos) == Biostrings::subseq(sr[i], pos + 1, pos + 1)]
+    i <- i[Biostrings::subseq(sr[i], pos, pos) == Biostrings::subseq(sr[i], 
+                                                                     pos + 1, 
+                                                                     pos + 1)]
     start[i] <- start[i] + 1
     pos <- pos + 1
 
@@ -207,7 +210,10 @@ generateReferenceSequence <- function(allele, locus, outdir, dirtag=NULL,
     i <- i[pos[i] > 1]
     if (length(i) == 0)
       next
-    i <- i[Biostrings::subseq(sr[i], pos[i], pos[i]) == Biostrings::subseq(sr[i], pos[i] - 1, pos[i] - 1)]
+    i <- i[Biostrings::subseq(sr[i], pos[i], 
+                              pos[i]) == Biostrings::subseq(sr[i], 
+                                                            pos[i] - 1, 
+                                                            pos[i] - 1)]
     end[i] <- end[i] - 1
     pos[i] <- pos[i] - 1
   }
@@ -315,21 +321,23 @@ checkHomoPolymerCount <- function(x, count = 10, map = "mapFinal") {
                                            positionHP + lenHP + 10))
 
 
-      covering <- sapply(msa, function(a) nchar(gsub(pattern = "\\+",
-                                                     "",
-                                                     toString(a))) == lenHP + 21)
+      covering <- sapply(msa, function(a) 
+        nchar(gsub(pattern = "\\+", "", toString(a))) == lenHP + 21)
       msa <- msa[covering]
       readsOI <- names(msa)
       ins <- .getInsertions(bamfile, inpos = positionHP-1, reads = readsOI)[[1]]
-      msa <- unlist(Biostrings::DNAStringSetList(sapply(names(msa), function(a) {
-        if (a %in% names(ins)) {
-          firstSeq <- unlist(Biostrings::subseq(msa[a], start = 1, width = 10))
-          insert <- unlist(ins[a])
-          lastSeq <- unlist(Biostrings::subseq(msa[a], start = 11, width = lenHP + 10))
-          Biostrings::DNAStringSet(c(firstSeq, insert, lastSeq))
-        } else {
-          msa[a]
-        }
+      msa <- unlist(
+        Biostrings::DNAStringSetList(sapply(names(msa), function(a) {
+          if (a %in% names(ins)) {
+            firstSeq <- unlist(Biostrings::subseq(msa[a], start = 1, 
+                                                  width = 10))
+            insert <- unlist(ins[a])
+            lastSeq <- unlist(Biostrings::subseq(msa[a], start = 11, 
+                                                 width = lenHP + 10))
+            Biostrings::DNAStringSet(c(firstSeq, insert, lastSeq))
+          } else {
+            msa[a]
+          }
       })))
       msarle <- lapply(msa, .seq2rle)
       lens <- sapply(msarle, function(a) max(a$lengths))
@@ -344,14 +352,17 @@ checkHomoPolymerCount <- function(x, count = 10, map = "mapFinal") {
       flog.info("%s: Mode for homopolymer at position %s: %s",
                 hp, modeHP$position, modeHP$mode)
       if (map == "mapFinal") {
-        x$mapFinal$homopolymers[[hp]][[as.character(modeHP$position)]] <- modeHP$mode
+        x$mapFinal$homopolymers[[hp]][[
+          as.character(modeHP$position)]] <- modeHP$mode
       } else if (map == "refine") {
-        x$consensus$homopolymers[[hp]][[as.character(modeHP$position)]] <- modeHP$mode
+        x$consensus$homopolymers[[hp]][[
+          as.character(modeHP$position)]] <- modeHP$mode
       }
     }
     ggplot(data = homopolymersHP) +
       geom_histogram(aes(length), binwidth = 1) +
-      scale_x_continuous(breaks = seq(min(homopolymersHP$length), max(homopolymersHP$length), 1)) +
+      scale_x_continuous(breaks = seq(min(homopolymersHP$length), 
+                                      max(homopolymersHP$length), 1)) +
       facet_grid(position~., scales = "free_y") +
       ggtitle(paste("Homopolymer length", hp)) +
       theme_minimal()

@@ -51,15 +51,19 @@ readDR2S <- function(path) {
   flog.info("Get latest consensus from last mapping ...", name = "info")
 
   if (!is.null(x$mapInit$SR1)) {
-    cseq <- conseq(x$mapInit$SR2$pileup$consmat, "mapFinalA", "ambig", excludeGaps = TRUE, threshold = x$getThreshold())
+    cseq <- conseq(x$mapInit$SR2$pileup$consmat, "mapFinalA", "ambig", 
+                   excludeGaps = TRUE, threshold = x$getThreshold())
   } else {
-    cseq <- conseq(x$mapInit$pileup$consmat, "mapFinalA", "ambig", excludeGaps = TRUE, threshold = x$getThreshold())
+    cseq <- conseq(x$mapInit$pileup$consmat, "mapFinalA", "ambig", 
+                   excludeGaps = TRUE, threshold = x$getThreshold())
   }
   x$mapFinal$seq$A <- cseq
 
-  flog.info("Polish and look for inconsistencies between shortreads and longreads ...", name = "info")
+  flog.info(paste0("Polish and look for inconsistencies between shortreads ", 
+                   "and longreads ..."), name = "info")
   polish(x)
-  flog.info("Report consensus sequence and potential problematic variants", name = "info")
+  flog.info("Report consensus sequence and potential problematic variants", 
+            name = "info")
   report(x)
 
   return(x)
@@ -103,9 +107,11 @@ runIgv <- function(x, position, map = "mapFinal", open = TRUE, ...) {
     igv <- file.path(igvdir, paste0("igv", hp, map, ".xml"))
     if (map == "mapFinal") {
       ref   <- x$mapIter[[as.character(x$getIterations())]][[hp]]$seqpath
-      bamLR <- file.path("mapFinal", basename(x$mapFinal$bamfile[[paste0("LR", hp)]]))
+      bamLR <- file.path("mapFinal", 
+                         basename(x$mapFinal$bamfile[[paste0("LR", hp)]]))
       if (!is.null(x$mapFinal$sreads[[hp]]))
-        bamSR <- file.path("mapFinal", basename(x$mapFinal$bamfile[[paste0("SR", hp)]]))
+        bamSR <- file.path("mapFinal", 
+                           basename(x$mapFinal$bamfile[[paste0("SR", hp)]]))
     } else if (map == "refine") {
       if (!is.null(x$consensus$refine$ref[[hp]])) {
         ref   <- x$consensus$refine$ref[[hp]]
@@ -114,9 +120,11 @@ runIgv <- function(x, position, map = "mapFinal", open = TRUE, ...) {
           bamSR <- x$consensus$refine$bamfile[[paste0("SR", hp)]]
       } else {
         ref   <- x$mapIter[[as.character(x$getIterations())]][[hp]]$seqpath
-        bamLR <- file.path("mapFinal", basename(x$mapFinal$bamfile[[paste0("LR", hp)]]))
+        bamLR <- file.path("mapFinal", 
+                           basename(x$mapFinal$bamfile[[paste0("LR", hp)]]))
         if (!is.null(x$mapFinal$sreads[[hp]]))
-          bamSR <- file.path("mapFinal", basename(x$mapFinal$bamfile[[paste0("SR", hp)]]))
+          bamSR <- file.path("mapFinal", 
+                             basename(x$mapFinal$bamfile[[paste0("SR", hp)]]))
       }
     } else if (map == "mapInit") {
       if (x$getPartSR()) {
@@ -131,8 +139,10 @@ runIgv <- function(x, position, map = "mapFinal", open = TRUE, ...) {
       ref <- x$mapIter[[as.character(x$getIterations()-1)]][[hp]]$seqpath
       bamLR <- x$mapIter[[as.character(x$getIterations())]][[hp]]$bamfile
     }
-    chr <- strsplit1(sub(">", "", readLines(file.path(basedir, ref), 1)), "\\s+")[1]
-    locus <- paste0(chr, ":", min(c((abs(position - 50)),0)), "-", position + 50)
+    chr <- strsplit1(sub(">", "", 
+                         readLines(file.path(basedir, ref), 1)), "\\s+")[1]
+    locus <- paste0(chr,  ":", 
+                    min(c((abs(position - 50)),0)), "-",  position + 50)
 
     xml <- XML::xmlTree()
     suppressWarnings(xml$addTag("Global",
@@ -150,13 +160,19 @@ runIgv <- function(x, position, map = "mapFinal", open = TRUE, ...) {
     
     xml <- XML::xmlTree()
     suppressWarnings(xml$addTag("Global",
-                                attrs = c(genome = file.path("..", gsub("/", "\\\\", ref), fsep = "\\"),
-                                          locus = locus),
+                                c(genome = file.path("..", 
+                                                     gsub("/", "\\\\", ref), 
+                                                     fsep = "\\"),
+                                  locus = locus),
                                 close = FALSE))
     xml$addTag("Resources", close = FALSE)
-    xml$addTag("Resource", attrs = c(path = file.path("..", gsub("/", "\\\\", bamLR), fsep = "\\")))
+    xml$addTag("Resource", c(path = file.path("..", 
+                                              gsub("/", "\\\\", bamLR), 
+                                              fsep = "\\")))
     if (exists("bamSR"))
-      xml$addTag("Resource", attrs = c(path = file.path("..", gsub("/", "\\\\", bamSR), fsep = "\\")))
+      xml$addTag("Resource", c(path = file.path("..", 
+                                                gsub("/", "\\\\", bamSR), 
+                                                fsep = "\\")))
     xml$closeTag()
     xml$closeTag()
     XML::saveXML(xml, file = gsub(".xml", ".win.xml", igv))
@@ -171,7 +187,8 @@ runIgv <- function(x, position, map = "mapFinal", open = TRUE, ...) {
 
   ## for windows
   igvCommandWin <- file.path(basedir, "win", paste0("runIGV_", map, ".bat"))
-  cmdsWin <- paste0("START P:\\IGV_2.4.10\\jre1.8.0_131\\bin\\javaw -Xmx2G -jar P:\\IGV_2.4.10\\lib\\igv.jar  ", "%~dp0..\\", 
+  cmdsWin <- paste0("START P:\\IGV_2.4.10\\jre1.8.0_131\\bin\\javaw -Xmx2G ",
+                    "-jar P:\\IGV_2.4.10\\lib\\igv.jar  ", "%~dp0..\\", 
                     gsub("/", "\\\\", gsub(".xml", ".win.xml", igvConfigs)))
   write(cmdsWin, igvCommandWin)
 

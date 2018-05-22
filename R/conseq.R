@@ -98,22 +98,26 @@ simpleConsensus <- function(x) {
                                  asString = FALSE) {
   xOri <- x
   if (excludeGaps && length(ins_ <- as.character(ins(x))) > 0) {
-    x <- .suppressGaps_(x, ins = ins_, gapSuppressionRatio = gapSuppressionRatio)
+    x <- .suppressGaps_(x, ins = ins_, 
+                        gapSuppressionRatio = gapSuppressionRatio)
   }
   if (forceExcludeGaps) {
     x[, "-"] <- 0
   }
   # don't allow gaps at beginning and end
-  maxbases <- names(unlist(unname(apply(x, 1, function(a) list(which(a == max(a))[1])))))
+  maxbases <- names(unlist(unname(apply(x, 1, function(a) 
+    list(which(a == max(a))[1])))))
   maxbase  <- which(maxbases != "-")
   maxgap   <- which(maxbases == "-")
   if (!length(maxgap) == 0) {
     if (min(maxgap) < min(maxbase)) {
-      excludeFromStart <- min(which(maxbases == "-")):(min(which(maxbases != "-")) - 1)
+      excludeFromStart <- min(
+        which(maxbases == "-")):(min(which(maxbases != "-")) - 1)
       x[excludeFromStart,"-"] <- 0
     }
     if (max(maxgap) > max(maxbase)) {
-      excludeFromEnd <- (max(which(maxbases != "-")) + 1):max(which(maxbases == "-"))
+      excludeFromEnd <- (max(
+        which(maxbases != "-")) + 1):max(which(maxbases == "-"))
       x[excludeFromEnd,"-"] <- 0
     }
   }
@@ -211,7 +215,8 @@ simpleConsensus <- function(x) {
   x0 <- x[dimnames(x)$pos %in% ins, ]
   ## if the ratio of the most freqent base to gap is greater/equal to
   ## gapSuppressionRatio set the gap count to zero (i.e. suppress the gap)
-  i <- which(apply(x0[, c("A", "C", "G", "T")], 1, max) / x0[, "-"] >= gapSuppressionRatio)
+  i <- which(apply(x0[, c("A", "C", "G", "T")], 1, max) / 
+               x0[, "-"] >= gapSuppressionRatio)
   if (length(j <- dimnames(x0)$pos[i]) > 0) {
     x[j, "-"] <- 0
   }
@@ -248,7 +253,8 @@ plotConseqProbability <- function(cseqs,
   seqs   <- sapply(cseqs, function(x) x$cseq)
   # get labels and tags
   if (all(nzchar(labels))) {
-    tags   <- lapply(labels, function(x) gsub("[<>]", "", strsplit1(x, " ", fixed = TRUE)))
+    tags   <- lapply(labels, function(x) gsub("[<>]", "", 
+                                              strsplit1(x, " ", fixed = TRUE)))
     groups <- lapply(tags, function(x) dot(setdiff(x, Reduce(intersect, tags))))
     label  <- dot(Reduce(intersect, tags))
   } else {
@@ -291,7 +297,8 @@ plotConseqProbability <- function(cseqs,
     scale_color_manual(values = NUCCOL()) +
     geom_label(aes(x = pos, y = prob - prob*0.05, label = pos), data = df2,
                colour = "black", size = textSize) +
-    geom_hline(aes(yintercept = lower), linetype = "dashed", colour = "gray20", data = lower) +
+    geom_hline(aes(yintercept = lower), linetype = "dashed", 
+               colour = "gray20", data = lower) +
     ylim(c(0.25, 1)) +
     xlab("Position [bp]") +
     ylab(ylabel) +

@@ -260,7 +260,8 @@ bwamemCmd <- function(paths, opts) {
   ## reffile and outfile format
   ## [prefix.]allele.readtype.mapper.[refname.][optsname.][suffix.]ext
   # workaround for these damn windows filename conventions
-  alleleNm  <- gsub("[*]", "#", gsub("[:]", "_", paste0(allele, collapse = "~")))
+  alleleNm  <- gsub("[*]", "#", 
+                    gsub("[:]", "_", paste0(allele, collapse = "~")))
   allelename <- sprintf("%s%s.%s.", alleleNm %+% ".", readtype, mapper)
   refname <- refname %+% "."
   optsname <- optsname %+% "."

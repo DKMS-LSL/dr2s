@@ -14,7 +14,8 @@
 #' Returns a \code{srpartition} object:
 #' A \code{list} with slots:
 #' \describe{
-#'   \item{bamfile}{<character>; Path to the bam file used to construct the pileup}
+#'   \item{bamfile}{<character>; Path to the bam file used to construct the 
+#'   pileup}
 #'   \item{ppos}{<numeric>; Positions used for scoring}
 #'   \item{srpartition}{A \code{data.frame} with colums:
 #'     \describe{
@@ -91,9 +92,12 @@ getSRPartitionScores <- function(refname, bamfile, mats,
 #
 scoreHighestSR <- function(srpartition, diffThreshold = 0.001) {
   sr <- unique(data.table::as.data.table(srpartition)
-               [, clade := sum(prob), by = list(read, haplotype)] # Get the sum of each read and hptype
-               [,max := max(clade), by = read] # get the max of the sums of each
-               [, !c("prob")]) # dismiss the prob and pos which we dont need anymore
+               # Get the sum of each read and hptype
+               [, clade := sum(prob), by = list(read, haplotype)] 
+               # get the max of the sums of each
+               [,max := max(clade), by = read] 
+               # dismiss the prob and pos which we dont need anymore
+               [, !c("prob")]) 
 
   srtmp <- NULL
   sr2 <- NULL
@@ -102,7 +106,8 @@ scoreHighestSR <- function(srpartition, diffThreshold = 0.001) {
     flog.info(" Calculate shortread scoring with cutoff = %s",
               diffThreshold, name = "info")
     if (NROW(srtmp) > 0) {
-      srtmp <- sr[pos %in% names(which(!correctScoring))][abs(1 - (clade/max)) < diffThreshold]
+      srtmp <- sr[pos %in% names(which(!correctScoring))]
+      srtmp <- srtmp[abs(1 - (clade/max)) < diffThreshold]
     } else {
       srtmp <- sr[abs(1 - (clade/max)) < diffThreshold]
     }
@@ -133,7 +138,8 @@ scoreHighestSR <- function(srpartition, diffThreshold = 0.001) {
       # useReads = qnames
       useReads <- which(!fqnames %in% dontUseReads)
     }
-    flog.info("  Using %s of %s reads", length(useReads), length(fqnames), name = "info")
+    flog.info("  Using %s of %s reads", length(useReads), length(fqnames), 
+              name = "info")
     sr <- sr[useReads]
     ShortRead::writeFastq(sr, srFastqHap, mode = "a", compress = TRUE)
   }

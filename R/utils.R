@@ -25,10 +25,11 @@ VALID_DNA <- function(include = "del"){
 
 CODE_MAP <- function() {
   c(
-    A =  "A",  C = "C",   G = "G",   T = "T",    M = "AC",   R = "AG",   W = "AT",
-    S = "CG",  Y = "CT",  K = "GT",  V = "ACG",  H = "ACT",  D = "AGT",  B = "CGT",  N = "ACGT",
-    a = "-A",  c = "-C",  g = "-G",  t = "-T",   m = "-AC",  r = "-AG",  w = "-AT",
-    s = "-CG", y = "-CT", k = "-GT", v = "-ACG", h = "-ACT", d = "-AGT", b = "-CGT", n = "-ACGT"
+    A =  "A",  C = "C",    G = "G",    T = "T",    M = "AC",   R = "AG",   
+    W = "AT",  S = "CG",   Y = "CT",   K = "GT",   V = "ACG",  H = "ACT",  
+    D = "AGT", B = "CGT",  N = "ACGT", a = "-A",   c = "-C",   g = "-G",  
+    t = "-T",  m = "-AC",  r = "-AG",  w = "-AT",  s = "-CG",  y = "-CT", 
+    k = "-GT", v = "-ACG", h = "-ACT", d = "-AGT", b = "-CGT", n = "-ACGT"
   )
 }
 
@@ -161,12 +162,14 @@ strsplitN <- function(x, split, n, from = "start", collapse = split, ...) {
                              value = end), NULL)
   }
   n <- lapply(n, sort %.% unique)
-  unlist(.mapply(function(x, n) paste0(x[n], collapse = collapse), list(x = xs, n = n), NULL))
+  unlist(.mapply(function(x, n) paste0(x[n], collapse = collapse), 
+                 list(x = xs, n = n), NULL))
 }
 
 optstring <- function(opts, ...) {
   opts[vapply(opts, isTRUE, FALSE)] <- ""
-  paste0(c(sprintf("-%s%s", names(opts), opts), ...), collapse = " ") %|ch|% "default"
+  paste0(c(sprintf("-%s%s", names(opts), opts), ...), collapse = " ") %|ch|% 
+    "default"
 }
 
 compact <- function(x) {
@@ -276,7 +279,9 @@ det2 <- function(m) {
   readId <- sub("(;|\\s+).+$", "", ids)
   mdata <- sub("^[^; ]+[; ]+", "", ids)
   mdata <- if (all(grepl(";", mdata))) {
-    paste0(strsplitN(mdata, " ", 1), paste0(";BARCODE=", gsub("(\\]|\\[)", "", strsplitN(mdata, " ", 2))))
+    paste0(strsplitN(mdata, " ", 1), paste0(";BARCODE=", 
+                                            gsub("(\\]|\\[)", "", 
+                                                 strsplitN(mdata, " ", 2))))
   } else if (all(grepl("ONBC", mdata))) {
     paste0("BARCODE=", gsub("(\\]|\\[)", "", mdata))
   } else {
@@ -382,11 +387,14 @@ plotDiagnosticAlignment <- function(x, onlyFinal = FALSE) {
   # Given Ref
   seqs1 <- x$getRefSeq()
   names(seqs1) <- paste0("0 ", names(seqs1))
-  seqs2 <- Biostrings::DNAStringSet(unlist(lapply(x$mapIter, function(y) sapply(y, function(a) unlist(a$conseq)))))
-  names(seqs2) <- unlist(lapply(names(x$mapIter), function(y) paste(x$getHapTypes(), "map", y)))
+  seqs2 <- Biostrings::DNAStringSet(unlist(lapply(x$mapIter, function(y) 
+    sapply(y, function(a) unlist(a$conseq)))))
+  names(seqs2) <- unlist(lapply(names(x$mapIter), function(y) 
+    paste(x$getHapTypes(), "map", y)))
 
   # final reference
-  seqs3 <- Biostrings::DNAStringSet(lapply(x$mapFinal$seq, function(y) unlist(y)))
+  seqs3 <- Biostrings::DNAStringSet(lapply(x$mapFinal$seq, function(y) 
+    unlist(y)))
   names(seqs3) <- paste(names(seqs3), "mapFinal")
 
   seqs <- c(seqs1, seqs2, seqs3)

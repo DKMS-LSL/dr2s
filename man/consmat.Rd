@@ -9,7 +9,8 @@ consmat(x, ...)
 \arguments{
 \item{x}{A \code{pileup} object.}
 
-\item{...}{Additional arguments such as \code{n}, \code{offset}, \code{insertions}}
+\item{...}{Additional arguments such as \code{n}, \code{offset}, 
+\code{insertions}}
 
 \item{freq}{If \code{TRUE} then frequencies are reported, otherwise counts.}
 }

@@ -4,7 +4,7 @@
 \alias{mapFinal}
 \title{Final mapping step (long reads and short reads).}
 \usage{
-mapFinal(x, opts = list(), pct = 100, minBaseQuality = 7, minMapq = 0,
+mapFinal(x, opts = list(), minBaseQuality = 7, minMapq = 0,
   maxDepth = 1e+05, minNucleotideDepth = 3, includeDeletions = TRUE,
   includeInsertions = TRUE, force = FALSE, fullname = TRUE, plot = TRUE,
   clip = TRUE, ...)
@@ -13,8 +13,6 @@ mapFinal(x, opts = list(), pct = 100, minBaseQuality = 7, minMapq = 0,
 \item{x}{A \code{\link[=DR2S_]{DR2S}} object.}
 
 \item{opts}{Mapper options.}
-
-\item{pct}{Percentage of templates to subsample (before sorting the bam file).}
 
 \item{minBaseQuality}{Minimum \sQuote{QUAL} value for each nucleotide in an
 alignment.}
@@ -47,9 +45,9 @@ from bam files for variants ar polymorphic positions.}
 A \code{\link[=DR2S_]{DR2S}} object.
 }
 \description{
-Partitioned long reads and partitioned or unpartitioned short reads are mapped against the
-consensus sequences inferred at \code{mapIter}. Indels are \strong{included}
-in pileup.
+Partitioned long reads and partitioned or unpartitioned short reads are 
+mapped against the consensus sequences inferred at \code{mapIter}. Indels 
+are \strong{included} in pileup.
 }
 \examples{
 \dontrun{

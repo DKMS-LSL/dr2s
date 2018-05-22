@@ -4,7 +4,7 @@
 \alias{mapInit}
 \title{Initial mapping step (long reads).}
 \usage{
-mapInit(x, opts = list(), refname = "ref", optsname = "", pct = 100,
+mapInit(x, opts = list(), refname = "ref", optsname = "",
   threshold = 0.2, minBaseQuality = 7, minMapq = 0, maxDepth = 10000,
   minNucleotideDepth = 3, includeDeletions = FALSE,
   includeInsertions = FALSE, force = FALSE, fullname = TRUE,
@@ -19,8 +19,6 @@ mapInit(x, opts = list(), refname = "ref", optsname = "", pct = 100,
 \strong{ref}erence allele or the \strong{alt}ernate allele.}
 
 \item{optsname}{Additional text to describe the options used.}
-
-\item{pct}{Percentage of templates to subsample (before sorting the bam file).}
 
 \item{threshold}{Threshold to call a variant.}
 

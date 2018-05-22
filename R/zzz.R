@@ -9,11 +9,13 @@ setup <- function(bin = "~/bin") {
     dir.create(bin)
   }
   scripts <-
-    Sys.glob(paste0(system.file("scripts", package = "DR2S", mustWork = TRUE), "/*"))
+    Sys.glob(paste0(system.file("scripts", package = "DR2S", mustWork = TRUE), 
+                    "/*"))
   dest <-
     file.path(
       bin,
-      vapply(strsplit(basename(scripts), ".", fixed = TRUE), `[`, 1, FUN.VALUE = "")
+      vapply(strsplit(basename(scripts), ".", fixed = TRUE), 
+             `[`, 1, FUN.VALUE = "")
     )
   foreach(s = scripts, d = dest) %do% {
     if (!file.exists(d)) {

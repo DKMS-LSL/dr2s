@@ -29,7 +29,8 @@ Scores based on a consensus matrix of longreads.
 Returns a \code{srpartition} object:
 A \code{list} with slots:
 \describe{
-  \item{bamfile}{<character>; Path to the bam file used to construct the pileup}
+  \item{bamfile}{<character>; Path to the bam file used to construct the 
+  pileup}
   \item{ppos}{<numeric>; Positions used for scoring}
   \item{srpartition}{A \code{data.frame} with colums:
     \describe{

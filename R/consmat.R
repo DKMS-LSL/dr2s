@@ -7,7 +7,8 @@
 #'
 #' @param x A \code{pileup} object.
 #' @param freq If \code{TRUE} then frequencies are reported, otherwise counts.
-#' @param ... Additional arguments such as \code{n}, \code{offset}, \code{insertions}
+#' @param ... Additional arguments such as \code{n}, \code{offset}, 
+#' \code{insertions}
 #' @details
 #' \code{consmat}: a \code{matrix} with positions row names and nucleotides as
 #' column manes.
@@ -42,7 +43,8 @@ consmat.matrix <- function(x, freq = TRUE, ...) {
 #' @export
 consmat.tbl_df <- function(x, freq = TRUE, drop.unused.levels = FALSE, ...) {
   stopifnot(all(c("pos", "nucleotide", "count") %in% colnames(x)))
-  x <- xtabs(formula = count ~ pos + nucleotide, data = x, drop.unused.levels = drop.unused.levels)
+  x <- xtabs(formula = count ~ pos + nucleotide, data = x, 
+             drop.unused.levels = drop.unused.levels)
   rs <- matrix(x, NROW(x),  NCOL(x))
   dimnames(rs) <- dimnames(x)
   n <- .rowSums(rs, NROW(rs), NCOL(rs))
@@ -203,7 +205,8 @@ is.freq.consmat <- function(x) attr(x, "freq")
 
 ## Note for me: flattens the matrix; compare rowsum to rowsums upstream of pos;
 ## if > t set all to 0
-.pruneConsensusMatrix <- function(cm, nLookBehind = 36, cutoff = 0.6, verbose = TRUE) {
+.pruneConsensusMatrix <- function(cm, nLookBehind = 36, cutoff = 0.6, 
+                                  verbose = TRUE) {
   rowsum <- rowSums(cm[, 1:4]) ## only consider bases
   m0 <- do.call(cbind, Map(function(n) dplyr::lag(rowsum, n), nLookBehind:1))
   wquant <- suppressWarnings(apply(m0, 1, quantile, probs = 0.75, na.rm = TRUE))
@@ -225,16 +228,20 @@ is.freq.consmat <- function(x) attr(x, "freq")
 #' @details
 #' \code{PWM}: a \code{matrix} with positions row names and nucleotides as
 #' column manes. Values are nucleotide weights at a position
-#' A ConsensusMatrix is calculated from the MSA using \code{Biostrings::consensusMatrix} and values are converted to probabilities.
-#' Pseudocounts are added and values are divided by DNA probabilities and log2 score is reported
+#' A ConsensusMatrix is calculated from the MSA using 
+#' \code{Biostrings::consensusMatrix} and values are converted to probabilities.
+#' Pseudocounts are added and values are divided by DNA probabilities and log2 
+#' score is reported
 #' @return A \code{PWM} matrix.
 #'
 #' @export
 #' @examples
 #' ###
 createPWM <- function(msa){
-  # Need to calc first a count based consensus matrix, while removing "+". Prob is calculated afterwards.
-  cmat <- as.matrix(as.matrix(Biostrings::consensusMatrix(msa, as.prob = FALSE))[VALID_DNA(include = "del"),])
+  # Need to calc first a count based consensus matrix, while removing "+". 
+  # Prob is calculated afterwards.
+  cmat <- as.matrix(Biostrings::consensusMatrix(msa, as.prob = FALSE))
+  cmat <- as.matrix(cmat[VALID_DNA("del"),])
   cmat <- sweep(cmat, 2, colSums(cmat), "/")
   ## Add pseudocount
   cmat <- cmat + 1/length(msa)
@@ -287,7 +294,8 @@ createPWM <- function(msa){
             # x <- msa[seqsToChange][[1]]
             pos <- Biostrings::matchPattern("-", x)[1]
             Biostrings::replaceLetterAt(x,
-                                     Biostrings::start(Biostrings::matchPattern("-", x)[1]),
+                                     Biostrings::start(
+                                       Biostrings::matchPattern("-", x)[1]),
                                      nt)
           }))
         msa[seqsToChange] <- msaChanged
@@ -300,33 +308,11 @@ createPWM <- function(msa){
       nGaps <- Biostrings::nchar(x) - Biostrings::nchar(gapless)
       paste0(paste0(rep("-", nGaps), collapse = ""), gapless)
     }))
-    mat[seqStart:seqEnd,] <- t(Biostrings::consensusMatrix(msa))[,VALID_DNA(include = "indel")]
+    mat[seqStart:seqEnd,] <- t(Biostrings::consensusMatrix(msa))[
+      ,VALID_DNA(include = "indel")]
   }
   mat
 }
-
-# .distributeGapsConsMat <- function(mat, bamfile, reference, removeError = FALSE){
-#   stopifnot(is(mat,"consmat"))
-#   if (! "-" %in% colnames(mat)) {
-#     flog.warn("No Gaps to distribute")
-#     return(mat)
-#   }
-#   seq <- .mat2rle(mat)
-#
-#   if (removeError){
-#     for (i in which(seq$length > 1)) {
-#       seqStart <- sum(seq$lengths[1:(i-1)])+1
-#       seqEnd <- seqStart+seq$lengths[i]-1
-#       mat[seqStart:seqEnd,"-"] <- sum(mat[seqStart:seqEnd,"-"])/seq$lengths[i]
-#     }
-#     backgroundGapError <- .getGapErrorBackground(mat)
-#     newGapError <- apply(mat, 1, function(x) sum(x)*backgroundGapError)#
-#     mat[,"-"] <- round(mat[,"-"] - newGapError)
-#     mat[which(mat[,"-"] < 0),"-"] <- 0
-#   }
-#   mat <- .moveGapsToLeft(mat, bamfile, reference)
-#   mat
-# }
 
 .getGapErrorBackground <- function(mat, n = 5){
   seq <- .mat2rle(mat)
@@ -342,50 +328,3 @@ createPWM <- function(msa){
   backgroundSums <- colSums(background)
   backgroundSums["-"] / sum(backgroundSums)
 }
-# .moveGapsToLeft <- function(mat){
-#   seq <- .mat2rle(mat)
-#   ## debug
-#   al
-#   i <- 7084
-#   ##
-#   for (i in which(seq$length > 9)) {
-#     ## Assign new gap numbers to each position starting from left
-#     # meanCoverage <- mean(rowSums(mat[seqStart:seqEnd,1:4]))
-#     ## !! not true now: start is now -1, end +1
-#     seqStart <- sum(seq$lengths[1:(i-1)])+1
-#     seqEnd <- seqStart+seq$lengths[i]-1
-#     length <- seq$length[i]
-#
-#     msa <-
-#
-#     gaps <- sum(mat[seqStart:seqEnd, "-"])
-#     prevCoverage <- sum(mat[(seqStart-1),1:5])
-#     baseSums <- colSums(mat[seqStart:seqEnd,1:4])
-#     idx <- 0
-#     while(gaps > 0 && !seq$values[i] == "-"){
-#       # move the gaps to the left
-#       gapsAtPos <- min(gaps, prevCoverage)
-#       mat[(seqStart+idx),"-"] <- gapsAtPos
-#       # if more gaps than bases move the bases from a column to the right
-#       if (gaps >= prevCoverage){
-#         length <- length - 1
-#         # move the bases to the right; distribute them
-#         # set bases at gap column to 0
-#         mat[(seqStart+idx),1:4] <- 0
-#         ## distribute the bases to all other columns
-#         newMeanBases <- baseSums/length
-#         for (pos in (seqStart+idx+1):seqEnd){
-#           mat[pos,1:4] <- newMeanBases
-#         }
-#       }
-#       if (length == 1)
-#         break
-#       gaps <- gaps - gapsAtPos
-#       idx <- idx+1
-#     }
-#     newSeqStart <- seqStart + idx
-#     if (!newSeqStart > seqEnd)
-#       mat[newSeqStart:seqEnd, "-"] <- 0
-#   }
-#   m <- round(mat)
-# }

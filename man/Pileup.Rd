@@ -25,7 +25,8 @@ Calculate pile-up for a BAM file.
 Returns a \code{pileup} object:
 A \code{list} with slots:
 \describe{
-  \item{bamfile}{<character>; Path to the bam file used to construct the pileup}
+  \item{bamfile}{<character>; Path to the bam file used to construct the 
+  pileup}
   \item{threshold}{<numeric>; Threshold used for calling SNPs}
   \item{param}{A \code{\link[Rsamtools]{PileupParam}} object}
   \item{pilup}{A \code{data.frame} with colums:
