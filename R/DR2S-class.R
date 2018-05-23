@@ -1,41 +1,41 @@
 #' @export
 DR2Smap.default <- function(sample,
                             locus,
-                            longreads       = list(type = "pacbio", 
-                                              dir = "pacbio"),
-                            shortreads      = list(type = "illumina", 
-                                               dir = "illumina"),
-                            datadir         = ".",
-                            outdir          = ".",
-                            reference       = NULL,
-                            threshold       = 0.20,
-                            iterations      = 1,
-                            microsatellite  = FALSE,
-                            partSR          = TRUE,
-                            forceMapping = FALSE,
-                            filterScores    = TRUE,
+                            longreads      = list(type = "pacbio", 
+                                                  dir = "pacbio"),
+                            shortreads     = list(type = "illumina", 
+                                                  dir = "illumina"),
+                            datadir        = ".",
+                            outdir         = ".",
+                            reference      = NULL,
+                            threshold      = 0.20,
+                            iterations     = 1,
+                            microsatellite = FALSE,
+                            partSR         = TRUE,
+                            forceMapping   = FALSE,
+                            filterScores   = TRUE,
                             distAlleles    = 2,
-                            fullname        = TRUE,
+                            fullname       = TRUE,
                             createOutdir   = TRUE,
-                            note            = NULL,
+                            details        = NULL,
                             ...) {
   conf <- createDR2SConf(
-    sample = sample,
-    locus = locus,
-    longreads = longreads,
-    shortreads = shortreads,
-    datadir = datadir,
-    outdir = outdir,
-    reference = reference,
-    threshold = threshold,
-    iterations = iterations,
+    sample         = sample,
+    locus          = locus,
+    longreads      = longreads,
+    shortreads     = shortreads,
+    datadir        = datadir,
+    outdir         = outdir,
+    reference      = reference,
+    threshold      = threshold,
+    iterations     = iterations,
     microsatellite = microsatellite,
-    filterScores = filterScores,
-    partSR = partSR,
-    fullname = fullname,
-    distAlleles = distAlleles,
-    forceMapping = forceMapping,
-    note = note,
+    filterScores   = filterScores,
+    partSR         = partSR,
+    fullname       = fullname,
+    distAlleles    = distAlleles,
+    forceMapping   = forceMapping,
+    details        = details,
     ...
   )
   DR2S_$new(conf, createOutdir = createOutdir)
@@ -280,13 +280,13 @@ DR2S_ <- R6::R6Class(
       invisible(self)
     },
     ##
-    getNote = function(){
-      self$getConfig("note")
+    getDetails = function(){
+      self$getConfig("details")
     },
     ##
-    setNote = function(note){
-      stopifnot(is.character(note))
-      self$setConfig("note", note)
+    setDetails = function(details){
+      stopifnot(is.character(details))
+      self$setConfig("details", details)
       invisible(self)
     },
     ##

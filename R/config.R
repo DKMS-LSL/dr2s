@@ -10,38 +10,39 @@ createDR2SConf <- function(sample,
                              threshold       = 0.20,
                              iterations      = 1,
                              microsatellite  = FALSE,
-                             distAlleles    = 2,
+                             distAlleles     = 2,
                              filterScores    = TRUE,
                              partSR          = TRUE,
-                             forceMapping = FALSE,
+                             forceMapping    = FALSE,
                              fullname        = TRUE,
-                             note            = NULL,
+                             details         = NULL,
+
                              ...) {
   conf0 <- list(...)
   conf1 <- list(
-    datadir    = normalizePath(datadir, mustWork = TRUE),
-    outdir     = outdir,
-    threshold  = threshold,
-    iterations = iterations,
-    microsatellite  = microsatellite,
+    datadir        = normalizePath(datadir, mustWork = TRUE),
+    outdir         = outdir,
+    threshold      = threshold,
+    iterations     = iterations,
+    microsatellite = microsatellite,
     distAlleles    = distAlleles,
-    filterScores    = filterScores,
-    partSR          = partSR,
-    forceMapping = forceMapping,
-    lrmapper   = conf0$lrmapper %||% "minimap",
-    srmapper   = conf0$srmapper %||% "bwamem",
-    limits     = conf0$limits   %||% NULL,
-    haptypes   = conf0$haptypes %||% NULL,
-    pipeline   = conf0$pipeline %||% c("clear", "mapInit", "partitionLongReads",
-                                       "mapIter", "partitionShortReads",
-                                       "mapFinal", "polish", "report"),
-    longreads  = longreads,
-    shortreads = shortreads,
-    opts       = conf0$opts     %||% NULL,
-    sampleId  = sample,
-    locus      = locus,
-    reference  = reference,
-    note       = note           %||% NULL
+    filterScores   = filterScores,
+    partSR         = partSR,
+    forceMapping   = forceMapping,
+    lrmapper       = conf0$lrmapper %||% "minimap",
+    srmapper       = conf0$srmapper %||% "bwamem",
+    limits         = conf0$limits   %||% NULL,
+    haptypes       = conf0$haptypes %||% NULL,
+    pipeline       = conf0$pipeline %||% c("clear", "mapInit", "partitionLongReads",
+                                           "mapIter", "partitionShortReads",
+                                           "mapFinal", "polish", "report"),
+    longreads      = longreads,
+    shortreads     = shortreads,
+    opts           = conf0$opts     %||% NULL,
+    sampleId       = sample,
+    locus          = locus,
+    reference      = reference,
+    details        = details        %||% NULL
   )
   structure(conf1, class = c("DR2Sconf", "list"))
 }
@@ -64,7 +65,7 @@ readDR2SConf <- function(configFile) {
   conf$srmapper       <- conf$srmapper       %||% "bwamem"
   conf$limits         <- conf$limits         %||% list(NULL)
   conf$haptypes       <- conf$haptypes       %||% list(NULL)
-  conf$distAlleles   <- conf$distAlleles   %||% 2
+  conf$distAlleles    <- conf$distAlleles    %||% 2
   conf$pipeline       <- conf$pipeline       %||% c("clear", "mapInit",
                                                      "partitionLongReads", 
                                                      "mapIter", 
@@ -75,7 +76,7 @@ readDR2SConf <- function(configFile) {
                                                         dir = "pacbio")
   conf$shortreads      <- conf$shortreads    %||% list(type = "illumina", 
                                                        dir = "illumina")
-  conf$note            <- conf$note          %||% NULL
+  conf$details         <- conf$details       %||% list(NULL)
   
   if (length(conf$shortreads) == 1 && is.list(conf$shortreads[[1]]))
     conf$shortreads <- conf$shortreads[[1]]
@@ -139,7 +140,7 @@ validateDR2SConf <- function(conf) {
               "distAlleles", "filterScores", "partSR", "forceMapping", 
               "lrmapper", "srmapper", "limits", "haptypes", "pipeline", 
               "longreads", "shortreads", "opts", "sampleId", "locus", 
-              "reference", "note")
+              "reference", "details")
   if (!all(fields %in% names(conf))) {
     stop("Missing fields <", comma(fields[!fields %in% names(conf)]), 
          "> in config", call. = FALSE)
