@@ -182,8 +182,13 @@ reportCheckedConsensus <- function(x, which = "mapFinal") {
     file <- paste(names(seqs[sq]), x$getLrdType(), x$getLrMapper(), "fa", 
                   sep = ".")
     seq <- seqs[sq]
-    names(seq) <- paste0(names(seq), " LOCUS=", x$getLocus(), ";REF=",
-                              x$getReference())
+    seqname <- paste(x$getSampleId(), sub("^hap", "", names(seq)), sep = "_")
+    sampleDetails <- x$getSampleDetails()
+    names(seq) <-  paste(seqname, 
+                         paste(paste0("haplotype=", 
+                                     litQuote(sub("^hap", "", names(seq)))),
+                               sampleDetails,
+                               sep = ";"))
     Biostrings::writeXStringSet(
       seq,
       filepath = file.path(outdir,file),
@@ -192,6 +197,7 @@ reportCheckedConsensus <- function(x, which = "mapFinal") {
     file
     }
   )
+  # flog.info(x$getSampleDetails(), name = "info")
 }
 
 #' Manually check the alignment of consensus sequences using an editor.

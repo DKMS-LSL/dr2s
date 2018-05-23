@@ -174,11 +174,17 @@ compact <- function(x) {
 
 usc <- function(x) gsub("[*:?<>|]", "_", x)
 
+underscore <- function(x) gsub("\\s+", "_", x)
+
 comma <- function(...) paste0(..., collapse = ", ")
+
+semicolon <- function(...) paste0(..., collapse = ";")
 
 colon <- function(...) paste0(..., collapse = ":")
 
 dot <- function(...) paste0(..., collapse = ".")
+
+litQuote <- function(x) paste0("\"", x, "\"")
 
 .mergeList <- function(x, y, update = FALSE) {
   if (length(x) == 0)

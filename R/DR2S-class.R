@@ -320,6 +320,22 @@ DR2S_ <- R6::R6Class(
       invisible(self)
     },
     ##
+    getSampleDetails = function() {
+      details <- semicolon(
+        sapply(1:length(self$getDetails()), 
+               function(item) paste(names(
+                 self$getDetails()[item]), 
+                 underscore(litQuote(self$getDetails()[item])), 
+                 sep = "=")))
+      paste(paste0("locus=", litQuote(self$getLocus())),
+            paste0("ref=", litQuote(self$getReference())),
+            details,
+            "software=\"DR2S\"", 
+            paste0("version=", 
+                   litQuote(packageVersion("DR2S"))),
+            sep = ";")
+    },
+    ##
     getDistAlleles = function() {
       self$getConfig("distAlleles")
     },
