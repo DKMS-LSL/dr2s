@@ -28,8 +28,6 @@ MergeEnv <- function(x, threshold) {
 #' @docType class
 #' @usage MergeEnv(x)
 #' @field threshold \code{[numeric]}; when do we call a variant a variant.
-#' @field a \code{[HapEnv, environment]}; container for all things haplotype A.
-#' @field b \code{[HapEnv, environment]}; container for all things haplotype B.
 #' @field x \code{[\link[=DR2S_]{DR2S}]}; the original \code{DR2S} object.
 #' @keywords data internal
 #' @return Object of \code{\link{R6Class}} representing a MergeEnv.
@@ -80,11 +78,6 @@ MergeEnv_ <- R6::R6Class(
   )
 )
 
-#self$init("A")
-#self$init("B")
-#self$hptypes$B$SR[478,]
-#hapEnv <- "B"
-#self <- menv
 MergeEnv_$set("public", "init", function(hapEnv) {
   hapEnv <- match.arg(hapEnv, self$x$getHapTypes())
   envir <- self$hptypes[[hapEnv]]
@@ -131,13 +124,6 @@ MergeEnv_$set("public", "walkOne", function(hapEnv, verbose = FALSE) {
 })
 
 ## self$walk() ####
-# self <- menv
-# hapEnv <- "B"
-#self$init(hapEnv)
-#self$walk(hapEnv, TRUE)
-# self$walk("B", TRUE)
-# self$hptypes$B$SR[478,]
-
 MergeEnv_$set("public", "walk", function(hapEnv, verbose = FALSE) {
   hapEnv <- match.arg(hapEnv, self$x$getHapTypes())
   if (!self$isInitialised(hapEnv)) {
@@ -165,7 +151,6 @@ MergeEnv_$set("private", "stepThrough", function(envir) {
                       iterators::nextElem(envir$POSit) + offset(envir$SR),
                       iterators::nextElem(envir$POSit) + offset(envir$LR))
   p <- envir$pos
-  print(self$threshold)
   x <- yield(envir)
   rs <- disambiguateVariant(yield(envir), threshold = self$threshold)
   

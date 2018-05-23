@@ -837,8 +837,7 @@ DR2S_ <- R6::R6Class(
       summary(self$getHapList())
     },
     ##
-    plotmapInitSummary = function(thin = 0.2, width = 4, label = "", 
-                                  readtype = "LR") {
+    plotmapInitSummary = function(thin = 0.2, width = 4, label = "") {
       readtypes <- if (self$getPartSR()) {
         c("SR", "LR")
       } else {

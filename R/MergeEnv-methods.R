@@ -60,7 +60,6 @@ disambiguateVariant <- function(x,
 
   warningMsg <- ""
   
-  print(threshold)
   ## Start with long reads. They have to be there
   lr <- as.matrix(x$lr)
   varl <- .filterVariant(cm = lr, threshold)
@@ -93,50 +92,52 @@ disambiguateVariant <- function(x,
     ## State which reads are ambiguous
     if (length(vars) > 1 ){
       warningMsg <- warningMsg %<<% "|Ambiguous position in short reads"
-    }
-
-    ## Spurious insertion in short reads that should have been set to zero.
-    if ("+" %in% names(vars)) {
-      warningMsg <- warningMsg %<<% "|Insertion signal in short reads"
-    }
-    
-    ## Mismatch in variant bases between long and short reads
-    ## not the same order or base
-    if (any(!varl == vars)) {
-      ## No base matches
-      if (length(intersect(names(varl), names(vars))) == 0) {
-        warningMsg <- warningMsg %<<% 
-          "|No intersect between long and short read variants"
-      } else if (any(!sort(varl) == sort(vars))) { # different order
-          warningMsg <- warningMsg %<<% 
-            "|Major/minor variant different in long and short reads"
-      } else if (length(varl) > length(vars)) { 
-          warningMsg <- warningMsg %<<% 
-            "|Variant in long but not in short reads"
-      } else if (length(vars) > length(varl)) { 
-          warningMsg <- warningMsg %<<% 
-            "|Variant in short but not in long reads"
-      } else {
-        warningMsg <- warningMsg %<<% 
-          "|Mismatch between long and short read variants"
+      
+      ## Spurious insertion in short reads that should have been set to zero.
+      if ("+" %in% names(vars)) {
+        warningMsg <- warningMsg %<<% "|Insertion signal in short reads"
       }
-    }
-    
-    ## Check for deletions
-    if ("-" %in% names(vars)) { 
-      if ((sr[vars["-"]]/sum(sr[vars])) %|na|% 0  > threshold/(2/3)) {
-        warningMsg <- warningMsg %<<% "|Gap overrepresented in short reads"
+      
+      ## Mismatch in variant bases between long and short reads
+      ## not the same order or base
+      if (length(varl) == length(vars)) {
+        if (any(!varl == vars)) {
+          ## No base matches
+          if (length(intersect(names(varl), names(vars))) == 0) {
+            warningMsg <- warningMsg %<<% 
+              "|No intersect between long and short read variants"
+          } else if (any(!sort(varl) == sort(vars))) { # different order
+              warningMsg <- warningMsg %<<% 
+                "|Major/minor variant different in long and short reads"
+          } else if (length(varl) > length(vars)) { 
+              warningMsg <- warningMsg %<<% 
+                "|Variant in long but not in short reads"
+          } else if (length(vars) > length(varl)) { 
+              warningMsg <- warningMsg %<<% 
+                "|Variant in short but not in long reads"
+          } else {
+            warningMsg <- warningMsg %<<% 
+              "|Mismatch between long and short read variants"
+          }
+        }
       }
-    }
-    
-    ## Check for more than two alleles
-    if (length(vars) > 2) {
-      warningMsg <- warningMsg %<<% "|More than two short read variants"
-    }
-    
-    ## Set the ambiguous bases to short read variants if not fewer
-    if (!length(vars) < length(varl))  
-      bases <- names(vars)
+      
+      ## Check for deletions
+      if ("-" %in% names(vars)) { 
+        if ((sr[vars["-"]]/sum(sr[vars])) %|na|% 0  > threshold/(2/3)) {
+          warningMsg <- warningMsg %<<% "|Gap overrepresented in short reads"
+        }
+      }
+      
+      ## Check for more than two alleles
+      if (length(vars) > 2) {
+        warningMsg <- warningMsg %<<% "|More than two short read variants"
+      }
+      
+      ## Set the ambiguous bases to short read variants if not fewer
+      if (!length(vars) < length(varl))  
+        bases <- names(vars)
+    } 
   }
   
   # names(bases) <- c("ref", "alt")

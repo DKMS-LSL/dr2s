@@ -1299,7 +1299,7 @@ DR2S_$set("public", "runMapFinal", function(opts = list(),
   # pct = 100
   # minBaseQuality = 3
   # minMapq = 50
-  # maDepth = 1e5
+  # maxDepth = 1e5
   # minNucleotideDepth = 3
   # includeDeletions = TRUE
   # includeInsertions = TRUE
@@ -1364,8 +1364,6 @@ DR2S_$set("public", "runMapFinal", function(opts = list(),
 
 
   ## Remap long reads to the same reference sequences as short reads
-  # debug
-  # hptype = "B"
   for (hptype in hptypes) {
     flog.info(" Run mapFinal for haplotype %s", hptype, name = "info" )
     refpath  <- refpaths[[hptype]]
@@ -1520,7 +1518,7 @@ DR2S_$set("public", "runMapFinal", function(opts = list(),
         includeDeletions = includeDeletions,
         includeInsertions = TRUE
       )
-
+      
       if (includeInsertions && is.null(ins(pileup$consmat))) {
         pileup <- .pileupIncludeInsertions(pileup, threshold = threshold)
       }

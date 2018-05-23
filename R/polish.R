@@ -10,7 +10,6 @@
 #x <- dr2s
 polish.DR2S <- function(x,
                         threshold = x$getThreshold(),
-                        lowerLimit = 0.80,
                         checkHpCount = TRUE,
                         cache = TRUE) {
   flog.info("Step 5: polish ...", name = "info")

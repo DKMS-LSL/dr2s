@@ -176,7 +176,7 @@ print.pileup <- function(x, asString = FALSE, ...) {
       cm <- t(Biostrings::consensusMatrix(inseq1))[, colnm, drop = FALSE]
       cmf <- sweep(cm, 1, rowSums(cm), "/")
       cmf[, "-"] <- 0
-      cm <- cm[apply(cmf, 1, function(row) any(row > threshold)),  
+      cm <- cm[apply(cmf, 1, function(row) any(row > threshold)), , 
                drop = FALSE]
       res <- c( res, list(cm) )
     }
@@ -218,6 +218,7 @@ print.pileup <- function(x, asString = FALSE, ...) {
     j <- as.integer(names(ins_[i])) + offset
     cm[j, "+"] <- 0L
     cm <- rbind(cm[1:j, ], ins_[[i]], cm[(j + 1):NROW(cm), ])
+    ins_[1]
     insLen <- NROW(ins_[[i]])
     insIdx <- c(insIdx, (j + 1):(j + insLen))
     insRun <- c(insRun, rep(i, insLen))
@@ -296,12 +297,20 @@ plotPileupCoverage <- function(x, threshold = 0.2, range = NULL, thin = 0.1,
                                 labels = c("+", "-", "A", "C", "G", "T", " "), 
                                 ordered = TRUE)]
   setkeyv(dtpoly, c("pos", "nucleotide"))
-
+  
+  ## Set the width for neighbouring SNPs to 1
+  positions <- dtpoly$pos
+  closePositions <- sort(unique(c(which((positions - 1) %in% positions), 
+                                  which((positions + 1) %in% positions))))
+  dtpoly$width <- width
+  dtpoly[closePositions]$width <- 1
+  
+  
   ggplot(dtbg, aes(x = pos, y = count)) +
     geom_bar(stat = "identity", position = position_identity(), 
              fill = "grey80") +
     geom_bar(data = dtpoly, stat = "identity", position = position_stack(),
-             aes(fill = nucleotide), width = width) +
+             aes(fill = nucleotide), width = dtpoly$width) +
     scale_fill_manual(values = NUCCOL(), 
                       limits = c("A", "C", "G", "T", "-", "+")) +
     guides(fill = guide_legend(reverse = TRUE, title = "Bases")) +

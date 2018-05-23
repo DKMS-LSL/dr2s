@@ -19,10 +19,6 @@ Class \code{"MergeEnv"}
 \describe{
 \item{\code{threshold}}{\code{[numeric]}; when do we call a variant a variant.}
 
-\item{\code{a}}{\code{[HapEnv, environment]}; container for all things haplotype A.}
-
-\item{\code{b}}{\code{[HapEnv, environment]}; container for all things haplotype B.}
-
 \item{\code{x}}{\code{[\link[=DR2S_]{DR2S}]}; the original \code{DR2S} object.}
 }}
 
