@@ -6,7 +6,6 @@ x <- DR2Smap(
   datadir = "~/dr2s_data",
   outdir = "~/dr2s_data/output",
   reference = "KIR3DL2*0010101",
-  consensus = "multialign",
   threshold = 0.2
 )
 
@@ -43,7 +42,6 @@ xx <- DR2Smap(
   datadir = "~/dr2s_data",
   outdir = "~/dr2s_data/output",
   reference = "KIR3DL2*008",
-  consensus = "multialign",
   threshold = 0.2
 )
 
@@ -72,7 +70,6 @@ se1 <- DR2Smap(
   datadir = "~/dr2s_data",
   outdir = "~/dr2s_data/output_sequel",
   reference = "KIR3DL2*0010101",
-  consensus = "multialign",
   threshold = 0.2
 )
 
@@ -99,7 +96,6 @@ se2 <- DR2Smap(
   datadir = "~/dr2s_data",
   outdir = "~/dr2s_data/output_sequel",
   reference = "KIR3DL2*008",
-  consensus = "multialign",
   threshold = 0.2
 )
 
@@ -125,7 +121,6 @@ se3 <- DR2Smap(
   datadir = "~/dr2s_data",
   outdir = "~/dr2s_data/output_sequel",
   reference = "KIR3DL2*0010101",
-  consensus = "multialign",
   threshold = 0.2
 )
 
@@ -179,7 +174,6 @@ fq <- .trimPolymorphicEnds(fq)
 
 
 
-fqdir  <- .dirCreateIfNotExists(file.path(self$getOutdir(), "merged"))
 fqfile <- paste("sread", group, self$getMapper(), "trimmed", "fastq", "gz", sep = ".")
 fqout  <- .fileDeleteIfExists(file.path(fqdir, fqfile))
 fqout <- "~/tmp/out.fq"
@@ -196,7 +190,6 @@ x2 <- DR2Smap(
   datadir = "~/dr2s_data",
   outdir = "~/dr2s_data/output",
   reference = "KIR2DL4*0010305",
-  consensus = "multialign",
   threshold = 0.2
 )
 
@@ -222,7 +215,6 @@ x3 <- DR2Smap(
   datadir = "~/dr2s_data",
   outdir = "~/dr2s_data/output",
   reference = "KIR3DL2*0010101",
-  consensus = "multialign",
   threshold = 0.2
 )
 

@@ -8,7 +8,6 @@ DR2Smap.default <- function(sample,
                             datadir         = ".",
                             outdir          = ".",
                             reference       = NULL,
-                            consensus       = "mapping",
                             threshold       = 0.20,
                             iterations      = 1,
                             microsatellite  = FALSE,
@@ -28,7 +27,6 @@ DR2Smap.default <- function(sample,
     datadir = datadir,
     outdir = outdir,
     reference = reference,
-    consensus = consensus,
     threshold = threshold,
     iterations = iterations,
     microsatellite = microsatellite,
@@ -70,7 +68,7 @@ clear.DR2S <- function(x, ...) {
 #' @docType class
 #' @usage DR2Smap(sample, locus, longreads = list(type = "pacbio", 
 #' dir = "pacbio"), shortreads = list(type = "illumina", dir = "illumina"), 
-#' datadir = ".", outdir = "./output", reference = NULL, consensus = "mapping",
+#' datadir = ".", outdir = "./output", reference = NULL,,
 #' threshold = 0.20, iterations = 1, microsatellite = FALSE, distAlleles = 2,
 #' filterScores = TRUE, partSR = TRUE, fullname = TRUE, createOutdir = TRUE, 
 #' ...)
@@ -100,7 +98,7 @@ clear.DR2S <- function(x, ...) {
 #' \item{\code{x$splitReadsByHaplotype(limit = list(), #' plot = TRUE)}}{
 #' Partition mapped long reads into haplotypes}
 #' \item{\code{x$extractFastq()}}{
-#' Extract FASTQs for partitioned reads and if the consensus method is
+#' Extract FASTQs for partitioned reads.
 #' }}
 #' @section Internals:
 #' \describe{
@@ -143,26 +141,6 @@ DR2S_ <- R6::R6Class(
           "mapInit",
           fullname = FALSE)
       }
-      if (is.null(private$conf$alternate)) {
-        private$conf["alternate"] = list(NULL)
-      }
-      else {
-        if (file.exists(altPath <- private$conf$alternate)) {
-          private$conf$alternate = basename(altPath)
-          private$conf$altPath  = basename(altPath)
-        } else {
-          private$conf$alternate = .expandAllele(private$conf$alternate, 
-                                                 private$conf$locus)
-          outdir <- .dirCreateIfNotExists(normalizePath(
-            file.path(private$conf$outdir, "mapInit"), mustWork = FALSE))
-          private$conf$refPath  = generateReferenceSequence(
-            private$conf$alternate,
-            private$conf$locus,
-            private$conf$outdir,
-            "mapInit",
-            fullname = FALSE)
-        }
-      }
       .confLog(outdir = private$conf$outdir, logName = "info")
       writeDR2SConf(self)
       flog.info("Creating DR2S Object", name = "info")
@@ -196,26 +174,6 @@ DR2S_ <- R6::R6Class(
           "mapInit",
           fullname = FALSE)
       }
-      if (is.null(private$conf$alternate)) {
-        private$conf["alternate"] = list(NULL)
-      }
-      else {
-        if (file.exists(altPath <- private$conf$alternate)) {
-          private$conf$alternate = basename(altPath)
-          private$conf$altPath  = basename(altPath)
-        } else {
-          private$conf$alternate = .expandAllele(private$conf$alternate, 
-                                                 private$conf$locus)
-          outdir <- .dirCreateIfNotExists(normalizePath(
-            file.path(private$conf$outdir, "mapInit"), mustWork = FALSE))
-          private$conf$refPath  = generateReferenceSequence(
-            self$getAlternate(),
-            self$getLocus(),
-            private$conf$outdir,
-            "mapInit",
-            fullname = FALSE)
-        }
-      }
       invisible(self)
     },
     cleanup = function() {
@@ -235,8 +193,6 @@ DR2S_ <- R6::R6Class(
                      "Mapper: <%s>\nDatadir: <%s>\nOutdir: <%s>\n")
       cat(sprintf(fmt1,
                   self$getReference(),
-                  if (is.null(self$getAlternate())) 
-                    "" else paste0(", ", self$getAlternate()),
                   self$getLrdType(), self$getSrdType(), self$getLrMapper(), 
                   self$getDatadir(), self$getOutdir()
       ))
@@ -462,10 +418,6 @@ DR2S_ <- R6::R6Class(
       self$getConfig("reference")
     },
     ##
-    getAlternate = function() {
-      self$getConfig("alternate")
-    },
-    ##
     getSampleId = function() {
       self$getConfig("sampleId")
     },
@@ -485,20 +437,6 @@ DR2S_ <- R6::R6Class(
         ipd.Hsapiens.db::getClosestComplete(self$getReference(),
                                             self$getLocus())
       }
-    },
-    ##
-    getAltPath = function() {
-      self$absPath(self$getConfig("altPath"))
-    },
-    ##
-    getAltSeq = function() {
-      if (!is.null(self$getAltPath())) {
-        Biostrings::readDNAStringSet(self$getAltPath())
-      } else if (self$getAlternate() %in%
-                 ipd.Hsapiens.db::getAlleles(self$getLocus()) ){
-        ipd.Hsapiens.db::getClosestComplete(self$getAlternate(),
-                                            self$getLocus())
-      } else NULL
     },
     ##
     getOpts = function(name = "mapInit") {
@@ -564,33 +502,19 @@ DR2S_ <- R6::R6Class(
       if (mapn == 1) {
         ref <- self$mapIter[["0"]][[group]]$conseq$reference %||% 
           Biostrings::BStringSet()
-        alt <- self$mapIter[["0"]][[group]]$conseq$alternate %||% 
-          Biostrings::BStringSet()
-        merged <- self$mapIter[["0"]][[group]]$conseq$merged %||% 
           Biostrings::BStringSet()
       } else if (mapn == 2) {
-        ref <- alt <- Biostrings::BStringSet()
-        merged <- self$mapIter[[group]]$conseq %||% Biostrings::BStringSet()
+        ref <- Biostrings::BStringSet()
       }
       seqs <- tryCatch({
-        Biostrings::DNAStringSet(c(ref, alt, merged))
+        Biostrings::DNAStringSet(ref)
       }, error = function(e) {
         warning("Possibly indels in consensus")
-        Biostrings::DNAStringSet(gsub("[-+]", "", c(ref, alt, merged)))
+        Biostrings::DNAStringSet(gsub("[-+]", "", ref ))
       })
       metadata(seqs) <- compact(list(
         ref = tryCatch(
           metadata(ref)$zscore,
-          error = function(e)
-            NULL
-        ),
-        alt =  tryCatch(
-          metadata(alt)$zscore,
-          error = function(e)
-            NULL
-        ),
-        merged = tryCatch(
-          metadata(merged)$zscore,
           error = function(e)
             NULL
         )
@@ -965,9 +889,7 @@ DR2S_ <- R6::R6Class(
         cm <- cm[-attr(cm, "pruningPosition"), ]
       }
       dplyr::bind_cols(dplyr::data_frame(
-        seq = strsplit1(toString(conseq), ""),
-        z   = S4Vectors::metadata(conseq)$merged,
-        p   = pnorm(S4Vectors::metadata(conseq)$merged)
+        seq = strsplit1(toString(conseq), "")
       ),
       as.data.frame(cm))
     }

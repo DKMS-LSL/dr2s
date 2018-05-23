@@ -7,7 +7,6 @@ createDR2SConf <- function(sample,
                              datadir         = ".",
                              outdir          = "./output",
                              reference       = NULL,
-                             consensus       = NULL,
                              threshold       = 0.20,
                              iterations      = 1,
                              microsatellite  = FALSE,
@@ -19,16 +18,6 @@ createDR2SConf <- function(sample,
                              note            = NULL,
                              ...) {
   conf0 <- list(...)
-  if (length(reference) == 0) {
-    ref <- NULL
-    alt <- NULL
-  } else   if (length(reference) == 1) {
-    ref <- reference
-    alt <- NULL
-  } else if (length(reference) == 2) {
-    ref <- reference[1]
-    alt <- reference[2]
-  }
   conf1 <- list(
     datadir    = normalizePath(datadir, mustWork = TRUE),
     outdir     = outdir,
@@ -51,9 +40,7 @@ createDR2SConf <- function(sample,
     opts       = conf0$opts     %||% NULL,
     sampleId  = sample,
     locus      = locus,
-    reference  = ref,
-    alternate  = alt,
-    consensus  = consensus      %||% "mapping",
+    reference  = reference,
     note       = note           %||% NULL
   )
   structure(conf1, class = c("DR2Sconf", "list"))
@@ -109,23 +96,19 @@ expandDR2SConf <- function(conf) {
     lrds <- list(lrds)
   }
   conf$longreads <- NULL
-  ## we can have different consensus calling methods
-  cnss <- conf$consensus %||% list("mapping")
-  conf$consensus <- NULL
 
   foreach(sample = samples, sampleId = sampleIds, .combine = "c") %:%
     foreach(nrd = nrds, .combine = "c") %:%
     foreach(lrd = lrds, .combine = "c") %:%
-    foreach(cns = cnss, .combine = "c") %:%
     foreach(dst = sample$distDlleles, .combine = "c") %:%
     foreach(ref = sample$reference, .combine = "c") %do% {
-      updateDR2SConf(conf, lrd, nrd, sampleId, sample, ref, alternate = "", 
-                     cns, dst)
+      updateDR2SConf(conf, lrd, nrd, sampleId, sample, ref, 
+                     dst)
     }
 }
 
 updateDR2SConf <- function(conf0, lrd, nrd, sampleId, locus, reference, 
-                           alternate, consensus, dst) {
+                          dst) {
   conf0$datadir   <- normalizePath(conf0$datadir, mustWork = TRUE)
   conf0$outdir    <- normalizePath(conf0$outdir, mustWork = FALSE)
   conf0$longreads <- lrd
@@ -133,10 +116,6 @@ updateDR2SConf <- function(conf0, lrd, nrd, sampleId, locus, reference,
   conf0$sampleId <- sampleId
   conf0["reference"] <- reference %|ch|% list(NULL)
   locus$reference    <- NULL
-  conf0["alternate"] <- alternate %|ch|% list(NULL)
-  locus$alternate    <- NULL
-  conf0["consensus"] <- consensus %|ch|% list(NULL)
-  locus$consensus    <- NULL
   ## add overides if they exist
   list(.mergeList(conf0, locus, update = TRUE))
 }
@@ -150,7 +129,6 @@ initialiseDR2S <- function(conf, createOutdir = TRUE) {
       ## Use only sample id
       # conf$longreads$name %||% conf$longreads$dir %||% "",
       # paste0(.normaliseLocus(conf$locus), ".", conf$longreads$type, ".", 
-      # conf$reftype, ".", conf$consensus)
     )))
   }
   conf
@@ -161,7 +139,7 @@ validateDR2SConf <- function(conf) {
               "distAlleles", "filterScores", "partSR", "forceMapping", 
               "lrmapper", "srmapper", "limits", "haptypes", "pipeline", 
               "longreads", "shortreads", "opts", "sampleId", "locus", 
-              "reference", "alternate", "consensus", "note")
+              "reference", "note")
   if (!all(fields %in% names(conf))) {
     stop("Missing fields <", comma(fields[!fields %in% names(conf)]), 
          "> in config", call. = FALSE)
@@ -259,15 +237,11 @@ validateDR2SConf <- function(conf) {
   ## Normalise locus
   ##conf$locus   <- sub("^(HLA-|KIR)", "", .normaliseLocus(conf$locus))
   conf$locus   <- sub("^HLA-", "", .normaliseLocus(conf$locus))
-  ## Check consensus method
-  conf$consensus <- match.arg(conf$consensus, c("mapping"))
   ## Reference type
-  conf$reftype <- if (is.null(conf$reference) && is.null(conf$alternate)) {
+  conf$reftype <- if (is.null(conf$reference)) {
     stop("Need to provide a reference, either as fasta or as ipd identifier")
-  } else if (!is.null(conf$reference) && is.null(conf$alternate)) {
+  } else {
     "ref"
-  } else if (!is.null(conf$reference) && !is.null(conf$alternate)) {
-    "ref.alt"
   }
   conf
 }

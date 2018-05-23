@@ -14,9 +14,9 @@ yield.HapEnv <- function(envir, pos = NULL) {
     lr_ = NULL,
     sr_ = NULL,
     ##
-    offset = c(
-      lr = offset(lr),
-      sr = ifelse(is.null(sr), 0, offset(sr))
+    offsetBases = c(
+      lr = offsetBases(lr),
+      sr = ifelse(is.null(sr), 0, offsetBases(sr))
     ),
     ##
     haplotype = envir$haplotype
@@ -174,9 +174,9 @@ disambiguateVariant <- function(x,
     warning = warning,
     haplotype = vlist$haplotype,
     cm = cm,
-    offset = ifelse(!is.null(vlist$sr),
-                    vlist$offset[["sr"]],
-                    vlist$offset[["lr"]]),
+    offsetBases = ifelse(!is.null(vlist$sr),
+                    vlist$offsetBases[["sr"]],
+                    vlist$offsetBases[["lr"]]),
     readsRefSr = vlist$sr[,refbase],
     readsRefLr = vlist$lr[,altbase],
     readsAltSr = vlist$sr[,refbase],
@@ -190,7 +190,7 @@ disambiguateVariant <- function(x,
 #' @export
 print.variant <- function(x, ...) {
   cat(sprintf("Variant at position [%s]\n", 
-              paste0(attr(x, "position") - attr(x, "offset"), 
+              paste0(attr(x, "position") - attr(x, "offsetBases"), 
                      collapse = "~")), sep = "")
 
   m <- attr(x, "cm")
@@ -229,7 +229,7 @@ print.variant <- function(x, ...) {
     omit <- unique(((omit - 1) %% d[1L]) + 1L)
     cm <- cm[-omit, , drop = FALSE]
     rownames(cm) <- as.character(seq_len(NROW(cm)))
-    i <- which((ins_ <- ins(cm)) == pos - offset(cm))
+    i <- which((ins_ <- ins(cm)) == pos - offsetBases(cm))
     if (length(i) == 1) {
       run_ <- attr(ins_, "run")
       ins_ <- ins_[!run_ == run_[i]]
@@ -237,7 +237,7 @@ print.variant <- function(x, ...) {
       attr(ins_, "run") <- run_
     }
     ins(cm) <- ins_
-    offset(cm) <- offset(cm) - n_
+    offsetBases(cm) <- offsetBases(cm) - n_
   }
   ## update rowsums
   n(cm) <- .rowSums(cm, NROW(cm), NCOL(cm))

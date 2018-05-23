@@ -7,7 +7,7 @@
 #'
 #' @param x A \code{pileup} object.
 #' @param freq If \code{TRUE} then frequencies are reported, otherwise counts.
-#' @param ... Additional arguments such as \code{n}, \code{offset}, 
+#' @param ... Additional arguments such as \code{n}, \code{offsetBases}, 
 #' \code{insertions}
 #' @details
 #' \code{consmat}: a \code{matrix} with positions row names and nucleotides as
@@ -16,7 +16,7 @@
 #' \describe{
 #'   \item{n}{<integer>; Number of reads per row.}
 #'   \item{freq}{<logical>; Is it a frequency matrix or a count matrix.}
-#'   \item{offset}{<integer>; Offset}
+#'   \item{offsetBases}{<integer>; OffsetBases}
 #'   \item{insertions}{<integer>; Insertions}
 #' }
 #' @return A \code{consmat} object.
@@ -26,9 +26,9 @@
 consmat <- function(x, ...) UseMethod("consmat")
 
 # Internal constructor
-Consmat_ <- function(x, n, freq, offset = 0L, insertions = NULL) {
+Consmat_ <- function(x, n, freq, offsetBases = 0L, insertions = NULL) {
   structure(
-    x, n = n, freq = freq, offset = offset, insertions = insertions,
+    x, n = n, freq = freq, offsetBases = offsetBases, insertions = insertions,
     class = c("consmat", "matrix")
   )
 }
@@ -61,7 +61,7 @@ consmat.consmat <- function(x, freq = TRUE, ...) {
       x
     } else {
       Consmat_(
-        sweep(x, 1, n(x), `/`), n = n(x), freq = freq, offset = offset(x),
+        sweep(x, 1, n(x), `/`), n = n(x), freq = freq, offsetBases = offsetBases(x),
         insertions = ins(x)
       )
     }
@@ -70,7 +70,7 @@ consmat.consmat <- function(x, freq = TRUE, ...) {
     n(x) <- .rowSums(x, NROW(x), NCOL(x))
     if (is.freq(x)) {
       Consmat_(
-        sweep(x, 1, n(x), `*`), n = n(x), freq = freq, offset = offset(x),
+        sweep(x, 1, n(x), `*`), n = n(x), freq = freq, offsetBases = offsetBases(x),
         insertions = ins(x)
       )
     } else {
@@ -111,7 +111,7 @@ print.consmat <- function(x, n = 25, noHead = FALSE, transpose = FALSE,  ...) {
     ## recalibrate n
     n <- .rowSums(rs, NROW(rs), NCOL(rs))
     Consmat_(
-      rs, n, freq = is.freq(x), offset = offset(x), insertions = ins(x)
+      rs, n, freq = is.freq(x), offsetBases = offsetBases(x), insertions = ins(x)
     )
   } else rs
 }
@@ -122,7 +122,7 @@ print.consmat <- function(x, n = 25, noHead = FALSE, transpose = FALSE,  ...) {
   ## recalibrate n
   n <- .rowSums(rs, NROW(rs), NCOL(rs))
   Consmat_(
-    rs, n, freq = is.freq(x), offset = offset(x), insertions = ins(x)
+    rs, n, freq = is.freq(x), offsetBases = offsetBases(x), insertions = ins(x)
   )
 }
 
@@ -132,7 +132,7 @@ as.matrix.consmat <- function(x, ...) {
   attr(rs, "n") <- NULL
   attr(rs, "insertions") <- NULL
   attr(rs, "freq") <- NULL
-  attr(rs, "offset") <- NULL
+  attr(rs, "offsetBases") <- NULL
   rs
 }
 
@@ -181,16 +181,16 @@ ins.consmat <- function(x) attr(x, "insertions")
 
 #' @keywords internal
 #' @export
-offset <- function(x, ...) UseMethod("offset")
+offsetBases <- function(x, ...) UseMethod("offsetBases")
 #' @export
-offset.consmat <- function(x) attr(x, "offset")
+offsetBases.consmat <- function(x) attr(x, "offsetBases")
 
 #' @keywords internal
 #' @export
-`offset<-` <- function(x, value, ...) UseMethod("offset<-")
+`offsetBases<-` <- function(x, value, ...) UseMethod("offsetBases<-")
 #' @export
-`offset<-.consmat` <- function(x, value) {
-  attr(x, "offset") <- value
+`offsetBases<-.consmat` <- function(x, value) {
+  attr(x, "offsetBases") <- value
   x
 }
 

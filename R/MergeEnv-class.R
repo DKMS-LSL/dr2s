@@ -148,8 +148,8 @@ MergeEnv_$set("private", "stepThrough", function(envir) {
     return(FALSE)
   }
   envir$pos <- ifelse(!is.null(envir$SR),
-                      iterators::nextElem(envir$POSit) + offset(envir$SR),
-                      iterators::nextElem(envir$POSit) + offset(envir$LR))
+                      iterators::nextElem(envir$POSit) + offsetBases(envir$SR),
+                      iterators::nextElem(envir$POSit) + offsetBases(envir$LR))
   p <- envir$pos
   x <- yield(envir)
   rs <- disambiguateVariant(yield(envir), threshold = self$threshold)
@@ -162,7 +162,7 @@ MergeEnv_$set("private", "stepThrough", function(envir) {
 ## self$showConsensus() ####
 MergeEnv_$set("public", "showConsensus", function(envir, 
                                                   pos, left = 6, right = left, 
-                                                  offset = 0) {
+                                                  offseBasest = 0) {
   # debug
   # envir <- self$a
   #self$a$init()
@@ -173,9 +173,9 @@ MergeEnv_$set("public", "showConsensus", function(envir,
   if (missing(pos)) {
     pos <- envir$pos
   }
-  min <- minimum(pos + offset - left, 1)
-  lr <- envir$LR[min:(pos + offset + right), , drop = FALSE]
-  sr <- envir$SR[min:(pos + offset + right), , drop = FALSE]
+  min <- minimum(pos + offsetBases - left, 1)
+  lr <- envir$LR[min:(pos + offsetBases + right), , drop = FALSE]
+  sr <- envir$SR[min:(pos + offsetBases + right), , drop = FALSE]
   ## Conseq
   lcs <- tolower(.makeAmbigConsensus_(lr, threshold = self$threshold, 
                                        excludeGaps = FALSE, asString = TRUE))
@@ -191,7 +191,7 @@ MergeEnv_$set("public", "showConsensus", function(envir,
 
 ## self$showMatrix() ####
 MergeEnv_$set("public", "showMatrix", function(envir, pos, left = 6, 
-                                               right = left, offset = 0) {
+                                               right = left, offsetBases = 0) {
   if (is.null(envir$init)) {
     cat("Haplotype", envir$haplotype, "not initialised.")
     return(invisible(NULL))
@@ -199,17 +199,17 @@ MergeEnv_$set("public", "showMatrix", function(envir, pos, left = 6,
   if (missing(pos)) {
     pos <- envir$pos
   }
-  min <- minimum(pos + offset - left, 1)
-  lr <- envir$LR[min:(pos + offset + right), , drop = FALSE]
-  sr <- envir$SR[min:(pos + offset + right), , drop = FALSE]
+  min <- minimum(pos + offsetBases - left, 1)
+  lr <- envir$LR[min:(pos + offsetBases + right), , drop = FALSE]
+  sr <- envir$SR[min:(pos + offsetBases + right), , drop = FALSE]
   lcs <- .makeAmbigConsensus_(lr, threshold = self$threshold, 
                                excludeGaps = FALSE, asString = TRUE)
   scs <- .makeAmbigConsensus_(sr, threshold = self$threshold, 
                                excludeGaps = FALSE, asString = TRUE)
   cat("Haplotype ", envir$haplotype, 
-      "\nLong read map position [", pos + offset, "] Consensus [", lcs, "]\n")
+      "\nLong read map position [", pos + offsetBases, "] Consensus [", lcs, "]\n")
   print(lr, n = NROW(lr), noHead = TRUE, transpose = TRUE)
-  cat("Short read map position [", pos + offset, "] Consensus [", scs, "]\n")
+  cat("Short read map position [", pos + offsetBases, "] Consensus [", scs, "]\n")
   print(sr, n = NROW(sr), noHead = TRUE, transpose = TRUE)
 })
 

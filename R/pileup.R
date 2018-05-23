@@ -207,7 +207,7 @@ print.pileup <- function(x, asString = FALSE, ...) {
   if (length(ins_) == 0) {
     return(x)
   }
-  offset <- 0L
+  offsetBases <- 0L
   insIdx <- integer()
   insRun <- integer()
   cm <- consmat(x, freq = FALSE)
@@ -215,14 +215,14 @@ print.pileup <- function(x, asString = FALSE, ...) {
   # cm[680:700,]
   # i <- 1
   for (i in seq_along(ins_)) {
-    j <- as.integer(names(ins_[i])) + offset
+    j <- as.integer(names(ins_[i])) + offsetBases
     cm[j, "+"] <- 0L
     cm <- rbind(cm[1:j, ], ins_[[i]], cm[(j + 1):NROW(cm), ])
     ins_[1]
     insLen <- NROW(ins_[[i]])
     insIdx <- c(insIdx, (j + 1):(j + insLen))
     insRun <- c(insRun, rep(i, insLen))
-    offset <- offset + insLen
+    offsetBases <- offsetBases + insLen
   }
   attr(insIdx, "run") <- insRun
   cmAttr$dim <- dim(cm)

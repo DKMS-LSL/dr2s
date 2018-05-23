@@ -15,9 +15,6 @@ mapInit(x, opts = list(), refname = "ref", optsname = "",
 
 \item{opts}{Mapper options.}
 
-\item{refname}{Which allele do we use as primary reference; the
-\strong{ref}erence allele or the \strong{alt}ernate allele.}
-
 \item{optsname}{Additional text to describe the options used.}
 
 \item{threshold}{Threshold to call a variant.}

@@ -8,7 +8,7 @@
 \usage{
 DR2Smap(sample, locus, longreads = list(type = "pacbio", 
 dir = "pacbio"), shortreads = list(type = "illumina", dir = "illumina"), 
-datadir = ".", outdir = "./output", reference = NULL, consensus = "mapping",
+datadir = ".", outdir = "./output", reference = NULL,,
 threshold = 0.20, iterations = 1, microsatellite = FALSE, distAlleles = 2,
 filterScores = TRUE, partSR = TRUE, fullname = TRUE, createOutdir = TRUE, 
 ...)
@@ -52,7 +52,7 @@ Partition mapped long reads into haplotypes}
 \item{\code{x$splitReadsByHaplotype(limit = list(), #' plot = TRUE)}}{
 Partition mapped long reads into haplotypes}
 \item{\code{x$extractFastq()}}{
-Extract FASTQs for partitioned reads and if the consensus method is
+Extract FASTQs for partitioned reads.
 }}
 }
 

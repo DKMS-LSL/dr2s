@@ -11,10 +11,6 @@ DNA_BASES <- function() {
   c("A", "C", "G", "T", "a", "c", "g", "t")
 }
 
-DNA_BASES_UPPER <- function() {
-  c("A", "C", "G", "T")
-}
-
 VALID_DNA <- function(include = "del"){
   include <- match.arg(include, c("none", "del", "ins", "indel"))
   if (include == "indel") return(c("G", "A", "T", "C", "-", "+"))
@@ -217,10 +213,6 @@ maximum <- function(n, m) {
   if (n < m) n else m
 }
 
-det2 <- function(m) {
-  m[1, 1] * m[2, 2] - m[1, 2] * m[2, 1]
-}
-
 `%||%` <- function(a, b) {
   if (length(a) == 0) b else a
 }
@@ -268,34 +260,6 @@ det2 <- function(m) {
     unlink(path)
   }
   invisible(path)
-}
-
-.recodeFastqHeader <- function(fqpath) {
-  fq <- ShortRead::readFastq(fqpath)
-  ids <- as.character(ShortRead::id(fq))
-  if (any(grepl(" MD:Z:", ids))) {
-    return(TRUE)
-  }
-  readId <- sub("(;|\\s+).+$", "", ids)
-  mdata <- sub("^[^; ]+[; ]+", "", ids)
-  mdata <- if (all(grepl(";", mdata))) {
-    paste0(strsplitN(mdata, " ", 1), paste0(";BARCODE=", 
-                                            gsub("(\\]|\\[)", "", 
-                                                 strsplitN(mdata, " ", 2))))
-  } else if (all(grepl("ONBC", mdata))) {
-    paste0("BARCODE=", gsub("(\\]|\\[)", "", mdata))
-  } else {
-    gsub("(\\s+|:)", ";", mdata)
-  }
-  ids <- Biostrings::BStringSet(paste0(readId, " MD:Z:", mdata))
-  fq@id <- ids
-  fq2 <- paste0(fqpath, "~")
-  ShortRead::writeFastq(fq, file = fq2, compress = FALSE)
-  if (file.copy(fq2, fqpath, overwrite = TRUE)) {
-    unlink(fq2)
-    return(TRUE)
-  }
-  FALSE
 }
 
 .hasCommand <- function(cmd) {

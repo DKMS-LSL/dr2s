@@ -22,7 +22,7 @@ A \code{consmat} object includes the attributes:
 \describe{
   \item{n}{<integer>; Number of reads per row.}
   \item{freq}{<logical>; Is it a frequency matrix or a count matrix.}
-  \item{offset}{<integer>; Offset}
+  \item{offsetBases}{<integer>; Offset}
   \item{insertions}{<integer>; Insertions}
 }
 }

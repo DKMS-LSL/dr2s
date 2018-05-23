@@ -109,8 +109,6 @@ DR2Smap <- function(sample,
 #'
 #' @param x A \code{\link[=DR2S_]{DR2S}} object.
 #' @param opts Mapper options.
-#' @param refname Which allele do we use as primary reference; the
-#' \strong{ref}erence allele or the \strong{alt}ernate allele.
 #' @param optsname Additional text to describe the options used.
 #' @param threshold Threshold to call a variant.
 #' @param minBaseQuality Minimum \sQuote{QUAL} value for each nucleotide in an

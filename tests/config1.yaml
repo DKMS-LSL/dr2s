@@ -1,7 +1,6 @@
 datadir: ~/bioinf/DR2S_KIR/20171130/3DL3/
 outdir: ~/storage/testdata/20171130/3DL3
 threshold: 0.10
-consensus: 'mapping'
 forceBadMapping: FALSE
 iterations: 2
 microsatellite: TRUE

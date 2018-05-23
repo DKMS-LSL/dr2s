@@ -1236,16 +1236,16 @@ DR2S_$set("public", "runPartitionShortReads", function(opts = list(),
 #' @export
 print.partitionShortReads <- function(x, ...) {
   msg  <- sprintf("An object of class '%s'.\n", class(x)[1])
-  bamf <- paste0(basename(unlist(x$bamfile) %||% ""), collapse = ", ")
-  seqp <- paste0(basename(unlist(x$seqpath) %||% ""), collapse = ", ")
+  bamf <- comma(basename(unlist(x$bamfile) %||% ""))
+  seqp <- comma(basename(unlist(x$seqpath) %||% ""))
 
   msg <- sprintf(
     "%s [Dir] %s\n [Longreads] %s\n [Shortreads] %s\n [References] %s\n
     [Bamfile] %s\n [Seqpath] %s\n",
     msg, x$dir,
-    paste0(basename(unlist(x$reads)), collapse = ", "),
-    paste0(basename(x$sreads), collapse = ", "),
-    paste0(basename(unlist(x$ref)), collapse = ", "),
+    comma(basename(unlist(x$reads))),
+    comma(basename(x$sreads)),
+    comma(basename(unlist(x$ref))),
     bamf, seqp
   )
   cat(msg)
@@ -1563,14 +1563,14 @@ DR2S_$set("public", "runMapFinal", function(opts = list(),
 #' @export
 print.mapFinal <- function(x, ...) {
   msg  <- sprintf("An object of class '%s'.\n", class(x)[1])
-  bamf <- paste0(basename(unlist(x$bamfile) %||% ""), collapse = ", ")
+  bamf <- comma(basename(unlist(x$bamfile) %||% ""))
   msg <- sprintf(
     "%s [Dir] %s\n [Longreads] %s\n [Shortreads] %s\n [References] %s\n
     [Bamfile] %s",
     msg, x$dir,
-    paste0(basename(unlist(x$lreads)), collapse = ", "),
-    paste0(basename(unlist(x$sreads)), collapse = ", "),
-    paste0(basename(unlist(x$ref)), collapse = ", "),
+    comma(basename(unlist(x$lreads))),
+    comma(basename(unlist(x$sreads))),
+    comma(basename(unlist(x$ref))),
     bamf
   )
   cat(msg)

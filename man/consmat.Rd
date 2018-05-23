@@ -9,7 +9,7 @@ consmat(x, ...)
 \arguments{
 \item{x}{A \code{pileup} object.}
 
-\item{...}{Additional arguments such as \code{n}, \code{offset}, 
+\item{...}{Additional arguments such as \code{n}, \code{offsetBases}, 
 \code{insertions}}
 
 \item{freq}{If \code{TRUE} then frequencies are reported, otherwise counts.}
@@ -27,7 +27,7 @@ A \code{consmat} object includes the attributes:
 \describe{
   \item{n}{<integer>; Number of reads per row.}
   \item{freq}{<logical>; Is it a frequency matrix or a count matrix.}
-  \item{offset}{<integer>; Offset}
+  \item{offsetBases}{<integer>; OffsetBases}
   \item{insertions}{<integer>; Insertions}
 }
 }
