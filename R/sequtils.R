@@ -33,11 +33,13 @@
     sc[notTrimEnds, "end"] <- NA_integer_
   }
   trim <- sc %>%
-    dplyr::transmute(keep = ifelse(is.na(start) & is.na(end),
+    dplyr::transmute(keep = ifelse(is.na(.data$start) & is.na(.data$end),
                                    readlength,
                                    readlength -
-                                     abs(ifelse(is.na(end), 0, end) -
-                                           ifelse(is.na(start), 0, start))))
+                                     abs(ifelse(is.na(.data$end), 0, 
+                                                .data$end) -
+                                           ifelse(is.na(.data$start), 0, 
+                                                  .data$start))))
 
   alignmentScoreThreshold = 0.3*readlength # Change to dynamic
   badScore <- bam$qname[bam$tag$AS < alignmentScoreThreshold]
@@ -132,12 +134,12 @@ generateReferenceSequence <- function(allele, locus, outdir, dirtag=NULL,
     assertthat::is.dir(outdir),
     assertthat::is.writeable(outdir)
   )
-  sref <- foreach(al=allele, .combine="c") %do% {
-    sref <- ipd.Hsapiens.db::getClosestComplete(al, locus)
+  sref <- foreach(i=allele, .combine="c") %do% {
+    sref <- ipd.Hsapiens.db::getClosestComplete(i, locus)
     if (fullname) {
       names(sref) <- gsub(" +", "_", names(sref))
     } else {
-      names(sref) <- gsub("[*:]", "", al)
+      names(sref) <- gsub("[*:]", "", i)
     }
     sref
   }
@@ -274,7 +276,6 @@ generateReferenceSequence <- function(allele, locus, outdir, dirtag=NULL,
 #' @return plot a pdf with length histogram and write mode to log
 #' @examples
 #' ###
-
 #' @export
 checkHomoPolymerCount <- function(x, count = 10, map = "mapFinal") {
   map <- match.arg(map, c("mapFinal", "refine"))
@@ -345,7 +346,7 @@ checkHomoPolymerCount <- function(x, count = 10, map = "mapFinal") {
     }
 
     modes <- homopolymersHP %>%
-      dplyr::group_by(position) %>%
+      dplyr::group_by(.data$position) %>%
       dplyr::summarize(mode = .getModeValue(length))
     for (i in 1:NROW(modes)) {
       modeHP <- modes[i,]

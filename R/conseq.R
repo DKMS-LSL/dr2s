@@ -7,7 +7,7 @@
 #'
 #' @param x \code{pileup} object.
 #' @param name Name for consensus sequence.
-#' @param type One of "prob" or "ambig".
+#' @param type One of "prob", "ambig" or "simple".
 #' @param threshold If \code{type == "ambig"}, threshold to call an ambiguous
 #' consensus call.
 #' @param excludeGaps Exclude gaps at insertion position from consensus
@@ -17,7 +17,6 @@
 #' @param forceExcludeGaps Exclude gaps at from consensus calling irrespective
 #' of the frequency of the gap.
 #' @param ... Additional arguments.
-#'
 #' @return A \code{\linkS4class{BStringSet}} object with a metadata list
 #' containing the slots:
 #' \describe{
@@ -31,16 +30,23 @@
 #' @export
 #' @examples
 #' ###
-conseq <- function(x, ...) UseMethod("conseq")
-
+conseq <- function(x,
+                   name                = "conseq",
+                   type                = c("prob", "ambig", "simple"),
+                   threshold           = NULL,
+                   excludeGaps         = TRUE,
+                   gapSuppressionRatio = 2/5,
+                   forceExcludeGaps    = FALSE, 
+                   ...)
+  UseMethod("conseq")
 #' @export
 conseq.pileup <- function(x,
-                          name = "conseq",
-                          type = c("prob", "ambig"),
-                          threshold = NULL,
-                          excludeGaps = TRUE,
+                          name                = "conseq",
+                          type                = c("prob", "ambig", "simple"),
+                          threshold           = NULL,
+                          excludeGaps         = TRUE,
                           gapSuppressionRatio = 2/5,
-                          forceExcludeGaps = FALSE, ...) {
+                          forceExcludeGaps    = FALSE, ...) {
   if (is.null(threshold)) {
     threshold <- x$threshold
   }
@@ -50,16 +56,15 @@ conseq.pileup <- function(x,
          gapSuppressionRatio = gapSuppressionRatio,
          forceExcludeGaps = forceExcludeGaps, ... )
 }
-
 #' @export
 conseq.matrix <- function(x,
-                          name = NULL,
-                          type = c("prob", "ambig"),
-                          threshold = NULL,
-                          excludeGaps = TRUE,
+                          name                = NULL,
+                          type                = c("prob", "ambig", "simple"),
+                          threshold           = NULL,
+                          excludeGaps         = TRUE,
                           gapSuppressionRatio = 2/5,
-                          forceExcludeGaps = FALSE, ...) {
-  type <- match.arg(type, c("prob", "ambig"))
+                          forceExcludeGaps    = FALSE, ...) {
+  type <- match.arg(type, c("prob", "ambig", "simple"))
   if (type == "ambig" && is.null(threshold)) {
     stop("Must set threshold for ambiguity consensus calling!")
   }
@@ -68,21 +73,12 @@ conseq.matrix <- function(x,
     prob  = .makeProbConsensus_(x, excludeGaps = excludeGaps,
                                  forceExcludeGaps = forceExcludeGaps,
                                  gapSuppressionRatio = gapSuppressionRatio),
-    ambig = .makeAmbigConsensus_(x, threshold, excludeGaps = excludeGaps)
+    ambig = .makeAmbigConsensus_(x, threshold, excludeGaps = excludeGaps),
+    simple = .makeSimpleConsensus_(x)
+
   )
   names(conseq) <- name
   conseq
-}
-
-#' @keywords internal
-#' @export
-simpleConsensus <- function(x) {
-  cmf <- consmat(x, freq = TRUE)
-  if (any(na_ <- is.na(rowSums(cmf)))) {
-    cmf[na_, ] <- 0
-    cmf <- cbind(cmf, N = ifelse(na_, 1, 0))
-  }
-  paste0(colnames(cmf)[apply(cmf, 1, which.max)], collapse = "")
 }
 
 ## strict consensus based on z-scores
@@ -209,7 +205,17 @@ simpleConsensus <- function(x) {
   )
   seq
 }
+.makeSimpleConsensus_ <- function(x) {
+  cmf <- consmat(x, freq = TRUE)
+  if (any(na_ <- is.na(rowSums(cmf)))) {
+    cmf[na_, ] <- 0
+    cmf <- cbind(cmf, N = ifelse(na_, 1, 0))
+  }
+  paste0(colnames(cmf)[apply(cmf, 1, which.max)], collapse = "")
+}
 
+
+## Helper functions
 # gapSuppressionRatio = base/gap
 .suppressGaps_ <- function(x, ins, gapSuppressionRatio = 2/5) {
   x0 <- x[dimnames(x)$pos %in% ins, ]
@@ -222,86 +228,4 @@ simpleConsensus <- function(x) {
   }
 
   x
-}
-
-
-# Summarise and plot ------------------------------------------------------
-
-
-#' Plot probability of consensus bases.
-#'
-#' @param seqA consensus sequence A.
-#' @param seqB consensus sequence B.
-#' @param textSize Text size.
-#' @param pointSize Point size.
-#' @param labelA Label A.
-#' @param labelB Label B.
-#'
-#' @return A \code{ggplot} object.
-#' @export
-#'
-#' @examples
-#' ##
-# threshold = "auto"
-# textSize = 3
-# pointSize = 1
-plotConseqProbability <- function(cseqs,
-                                    threshold = "auto",
-                                    textSize = 3,
-                                    pointSize = 1) {
-  labels <- sapply(cseqs, function(x) x$label)
-  seqs   <- sapply(cseqs, function(x) x$cseq)
-  # get labels and tags
-  if (all(nzchar(labels))) {
-    tags   <- lapply(labels, function(x) gsub("[<>]", "", 
-                                              strsplit1(x, " ", fixed = TRUE)))
-    groups <- lapply(tags, function(x) dot(setdiff(x, Reduce(intersect, tags))))
-    label  <- dot(Reduce(intersect, tags))
-  } else {
-    label  <- ""
-    groups <- 1:length(cseqs)
-  }
-
-  if (all(unlist(lapply(seqs, function(x) !is.null(metadata(x)$zscore))))) {
-    ylabel <- "Z-score probability"
-  } else {
-    ylabel <- "Frequency"
-  }
-
-  df <- dplyr::bind_rows(
-    foreach(hp = names(cseqs)) %do% {
-      seq <- seqs[[hp]]
-      dplyr::data_frame(
-        group = groups[[hp]],
-        pos   = seq_len(Biostrings::width(seq)),
-        base  = strsplit1(as.character(seq), split = ""),
-        prob  = if (!is.null(metadata(seq)$zscore)) {
-          as.numeric(pnorm(metadata(seq)$zscore))
-        } else {
-          metadata(seq)$freq
-        }
-      )
-    }
-  )
-
-  lower <- if (threshold == "auto") {
-    dplyr::summarise(dplyr::group_by(df, group), lower = quantile(prob, 0.0025))
-  } else {
-    dplyr::data_frame(group = unlist(groups), lower = threshold)
-  }
-
-  df2 <- dplyr::filter(dplyr::left_join(df, lower, by = "group"), prob <= lower)
-  ggplot(df, aes(pos, prob)) +
-    facet_grid(group ~ .) +
-    geom_point(aes(colour = base), alpha = 0.5, size = pointSize) +
-    scale_color_manual(values = NUCCOL()) +
-    geom_label(aes(x = pos, y = prob - prob*0.05, label = pos), data = df2,
-               colour = "black", size = textSize) +
-    geom_hline(aes(yintercept = lower), linetype = "dashed", 
-               colour = "gray20", data = lower) +
-    ylim(c(0.25, 1)) +
-    xlab("Position [bp]") +
-    ylab(ylabel) +
-    ggtitle(label) +
-    theme_bw()
 }

@@ -237,7 +237,7 @@ print.variant <- function(x, ...) {
       attr(ins_, "run") <- run_
     }
     ins(cm) <- ins_
-    offsetBases(cm) <- offsetBases(cm) - n_
+    offsetBases(cm) <- offsetBases(cm)
   }
   ## update rowsums
   n(cm) <- .rowSums(cm, NROW(cm), NCOL(cm))

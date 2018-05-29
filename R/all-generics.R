@@ -7,6 +7,12 @@
 #'
 #' Initialise a \code{\link[=DR2S_]{DR2S}} mapper.
 #'
+#' @usage createDR2SConf(sample, locus, longreads = list(type = "pacbio", 
+#' dir = "pacbio"), shortreads = list(type = "illumina", dir = "illumina"), 
+#' datadir = ".", outdir = "./output", reference = NULL,
+#' threshold = 0.20, iterations = 1, microsatellite = FALSE, distAlleles = 2, 
+#' filterScores = TRUE, partSR = TRUE, forceMapping = FALSE, fullname = TRUE, 
+#' details = NULL, ...)
 #' @section datadir:
 #'
 #' A \code{datadir} must contain arbitrarily named subdirectories
@@ -25,14 +31,6 @@
 #' containing the reference sequence. If \code{reference = NULL} a global 
 #' generic reference for a given locus will be used.
 #'
-#' @section Consensus:
-#' Right now, the consensus method of multialign is removed. A de novo assembly 
-#' of longreads, maybe supported by shortreads might be implemented.
-#' \dQuote{\bold{\code{mapping}}}: The reference is refined from the initial 
-#' provided reference during the mapInit step using short reads. Individual 
-#' references for each found haplotype are constructed from this reference using
-#' only longreads that are assigned to the haplotype.
-#'
 #' @param sample A unique sample identifier used to locate the long and short
 #' read FASTQ files.
 #' @param locus The HLA or KIR locus.
@@ -44,26 +42,30 @@
 #' @param datadir The data directory (See Note).
 #' @param outdir The output directory (See Note).
 #' @param reference The reference allele(s).
-#' @param consensus \dQuote{\code{mapping}} for now (See Note).
 #' @param threshold Threshold frequency for polymorphisms.
 #' @param iterations Number of iterations of the mapIter step.
-#' @param fullname Truncate allele names.
-#' @param partSR Use shortreads in the mapInit step for getting polymorphic 
-#' positions and a first reference.
 #' @param microsatellite FALSE Perform a second mapping of shortreads to the 
 #' inferred reference in mapInit. Set to TRUE if you know you have repeats like 
 #' in microsatellites. Usually extends the reference to a maximum length and 
 #' enables a better mapping.
+#' @param partSR Use shortreads in the mapInit step for getting polymorphic 
+#' positions and a first reference.
 #' @param forceMapping FALSE set to TRUE if you want to force processing of bad
 #' shortreads, i.e. when the distribution of coverage is bad. Aborts the program
 #' if maximum coverage > 75 \% quantile * 5.
-#' @return A \code{\link[=DR2S_]{DR2S}} object.
+#' @param filterScores use only reads passing a strict filtering step. TODO
+#' @param distAlleles Number of different alleles in the sample. Should be 2
+#' for heterozygous samples, 1 for homozygous samples and > 2 for some KIR loci.
+#' @param fullname Truncate allele names.
+#' @param details Metadata of a sample. Will be written to the fasta header of 
+#' the final sequences and stored in the config dump.
+#' @param ... Additional arguments.
 #' @family DR2S mapper functions
 #' @export
 #' @importFrom S4Vectors metadata metadata<-
 #' @examples
 #' \dontrun{
-#' x <- DR2Smap(
+#' x <- DR2SConf(
 #'   sample = "ID12300527",
 #'   locus = "DPB1",
 #'   datadir = "/path/to/data",
@@ -82,23 +84,35 @@
 #'   polish() %>%
 #'   report(blockWidth = 60)
 #' }
-DR2Smap <- function(sample,
+createDR2SConf <- function(sample,
                     locus,
-                    longreads = list(type = "pacbio", dir = "pacbio"),
-                    shortreads = list(type = "illumina", dir = "illumina"),
-                    datadir = ".",
-                    outdir = "./output",
-                    reference = NULL,
-                    consensus = "mapping",
-                    threshold = 0.20,
-                    iterations = 1,
-                    partSR = TRUE,
-                    fullname = TRUE,
+                    longreads      = list(type = "pacbio", dir = "pacbio"),
+                    shortreads     = list(type = "illumina", dir = "illumina"),
+                    datadir        = ".",
+                    outdir         = "./output",
+                    reference      = NULL,
+                    threshold      = 0.20,
+                    iterations     = 1,
+                    microsatellite = FALSE,
+                    distAlleles    = 2,
+                    filterScores   = TRUE,
+                    partSR         = TRUE,
+                    forceMapping   = FALSE,
+                    fullname       = TRUE,
+                    details        = NULL,
                     ...) {
-  UseMethod("DR2Smap")
+  UseMethod("DR2SConf")
 }
 
-
+#' Initialise a DR2S instance
+#' @param config A DR2S configuration object.
+#' @param createOutdir Create the outdir if not exists.
+#' @return A \code{\link[=DR2S_]{DR2S}} object.
+#' @export
+InitDR2S <- function(config,
+                     createOutdir = TRUE) {
+  UseMethod("InitDR2S")
+}
 # mappers -----------------------------------------------------------------
 
 
@@ -110,6 +124,8 @@ DR2Smap <- function(sample,
 #' @param x A \code{\link[=DR2S_]{DR2S}} object.
 #' @param opts Mapper options.
 #' @param optsname Additional text to describe the options used.
+#' @param partSR If \code{TRUE} use shortreads to infer the polymorphic 
+#' positions for clustering.
 #' @param threshold Threshold to call a variant.
 #' @param minBaseQuality Minimum \sQuote{QUAL} value for each nucleotide in an
 #' alignment.
@@ -121,8 +137,15 @@ DR2Smap <- function(sample,
 #' position required for that nucleotide to appear in the result.
 #' @param includeDeletions If \code{TRUE}, include deletions in pileup.
 #' @param includeInsertions If \code{TRUE}, include insertions in pileup.
+#' @param microsatellite If \code{TRUE} remap the shortreads again to expand
+#' the reference to a maximum length. Works better for larger insertions and
+#' repeats like microsatellites. 
 #' @param force If \code{TRUE}, overwrite existing bam file.
 #' @param fullname If \code{TRUE}, use the full name in reference fasta.
+#' @param filterScores Apply a harsh filtering on the reads. Filters for mapping
+#' quality and removes all softclipping reads. Usually not necessary.
+#' @param forceMapping if \code{FALSE} the program throws an error in case the
+#' coverage of shortreads is too different at different parts of the sequence. 
 #' @param plot Produce diagnostic plots.
 #' @param ... Further arguments passed to methods.
 #'
@@ -150,19 +173,21 @@ DR2Smap <- function(sample,
 #' }
 mapInit <- function(x,
                     opts = list(),
-                    refname = "ref",
                     optsname = "",
-                    threshold = 0.20,
-                    minBaseQuality = 7,
-                    minMapq = 0,
+                    partSR = TRUE,
+                    threshold = NULL,
+                    minBaseQuality = 3,
+                    minMapq = 50,
                     maxDepth = 1e4,
                     minNucleotideDepth = 3,
-                    includeDeletions = FALSE,
-                    includeInsertions = FALSE,
+                    includeDeletions = TRUE,
+                    includeInsertions = TRUE,
+                    microsatellite = FALSE,
                     force = FALSE,
                     fullname = TRUE,
-                    plot = TRUE,
-                    ...) {
+                    filterScores = TRUE,
+                    forceMapping = FALSE,
+                    plot = TRUE) {
   UseMethod("mapInit")
 }
 
@@ -174,6 +199,8 @@ mapInit <- function(x,
 #'
 #' @param x A \code{\link[=DR2S_]{DR2S}} object.
 #' @param opts Mapper options.
+#' @param iterations Number of iterations. How often are the clustered reads 
+#' remapped to the updated reference. 
 #' @param minBaseQuality Minimum \sQuote{QUAL} value for each nucleotide in an
 #' alignment.
 #' @param minMapq Minimum \sQuote{MAPQ} value for an alignment to be included
@@ -215,7 +242,8 @@ mapInit <- function(x,
 #' }
 mapIter <- function(x,
                     opts = list(),
-                    minBaseQuality = 7,
+                    iterations = 1,
+                    minBaseQuality = 3,
                     minMapq = 0,
                     maxDepth = 1e4,
                     minNucleotideDepth = 3,
@@ -224,8 +252,7 @@ mapIter <- function(x,
                     gapSuppressionRatio = 2/5,
                     force = FALSE,
                     fullname = TRUE,
-                    plot = TRUE,
-                    ...) {
+                    plot = TRUE) {
   UseMethod("mapIter")
 }
 
@@ -287,8 +314,7 @@ mapFinal <- function(x,
                      force = FALSE,
                      fullname = TRUE,
                      plot = TRUE,
-                     clip = TRUE,
-                     ...) {
+                     clip = TRUE) {
   UseMethod("mapFinal")
 }
 
@@ -299,6 +325,17 @@ mapFinal <- function(x,
 #' Partition mapped long reads into haplotypes
 #'
 #' @param x A \code{\link[=DR2S_]{DR2S}} object.
+#' @param threshold The threshold when a SNP is a SNP.
+#' @param skipGapFreq The gap frequenzy needed to call a gap position.
+#' @param distAlleles The number of distinct alleles in the sample.
+#' @param noGapPartitioning Don't partition based on gaps. Useful for samples 
+#' with only few SNPs but with homopolymers. The falsely called gaps could
+#' mask the real variation.
+#' @param selectAllelesBy If more than \code{distAlleles} clusters are found 
+#' select clusters based on: (1) "distance": The hamming distance of the 
+#' resulting variant consensus sequences or (2) "count": Take the clusters 
+#' with the most reads as the alleles.
+#' @param plot Plot
 #' @param ... Further arguments passed to methods.
 #'
 #' @return A \code{\link[=DR2S_]{DR2S}} object.
@@ -324,19 +361,21 @@ mapFinal <- function(x,
 #'   report(blockWidth = 60)
 #' }
 partitionLongReads <- function(x,
-                               skipGapFreq = 2/3,
-                               distAlleles = NULL,
+                               threshold         = NULL,
+                               skipGapFreq       = 2/3,
+                               distAlleles       = NULL,
                                noGapPartitioning = FALSE,
-                               selectAllelesBy = "count",
-                               ...
-                               ) {
+                               selectAllelesBy   = "count",
+                               plot              = TRUE,
+                               ...) {
   UseMethod("partitionLongReads")
 }
 
 #' Assign short reads from mapInit to haplotypes
 #'
 #' @param x A \code{\link[=DR2S_]{DR2S}} object.
-#' @param force force the creation of new fastq files if they already exist
+#' @param force force the creation of new fastq files if they already exist.
+#' @param opts list with options passed to the mapper.
 #' @param ... Further arguments passed to methods.
 #'
 #' @return A \code{\link[=DR2S_]{DR2S}} object.
@@ -362,7 +401,8 @@ partitionLongReads <- function(x,
 #'   report(blockWidth = 60)
 #' }
 partitionShortReads <- function(x,
-                                force = TRUE,
+                                opts = list(),
+                                force = TRUE, 
                                 ...) {
   UseMethod("partitionShortReads")
 }
@@ -373,6 +413,8 @@ partitionShortReads <- function(x,
 #'
 #' @param x A \code{\link[=DR2S_]{DR2S}} object.
 #' @param threshold When do we call a variant a variant.
+#' @param checkHpCount Check the number of homopolymer counts in shortreads.
+#' Compare the resulting sequence with the mode value and report differences.
 #' @param cache Cache the updated \code{DR2S} object after assembling the 
 #' haplotypes.
 #' @param ... Additional arguments passed to methods.
@@ -401,7 +443,7 @@ partitionShortReads <- function(x,
 #'   report(blockwidth = 60)
 #' }
 polish <- function(x, threshold = x$getThreshold(), checkHpCount = TRUE, 
-                   cache = TRUE, ...) {
+                   cache = TRUE) {
   UseMethod("polish")
 }
 

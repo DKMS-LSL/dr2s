@@ -38,8 +38,8 @@ x <- DR2Smap(
 }
 }
 \seealso{
-Other DR2S mapper functions: \code{\link{DR2Smap}},
-  \code{\link{cache}}, \code{\link{mapFinal}},
+Other DR2S mapper functions: \code{\link{cache}},
+  \code{\link{createDR2SConf}}, \code{\link{mapFinal}},
   \code{\link{mapInit}}, \code{\link{mapIter}},
   \code{\link{partitionLongReads}}, \code{\link{polish}},
   \code{\link{refineAlignment}},

@@ -22,7 +22,7 @@ hammingDist <- function(x){
   stopifnot(is(x, "DNAStringSet"))
   xTmp <- as.matrix(x)
   dnaBaseMapping <- c("G" = 1, "A" = 2, "T" = 3, "C" = 4, "-" = 5, "+" = 6)
-  xTat<- plyr::revalue(xTmp, dnaBaseMapping, warn_missing = FALSE)
+  xMat<- plyr::revalue(xTmp, dnaBaseMapping, warn_missing = FALSE)
   xMat<- sapply(xMat, as.numeric)
   dim(xMat) <- dim(xTmp)
   rm(xTmp)

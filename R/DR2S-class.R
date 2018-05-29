@@ -1,48 +1,7 @@
 #' @export
-DR2Smap.default <- function(sample,
-                            locus,
-                            longreads      = list(type = "pacbio", 
-                                                  dir = "pacbio"),
-                            shortreads     = list(type = "illumina", 
-                                                  dir = "illumina"),
-                            datadir        = ".",
-                            outdir         = ".",
-                            reference      = NULL,
-                            threshold      = 0.20,
-                            iterations     = 1,
-                            microsatellite = FALSE,
-                            partSR         = TRUE,
-                            forceMapping   = FALSE,
-                            filterScores   = TRUE,
-                            distAlleles    = 2,
-                            fullname       = TRUE,
-                            createOutdir   = TRUE,
-                            details        = NULL,
-                            ...) {
-  conf <- createDR2SConf(
-    sample         = sample,
-    locus          = locus,
-    longreads      = longreads,
-    shortreads     = shortreads,
-    datadir        = datadir,
-    outdir         = outdir,
-    reference      = reference,
-    threshold      = threshold,
-    iterations     = iterations,
-    microsatellite = microsatellite,
-    filterScores   = filterScores,
-    partSR         = partSR,
-    fullname       = fullname,
-    distAlleles    = distAlleles,
-    forceMapping   = forceMapping,
-    details        = details,
-    ...
-  )
-  DR2S_$new(conf, createOutdir = createOutdir)
+InitDR2S.DR2Sconf <- function(config, createOutdir = TRUE) {
+  DR2S_$new(config, createOutdir)
 }
-
-#' @export
-DR2Smap.DR2Sconf <- function(conf) DR2S_$new(conf)
 
 #' @export
 cache.DR2S <- function(x, outname, ...) {
@@ -66,32 +25,28 @@ clear.DR2S <- function(x, ...) {
 #' Class \code{"DR2S"}
 #'
 #' @docType class
-#' @usage DR2Smap(sample, locus, longreads = list(type = "pacbio", 
-#' dir = "pacbio"), shortreads = list(type = "illumina", dir = "illumina"), 
-#' datadir = ".", outdir = "./output", reference = NULL,,
-#' threshold = 0.20, iterations = 1, microsatellite = FALSE, distAlleles = 2,
-#' filterScores = TRUE, partSR = TRUE, fullname = TRUE, createOutdir = TRUE, 
-#' ...)
+#' @usage InitDR2S(config, createOutdir = TRUE)
+#' @field InitDR2S Initialize DR2S from a config.
 #' @field mapInit \code{[mapInit]}; the mapping of long reads to 
 #' \code{reference}.
-#' @field partition \code{[PartList]}; the partitioning of full-length mapped
-#'   long reads into different haplotypes.
-#' @field mapIter \code{[mapIter]}; the mapping of A and B reads to consensus
-#'   sequences produced in the previous step.
-#' @field mapFinal \code{[mapFinal]}; the mapping of A, B, and short reads to 
+#' @field partition \code{[PartList]}; the partitioning of full-length 
+#'   mapped long reads into different haplotypes.
+#' @field mapIter \code{[mapIter]}; the mapping of A and B reads to 
 #' consensus sequences produced in the previous step.
-#' @field consensus \code{[ConsList]}; final consensus sequences for A and B.
-#'
+#' @field mapFinal \code{[mapFinal]}; the mapping of A, B, and short reads 
+#' to consensus sequences produced in the previous step.
+#' @field consensus \code{[ConsList]}; final consensus sequences for A and 
+#' B.
 #' @keywords data internal
-#' @return Object of \code{\link{R6Class}} representing a DR2S analysis.
+#' @return Object of \code{\link[R6]{R6Class}} representing a DR2S analysis.
 #' @section Public Methods:
 #' \describe{
-#' \item{\code{x$runMapInit(opts = list(), optsname = "", pct = 100, 
-#' threshold = 0.20, iterations = 1, microsatellite = FALSE, distAlleles = 2, 
-#' filterScores = TRUE, partSR = TRUE, minBaseQuality = 3, minMapq = 0, 
-#' maxDepth = 1e4, minNucleotideDepth = 3, includeDeletions = FALSE, 
-#' includeInsertions = FALSE, force = FALSE, fullname = TRUE, plot = TRUE)}}{
-#' Run the inital mapping step (long reads against the reference allele)}
+#' \item{\code{x$runMapInit(opts = list(), optsname = "",  threshold = 0.20, 
+#' iterations = 1, microsatellite = FALSE, distAlleles = 2, filterScores = TRUE,
+#' partSR = TRUE, minBaseQuality = 3, minMapq = 0, maxDepth = 1e4,
+#' minNucleotideDepth = 3, includeDeletions = FALSE, includeInsertions = FALSE,
+#' force = FALSE, fullname = TRUE, plot = TRUE)}}{Run the inital mapping step 
+#' (long reads against the reference allele)}
 #' \item{\code{x$runHaplotypePartitioning(maxDepth = 1e4, shuffle = TRUE,
 #' skipGapFreq = 2/3, plot = TRUE)}}{
 #' Partition mapped long reads into haplotypes}
@@ -188,7 +143,7 @@ DR2S_ <- R6::R6Class(
     print = function() {
       fmt0 <- "DR2S mapper for sample <%s> locus <%s>\n"
       cat(sprintf(fmt0, self$getSampleId(), self$getLocus()))
-      fmt1 <- paste0("Reference alleles: <%s%s>\n", 
+      fmt1 <- paste0("Reference alleles: <%s>\n", 
                      "Longreads: <%s> Shortreads: <%s>\n", 
                      "Mapper: <%s>\nDatadir: <%s>\nOutdir: <%s>\n")
       cat(sprintf(fmt1,
@@ -733,31 +688,6 @@ DR2S_ <- R6::R6Class(
       plotPartitionHaplotypes(x = self$getPartition(), thin, label %|ch|% tag)
     },
     ##
-    plotConseqProbability = function(ref = NULL,
-                                     iteration = "init",
-                                     threshold = "auto",
-                                     textSize = 3,
-                                     pointSize = 1) {
-      hptypes <- self$getHapTypes()
-      cseqs <- foreach(hp = hptypes) %do% {
-        seqs <- list(
-          label = self$getMapTag(iteration, hp),
-          if(is.numeric(iteration)) {
-            cseq = self$mapIter[[as.character(iteration)]][[hp]]$conseq
-          } else {
-            cseq = self$mapFinal$conseq[[hp]]
-          } )
-        names(seqs) <- c("label", "cseq")
-        seqs
-      }
-
-      # label = self$getMapTag(iteration, hp)
-
-      names(cseqs) <- hptypes
-      plotConseqProbability(cseqs, threshold, textSize, pointSize)
-
-    },
-    ##
     ## Summary methods ####
     ##
     polymorphicPositions = function(threshold, useSR = FALSE) {
@@ -772,11 +702,6 @@ DR2S_ <- R6::R6Class(
       polymorphicPositions(pileup, threshold)
     },
     ##
-    summarisePartitions = function() {
-      stopifnot(self$hasHapList())
-      summary(self$getHapList())
-    },
-    ##
     plotmapInitSummary = function(thin = 0.2, width = 4, label = "") {
       readtypes <- if (self$getPartSR()) {
         c("SR", "LR")
@@ -784,9 +709,10 @@ DR2S_ <- R6::R6Class(
         c("LR")
       }
       plotlist <- foreach(readtype = readtypes) %do% {
+        
         tag <- self$getMapTag(ref = readtype)
         self$plotCoverage(
-          thin =thin,
+          thin  = thin,
           width = width,
           label = label %|ch|% tag,
           readtype = readtype
@@ -838,11 +764,11 @@ DR2S_ <- R6::R6Class(
         })
       }
       ggplot() +
-        ggseqlogo::geom_logo(pwm, method = "bits", seq_type = "dna", 
+        geom_logo(pwm, method = "bits", seq_type = "dna", 
                              stack_width = 0.9) +
         facet_wrap(~seq_group, ncol = 1, strip.position = "left") +
         scale_x_continuous(labels = ppos, breaks = 1:length(ppos)) +
-        ggseqlogo::theme_logo() +
+        theme_logo() +
         theme(axis.text.x  = ggplot2::element_text(size = 10, angle = 60),
               axis.title.y = ggplot2::element_blank(),
               axis.text.y  = ggplot2::element_blank(),
@@ -865,33 +791,6 @@ DR2S_ <- R6::R6Class(
       }
       
       cowplot::plot_grid(plotlist = plotlist, labels = hptypes)
-    },
-    ##
-    plotmapIterSummaryConseqProb = function(iteration = 0,
-                                            textSize = 1.75,
-                                            pointSize = 0.75,
-                                            threshold = "auto") {
-      # debug
-      # reads = "pacbio2"
-      # ref = NULL
-      print(
-        self$plotConseqProbability(
-          iteration = iteration,
-          textSize = textSize,
-          pointSize = pointSize,
-          threshold = threshold))
-    },
-    ##
-    plotmapFinalSummaryConseqProb = function(iteration = "final",
-                                             textSize = 1.75,
-                                             pointSize = 0.75,
-                                             threshold = "auto") {
-      print(
-        self$plotConseqProbability(
-          iteration = iteration,
-          textSize = textSize,
-          pointSize = pointSize,
-          threshold = threshold))
     },
     ##
     getmapIterConseqPileup = function(group) {

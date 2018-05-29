@@ -1,3 +1,4 @@
+#' @export
 createDR2SConf <- function(sample,
                              locus,
                              longreads       = list(type = "pacbio", 
@@ -33,9 +34,10 @@ createDR2SConf <- function(sample,
     srmapper       = conf0$srmapper %||% "bwamem",
     limits         = conf0$limits   %||% NULL,
     haptypes       = conf0$haptypes %||% NULL,
-    pipeline       = conf0$pipeline %||% c("clear", "mapInit", "partitionLongReads",
-                                           "mapIter", "partitionShortReads",
-                                           "mapFinal", "polish", "report"),
+    pipeline       = conf0$pipeline %||% c("clear", "mapInit", 
+                                           "partitionLongReads", "mapIter", 
+                                           "partitionShortReads", "mapFinal", 
+                                           "polish", "report"),
     longreads      = longreads,
     shortreads     = shortreads,
     opts           = conf0$opts     %||% NULL,
@@ -47,6 +49,13 @@ createDR2SConf <- function(sample,
   structure(conf1, class = c("DR2Sconf", "list"))
 }
 
+## TODO rm
+#configFile <- "~/bioinf/DR2S/KIR/20171130/3DP1_fertig/dr2s_conf.yaml"
+#readDR2SConf(configFile)
+#' Read a DR2S config file in yaml format
+#' @param configFile The path to the config file.
+#' @details DR2S config files can be created manually or by the 
+#' \code{\link{writeDR2SConf}} function.
 #' @export
 readDR2SConf <- function(configFile) {
   conf <- yaml::yaml.load_file(configFile)
@@ -99,16 +108,15 @@ expandDR2SConf <- function(conf) {
   conf$longreads <- NULL
 
   foreach(sample = samples, sampleId = sampleIds, .combine = "c") %:%
-    foreach(nrd = nrds, .combine = "c") %:%
     foreach(lrd = lrds, .combine = "c") %:%
     foreach(dst = sample$distDlleles, .combine = "c") %:%
     foreach(ref = sample$reference, .combine = "c") %do% {
-      updateDR2SConf(conf, lrd, nrd, sampleId, sample, ref, 
+      updateDR2SConf(conf, lrd, sampleId, sample, ref, 
                      dst)
     }
 }
 
-updateDR2SConf <- function(conf0, lrd, nrd, sampleId, locus, reference, 
+updateDR2SConf <- function(conf0, lrd, sampleId, locus, reference, 
                           dst) {
   conf0$datadir   <- normalizePath(conf0$datadir, mustWork = TRUE)
   conf0$outdir    <- normalizePath(conf0$outdir, mustWork = FALSE)
@@ -252,6 +260,10 @@ print.DR2Sconf <- function(x, ...) {
   invisible(x)
 }
 
+#' Write the DR2S config as yaml.
+#' @param x A \code{\link{DR2S}} object.
+#' @param outFile The destination file.
+#' @export
 writeDR2SConf <- function(x, outFile = NULL) {
   if (is.null(outFile)) {
     outFile <- file.path(x$getOutdir(), "config.yaml")

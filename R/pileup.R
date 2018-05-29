@@ -7,6 +7,8 @@
 #'
 #' @param bamfile BAM file path.
 #' @param threshold Threshold used for SNP calling.
+#' @param ... Additional parameters passed to 
+#' \code{\link[Rsamtools]{PileupParam}}.
 #' @inheritParams Rsamtools::PileupParam
 #'
 #' @details
@@ -34,60 +36,29 @@
 #' ###
 Pileup <- function(bamfile,
                    threshold = 0.20,
-                   maxDepth = 250,
-                   minBaseQuality = 0,
-                   minMapq = 0,
-                   minNucleotideDepth = 1,
-                   minMinorAlleleDepth = 0,
-                   distinguishStrands = FALSE,
-                   distinguishNucleotides = TRUE,
-                   ignoreQueryNs = TRUE,
-                   includeDeletions = TRUE,
-                   includeInsertions = FALSE,
-                   leftBins = NULL,
-                   queryBins = NULL) {
+                   ...) {
+  param <- list(...)
+  
+  if (is.null(param$distinguish_strands))
+      param$distinguish_strands <- FALSE
+      
   bfl <- Rsamtools::BamFile(bamfile)
-  if (packageVersion("Rsamtools") < "1.24.0") {
-    pParam <- Rsamtools::PileupParam(
-      max_depth = maxDepth,
-      min_base_quality = minBaseQuality,
-      min_mapq = minMapq,
-      min_nucleotide_depth = minNucleotideDepth,
-      min_minor_allele_depth = minMinorAlleleDepth,
-      distinguish_strands = distinguishStrands,
-      distinguish_nucleotides = distinguishNucleotides,
-      ignore_query_Ns = ignoreQueryNs,
-      include_deletions = includeDeletions,
-      include_insertions = includeInsertions,
-      cycle_bins = NULL %||% numeric()
-    )
-  } else {
-    pParam <- Rsamtools::PileupParam(
-      max_depth = maxDepth,
-      min_base_quality = minBaseQuality,
-      min_mapq = minMapq,
-      min_nucleotide_depth = minNucleotideDepth,
-      min_minor_allele_depth = minMinorAlleleDepth,
-      distinguish_strands = distinguishStrands,
-      distinguish_nucleotides = distinguishNucleotides,
-      ignore_query_Ns = ignoreQueryNs,
-      include_deletions = includeDeletions,
-      include_insertions = includeInsertions,
-      left_bins = leftBins,
-      query_bins = queryBins
-    )
-  }
+  pParam <- do.call(Rsamtools::PileupParam, c(param))
+  
   sParam <- Rsamtools::ScanBamParam(
     flag = Rsamtools::scanBamFlag(
       isUnmappedQuery = FALSE,
       isSecondaryAlignment = FALSE
     )
   )
-  pileup <- Rsamtools:::.pileup(file = bfl, scanBamParam = sParam, 
+  ## TODO: check if still correct
+  # pileup <- Rsamtools:::.pileup(file = bfl, scanBamParam = sParam, 
+  #                               pileupParam = pParam)
+  pileup <- Rsamtools::pileup(file = bfl, scanBamParam = sParam, 
                                 pileupParam = pParam)
   pileup <-
     dplyr::mutate(dplyr::tbl_df(pileup),
-                  seqnames = strsplitN(as.character(seqnames), "~", 1, 
+                  seqnames = strsplitN(as.character(.data$seqnames), "~", 1, 
                                        fixed = TRUE))
   structure(
     list(
@@ -101,14 +72,13 @@ Pileup <- function(bamfile,
   )
 }
 
-
 # Methods: pileup ---------------------------------------------------------
 
 
 #' @export
 print.pileup <- function(x, asString = FALSE, ...) {
-  values <- sapply(slotNames(x$param), slot, object = x$param)
-  info <- paste(slotNames(x$param), values, sep=": ", collapse="; ")
+  values <- sapply(methods::slotNames(x$param), methods::slot, object = x$param)
+  info <- paste(methods::slotNames(x$param), values, sep=": ", collapse="; ")
   msg <- if (asString) "" else sprintf("An object of class '%s'.\n", 
                                        class(x)[1])
   msg <- sprintf("%s Bamfile: %s\n Threshold: %s\n %s\n",
@@ -129,7 +99,7 @@ print.pileup <- function(x, asString = FALSE, ...) {
 
 .pileupFindInsertionPositions_ <- function(x, threshold) {
   cm  <- consmat(x, freq = TRUE)
-  pos <- ambiguousPositions(cm, threshold = threshold)
+  pos <- .ambiguousPositions(cm, threshold = threshold)
   pos[cm[pos, "+"] > threshold]
 }
 
@@ -189,11 +159,6 @@ print.pileup <- function(x, asString = FALSE, ...) {
   res
 }
 
-#' @keywords internal
-#' @export
-# debug
-# threshold = NULL
-# x <- pileup
 .pileupIncludeInsertions <- function(x, threshold = NULL) {
   stopifnot(is(x, "pileup"))
   if (!"+" %in% colnames(x$consmat)) {
@@ -233,11 +198,7 @@ print.pileup <- function(x, asString = FALSE, ...) {
   x$consmat <- cm
   x
 }
-#refseq <- hla.map1$map1$A$ref$refseq
-## get msa from bam file
-# debug
-#bamfile <- self$mapInit$bamfile
-#refseq <- self$getRefSeq()
+
 .msaFromBam <- function(bamfile, refseq = NULL, paddingLetter = "+", 
                         region = NULL) {
   if (is.null(region)) {
@@ -345,8 +306,9 @@ plotPileupBasecallFrequency <- function(x, threshold = 0.20, label = "",
     cm[, "+"] <- 0
   }
   cmlong <- dplyr::filter(as.data.frame(consmat(cm, freq = TRUE)), freq > 0)
-  ggplot(cmlong, aes(x = pos, y = freq, colour = nucleotide)) +
-    geom_point(aes(alpha = ifelse(freq > threshold, 0.4, 0.2)), size = 0.75, 
+  ## TOOD check alpha change
+  ggplot(cmlong, aes(x =~ pos, y =~ freq, colour =~ nucleotide)) +
+    geom_point(aes(alpha =~ ifelse(freq > threshold, 0.4, 0.2)), size = 0.75, 
                shape = 15) +
     scale_color_manual(values = NUCCOL()) +
     scale_alpha_continuous(guide = FALSE) +

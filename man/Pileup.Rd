@@ -4,16 +4,15 @@
 \alias{Pileup}
 \title{Calculate pile-up for a BAM file.}
 \usage{
-Pileup(bamfile, threshold = 0.2, maxDepth = 250, minBaseQuality = 0,
-  minMapq = 0, minNucleotideDepth = 1, minMinorAlleleDepth = 0,
-  distinguishStrands = FALSE, distinguishNucleotides = TRUE,
-  ignoreQueryNs = TRUE, includeDeletions = TRUE,
-  includeInsertions = FALSE, leftBins = NULL, queryBins = NULL)
+Pileup(bamfile, threshold = 0.2, ...)
 }
 \arguments{
 \item{bamfile}{BAM file path.}
 
 \item{threshold}{Threshold used for SNP calling.}
+
+\item{...}{Additional parameters passed to 
+\code{\link[Rsamtools]{PileupParam}}.}
 }
 \value{
 A \code{pileup} object. See \code{Details}.

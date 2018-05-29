@@ -4,13 +4,15 @@
 \alias{polish}
 \title{Polish final haplotype sequences.}
 \usage{
-polish(x, threshold = x$getThreshold(), checkHpCount = TRUE, cache = TRUE,
-  ...)
+polish(x, threshold = x$getThreshold(), checkHpCount = TRUE, cache = TRUE)
 }
 \arguments{
 \item{x}{A \code{\link[=DR2S_]{DR2S}} object.}
 
 \item{threshold}{When do we call a variant a variant.}
+
+\item{checkHpCount}{Check the number of homopolymer counts in shortreads.
+Compare the resulting sequence with the mode value and report differences.}
 
 \item{cache}{Cache the updated \code{DR2S} object after assembling the 
 haplotypes.}
@@ -45,8 +47,8 @@ x <- DR2Smap(
 }
 }
 \seealso{
-Other DR2S mapper functions: \code{\link{DR2Smap}},
-  \code{\link{cache}}, \code{\link{clear}},
+Other DR2S mapper functions: \code{\link{cache}},
+  \code{\link{clear}}, \code{\link{createDR2SConf}},
   \code{\link{mapFinal}}, \code{\link{mapInit}},
   \code{\link{mapIter}}, \code{\link{partitionLongReads}},
   \code{\link{refineAlignment}},

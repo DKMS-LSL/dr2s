@@ -17,6 +17,8 @@ checkAlignmentFile(x, which = "mapFinal", where = 0, editor = "xdg-open",
 
 \item{editor}{Which editor to use. Either "xdg-open" (default) for standard
 system editor, "subl" for sublime, "gvim" or "gedit"}
+
+\item{openEditor}{should the editor be opened or just create the files?}
 }
 \description{
 Manually check the alignment of consensus sequences using an editor.

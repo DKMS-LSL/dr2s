@@ -4,15 +4,19 @@
 \alias{mapIter}
 \title{Iterative mapping step (long reads).}
 \usage{
-mapIter(x, opts = list(), minBaseQuality = 7, minMapq = 0,
-  maxDepth = 10000, minNucleotideDepth = 3, includeDeletions = TRUE,
-  includeInsertions = TRUE, gapSuppressionRatio = 2/5, force = FALSE,
-  fullname = TRUE, plot = TRUE, ...)
+mapIter(x, opts = list(), iterations = 1, minBaseQuality = 3,
+  minMapq = 0, maxDepth = 10000, minNucleotideDepth = 3,
+  includeDeletions = TRUE, includeInsertions = TRUE,
+  gapSuppressionRatio = 2/5, force = FALSE, fullname = TRUE,
+  plot = TRUE)
 }
 \arguments{
 \item{x}{A \code{\link[=DR2S_]{DR2S}} object.}
 
 \item{opts}{Mapper options.}
+
+\item{iterations}{Number of iterations. How often are the clustered reads 
+remapped to the updated reference.}
 
 \item{minBaseQuality}{Minimum \sQuote{QUAL} value for each nucleotide in an
 alignment.}
@@ -70,8 +74,8 @@ x <- DR2Smap(
 }
 }
 \seealso{
-Other DR2S mapper functions: \code{\link{DR2Smap}},
-  \code{\link{cache}}, \code{\link{clear}},
+Other DR2S mapper functions: \code{\link{cache}},
+  \code{\link{clear}}, \code{\link{createDR2SConf}},
   \code{\link{mapFinal}}, \code{\link{mapInit}},
   \code{\link{partitionLongReads}}, \code{\link{polish}},
   \code{\link{refineAlignment}},

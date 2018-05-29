@@ -111,7 +111,7 @@ report.DR2S <- function(x, which, blockWidth = 80, noRemap = FALSE, ...) {
     probvarFile <- paste("problems", x$getLrdType(), x$getLrMapper(), "tsv", 
                           sep = ".")
     vars <- x$consensus$variants %>%
-      dplyr::arrange(pos, haplotype)
+      dplyr::arrange(.data$pos, .data$haplotype)
     readr::write_tsv(vars, path = file.path(outdir, probvarFile),
                      append = FALSE, col_names = TRUE)
 
@@ -209,6 +209,7 @@ reportCheckedConsensus <- function(x, which = "mapFinal") {
 #' @param where Where to focus with the editor.
 #' @param editor Which editor to use. Either "xdg-open" (default) for standard
 #' system editor, "subl" for sublime, "gvim" or "gedit"
+#' @param openEditor should the editor be opened or just create the files?
 #' @export
 checkAlignmentFile <- function(x, which = "mapFinal", where = 0,
                                  editor = "xdg-open", openEditor = TRUE) {
@@ -252,11 +253,13 @@ checkAlignmentFile <- function(x, which = "mapFinal", where = 0,
   return(x$getReportStatus())
 }
 
-#' Refine the mapping of an allele by remap to the checked consensus
+#' Refine the mapping of an allele by remapping to the checked consensus
 #'
 #' @param x  A \code{\link[=DR2S_]{DR2S}} object.
 #' @param hptype The allele to refine
-#' @return Returns the updated \code{\link[=DR2s_]{DR2S}} object.
+#' @param report Should the function read a reference from the report folder?
+#' Only internal parameter.
+#' @return Returns the updated \code{\link[=DR2S_]{DR2S}} object.
 #' @return Creates an executable bash file for inspecting the mapping with IGV
 #' @family DR2S mapper functions
 #' @export
@@ -419,8 +422,8 @@ refineAlignment <- function(x, hptype, report = FALSE){
   pileup <- Pileup(
     bamfile,
     x$getThreshold(),
-    includeDeletions = TRUE,
-    includeInsertions = TRUE
+    include_deletions = TRUE,
+    include_insertions = TRUE
   )
 
   # calc new consensus
@@ -509,6 +512,10 @@ readPairFile <- function(pairfile) {
          collapse = "")
 }
 
+#' Read a multiple sequence alignment from file.
+#' @param file The absolute path to the file storing the MSA.
+#' @details The format  a \code{phylip} like format written by 
+#' \code{\link{writeMSA}}.
 #' @export
 readMSA <- function(file) {
   seqs <- c()
@@ -542,8 +549,17 @@ extractAmbigLetters <- function(irange, ambigLetter){
             ambigPositionLetter[x])), collapse = "\n") %<<% "\n"
 }
 
-## Write a multiple sequence alignment in a phylip like format. Formatted for
-## easily accessing positions and differences
+#' Write a multiple sequence alignment in a phylip like format. 
+#' Formatted for easily accessing positions and differences
+#' @param aln The alignment as a \code{\link[Biostrings]{DNAStringSet}}.
+#' @param file The filename and path.
+#' @param block.width The block width of the resulting alignment.
+#' @examples
+#' \dontrun{
+#' library(Biostrings)
+#' msa <- DNAStringSet(c("AAA", "AGA", ))
+#' print("TODO: write rep seq example which runs")
+#' }
 #' @export
 writeMSA <- function(aln, file="", block.width = 50){
   # ToDo add check for length
@@ -571,7 +587,7 @@ writeMSA <- function(aln, file="", block.width = 50){
   cat("#=======================================\n", file=file)
   cat("#\n", file=file, append = TRUE)
   cat("# Aligned_sequences: ", length(aln)," \n", file=file, append = TRUE)
-  sapply(1:length(aln), function(x) cat(sprintf("# %s: %s\n", x, names(aln[x])), 
+  sapply(1:length(aln), function(x) cat(sprintf("# %s: %s\n", x, names(aln[x])),
                                         file=file, append = TRUE))
   cat("#\n#\n", file=file, append = TRUE)
   cat("#=======================================\n", file=file,append = TRUE)

@@ -15,8 +15,6 @@ getSRPartitionScores(refname, bamfile, mats, cores = "auto")
 \item{mats}{Consensus matrix from longread clustering at positions in ppos.}
 
 \item{cores}{Number of cores or "auto"}
-
-\item{ppos}{List of polymorphic positions used for initial clustering.}
 }
 \value{
 A \code{srpatition} object. See \code{Details}.

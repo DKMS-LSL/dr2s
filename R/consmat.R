@@ -3,12 +3,18 @@
 # Consensus Matrix --------------------------------------------------------
 
 
-#' Construct a consensus matrix from pileup
+#' Construct a consensus matrix from pileup. 
+#' 
+#' Accessor and replacement methods are available: n(consmat), ins(consmat),
+#' offsetBases(consmat), is.freq(consmat).
 #'
-#' @param x A \code{pileup} object.
+#' @param x A \code{pileup} object. Additional inputs can be a \code{matrix}, 
+#' \code{tbl_df} or \code{consmat} objects.
 #' @param freq If \code{TRUE} then frequencies are reported, otherwise counts.
 #' @param ... Additional arguments such as \code{n}, \code{offsetBases}, 
-#' \code{insertions}
+#'   \code{insertions}
+#' @param value The value to replace with.
+#' @param consmat The \code{\link{consmat}} object that is changed.
 #' @details
 #' \code{consmat}: a \code{matrix} with positions row names and nucleotides as
 #' column manes.
@@ -22,8 +28,9 @@
 #' @return A \code{consmat} object.
 #' @export
 #' @examples
+#' print("TODO: ADD EXAMPLES")
 #' ###
-consmat <- function(x, ...) UseMethod("consmat")
+consmat <- function(x, freq = TRUE, ...) UseMethod("consmat")
 
 # Internal constructor
 Consmat_ <- function(x, n, freq, offsetBases = 0L, insertions = NULL) {
@@ -43,7 +50,7 @@ consmat.matrix <- function(x, freq = TRUE, ...) {
 #' @export
 consmat.tbl_df <- function(x, freq = TRUE, drop.unused.levels = FALSE, ...) {
   stopifnot(all(c("pos", "nucleotide", "count") %in% colnames(x)))
-  x <- xtabs(formula = count ~ pos + nucleotide, data = x, 
+  x <- stats::xtabs(formula = count ~ pos + nucleotide, data = x, 
              drop.unused.levels = drop.unused.levels)
   rs <- matrix(x, NROW(x),  NCOL(x))
   dimnames(rs) <- dimnames(x)
@@ -61,8 +68,8 @@ consmat.consmat <- function(x, freq = TRUE, ...) {
       x
     } else {
       Consmat_(
-        sweep(x, 1, n(x), `/`), n = n(x), freq = freq, offsetBases = offsetBases(x),
-        insertions = ins(x)
+        sweep(x, 1, n(x), `/`), n = n(x), freq = freq, 
+        offsetBases = offsetBases(x), insertions = ins(x)
       )
     }
   } else if (!freq) {
@@ -70,8 +77,8 @@ consmat.consmat <- function(x, freq = TRUE, ...) {
     n(x) <- .rowSums(x, NROW(x), NCOL(x))
     if (is.freq(x)) {
       Consmat_(
-        sweep(x, 1, n(x), `*`), n = n(x), freq = freq, offsetBases = offsetBases(x),
-        insertions = ins(x)
+        sweep(x, 1, n(x), `*`), n = n(x), freq = freq, 
+        offsetBases = offsetBases(x), insertions = ins(x)
       )
     } else {
       x
@@ -98,7 +105,7 @@ print.consmat <- function(x, n = 25, noHead = FALSE, transpose = FALSE,  ...) {
   } else {
     x <- as.matrix(x)
     if (NROW(x) > n) {
-      rbind(head(x, floor(n / 2)), tail(x, floor(n / 2)))
+      rbind(utils::head(x, floor(n / 2)), utils::tail(x, floor(n / 2)))
     } else x
   }
   print(show)
@@ -111,8 +118,8 @@ print.consmat <- function(x, n = 25, noHead = FALSE, transpose = FALSE,  ...) {
     ## recalibrate n
     n <- .rowSums(rs, NROW(rs), NCOL(rs))
     Consmat_(
-      rs, n, freq = is.freq(x), offsetBases = offsetBases(x), insertions = ins(x)
-    )
+      rs, n, freq = is.freq(x), offsetBases = offsetBases(x), 
+      insertions = ins(x))
   } else rs
 }
 
@@ -140,68 +147,66 @@ as.matrix.consmat <- function(x, ...) {
 as.data.frame.consmat <- function(x, ...) {
   df <- dplyr::tbl_df(as.data.frame.table(x)) %>%
     dplyr::transmute(
-      pos = as.integer(as.character(pos)),
-      nucleotide = nucleotide,
-      freq = Freq
+      pos = as.integer(as.character(.data$pos)),
+      nucleotide = .data$nucleotide,
+      freq = .data$Freq
     ) %>%
-    dplyr::arrange(pos, nucleotide)
+    dplyr::arrange(.data$pos, .data$nucleotide)
   df
 }
 
-#' @keywords internal
+#' @rdname consmat 
 #' @export
-n <- function(x, ...) UseMethod("n")
-#' @export
-n.consmat <- function(x) attr(x, "n")
+n <- function(consmat) UseMethod("n")
 
-#' @keywords internal
 #' @export
-`n<-` <- function(x, value, ...) UseMethod("n<-")
+n.consmat <- function(consmat) attr(consmat, "n")
+
+#' @rdname consmat 
 #' @export
-`n<-.consmat` <- function(x, value) {
-  attr(x, "n") <- value
-  x
+`n<-` <- function(consmat, value) UseMethod("n<-")
+#' @export
+`n<-.consmat` <- function(consmat, value) {
+  attr(consmat, "n") <- value
+  consmat
 }
 
-#' @keywords internal
+#' @rdname consmat 
 #' @export
-ins <- function(x, ...) UseMethod("ins")
+ins <- function(consmat) UseMethod("ins")
 #' @export
-ins.consmat <- function(x) attr(x, "insertions")
+ins.consmat <- function(consmat) attr(consmat, "insertions")
 
-#' @keywords internal
+#' @rdname consmat 
 #' @export
-`ins<-` <- function(x, value, ...) UseMethod("ins<-")
+`ins<-` <- function(consmat, value) UseMethod("ins<-")
 #' @export
-`ins<-.consmat` <- function(x, value) {
-  attr(x, "insertions") <- value
-  x
+`ins<-.consmat` <- function(consmat, value) {
+  attr(consmat, "insertions") <- value
+  consmat
 }
 
 
-#' @keywords internal
+#' @rdname consmat 
 #' @export
-offsetBases <- function(x, ...) UseMethod("offsetBases")
+offsetBases <- function(consmat) UseMethod("offsetBases")
 #' @export
-offsetBases.consmat <- function(x) attr(x, "offsetBases")
+offsetBases.consmat <- function(consmat) attr(consmat, "offsetBases")
 
-#' @keywords internal
+#' @rdname consmat 
 #' @export
-`offsetBases<-` <- function(x, value, ...) UseMethod("offsetBases<-")
+`offsetBases<-` <- function(consmat, value) UseMethod("offsetBases<-")
 #' @export
-`offsetBases<-.consmat` <- function(x, value) {
-  attr(x, "offsetBases") <- value
-  x
+`offsetBases<-.consmat` <- function(consmat, value) {
+  attr(consmat, "offsetBases") <- value
+  consmat
 }
 
-#' @keywords internal
+#' @rdname consmat 
 #' @export
-is.freq <- function(x, ...) UseMethod("is.freq")
+is.freq <- function(consmat) UseMethod("is.freq")
 #' @export
-is.freq.consmat <- function(x) attr(x, "freq")
-
-#' @keywords internal
-#' @export
+is.freq.consmat <- function(consmat) attr(consmat, "freq")
 
 ## Note for me: flattens the matrix; compare rowsum to rowsums upstream of pos;
 ## if > t set all to 0
@@ -209,7 +214,9 @@ is.freq.consmat <- function(x) attr(x, "freq")
                                   verbose = TRUE) {
   rowsum <- rowSums(cm[, 1:4]) ## only consider bases
   m0 <- do.call(cbind, Map(function(n) dplyr::lag(rowsum, n), nLookBehind:1))
-  wquant <- suppressWarnings(apply(m0, 1, quantile, probs = 0.75, na.rm = TRUE))
+  wquant <- suppressWarnings(apply(m0, 1, 
+                                   stats::quantile, 
+                                   probs = 0.75, na.rm = TRUE))
   devi <- (wquant - rowsum)/wquant
   i <- which(devi > cutoff)
   if (length(i) > 0) {
@@ -226,7 +233,7 @@ is.freq.consmat <- function(x) attr(x, "freq")
 #'
 #' @param msa A \code{DNAStringSet} object of aligned sequences.
 #' @details
-#' \code{PWM}: a \code{matrix} with positions row names and nucleotides as
+#' \code{PWM}: a \code{matrix} with position as row names and nucleotides as
 #' column manes. Values are nucleotide weights at a position
 #' A ConsensusMatrix is calculated from the MSA using 
 #' \code{Biostrings::consensusMatrix} and values are converted to probabilities.
@@ -236,6 +243,7 @@ is.freq.consmat <- function(x) attr(x, "freq")
 #'
 #' @export
 #' @examples
+#' print("TODO: Add examples")
 #' ###
 createPWM <- function(msa){
   # Need to calc first a count based consensus matrix, while removing "+". 

@@ -4,7 +4,6 @@
 #' Get a score for each shortread in a bam file on specific positions.
 #' Scores based on a consensus matrix of longreads.
 #'
-#' @param ppos List of polymorphic positions used for initial clustering.
 #' @param refname Name of the reference.
 #' @param bamfile BAM file path.
 #' @param mats Consensus matrix from longread clustering at positions in ppos.
@@ -152,9 +151,8 @@ scoreHighestSR <- function(srpartition, diffThreshold = 0.001) {
   l <- sapply(mats, function(x) x[,pos][as.character(a)])
   list(prob = l,  haplotype = names(mats), pos = rep(pos, length(l)))
 }
-
 .checkSRScoring <- function(position, dfpos){
   scoreOk <- all(sapply(unique(dfpos$haplotype), function(hp)
-    sum( dfpos$read %in% dfpos[haplotype == hp]$read)/NROW(dfpos) > 0.2))
+    sum( dfpos$read %in% dfpos[dfpos$haplotype == hp]$read)/NROW(dfpos) > 0.2))
   return(scoreOk)
 }

@@ -1,14 +1,14 @@
 #' Calculate polymorphic positions from a consensus matrix.
 #'
 #' @param x A consensus matrix or pileup object.
-#' @param theshold Threshold.
+#' @param threshold The threshold when to call a position polymorphic.
 #' @param ... Additional arguments.
 #'
 #' @return A data.frame
 #' @export
 #' @examples
 #' ##
-polymorphicPositions <- function(x, theshold, ...) 
+polymorphicPositions <- function(x, threshold) 
   UseMethod("polymorphicPositions")
 #' @export
 polymorphicPositions.consmat <- function(x, threshold = 0.20) {
@@ -28,21 +28,17 @@ polymorphicPositions.consmat <- function(x, threshold = 0.20) {
   )
 }
 #' @export
-polymorphicPositions.pileup <- function(x, threshold = NULL, ...) {
+polymorphicPositions.pileup <- function(x, threshold = NULL) {
   if (is.null(threshold)) {
     threshold <- x$threshold
   }
   polymorphicPositions(consmat(x, freq = TRUE), threshold = threshold)
 }
 
-#' @keywords internal
-#' @export
-ambiguousPositions <- function(x, threshold, ...) 
-  UseMethod("ambiguousPositions")
+.ambiguousPositions <- function(x, threshold) 
+  UseMethod(".ambiguousPositions")
 
-#' @keywords internal
-#' @export
-ambiguousPositions.consmat <- function(x, threshold) {
+.ambiguousPositions.consmat <- function(x, threshold) {
   f_ <- function(row) {
     sum(row > threshold) > 1L
   }
@@ -52,21 +48,15 @@ ambiguousPositions.consmat <- function(x, threshold) {
   unname(which(apply(x, 1, f_)))
 }
 
-#' @keywords internal
-#' @export
-ambiguousPositions.pileup <- function(x, threshold = NULL) {
+.ambiguousPositions.pileup <- function(x, threshold = NULL) {
   if (is.null(threshold)) {
     threshold <- x$threshold
   }
-  ambiguousPositions(consmat(x, freq = TRUE), threshold = threshold)
+  .ambiguousPositions(consmat(x, freq = TRUE), threshold = threshold)
 }
 
-#' @keywords internal
-#' @export
-consensusBases <- function(x, ...) UseMethod("consensusBases")
+consensusBases <- function(x) UseMethod("consensusBases")
 
-#' @keywords internal
-#' @export
 consensusBases.consmat <- function(x) {
   nucs <- x[, c("A", "C", "G", "T")]
   f <- sweep(nucs, 1, .rowSums(nucs, NROW(nucs), NCOL(nucs)), `/`)

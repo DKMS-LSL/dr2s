@@ -1,3 +1,13 @@
+#' Read a cached DR2S object
+#' @param path the path to the folder storing the DR2S object. Usually the 
+#' \code{outdir} of a previous run.
+#' 
+#' @examples
+#' \dontrun{
+#' library(DR2S)
+#' path <- "path"
+#' dr2s <- readDR2S(path)
+#' }
 #' @export
 readDR2S <- function(path) {
   outdir <- normalizePath(path, mustWork = TRUE)
@@ -69,11 +79,16 @@ readDR2S <- function(path) {
   return(x)
 }
 
+#' Create IGV xml config files for directly open the longread and shortread
+#' mapping in an IGV session. It creates also ".sh" and ".bat" scripts for 
+#' easy opening the IGV instance.
+#' @param x A \code{\link{DR2S_}} object.
+#' @param position The position where IGV focuses on startup.
+#' @param map Which mapping should be opened. One of "mapInit", "mapIter", 
+#' "mapFinal" or "refine".
+#' @param open whether to open an IGV instance now.
 #' @export
-#x <- dr2s
-#position = 1000
-# ToDo: Document
-runIgv <- function(x, position, map = "mapFinal", open = TRUE, ...) {
+runIgv <- function(x, position, map = "mapFinal", open = TRUE) {
   assertthat::assert_that(
     is(x, "DR2S")
   )

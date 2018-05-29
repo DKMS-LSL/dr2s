@@ -7,7 +7,7 @@
 mapFinal(x, opts = list(), minBaseQuality = 7, minMapq = 0,
   maxDepth = 1e+05, minNucleotideDepth = 3, includeDeletions = TRUE,
   includeInsertions = TRUE, force = FALSE, fullname = TRUE, plot = TRUE,
-  clip = TRUE, ...)
+  clip = TRUE)
 }
 \arguments{
 \item{x}{A \code{\link[=DR2S_]{DR2S}} object.}
@@ -70,8 +70,8 @@ x <- DR2Smap(
 }
 }
 \seealso{
-Other DR2S mapper functions: \code{\link{DR2Smap}},
-  \code{\link{cache}}, \code{\link{clear}},
+Other DR2S mapper functions: \code{\link{cache}},
+  \code{\link{clear}}, \code{\link{createDR2SConf}},
   \code{\link{mapInit}}, \code{\link{mapIter}},
   \code{\link{partitionLongReads}}, \code{\link{polish}},
   \code{\link{refineAlignment}},

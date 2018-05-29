@@ -4,11 +4,12 @@
 \alias{mapInit}
 \title{Initial mapping step (long reads).}
 \usage{
-mapInit(x, opts = list(), refname = "ref", optsname = "",
-  threshold = 0.2, minBaseQuality = 7, minMapq = 0, maxDepth = 10000,
-  minNucleotideDepth = 3, includeDeletions = FALSE,
-  includeInsertions = FALSE, force = FALSE, fullname = TRUE,
-  plot = TRUE, ...)
+mapInit(x, opts = list(), optsname = "", partSR = TRUE,
+  threshold = NULL, minBaseQuality = 3, minMapq = 50, maxDepth = 10000,
+  minNucleotideDepth = 3, includeDeletions = TRUE,
+  includeInsertions = TRUE, microsatellite = FALSE, force = FALSE,
+  fullname = TRUE, filterScores = TRUE, forceMapping = FALSE,
+  plot = TRUE)
 }
 \arguments{
 \item{x}{A \code{\link[=DR2S_]{DR2S}} object.}
@@ -16,6 +17,9 @@ mapInit(x, opts = list(), refname = "ref", optsname = "",
 \item{opts}{Mapper options.}
 
 \item{optsname}{Additional text to describe the options used.}
+
+\item{partSR}{If \code{TRUE} use shortreads to infer the polymorphic 
+positions for clustering.}
 
 \item{threshold}{Threshold to call a variant.}
 
@@ -35,9 +39,19 @@ position required for that nucleotide to appear in the result.}
 
 \item{includeInsertions}{If \code{TRUE}, include insertions in pileup.}
 
+\item{microsatellite}{If \code{TRUE} remap the shortreads again to expand
+the reference to a maximum length. Works better for larger insertions and
+repeats like microsatellites.}
+
 \item{force}{If \code{TRUE}, overwrite existing bam file.}
 
 \item{fullname}{If \code{TRUE}, use the full name in reference fasta.}
+
+\item{filterScores}{Apply a harsh filtering on the reads. Filters for mapping
+quality and removes all softclipping reads. Usually not necessary.}
+
+\item{forceMapping}{if \code{FALSE} the program throws an error in case the
+coverage of shortreads is too different at different parts of the sequence.}
 
 \item{plot}{Produce diagnostic plots.}
 
@@ -71,8 +85,8 @@ x <- DR2Smap(
 }
 }
 \seealso{
-Other DR2S mapper functions: \code{\link{DR2Smap}},
-  \code{\link{cache}}, \code{\link{clear}},
+Other DR2S mapper functions: \code{\link{cache}},
+  \code{\link{clear}}, \code{\link{createDR2SConf}},
   \code{\link{mapFinal}}, \code{\link{mapIter}},
   \code{\link{partitionLongReads}}, \code{\link{polish}},
   \code{\link{refineAlignment}},

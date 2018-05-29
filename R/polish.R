@@ -24,8 +24,8 @@ polish.DR2S <- function(x,
   }
   assertthat::assert_that(
     is(x$mapFinal, "mapFinal"),
-    all(unlist(foreach(rtype = x$mapFinal$pileup) %do% {
-      is(rtype$consmat, "consmat")
+    all(unlist(foreach(i = x$mapFinal$pileup) %do% {
+      is(i$consmat, "consmat")
     }))
   )
 
@@ -71,7 +71,7 @@ polish.DR2S <- function(x,
     })
   }
 
-  rs$consensus$variants = dplyr::arrange(vars, pos, haplotype)
+  rs$consensus$variants = dplyr::arrange(vars, .data$pos, .data$haplotype)
 
   if (cache)
     rs$cache()

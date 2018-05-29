@@ -4,11 +4,19 @@
 \alias{partitionReads}
 \title{Cluster a SNP matrix into haplotype groups}
 \usage{
-partitionReads(x, clMethod = "ward.D", minLen = 0.5, skipGapFreq = 2/3,
-  deepSplit = 1, threshold = 0.2, distAlleles = 2, sortBy = "count")
+partitionReads(x, distAlleles = 2, sortBy = count, threshold = 0.2,
+  clMethod = "ward.D", minLen = 0.5, skipGapFreq = 2/3, deepSplit = 1)
 }
 \arguments{
 \item{x}{A \code{[read x position]} SNP matrix.}
+
+\item{distAlleles}{Number of distinct alleles in the sample.}
+
+\item{sortBy}{sort by "distance" or "count". See 
+\code{\link{partitionLongReads}} for details}
+
+\item{threshold}{Only gaps above threshold will be treated as gaps.
+Removes noisy positions in longreads.}
 
 \item{clMethod}{clustering method passed to \code{\link[stats]{hclust}}.}
 
@@ -20,9 +28,6 @@ frequency of gaps within a haplotype group exceeds \code{skipGapFreq}.}
 
 \item{deepSplit}{sensitivity parameter passed to
 \code{\link[dynamicTreeCut]{cutreeHybrid}}.}
-
-\item{threshold}{Only gaps above threshold will be treated as gaps.
-Removes noisy positions in longreads.}
 }
 \value{
 A \code{HapPart} object.

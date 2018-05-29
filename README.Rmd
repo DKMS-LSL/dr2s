@@ -13,7 +13,7 @@ knitr::opts_chunk$set(
 ```
 
 # gDR2S - generic Dual redundant reference sequencing
-
+## TODO: Rewrite and adapt to current API.
 An R package designed to facilitate generating reliable, full-length
 phase-defined reference sequences for novel HLA and KIR alleles.
 

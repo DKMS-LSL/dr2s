@@ -26,11 +26,12 @@ MergeEnv <- function(x, threshold) {
 #' Class \code{"MergeEnv"}
 #'
 #' @docType class
-#' @usage MergeEnv(x)
+#' @usage MergeEnv(x, threshold)
 #' @field threshold \code{[numeric]}; when do we call a variant a variant.
 #' @field x \code{[\link[=DR2S_]{DR2S}]}; the original \code{DR2S} object.
+#' @field threshold When do we call a variant a variant.
 #' @keywords data internal
-#' @return Object of \code{\link{R6Class}} representing a MergeEnv.
+#' @return Object of \code{\link[R6]{R6Class}} representing a MergeEnv.
 #' @section Public Methods:
 #' \describe{
 #' \item{\code{x$init(hapEnv)}}{Intialise a \code{HapEnv}}
@@ -94,7 +95,7 @@ MergeEnv_$set("public", "init", function(hapEnv) {
   }
   
   apos <- foreach(rt = c("LR", "SR"), .combine = c) %do% {
-    ambiguousPositions(envir[[rt]], self$threshold)
+    .ambiguousPositions(envir[[rt]], self$threshold)
   }
   apos <- unique(sort(apos))
   
@@ -207,9 +208,11 @@ MergeEnv_$set("public", "showMatrix", function(envir, pos, left = 6,
   scs <- .makeAmbigConsensus_(sr, threshold = self$threshold, 
                                excludeGaps = FALSE, asString = TRUE)
   cat("Haplotype ", envir$haplotype, 
-      "\nLong read map position [", pos + offsetBases, "] Consensus [", lcs, "]\n")
+      "\nLong read map position [", pos + offsetBases, 
+      "] Consensus [", lcs, "]\n")
   print(lr, n = NROW(lr), noHead = TRUE, transpose = TRUE)
-  cat("Short read map position [", pos + offsetBases, "] Consensus [", scs, "]\n")
+  cat("Short read map position [", pos + offsetBases, "] Consensus [", 
+      scs, "]\n")
   print(sr, n = NROW(sr), noHead = TRUE, transpose = TRUE)
 })
 
@@ -237,7 +240,7 @@ MergeEnv_$set("public", "export", function() {
                                paste0("LR",hptype)]]$consmat
                            }
                            seqname = 
-                           cseq <- conseq(reads, paste0("hap", hptype), "ambig", 
+                           cseq <- conseq(reads, paste0("hap", hptype), "ambig",
                                           excludeGaps = TRUE, threshold = 0.3)
                            metadata(cseq) <- list()
                            cseq
@@ -276,7 +279,7 @@ MergeEnv_$set("public", "export", function() {
     m <- cbind(m, `+` = 0)
   }
   if (length(ins(srm)) > 0) {
-    insert <- matrix(c(0, 0, 0, 0, median(rowSums(m)), 0), ncol = 6)
+    insert <- matrix(c(0, 0, 0, 0, stats::median(rowSums(m)), 0), ncol = 6)
     myIns <- sort(ins(srm))
     myIns <- myIns[myIns < nrow(lrm)]
     INSit <- itertools::ihasNext(iter(myIns))

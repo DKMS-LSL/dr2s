@@ -4,12 +4,12 @@
 \alias{polymorphicPositions}
 \title{Calculate polymorphic positions from a consensus matrix.}
 \usage{
-polymorphicPositions(x, theshold, ...)
+polymorphicPositions(x, threshold)
 }
 \arguments{
 \item{x}{A consensus matrix or pileup object.}
 
-\item{theshold}{Threshold.}
+\item{threshold}{The threshold when to call a position polymorphic.}
 
 \item{...}{Additional arguments.}
 }

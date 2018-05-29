@@ -207,14 +207,10 @@ wrap <- function(x, wrap = "\"") {
   sprintf("%s%s%s", wrap, x, wrap)
 }
 
-#' @keywords internal
-#' @export
 minimum <- function(n, m) {
   if (n > m) n else m
 }
 
-#' @keywords internal
-#' @export
 maximum <- function(n, m) {
   if (n < m) n else m
 }
@@ -298,8 +294,7 @@ editor <- function(x, pos = NULL, useEditor = "xdg-open") {
 # Alignment browser -------------------------------------------------------
 
 
-#' @export
-browseSeqs <- function(seq,
+.browseSeqs <- function(seq,
                         file = tempfile(fileext = ".html"),
                         openURL = TRUE,
                         patterns = CODE_PATTERN(),
@@ -319,7 +314,6 @@ browseSeqs <- function(seq,
   )
 }
 
-#' @export
 .browseAlign <- function(seq,
                          file = tempfile(fileext = ".html"),
                          openURL = TRUE,
@@ -350,7 +344,17 @@ browseSeqs <- function(seq,
     colWidth
   )
 }
-
+#' Plot an alignment of all intermediate sequences and reference
+#'
+#' @param x A \code{\link[=DR2S_]{DR2S}} object.
+#' @param onlyFinal restrict to final sequences 
+#'
+#' @return NULL
+#' @details Calls \code{\link[DECIPHER]{BrowseSeqs}} to open the alignment of 
+#' references, final and intermediate (only if \code{onlyFinal} is FALSE) in a 
+#' browser. The alignment is created with \code{\link[DECIPHER]{AlignSeqs}}.
+#' @examples
+#' ###
 #' @export
 plotDiagnosticAlignment <- function(x, onlyFinal = FALSE) {
 

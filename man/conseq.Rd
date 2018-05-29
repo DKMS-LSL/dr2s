@@ -4,16 +4,16 @@
 \alias{conseq}
 \title{Construct a consensus sequence}
 \usage{
-conseq(x, ...)
+conseq(x, name = "conseq", type = c("prob", "ambig", "simple"),
+  threshold = NULL, excludeGaps = TRUE, gapSuppressionRatio = 2/5,
+  forceExcludeGaps = FALSE, ...)
 }
 \arguments{
 \item{x}{\code{pileup} object.}
 
-\item{...}{Additional arguments.}
-
 \item{name}{Name for consensus sequence.}
 
-\item{type}{One of "prob" or "ambig".}
+\item{type}{One of "prob", "ambig" or "simple".}
 
 \item{threshold}{If \code{type == "ambig"}, threshold to call an ambiguous
 consensus call.}
@@ -26,6 +26,8 @@ insertion position are excluded from from consensus calling.}
 
 \item{forceExcludeGaps}{Exclude gaps at from consensus calling irrespective
 of the frequency of the gap.}
+
+\item{...}{Additional arguments.}
 }
 \value{
 A \code{\linkS4class{BStringSet}} object with a metadata list
