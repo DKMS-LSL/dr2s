@@ -587,7 +587,8 @@ writeMSA <- function(aln, file="", block.width = 50){
   cat("#=======================================\n", file=file)
   cat("#\n", file=file, append = TRUE)
   cat("# Aligned_sequences: ", length(aln)," \n", file=file, append = TRUE)
-  sapply(seq_along(aln), function(x) cat(sprintf("# %s: %s\n", x, names(aln[x])),
+  sapply(seq_along(aln), function(x) cat(sprintf("# %s: %s\n", 
+                                                 x, names(aln[x])),
                                         file=file, append = TRUE))
   cat("#\n#\n", file=file, append = TRUE)
   cat("#=======================================\n", file=file,append = TRUE)

@@ -328,7 +328,8 @@ createPWM <- function(msa){
   longestRegion <- which.max(consecutiveRegions$lengths)
   startSeq <- ifelse(longestRegion == 1,
                      1,
-                     sum(consecutiveRegions$lengths[seq_len(longestRegion - 1)]))
+                     sum(consecutiveRegions$lengths[
+                       seq_len(longestRegion - 1)]))
   endSeq <- startSeq + consecutiveRegions$lengths[longestRegion] - 1
   ## Add an offset of 10 to acknowledge bad quality after homopolymer regions
   startSeq <- startSeq + 10
