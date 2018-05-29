@@ -74,16 +74,17 @@ disambiguateVariant <- function(x,
     } else {
       warningMsg <- warningMsg %<<% "|Ambiguous position in long reads"
     }
+    ## Check for > 2 alleles
+    if (length(varl) > 2) {
+      warningMsg <- warningMsg %<<% "|More than two long read variants"
+      srBasel <- names(varl)[1:2]
+    }
+    ## Set the ambiguous bases
+    lrBases <- names(varl) 
+  } else {
+    warningMsg <- warningMsg %<<% "|Variant only in short reads"
+    lrBases <- c(names(varl), NA)
   }
-
-  
-  ## Check for > 2 alleles
-  if (length(varl) > 2) {
-    warningMsg <- warningMsg %<<% "|More than two long read variants"
-  }
-
-  ## Set the ambiguous bases
-  bases <- names(varl) 
   
   if (!is.null(x$sr)){
     sr <- as.matrix(x$sr)
@@ -91,59 +92,67 @@ disambiguateVariant <- function(x,
     
     ## State which reads are ambiguous
     if (length(vars) > 1 ){
-      warningMsg <- warningMsg %<<% "|Ambiguous position in short reads"
-      
-      ## Spurious insertion in short reads that should have been set to zero.
-      if ("+" %in% names(vars)) {
-        warningMsg <- warningMsg %<<% "|Insertion signal in short reads"
-      }
-      
-      ## Mismatch in variant bases between long and short reads
-      ## not the same order or base
-      if (length(varl) == length(vars)) {
-        if (any(!varl == vars)) {
-          ## No base matches
-          if (length(intersect(names(varl), names(vars))) == 0) {
-            warningMsg <- warningMsg %<<% 
-              "|No intersect between long and short read variants"
-          } else if (any(!sort(varl) == sort(vars))) { # different order
-              warningMsg <- warningMsg %<<% 
-                "|Major/minor variant different in long and short reads"
-          } else if (length(varl) > length(vars)) { 
-              warningMsg <- warningMsg %<<% 
-                "|Variant in long but not in short reads"
-          } else if (length(vars) > length(varl)) { 
-              warningMsg <- warningMsg %<<% 
-                "|Variant in short but not in long reads"
-          } else {
-            warningMsg <- warningMsg %<<% 
-              "|Mismatch between long and short read variants"
-          }
-        }
-      }
-      
+      srBases <- names(vars)
       ## Check for deletions
       if ("-" %in% names(vars)) { 
-        if ((sr[vars["-"]]/sum(sr[vars])) %|na|% 0  > threshold/(2/3)) {
-          warningMsg <- warningMsg %<<% "|Gap overrepresented in short reads"
+        if ((sr[vars["-"]]/sum(sr[vars])) %|na|% 0  > max(threshold/2*3, 0.3)) {
+          warningMsg <- warningMsg %<<% "|Gap in short reads"
         }
-      }
-      
-      ## Check for more than two alleles
-      if (length(vars) > 2) {
-        warningMsg <- warningMsg %<<% "|More than two short read variants"
-      }
-      
-      ## Set the ambiguous bases to short read variants if not fewer
-      if (!length(vars) < length(varl))  
-        bases <- names(vars)
-    } 
+      } else {
+        warningMsg <- warningMsg %<<% "|Ambiguous position in short reads"
+        
+        ## Spurious insertion in short reads that should have been set to zero.
+        if ("+" %in% names(vars)) {
+          warningMsg <- warningMsg %<<% "|Insertion signal in short reads"
+        }
+        
+        ## Mismatch in variant bases between long and short reads
+        ## not the same order or base
+        if (length(varl) == length(vars)) {
+          if (any(!varl == vars)) {
+            ## No base matches
+            if (length(intersect(names(varl), names(vars))) == 0) {
+              warningMsg <- warningMsg %<<% 
+                "|No intersect between long and short read variants"
+            } else if (any(!sort(varl) == sort(vars))) { # different order
+                warningMsg <- warningMsg %<<% 
+                  "|Major/minor variant different in long and short reads"
+            } else if (length(varl) > length(vars)) { 
+                warningMsg <- warningMsg %<<% 
+                  "|Variant in long but not in short reads"
+            } else if (length(vars) > length(varl)) { 
+                warningMsg <- warningMsg %<<% 
+                  "|Variant in short but not in long reads"
+            } else {
+              warningMsg <- warningMsg %<<% 
+                "|Mismatch between long and short read variants"
+            }
+          }
+        }
+        
+        ## Check for more than two alleles
+        if (length(vars) > 2) {
+          warningMsg <- warningMsg %<<% "|More than two short read variants"
+          srBases <- names(vars)[1:2]
+        }
+      } 
+    } else {
+      ## Use only non-gap variants from only longreads.
+      warningMsg <- ifelse("-" %in% names(varl),
+                           "",
+                           "|Variant only in long reads") %<<% warningMsg
+      srBases <- c(names(vars), NA)
+    }
+  } else {
+    srBases <- c(NA, NA)
   }
   
   # names(bases) <- c("ref", "alt")
   warningMsg <- sub("|", "", trimws(warningMsg), fixed = TRUE)
-  
-  x$variant <- .variant(bases = bases, warning = warningMsg, vlist = x)
+  #  IGNORE IF ONLY GAPS????
+  if (nzchar(warningMsg))
+    x$variant <- .variant(lrBases = lrBases, srBases = srBases, 
+                          warning = warningMsg, vlist = x)
   x
 }
 
@@ -152,11 +161,9 @@ disambiguateVariant <- function(x,
   which(apply(cmf, 2, function(col) all(col > threshold)))
 }
 
-.variant <- function(bases, warning, vlist) {
-  refbase <- bases[[1]]
-  altbase <- bases[[2]]
-  baseRef_ <- if (altbase == "-") c(refbase, "+") else refbase
-  baseAlt_ <- if (refbase == "-") c(altbase, "+") else altbase
+.variant <- function(lrBases, srBases, warning, vlist) {
+  refbase <- ifelse(any(is.na(srBases)), lrBases[[1]], srBases[[1]])
+  altbase <- ifelse(any(is.na(srBases)), lrBases[[2]], srBases[[2]])
   if (!is.null(vlist$sr)){
     pos <- as.integer(row.names(vlist$sr))
     cm <- rbind(as.matrix(vlist$lr), as.matrix(vlist$sr))
@@ -168,8 +175,10 @@ disambiguateVariant <- function(x,
   }
   
   structure(
-    bases,
+    c(refbase, altbase),
     class = "variant",
+    lrBases = lrBases,
+    srBases = srBases,
     position = pos,
     warning = warning,
     haplotype = vlist$haplotype,
@@ -178,8 +187,8 @@ disambiguateVariant <- function(x,
                     vlist$offsetBases[["sr"]],
                     vlist$offsetBases[["lr"]]),
     readsRefSr = vlist$sr[,refbase],
-    readsRefLr = vlist$lr[,altbase],
-    readsAltSr = vlist$sr[,refbase],
+    readsRefLr = vlist$lr[,refbase],
+    readsAltSr = vlist$sr[,altbase],
     readsAltLr = vlist$lr[,altbase]
     ## here we have to remove the offsets we incurred at previous
     ## ambiguous positions to match the original polymorhic positions

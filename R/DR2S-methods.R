@@ -385,6 +385,7 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
     )
   }
 
+  ## Map longreads
   if (exists("mapInitSR1")) {
     flog.info(" Map longreads to consensus for clustering",
               name = "info")
@@ -711,7 +712,7 @@ DR2S_$set("public", "runSplitLongReadsByHaplotype", function(plot = TRUE) {
               
     outf  <- self$absPath("plot.Sequence")
     ppos <- SNP(self$getPartition())
-    names(ppos) <- 1:length(ppos)
+    names(ppos) <- seq_along(ppos)
     pwm <- lapply(PWM(self$getPartition()), function(pwm) {
       pwm[pwm < 0.1] <- 0
       pwm
@@ -926,7 +927,7 @@ DR2S_$set("public", "runMapIter", function(opts = list(),
   }
 
   # iteration <- 1
-  for (iteration in 1:iterations) {
+  for (iteration in seq_len(iterations)) {
     flog.info(" Iteration %s of %s", iteration, iterations, name = "info")
 
     iterationC <- as.character(iteration)
@@ -1033,7 +1034,7 @@ DR2S_$set("public", "runMapIter", function(opts = list(),
   if (plot) {
     flog.info(" Plot MapIter summary", name = "info")
     ## Coverage and base frequency
-    plotlist <- foreach(iteration = 1:self$getIterations()) %do% {
+    plotlist <- foreach(iteration = seq_len(self$getIterations())) %do% {
       self$plotmapIterSummary(thin = 0.1, width = 4, iteration = iteration,
                               drop.indels = TRUE)
     }

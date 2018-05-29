@@ -312,7 +312,7 @@ checkHomoPolymerCount <- function(x, count = 10, map = "mapFinal") {
     bamfile <- ifelse(length(hptypes) == 1, bambase, bambase[paste0("SR", hp)])
     bamfile <- file.path(x$getOutdir(), bamfile)
     homopolymersHP <- foreach(pos = n, .combine = rbind) %do% {
-      positionHP <- sum(seqrle$length[1:(pos-1)])+1
+      positionHP <- sum(seqrle$length[seq_len(pos-1)])+1
       lenHP <- seqrle$lengths[pos]
       msa <- .msaFromBam(bamfile,
                           refseq = seq,
@@ -348,7 +348,7 @@ checkHomoPolymerCount <- function(x, count = 10, map = "mapFinal") {
     modes <- homopolymersHP %>%
       dplyr::group_by(.data$position) %>%
       dplyr::summarize(mode = .getModeValue(length))
-    for (i in 1:NROW(modes)) {
+    for (i in seq_len(NROW(modes))) {
       modeHP <- modes[i,]
       flog.info("%s: Mode for homopolymer at position %s: %s",
                 hp, modeHP$position, modeHP$mode)

@@ -3,16 +3,20 @@
 #x <- readDR2S("~/bioinf/DR2S/KIR/20171130/3DL3/out/7203477/")
 # x <- dr2s
 # threshold <- x$getThreshold()
-# lower_limit <- 0.6
 # cache = TRUE
 # library(foreach)
 # library(futile.logger)
 #x <- dr2s
 polish.DR2S <- function(x,
-                        threshold = x$getThreshold(),
+                        threshold = NULL,
                         checkHpCount = TRUE,
                         cache = TRUE) {
   flog.info("Step 5: polish ...", name = "info")
+  ## Set this threshold to double the usual.
+  ## Probably better to do this only for lr
+  if (is.null(threshold)) {
+    threshold <- max(x$getThreshold(), 0.2)
+  }
 
   ## Check if reporting is finished and exit safely for downstream analysis
   if (x$getReportStatus()) {
@@ -56,15 +60,21 @@ polish.DR2S <- function(x,
         seqrle <- .seq2rle(seq)
         n <- seqrle$length[seqrle$length > 10]
         modeN <- sort(rs$mapFinal$homopolymers[[hptype]])
+        names(n) <- names(modeN)
         if (!all(modeN == n)) {
           missingN <- modeN[which(!n == modeN)]
           varsHP <- tibble::tibble(haplotype = hptype,
                                    pos       = names(missingN),
                                    ref       = "",
                                    alt       = "",
-                                   warning   = sprintf(
-                                     "Homopolymer at position %s should be %s",
-                                                     names(missingN), missingN))
+                                   warning   = sprintf(paste(
+                                     "Homopolymer at position %s should be of", 
+                                     "length %s, but is %s"),
+                                                     names(missingN), missingN, n[names(missingN)]),
+                                   refSR     = "",
+                                   altSR     = "",
+                                   refLR     = "",
+                                   altLR     = "")
           varsHP
         }
       }
@@ -93,7 +103,8 @@ polish.DR2S <- function(x,
     return(
       dplyr::data_frame(
         haplotype = character(0), pos = integer(0), ref = character(0),
-        alt = character(0), warning = character(0)
+        alt = character(0), warning = character(0), refSR = character(0),
+        altSR = character(0), refLR = character(0), altLR = character(0)
       )
     )
   }
@@ -104,7 +115,6 @@ polish.DR2S <- function(x,
                                           .extractVariant_, h = h))))
   df
 }
-
 .extractVariant_ <- function(v, h) {
   data.frame(
     haplotype = h,
@@ -112,6 +122,10 @@ polish.DR2S <- function(x,
     ref = v[[1]] %||% NA,
     alt = v[[2]] %||% NA,
     warning = attr(v, "warning") %||% NA,
+    refSR = attr(v, "srBases")[[1]] %||% NA,
+    altSR = attr(v, "srBases")[[2]] %||% NA,
+    refLR = attr(v, "lrBases")[[1]] %||% NA,
+    altLR = attr(v, "lrBases")[[2]] %||% NA,
     stringsAsFactors = FALSE
   )
 }

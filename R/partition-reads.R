@@ -90,7 +90,8 @@ partitionReads <- function(x, distAlleles = 2, sortBy = count, threshold = 0.2,
     flog.info("  Trying to identify chimeric reads/haplotypes ...", 
               name = "info")
     if (sortBy == "count") {
-      rC <- names(sort(table(subclades),decreasing = TRUE)[1:distAlleles])
+      rC <- names(sort(table(subclades),
+                       decreasing = TRUE)[seq_len(distAlleles)])
       # ## !!!!! HACK!!! rm following line; uncomment previous one; removed
       # rC <- c("A", "C")
     } else if (sortBy == "distance") {
@@ -102,7 +103,7 @@ partitionReads <- function(x, distAlleles = 2, sortBy = count, threshold = 0.2,
   hptypes <- names(mats)
 
   scores <- dplyr::bind_rows(
-    lapply(1:length(xseqs), function(s) .getScores(s, xseqs, mats)))
+    lapply(seq_along(xseqs), function(s) .getScores(s, xseqs, mats)))
 
   clades <- scores %>%
     dplyr::group_by(.data$read) %>%
@@ -166,7 +167,7 @@ partitionReads <- function(x, distAlleles = 2, sortBy = count, threshold = 0.2,
       1/length(xSub)
   )
   # Remove gaps below a threshold as they are probably sequencing artifacts
-  consmat <- foreach(col = 1:ncol(consmat), .combine = cbind) %do% {
+  consmat <- foreach(col = seq_len(ncol(consmat)), .combine = cbind) %do% {
     a <- consmat[,col]
     a["-"] <- ifelse(a["-"] < threshold, min(a), a["-"])
     a
@@ -222,7 +223,7 @@ partitionReads <- function(x, distAlleles = 2, sortBy = count, threshold = 0.2,
   read <- names(xseqs[s])
 
   b <- sapply(mats, function(t) {
-    sum( sapply(1:length(seq), function(x) t[seq[x],x]))
+    sum(sapply(seq_along(seq), function(x) t[seq[x],x]))
   })
   t <- data.frame(read, b, names(b))
   t$read <- as.character(t$read)
@@ -235,9 +236,9 @@ partitionReads <- function(x, distAlleles = 2, sortBy = count, threshold = 0.2,
   # Use only non empty seqs
   seqs <- seqs[sapply(seqs, function(x) {
     !nchar(gsub("\\+|-","", as.character(x))) == 0})]
-  forward <- lapply(1:(Biostrings::width(seqs[1])), function(x) {
+  forward <- lapply(seq_len(Biostrings::width(seqs[1])), function(x) {
     hammingDist(Biostrings::DNAStringSet(seqs, start = 1, width = x))})
-  reverse <- lapply(1:(Biostrings::width(seqs[1])), function(x) {
+  reverse <- lapply(seq_len(Biostrings::width(seqs[1])), function(x) {
     hammingDist(Biostrings::DNAStringSet(Biostrings::reverse(seqs),
                                          start = 1, width = x))})
 
@@ -248,7 +249,7 @@ partitionReads <- function(x, distAlleles = 2, sortBy = count, threshold = 0.2,
       # debug
       if (plotSeqs) {
         ggplot() +
-          geom_line(aes(x = 1:length(r),y = f + r)) #+
+          geom_line(aes(x = seq_along(r),y = f + r)) #+
         geom_line(aes(x = length(r):1, y = r))
       }
       unname(stats::quantile(f + r)[2])
@@ -256,7 +257,8 @@ partitionReads <- function(x, distAlleles = 2, sortBy = count, threshold = 0.2,
   rownames(dm) <- sapply(names(seqs), function(x) strsplit1(x, ":")[1])
   colnames(dm) <- sapply(names(seqs), function(x) strsplit1(x, ":")[1])
 
-  c("A", (names(sort(unlist(dm[1,]), decreasing = TRUE)[1:(distAlleles - 1)])))
+  c("A", (names(sort(unlist(dm[1,]), 
+                     decreasing = TRUE)[seq_len(distAlleles - 1)])))
 }
 
 # Class: HapPart -----------------------------------------------------------
@@ -313,7 +315,7 @@ print.HapPart <- function(x, sortBy = "none", nrows = 8, ...) {
     read      = paste0(substr(as.vector(x), 1, 12), "..."),
     mcoef     = mcoef(x),
     partition = PRT(x)
-  )[1:n, ]
+  )[seq_len(n), ]
   cat("HapPart over", K(x), "polymorphic positions:\n")
   switch(
     sortBy,
@@ -684,11 +686,11 @@ plotPartitionTree <- function(x){
 
     dendr$segments$cluster <- c(-1, diff(dendr$segments$line))
     change <- which(dendr$segments$cluster == 1)
-    for (i in 1:k) dendr$segments$cluster[change[i]] = i + 1
+    for (i in seq_len(k)) dendr$segments$cluster[change[i]] = i + 1
     dendr$segments <- dendr$segments %>%
       dplyr::mutate(cluster = dplyr::if_else(.data$line == 1, 1, ifelse(
         .data$cluster == 0, NA, .data$cluster)))
-    dendr$segments$cluster <- sapply(1:NROW(dendr$segments$cluster), 
+    dendr$segments$cluster <- sapply(seq_len(NROW(dendr$segments$cluster)), 
                                      function(x) {
       getCl(x, dendr$segments$cluster, change)})
 
@@ -705,8 +707,8 @@ plotPartitionTree <- function(x){
                    size = 1.25) +
       scale_color_manual(values = PARTCOL(),
                          name = "Haplotype",
-                         breaks = LETTERS[1:k],
-                         labels =  LETTERS[1:k]) +
+                         breaks = LETTERS[seq_len(k)],
+                         labels =  LETTERS[seq_len(k)]) +
       geom_hline(yintercept = cut.height, color = "blue") +
       ggtitle("Initial clustering of haplotypes") +
       theme_bw() +

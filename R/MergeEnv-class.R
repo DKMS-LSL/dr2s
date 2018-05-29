@@ -53,6 +53,8 @@ MergeEnv_ <- R6::R6Class(
                                 setNames(h, x$getHapTypes())) %do% {
        structure(as.environment(list(haplotype = hptype)), class = "HapEnv")
       }
+      #threshold <- max(c(threshold, 0.2))
+      threshold <- max(c(threshold, 0.3))
       self$threshold = threshold
       self$x = x
     },
@@ -95,6 +97,7 @@ MergeEnv_$set("public", "init", function(hapEnv) {
   }
   
   apos <- foreach(rt = c("LR", "SR"), .combine = c) %do% {
+    # threshold <- ifelse(rt == "LR", max(c(threshold, 0.2)), threshold)
     .ambiguousPositions(envir[[rt]], self$threshold)
   }
   apos <- unique(sort(apos))
@@ -241,7 +244,8 @@ MergeEnv_$set("public", "export", function() {
                            }
                            seqname = 
                            cseq <- conseq(reads, paste0("hap", hptype), "ambig",
-                                          excludeGaps = TRUE, threshold = 0.3)
+                                          excludeGaps = TRUE, 
+                                          threshold = self$threshold)
                            metadata(cseq) <- list()
                            cseq
                          }),
@@ -264,8 +268,6 @@ MergeEnv_$set("public", "export", function() {
     ),
     class = c("ConsList", "list")
   )
-
-  cons
   self$x$setConsensus(cons)
   return(invisible(self$x))
 })
@@ -285,7 +287,7 @@ MergeEnv_$set("public", "export", function() {
     INSit <- itertools::ihasNext(iter(myIns))
     while (itertools::hasNext(INSit)) {
       i <- iterators::nextElem(INSit)
-      m <- rbind(m[1:(i - 1), ], insert, m[i:NROW(m), ])
+      m <- rbind(m[seq_len(i - 1), ], insert, m[i:NROW(m), ])
     }
     if (! NROW(m) == NROW(srm)){
       warning("SR and LR of different length! Check problem file")

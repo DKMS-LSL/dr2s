@@ -100,7 +100,7 @@ print.consmat <- function(x, n = 25, noHead = FALSE, transpose = FALSE,  ...) {
   show <- if (transpose) {
     x <- as.matrix(t(x))
     if ((nc_ <- NCOL(x)) > n) {
-      cbind(x[, 1:floor(n / 2)], x[, (nc_ - floor(n / 2)):nc_])
+      cbind(x[, seq_len(floor(n / 2))], x[, (nc_ - floor(n / 2)):nc_])
     } else x
   } else {
     x <- as.matrix(x)
@@ -271,7 +271,7 @@ createPWM <- function(msa){
   for (i in which(seq$length > 5)) {
     ## Assign new gap numbers to each position starting from left
     # meanCoverage <- mean(rowSums(mat[seqStart:seqEnd,1:4]))
-    seqStart <- sum(seq$lengths[1:(i - 1)]) + 1
+    seqStart <- sum(seq$lengths[seq_len(i - 1)]) + 1
     seqEnd <- seqStart + seq$lengths[i] - 1
     region <- paste0(names(reference), ":", seqStart, "-", seqEnd)
 
@@ -328,7 +328,7 @@ createPWM <- function(msa){
   longestRegion <- which.max(consecutiveRegions$lengths)
   startSeq <- ifelse(longestRegion == 1,
                      1,
-                     sum(consecutiveRegions$lengths[1:(longestRegion - 1)]))
+                     sum(consecutiveRegions$lengths[seq_len(longestRegion - 1)]))
   endSeq <- startSeq + consecutiveRegions$lengths[longestRegion] - 1
   ## Add an offset of 10 to acknowledge bad quality after homopolymer regions
   startSeq <- startSeq + 10

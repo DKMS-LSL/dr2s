@@ -245,7 +245,11 @@ plotPileupCoverage <- function(x, threshold = 0.2, range = NULL, thin = 0.1,
   }
   x[, nucleotide := as.character(nucleotide)]
   x[, freq := count/sum(count), by = pos]
-  x[, npoly := sum(freq >= threshold), by = pos]
+  x[nucleotide == "-" & nucleotide == "+", npoly := sum(freq >= max(
+    c(threshold, 0.3))), by = pos]
+  x[nucleotide != "-" & nucleotide != "+", npoly := sum(freq >= max(
+    c(threshold, 0.2))), by = pos]
+  #x
   x[npoly == 1 | (npoly > 1 & freq < threshold), nucleotide := " ", by = pos]
   nonpoly <- x[npoly == 1, unique(pos)]
   nonpolyThin <- nonpoly[seq(1, length(nonpoly), 

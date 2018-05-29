@@ -111,7 +111,7 @@ report.DR2S <- function(x, which, blockWidth = 80, noRemap = FALSE, ...) {
     probvarFile <- paste("problems", x$getLrdType(), x$getLrMapper(), "tsv", 
                           sep = ".")
     vars <- x$consensus$variants %>%
-      dplyr::arrange(.data$pos, .data$haplotype)
+      dplyr::arrange(as.numeric(.data$pos), .data$haplotype)
     readr::write_tsv(vars, path = file.path(outdir, probvarFile),
                      append = FALSE, col_names = TRUE)
 
@@ -178,7 +178,7 @@ reportCheckedConsensus <- function(x, which = "mapFinal") {
   .browseAlign(seqsAll, file = file.path(outdir,alnFile), openURL = FALSE)
 
   ## Export FASTA
-  files <- sapply(1:length(seqs), function(sq) {
+  files <- sapply(seq_along(seqs), function(sq) {
     file <- paste(names(seqs[sq]), x$getLrdType(), x$getLrMapper(), "fa", 
                   sep = ".")
     seq <- seqs[sq]
@@ -496,7 +496,7 @@ readPairFile <- function(pairfile) {
   if (!length(ambigLetters) == 0){
     ambigPositions <- sapply(ambigLetters, function(x)
       unlist(Biostrings::vmatchPattern(x, hap)))
-    msg <- sapply(1:length(ambigPositions), function(x)
+    msg <- sapply(seq_along(ambigPositions), function(x)
       extractAmbigLetters(ambigPositions, names(ambigPositions)[x]))
     flog.info(msg, name = "info")
     stop(paste("Check reported reference! Ambiguous positions were found",
@@ -543,7 +543,7 @@ extractAmbigLetters <- function(irange, ambigLetter){
                        collapse = " or "))
   ambigPositionLetter <- unlist(irange[[ambigLetter]])
 
-  msg %<<% paste0(sapply(1:length(ambigPositionLetter), function(x)
+  msg %<<% paste0(sapply(seq_along(ambigPositionLetter), function(x)
     sprintf("%s: %s",
             names(ambigPositionLetter[x]),
             ambigPositionLetter[x])), collapse = "\n") %<<% "\n"
@@ -587,7 +587,7 @@ writeMSA <- function(aln, file="", block.width = 50){
   cat("#=======================================\n", file=file)
   cat("#\n", file=file, append = TRUE)
   cat("# Aligned_sequences: ", length(aln)," \n", file=file, append = TRUE)
-  sapply(1:length(aln), function(x) cat(sprintf("# %s: %s\n", x, names(aln[x])),
+  sapply(seq_along(aln), function(x) cat(sprintf("# %s: %s\n", x, names(aln[x])),
                                         file=file, append = TRUE))
   cat("#\n#\n", file=file, append = TRUE)
   cat("#=======================================\n", file=file,append = TRUE)
@@ -612,7 +612,7 @@ writeMSA <- function(aln, file="", block.width = 50){
     ## Split the seq every 10 chars
     sp <- "(.{10})"
     addSp <- "\\1 "
-    a <- sapply(1:(length(alignment)-1), function(x) {
+    a <- sapply(seq_len(length(alignment)-1), function(x) {
       cat(format(names[x], width = nameWidth), " ",
           format(lstart, justify = "right", width = startWidth), " ",
           gsub(sp, addSp, Biostrings::toString(strings[x])), " ",

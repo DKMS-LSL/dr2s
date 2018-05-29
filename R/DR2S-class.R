@@ -277,7 +277,7 @@ DR2S_ <- R6::R6Class(
     ##
     getSampleDetails = function() {
       details <- semicolon(
-        sapply(1:length(self$getDetails()), 
+        sapply(seq_along(self$getDetails()), 
                function(item) paste(names(
                  self$getDetails()[item]), 
                  underscore(litQuote(self$getDetails()[item])), 
@@ -755,7 +755,7 @@ DR2S_ <- R6::R6Class(
     plotSeqLogo = function(ppos = NULL, pwm = NULL) {
       if (is.null(ppos)) {
         ppos <- SNP(self$getPartition())
-        names(ppos) <- 1:length(ppos)
+        names(ppos) <- seq_along(ppos)
       }
       if (is.null(pwm)) {
         pwm <- lapply(PWM(self$getPartition()), function(pwm) {
@@ -767,7 +767,7 @@ DR2S_ <- R6::R6Class(
         geom_logo(pwm, method = "bits", seq_type = "dna", 
                              stack_width = 0.9) +
         facet_wrap(~seq_group, ncol = 1, strip.position = "left") +
-        scale_x_continuous(labels = ppos, breaks = 1:length(ppos)) +
+        scale_x_continuous(labels = ppos, breaks = seq_along(ppos)) +
         theme_logo() +
         theme(axis.text.x  = ggplot2::element_text(size = 10, angle = 60),
               axis.title.y = ggplot2::element_blank(),
