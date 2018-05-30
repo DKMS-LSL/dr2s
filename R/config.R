@@ -92,7 +92,6 @@ readDR2SConf <- function(configFile) {
 
   if (is.null(conf$opts))
     conf["opts"] <-  list(NULL)
-
   expandDR2SConf(structure(conf, class = c("DR2Sconf", "list")))
 }
 expandDR2SConf <- function(conf) {
@@ -109,7 +108,7 @@ expandDR2SConf <- function(conf) {
 
   foreach(sample = samples, sampleId = sampleIds, .combine = "c") %:%
     foreach(lrd = lrds, .combine = "c") %:%
-    foreach(dst = sample$distDlleles, .combine = "c") %:%
+    foreach(dst = sample$distAlleles, .combine = "c") %:%
     foreach(ref = sample$reference, .combine = "c") %do% {
       updateDR2SConf(conf, lrd, sampleId, sample, ref, 
                      dst)
