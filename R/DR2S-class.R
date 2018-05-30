@@ -282,9 +282,19 @@ DR2S_ <- R6::R6Class(
                  self$getDetails()[item]), 
                  underscore(litQuote(self$getDetails()[item])), 
                  sep = "=")))
+      sr <- !is(try(self$getShortreads(), silent = TRUE), "try-error")
+      lr <- !is(try(self$getShortreads(), silent = TRUE), "try-error")
       paste(paste0("locus=", litQuote(self$getLocus())),
             paste0("ref=", litQuote(self$getReference())),
             details,
+            paste0("short_read_data=", litQuote(ifelse(sr, "yes", "no"))),
+            paste0("short_read_type=", litQuote(ifelse(sr, 
+                                                       self$getSrdType(), 
+                                                       ""))),
+            paste0("long_read_data=", litQuote(ifelse(sr, "yes", "no"))),
+            paste0("long_read_type=", litQuote(ifelse(lr, 
+                                                       self$getLrdType(), 
+                                                       ""))),
             "software=\"DR2S\"", 
             paste0("version=", 
                    litQuote(packageVersion("DR2S"))),

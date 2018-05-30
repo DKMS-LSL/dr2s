@@ -188,7 +188,10 @@ reportCheckedConsensus <- function(x, which = "mapFinal") {
                          paste(paste0("haplotype=", 
                                      litQuote(sub("^hap", "", names(seq)))),
                                sampleDetails,
+                               paste0("date=", 
+                                      litQuote(Sys.Date())),
                                sep = ";"))
+    
     Biostrings::writeXStringSet(
       seq,
       filepath = file.path(outdir,file),
