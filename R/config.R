@@ -44,7 +44,7 @@ createDR2SConf <- function(sample,
     sampleId       = sample,
     locus          = locus,
     reference      = reference,
-    details        = details        %||% NULL
+    details        = gsub(";", ",", details)        %||% NULL
   )
   structure(conf1, class = c("DR2Sconf", "list"))
 }
@@ -85,7 +85,7 @@ readDR2SConf <- function(configFile) {
                                                         dir = "pacbio")
   conf$shortreads      <- conf$shortreads    %||% list(type = "illumina", 
                                                        dir = "illumina")
-  conf$details         <- conf$details       %||% list(NULL)
+  conf$details         <- gsub(";", ",", conf$details)       %||% list(NULL)
   
   if (length(conf$shortreads) == 1 && is.list(conf$shortreads[[1]]))
     conf$shortreads <- conf$shortreads[[1]]
