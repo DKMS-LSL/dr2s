@@ -267,5 +267,27 @@ writeDR2SConf <- function(x, outFile = NULL) {
   if (is.null(outFile)) {
     outFile <- file.path(x$getOutdir(), "config.yaml")
   }
-  yaml::write_yaml(yaml::as.yaml(x$getConfig(), indent = 4), outFile)
+  sample <- list(list(reference = x$getReference(),
+                      locus = x$getLocus(),
+                      distAlleles = x$getDistAlleles(),
+                      details = x$getDetails()))
+  names(sample) <- x$getSampleId()
+  conf <- list(
+    datadir         = x$getDatadir(),
+    outdir          = dirname(x$getOutdir()),
+    threshold       = x$getThreshold(),
+    forceMapping    = x$getForceMapping(),
+    iterations      = x$getIterations(),
+    microsatellites = x$getMicrosatellite(),
+    srmapper        = x$getSrMapper(),
+    lrmapper        = x$getLrMapper(),
+    partSR          = x$getPartSR(),
+    filterScores    = x$getFilterScores(),
+    pipeline        = x$getPipeline(),
+    opts            = x$getConfig("opts"),
+    longreads       = x$getConfig("longreads"),
+    shortreads      = x$getConfig("shortreads"),
+    samples         = sample
+  )
+  yaml::write_yaml(conf, outFile)
 }

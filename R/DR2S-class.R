@@ -420,7 +420,7 @@ DR2S_ <- R6::R6Class(
       }
     },
     ##
-    getOpts = function(name = "mapInit") {
+    getOpts = function(name = NULL) {
       if (is.null(name))
         .mergeList(self$getConfig("opts"), self$getConfig("longreads")$opts, 
                    update = TRUE)
