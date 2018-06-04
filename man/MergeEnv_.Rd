@@ -6,10 +6,10 @@
 \title{Class \code{"MergeEnv"}}
 \format{An object of class \code{R6ClassGenerator} of length 24.}
 \usage{
-MergeEnv(x)
+MergeEnv(x, threshold)
 }
 \value{
-Object of \code{\link{R6Class}} representing a MergeEnv.
+Object of \code{\link[R6]{R6Class}} representing a MergeEnv.
 }
 \description{
 Class \code{"MergeEnv"}
@@ -19,11 +19,9 @@ Class \code{"MergeEnv"}
 \describe{
 \item{\code{threshold}}{\code{[numeric]}; when do we call a variant a variant.}
 
-\item{\code{a}}{\code{[HapEnv, environment]}; container for all things haplotype A.}
-
-\item{\code{b}}{\code{[HapEnv, environment]}; container for all things haplotype B.}
-
 \item{\code{x}}{\code{[\link[=DR2S_]{DR2S}]}; the original \code{DR2S} object.}
+
+\item{\code{threshold}}{When do we call a variant a variant.}
 }}
 
 \section{Public Methods}{

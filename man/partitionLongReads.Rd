@@ -4,11 +4,29 @@
 \alias{partitionLongReads}
 \title{Partition mapped long reads into haplotypes}
 \usage{
-partitionLongReads(x, skip_gap_freq = 2/3, dist_alleles = NULL,
-  noGapPartitioning = FALSE, select_alleles_by = "count", ...)
+partitionLongReads(x, threshold = NULL, skipGapFreq = 2/3,
+  distAlleles = NULL, noGapPartitioning = FALSE,
+  selectAllelesBy = "count", plot = TRUE, ...)
 }
 \arguments{
 \item{x}{A \code{\link[=DR2S_]{DR2S}} object.}
+
+\item{threshold}{The threshold when a SNP is a SNP.}
+
+\item{skipGapFreq}{The gap frequenzy needed to call a gap position.}
+
+\item{distAlleles}{The number of distinct alleles in the sample.}
+
+\item{noGapPartitioning}{Don't partition based on gaps. Useful for samples 
+with only few SNPs but with homopolymers. The falsely called gaps could
+mask the real variation.}
+
+\item{selectAllelesBy}{If more than \code{distAlleles} clusters are found 
+select clusters based on: (1) "distance": The hamming distance of the 
+resulting variant consensus sequences or (2) "count": Take the clusters 
+with the most reads as the alleles.}
+
+\item{plot}{Plot}
 
 \item{...}{Further arguments passed to methods.}
 }
@@ -35,15 +53,15 @@ x <- DR2Smap(
   partitionShortReads() \%>\%
   mapFinal() \%>\%
   polish() \%>\%
-  report(block_width = 60)
+  report(blockWidth = 60)
 }
 }
 \seealso{
-Other DR2S mapper functions: \code{\link{DR2Smap}},
-  \code{\link{cache}}, \code{\link{clear}},
+Other DR2S mapper functions: \code{\link{cache}},
+  \code{\link{clear}}, \code{\link{createDR2SConf}},
   \code{\link{mapFinal}}, \code{\link{mapInit}},
   \code{\link{mapIter}}, \code{\link{polish}},
   \code{\link{refineAlignment}},
-  \code{\link{report_checked_consensus}},
+  \code{\link{reportCheckedConsensus}},
   \code{\link{report}}
 }

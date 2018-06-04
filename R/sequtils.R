@@ -1,55 +1,45 @@
 ## Extract (a subset of) reads from a bamfile
-.extractFastq <- function(x, qnames=NULL, n=100, replace=TRUE) {
+.extractFastq <- function(x, qnames=NULL) {
   stopifnot(is.character(x) && length(x) == 1)
   bam <- Rsamtools::scanBam(x)[[1]]
   qn <-
-    if (!is.null(qnames) && is.null(n)) {
+    if (!is.null(qnames)) {
       qnames
-    } else if (!is.null(qnames) && !is.null(n)) {
-      qn <- sample(qnames, size=n, replace=replace)
-      q  <- attr(qnames, "q")[match(qn, qnames)]
-      o  <- order(q, decreasing=TRUE)
-      qn <- qn[o]
-      q  <- q[o]
-      attr(qn, "q") <- q
-      qn
-    } else if (is.null(qnames) && !is.null(n)) {
-      sample(bam$qname, size=n, replace=replace)
-    } else if (is.null(qnames) && is.null(n)) {
+    } else if (is.null(qnames)) {
       bam$qname
     }
   .trimSoftclippedEnds(bam, qn)
 }
 
 # todo add length and cut option
-.filterReads <- function(bam, qnames=NULL, preserve_ref_ends=TRUE) {
-  #message("Entering trim_softclipped_ends")
-  #on.exit(message("Exiting trim_softclipped_ends"))
+.filterReads <- function(bam, qnames=NULL, preserveRefEnds=TRUE) {
   readlength <- 250
   i <- if (is.null(qnames)) {
     seq_along(bam$qname)
   } else {
     match(qnames, bam$qname)
   }
-  if (preserve_ref_ends) {
-    not_trim_starts <- which(bam$pos[i] == 1)
-    not_trim_ends   <- which(bam$pos[i] > max(bam$pos[i]) - readlength)
+  if (preserveRefEnds) {
+    notTrimStarts <- which(bam$pos[i] == 1)
+    notTrimEnds   <- which(bam$pos[i] > max(bam$pos[i]) - readlength)
   }
   cigar <- bam$cigar[i]
   id    <- if (!is.null(attr(qnames, "q"))) {
     paste0(bam$qname[i], " q=", round(attr(qnames, "q"), 4))
   } else bam$qname[i]
   sc <- .mapSoftclip(cigar)
-  if (preserve_ref_ends) {
-    sc[not_trim_starts, "start"] <- NA_integer_
-    sc[not_trim_ends, "end"] <- NA_integer_
+  if (preserveRefEnds) {
+    sc[notTrimStarts, "start"] <- NA_integer_
+    sc[notTrimEnds, "end"] <- NA_integer_
   }
   trim <- sc %>%
-    dplyr::transmute(keep = ifelse(is.na(start) & is.na(end),
+    dplyr::transmute(keep = ifelse(is.na(.data$start) & is.na(.data$end),
                                    readlength,
                                    readlength -
-                                     abs(ifelse(is.na(end), 0, end) -
-                                           ifelse(is.na(start), 0, start))))
+                                     abs(ifelse(is.na(.data$end), 0, 
+                                                .data$end) -
+                                           ifelse(is.na(.data$start), 0, 
+                                                  .data$start))))
 
   alignmentScoreThreshold = 0.3*readlength # Change to dynamic
   badScore <- bam$qname[bam$tag$AS < alignmentScoreThreshold]
@@ -65,17 +55,15 @@
   unique(c(trim, badScore))
 }
 
-.trimSoftclippedEnds <- function(bam, qnames=NULL, preserve_ref_ends=FALSE) {
-  #message("Entering trim_softclipped_ends")
-  #on.exit(message("Exiting trim_softclipped_ends"))
+.trimSoftclippedEnds <- function(bam, qnames=NULL, preserveRefEnds=FALSE) {
   i <- if (is.null(qnames)) {
     seq_along(bam$qname)
   } else {
     match(qnames, bam$qname)
   }
-  if (preserve_ref_ends) {
-    not_trim_starts <- which(bam$pos[i] == 1)
-    not_trim_ends   <- which(bam$pos[i] > max(bam$pos[i]) - 250)
+  if (preserveRefEnds) {
+    notTrimStarts <- which(bam$pos[i] == 1)
+    notTrimEnds   <- which(bam$pos[i] > max(bam$pos[i]) - 250)
   }
   cigar <- bam$cigar[i]
   sread <- bam$seq[i]
@@ -84,9 +72,9 @@
     paste0(bam$qname[i], " q=", round(attr(qnames, "q"), 4))
   } else bam$qname[i]
   sc <- .mapSoftclip(cigar)
-  if (preserve_ref_ends) {
-    sc[not_trim_starts, "start"] <- NA_integer_
-    sc[not_trim_ends, "end"] <- NA_integer_
+  if (preserveRefEnds) {
+    sc[notTrimStarts, "start"] <- NA_integer_
+    sc[notTrimEnds, "end"] <- NA_integer_
   }
   s  <- sc$start + 1L
   e  <- Biostrings::width(sread) - sc$end
@@ -95,10 +83,10 @@
     quality = XVector::subseq(qual, s, e),
     id = Biostrings::BStringSet(id)
   )
-  if (preserve_ref_ends) {
+  if (preserveRefEnds) {
     rs@sread@metadata <- list(
-      not_trim_starts = not_trim_starts,
-      not_trim_ends   = not_trim_ends
+      notTrimStarts = notTrimStarts,
+      notTrimEnds   = notTrimEnds
     )
   }
   rs
@@ -108,46 +96,16 @@
   m  <- gregexpr("^\\d+S", cigar)
   sc <- regmatches(cigar, m)
   sc[!vapply(sc, function(x) length(x) > 0, FUN.VALUE = FALSE)] <- NA_character_
-  sc_start <- as.integer(gsub("S", "", unlist(sc)))
+  scStart <- as.integer(gsub("S", "", unlist(sc)))
   m  <- gregexpr("\\d+S$", cigar)
   sc <- regmatches(cigar, m)
   sc[!vapply(sc, function(x) length(x) > 0, FUN.VALUE = FALSE)] <- NA_character_
-  sc_end <- as.integer(gsub("S", "", unlist(sc)))
+  scEnd <- as.integer(gsub("S", "", unlist(sc)))
   tibble::tibble(
-    start = sc_start,
-    end   = sc_end
+    start = scStart,
+    end   = scEnd
   )
 }
-
-# #' Filter a bamfile by qnames
-# #'
-# #' @param x Path to bamfile.
-# #' @param qnames Sample a fixed subset of reads.
-# #' @param dest Location where the filtered output file will be created.
-# #'
-# #' @return A character vector
-# #' @export
-# #'
-# #' @examples
-# #' ###
-# filterBam <- function(x, qnames, dest) {
-#   stopifnot(is.character(x) && length(x) == 1)
-#   filt <- S4Vectors::FilterRules(list(function(x) x$qname %in% qnames))
-#   Rsamtools::filterBam(x, dest, filter = filt, indexDestination = TRUE)
-# }
-
-# inject_deletions <- function(seq) {
-#   mdata <- metadata(seq)
-#   if (!is.null(mdata$deletions) || length(mdata$deletions) > 0) {
-#     dels <- itertools::ihasNext(iter(mdata$deletions))
-#     while(itertools::hasNext(dels)) {
-#       d <- nextElem(dels)
-#       XVector::subseq(seq, d, d - 1) <- "-"
-#     }
-#     metadata(seq) <- mdata
-#   }
-#   seq
-# }
 
 #' Generate reference sequences in a FASTA file
 #'
@@ -165,77 +123,42 @@ generateReferenceSequence <- function(allele, locus, outdir, dirtag=NULL,
   if (is.null(allele)) {
     return(NULL)
   }
-  locus <- normalise_locus(locus)
-  stopifnot(allele %in% ipd.Hsapiens.db::getAlleles(locus))
-  dir_create_if_not_exists(normalizePath(
+  locus <- .normaliseLocus(locus)
+  if (!allele %in% ipd.Hsapiens.db::getAlleles(locus)) 
+    stop(sprintf("Allele %s not found in database", allele))
+    
+  .dirCreateIfNotExists(normalizePath(
     file.path(outdir, dirtag), mustWork=FALSE))
   assertthat::assert_that(
     file.exists(outdir),
     assertthat::is.dir(outdir),
     assertthat::is.writeable(outdir)
   )
-  sref <- foreach(al=allele, .combine="c") %do% {
-    sref <- ipd.Hsapiens.db::getClosestComplete(al, locus)
+  sref <- foreach(i=allele, .combine="c") %do% {
+    sref <- ipd.Hsapiens.db::getClosestComplete(i, locus)
     if (fullname) {
       names(sref) <- gsub(" +", "_", names(sref))
     } else {
-      names(sref) <- gsub("[*:]", "", al)
+      names(sref) <- gsub("[*:]", "", i)
     }
     sref
   }
   assertthat::assert_that(is(sref, "DNAStringSet"))
   # workaround for these damn windows filename conventions
-  allele_nm <- gsub("[*]", "#", gsub("[:]", "_", paste0(allele, collapse="~")))
-  filename <- ifelse(is.null(dirtag), paste0(allele_nm, ".ref.fa"),
-                     file.path(dirtag, paste0(allele_nm, ".ref.fa")))
+  alleleNm <- gsub("[*]", "#", gsub("[:]", "_", paste0(allele, collapse="~")))
+  filename <- ifelse(is.null(dirtag), paste0(alleleNm, ".ref.fa"),
+                     file.path(dirtag, paste0(alleleNm, ".ref.fa")))
   outpath <- normalizePath(file.path(outdir, filename), mustWork=FALSE)
 
   Biostrings::writeXStringSet(sref, outpath)
   filename
 }
 
-multialign <- function(x, hptype, n, align = list(
-  iterations = 0,
-  refinements = 0,
-  gapOpening = -2,
-  gapExtension = -1,
-  perfectMatch = 2,
-  misMatch = -5,
-  terminalGap = -5,
-  gapPower = 0,
-  normPower = 1
-)) {
-  stopifnot(is(x$mapIter[["0"]][[hptype]], "mapIter"))
-  hptype <- match.arg(hptype, x$getHapTypes())
-  readfile <- x$mapIter[["0"]][[hptype]]$reads
-  fq <- ShortRead::readFastq(readfile)
-  ids  <- as.character(ShortRead::id(fq))
-  q    <- as.numeric(DR2S:::strsplitN(DR2S:::strsplitN(ids, " ", 2, fixed = TRUE), "=", 2, fixed = TRUE))
-  w    <- Biostrings::width(fq)
-  wq   <- (w/max(w)) * q^2
-  n    <- if (length(wq) > n) n else length(wq)
-  i    <- which(wq > quantile(wq, 1 - n/length(wq)))
-  seqs <- ShortRead::sread(fq[i])
-  DECIPHER::AlignSeqs(seqs,
-                      iterations   = align$iterations,
-                      refinements  = align$refinements,
-                      gapOpening   = align$gapOpening,
-                      gapExtension = align$gapExtension,
-                      perfectMatch = align$perfectMatch,
-                      misMatch     = align$misMatch,
-                      terminalGap  = align$terminalGap,
-                      gapPower     = align$gapPower,
-                      normPower    = align$normPower,
-                      processors   = 8
-                      )
-
-}
-
-multialign_consensus <- function(aln) {
+.multialignConsensus <- function(aln) {
   aln
   n      <- length(aln)
   mat    <- t(Biostrings::consensusMatrix(aln))[, c(1:4, 16)]
-  ## always accept the first and last base irrespective of how many gaps there are
+  ## always accept the first and last base irrespective of how many gaps
   mat[1, 5] <- 0
   mat[NROW(mat), 5] <- 0
   ##
@@ -243,24 +166,25 @@ multialign_consensus <- function(aln) {
   cutoff <- as.numeric(names(tbl)[which.min(tbl)])
   mat0   <- mat[mat[, 5]/n <= cutoff, 1:4]/n
   score  <- apply(mat0, 1, max)
-  cons   <- Biostrings::BStringSet(paste0(colnames(mat0)[apply(mat0, 1, which.max)], collapse = ""))
+  cons   <- Biostrings::BStringSet(paste0(
+    colnames(mat0)[apply(mat0, 1, which.max)], collapse = ""))
   cons@metadata <- list(score = score, cutoff = cutoff, gaptable = tbl)
   cons
 }
 
-trim_polymorphic_ends <- function(fq, min_len = 50) {
-  #message("Entering trim_polymorphic_ends")
+.trimPolymorphicEnds <- function(fq, minLen = 50) {
+  #message("Entering .trimPolymorphicEnds")
   sr <- fq@sread
   if (length(sr@metadata) > 0) {
-    not_trim_starts <- sr@metadata$not_trim_starts
-    not_trim_ends   <- sr@metadata$not_trim_ends
-    preserve_ref_ends <- TRUE
+    notTrimStarts <- sr@metadata$notTrimStarts
+    notTrimEnds   <- sr@metadata$notTrimEnds
+    preserveRefEnds <- TRUE
   } else {
-    preserve_ref_ends <- FALSE
+    preserveRefEnds <- FALSE
   }
   start <- rep(1, length(sr))
-  i <- if (preserve_ref_ends) {
-    seq_along(start)[-not_trim_starts]
+  i <- if (preserveRefEnds) {
+    seq_along(start)[-notTrimStarts]
   } else seq_along(start)
   pos   <- 1
   while (length(i) > 0) {
@@ -268,7 +192,9 @@ trim_polymorphic_ends <- function(fq, min_len = 50) {
     i <- i[Biostrings::width(sr[i]) > pos]
     if (length(i) == 0)
       next
-    i <- i[Biostrings::subseq(sr[i], pos, pos) == Biostrings::subseq(sr[i], pos + 1, pos + 1)]
+    i <- i[Biostrings::subseq(sr[i], pos, pos) == Biostrings::subseq(sr[i], 
+                                                                     pos + 1, 
+                                                                     pos + 1)]
     start[i] <- start[i] + 1
     pos <- pos + 1
 
@@ -276,8 +202,8 @@ trim_polymorphic_ends <- function(fq, min_len = 50) {
   start[start > 1] <- start[start > 1] + 1
 
   end <- Biostrings::width(sr)
-  i   <- if (preserve_ref_ends) {
-    seq_along(end)[-not_trim_ends]
+  i   <- if (preserveRefEnds) {
+    seq_along(end)[-notTrimEnds]
   } else seq_along(end)
   pos <- end
   while (length(i) > 0) {
@@ -286,7 +212,10 @@ trim_polymorphic_ends <- function(fq, min_len = 50) {
     i <- i[pos[i] > 1]
     if (length(i) == 0)
       next
-    i <- i[Biostrings::subseq(sr[i], pos[i], pos[i]) == Biostrings::subseq(sr[i], pos[i] - 1, pos[i] - 1)]
+    i <- i[Biostrings::subseq(sr[i], pos[i], 
+                              pos[i]) == Biostrings::subseq(sr[i], 
+                                                            pos[i] - 1, 
+                                                            pos[i] - 1)]
     end[i] <- end[i] - 1
     pos[i] <- pos[i] - 1
   }
@@ -302,10 +231,10 @@ trim_polymorphic_ends <- function(fq, min_len = 50) {
 
   fq@sread <- Biostrings::subseq(fq@sread, start, end)
   fq@quality@quality <- Biostrings::subseq(fq@quality@quality, start, end)
-  fq[Biostrings::width(fq) >= min_len]
+  fq[Biostrings::width(fq) >= minLen]
 }
 
-get_seqs_from_mat <- function(mat){
+.getSeqsFromMat <- function(mat){
   seqs <- apply(mat, 1, function(t) c(unlist(paste(t, collapse = ""))))
   seqs <- seqs[nchar(gsub("-", "",seqs))>0]
   Biostrings::DNAStringSet(seqs)
@@ -329,7 +258,7 @@ get_seqs_from_mat <- function(mat){
 }
 
 .mat2rle <- function(mat) {
-  seq <- conseq(mat, type = "prob", force_exclude_gaps = TRUE)
+  seq <- conseq(mat, type = "prob", forceExcludeGaps = TRUE)
   .seq2rle(seq)
 }
 
@@ -347,7 +276,6 @@ get_seqs_from_mat <- function(mat){
 #' @return plot a pdf with length histogram and write mode to log
 #' @examples
 #' ###
-
 #' @export
 checkHomoPolymerCount <- function(x, count = 10, map = "mapFinal") {
   map <- match.arg(map, c("mapFinal", "refine"))
@@ -384,9 +312,9 @@ checkHomoPolymerCount <- function(x, count = 10, map = "mapFinal") {
     bamfile <- ifelse(length(hptypes) == 1, bambase, bambase[paste0("SR", hp)])
     bamfile <- file.path(x$getOutdir(), bamfile)
     homopolymersHP <- foreach(pos = n, .combine = rbind) %do% {
-      positionHP <- sum(seqrle$length[1:(pos-1)])+1
+      positionHP <- sum(seqrle$length[seq_len(pos-1)])+1
       lenHP <- seqrle$lengths[pos]
-      msa <- msa_from_bam(bamfile,
+      msa <- .msaFromBam(bamfile,
                           refseq = seq,
                           region = sprintf("%s:%s-%s",
                                            names(seq),
@@ -394,21 +322,23 @@ checkHomoPolymerCount <- function(x, count = 10, map = "mapFinal") {
                                            positionHP + lenHP + 10))
 
 
-      covering <- sapply(msa, function(a) nchar(gsub(pattern = "\\+",
-                                                     "",
-                                                     toString(a))) == lenHP + 21)
+      covering <- sapply(msa, function(a) 
+        nchar(gsub(pattern = "\\+", "", toString(a))) == lenHP + 21)
       msa <- msa[covering]
       readsOI <- names(msa)
       ins <- .getInsertions(bamfile, inpos = positionHP-1, reads = readsOI)[[1]]
-      msa <- unlist(Biostrings::DNAStringSetList(sapply(names(msa), function(a) {
-        if (a %in% names(ins)) {
-          firstSeq <- unlist(Biostrings::subseq(msa[a], start = 1, width = 10))
-          insert <- unlist(ins[a])
-          lastSeq <- unlist(Biostrings::subseq(msa[a], start = 11, width = lenHP + 10))
-          Biostrings::DNAStringSet(c(firstSeq, insert, lastSeq))
-        } else {
-          msa[a]
-        }
+      msa <- unlist(
+        Biostrings::DNAStringSetList(sapply(names(msa), function(a) {
+          if (a %in% names(ins)) {
+            firstSeq <- unlist(Biostrings::subseq(msa[a], start = 1, 
+                                                  width = 10))
+            insert <- unlist(ins[a])
+            lastSeq <- unlist(Biostrings::subseq(msa[a], start = 11, 
+                                                 width = lenHP + 10))
+            Biostrings::DNAStringSet(c(firstSeq, insert, lastSeq))
+          } else {
+            msa[a]
+          }
       })))
       msarle <- lapply(msa, .seq2rle)
       lens <- sapply(msarle, function(a) max(a$lengths))
@@ -416,33 +346,37 @@ checkHomoPolymerCount <- function(x, count = 10, map = "mapFinal") {
     }
 
     modes <- homopolymersHP %>%
-      dplyr::group_by(position) %>%
+      dplyr::group_by(.data$position) %>%
       dplyr::summarize(mode = .getModeValue(length))
-    for (i in 1:NROW(modes)) {
+    for (i in seq_len(NROW(modes))) {
       modeHP <- modes[i,]
       flog.info("%s: Mode for homopolymer at position %s: %s",
                 hp, modeHP$position, modeHP$mode)
       if (map == "mapFinal") {
-        x$mapFinal$homopolymers[[hp]][[as.character(modeHP$position)]] <- modeHP$mode
+        x$mapFinal$homopolymers[[hp]][[
+          as.character(modeHP$position)]] <- modeHP$mode
       } else if (map == "refine") {
-        x$consensus$homopolymers[[hp]][[as.character(modeHP$position)]] <- modeHP$mode
+        x$consensus$homopolymers[[hp]][[
+          as.character(modeHP$position)]] <- modeHP$mode
       }
     }
     ggplot(data = homopolymersHP) +
       geom_histogram(aes(length), binwidth = 1) +
-      scale_x_continuous(breaks = seq(min(homopolymersHP$length), max(homopolymersHP$length), 1)) +
+      scale_x_continuous(breaks = seq(min(homopolymersHP$length), 
+                                      max(homopolymersHP$length), 1)) +
       facet_grid(position~., scales = "free_y") +
       ggtitle(paste("Homopolymer length", hp)) +
       theme_minimal()
   }
-
-
   if (!all(is.null(unlist(p)))) {
-    plotFile <- file.path(x$getOutdir(), "homopolymers.pdf")
-    pdf(file = plotFile, width = 7*length(hptypes))
-    multiplot(plotlist = p,
-              layout = matrix(1:length(p), nrow = 1))
-    dev.off()
+    p1 <- cowplot::plot_grid(plotlist = p, nrow = length(n))
+    cowplot::save_plot(p1, filename = x$absPath("plot.Homopolymers.pdf"),
+                base_width = 7*length(hptypes),
+                title     = paste(x$getLocus(), x$getSampleId(), sep = "." ),
+                base_height = 7*length(n))
+    cowplot::save_plot(p1, filename = x$absPath(".plots/plot.Homopolymers.svg"),
+              base_width = 7*length(hptypes),
+              base_height = 7*length(n))
   }
   return(invisible(x))
 }

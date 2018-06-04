@@ -4,17 +4,18 @@
 \alias{polish}
 \title{Polish final haplotype sequences.}
 \usage{
-polish(x, threshold = x$getThreshold(), lower_limit = 1.6, cache = TRUE,
-  ...)
+polish(x, threshold = x$getThreshold(), checkHpCount = TRUE, cache = TRUE)
 }
 \arguments{
 \item{x}{A \code{\link[=DR2S_]{DR2S}} object.}
 
 \item{threshold}{When do we call a variant a variant.}
 
-\item{lower_limit}{When do we report a variant as uncertain.}
+\item{checkHpCount}{Check the number of homopolymer counts in shortreads.
+Compare the resulting sequence with the mode value and report differences.}
 
-\item{cache}{Cache the updated \code{DR2S} object after assembling the haplotypes.}
+\item{cache}{Cache the updated \code{DR2S} object after assembling the 
+haplotypes.}
 
 \item{...}{Additional arguments passed to methods.}
 }
@@ -42,15 +43,15 @@ x <- DR2Smap(
   partitionShortReads() \%>\%
   mapFinal() \%>\%
   polish() \%>\%
-  report(block_width = 60)
+  report(blockwidth = 60)
 }
 }
 \seealso{
-Other DR2S mapper functions: \code{\link{DR2Smap}},
-  \code{\link{cache}}, \code{\link{clear}},
+Other DR2S mapper functions: \code{\link{cache}},
+  \code{\link{clear}}, \code{\link{createDR2SConf}},
   \code{\link{mapFinal}}, \code{\link{mapInit}},
   \code{\link{mapIter}}, \code{\link{partitionLongReads}},
   \code{\link{refineAlignment}},
-  \code{\link{report_checked_consensus}},
+  \code{\link{reportCheckedConsensus}},
   \code{\link{report}}
 }

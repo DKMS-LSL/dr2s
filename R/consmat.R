@@ -3,11 +3,18 @@
 # Consensus Matrix --------------------------------------------------------
 
 
-#' Construct a consensus matrix from pileup
+#' Construct a consensus matrix from pileup. 
+#' 
+#' Accessor and replacement methods are available: n(consmat), ins(consmat),
+#' offsetBases(consmat), is.freq(consmat).
 #'
-#' @param x A \code{pileup} object.
+#' @param x A \code{pileup} object. Additional inputs can be a \code{matrix}, 
+#' \code{tbl_df} or \code{consmat} objects.
 #' @param freq If \code{TRUE} then frequencies are reported, otherwise counts.
-#' @param ... Additional arguments such as \code{n}, \code{offset}, \code{insertions}
+#' @param ... Additional arguments such as \code{n}, \code{offsetBases}, 
+#'   \code{insertions}
+#' @param value The value to replace with.
+#' @param consmat The \code{\link{consmat}} object that is changed.
 #' @details
 #' \code{consmat}: a \code{matrix} with positions row names and nucleotides as
 #' column manes.
@@ -15,19 +22,20 @@
 #' \describe{
 #'   \item{n}{<integer>; Number of reads per row.}
 #'   \item{freq}{<logical>; Is it a frequency matrix or a count matrix.}
-#'   \item{offset}{<integer>; Offset}
+#'   \item{offsetBases}{<integer>; OffsetBases}
 #'   \item{insertions}{<integer>; Insertions}
 #' }
 #' @return A \code{consmat} object.
 #' @export
 #' @examples
+#' print("TODO: ADD EXAMPLES")
 #' ###
-consmat <- function(x, ...) UseMethod("consmat")
+consmat <- function(x, freq = TRUE, ...) UseMethod("consmat")
 
 # Internal constructor
-Consmat_ <- function(x, n, freq, offset = 0L, insertions = NULL) {
+Consmat_ <- function(x, n, freq, offsetBases = 0L, insertions = NULL) {
   structure(
-    x, n = n, freq = freq, offset = offset, insertions = insertions,
+    x, n = n, freq = freq, offsetBases = offsetBases, insertions = insertions,
     class = c("consmat", "matrix")
   )
 }
@@ -42,7 +50,8 @@ consmat.matrix <- function(x, freq = TRUE, ...) {
 #' @export
 consmat.tbl_df <- function(x, freq = TRUE, drop.unused.levels = FALSE, ...) {
   stopifnot(all(c("pos", "nucleotide", "count") %in% colnames(x)))
-  x <- xtabs(formula = count ~ pos + nucleotide, data = x, drop.unused.levels = drop.unused.levels)
+  x <- stats::xtabs(formula = count ~ pos + nucleotide, data = x, 
+             drop.unused.levels = drop.unused.levels)
   rs <- matrix(x, NROW(x),  NCOL(x))
   dimnames(rs) <- dimnames(x)
   n <- .rowSums(rs, NROW(rs), NCOL(rs))
@@ -59,8 +68,8 @@ consmat.consmat <- function(x, freq = TRUE, ...) {
       x
     } else {
       Consmat_(
-        sweep(x, 1, n(x), `/`), n = n(x), freq = freq, offset = offset(x),
-        insertions = ins(x)
+        sweep(x, 1, n(x), `/`), n = n(x), freq = freq, 
+        offsetBases = offsetBases(x), insertions = ins(x)
       )
     }
   } else if (!freq) {
@@ -68,8 +77,8 @@ consmat.consmat <- function(x, freq = TRUE, ...) {
     n(x) <- .rowSums(x, NROW(x), NCOL(x))
     if (is.freq(x)) {
       Consmat_(
-        sweep(x, 1, n(x), `*`), n = n(x), freq = freq, offset = offset(x),
-        insertions = ins(x)
+        sweep(x, 1, n(x), `*`), n = n(x), freq = freq, 
+        offsetBases = offsetBases(x), insertions = ins(x)
       )
     } else {
       x
@@ -91,12 +100,12 @@ print.consmat <- function(x, n = 25, noHead = FALSE, transpose = FALSE,  ...) {
   show <- if (transpose) {
     x <- as.matrix(t(x))
     if ((nc_ <- NCOL(x)) > n) {
-      cbind(x[, 1:floor(n / 2)], x[, (nc_ - floor(n / 2)):nc_])
+      cbind(x[, seq_len(floor(n / 2))], x[, (nc_ - floor(n / 2)):nc_])
     } else x
   } else {
     x <- as.matrix(x)
     if (NROW(x) > n) {
-      rbind(head(x, floor(n / 2)), tail(x, floor(n / 2)))
+      rbind(utils::head(x, floor(n / 2)), utils::tail(x, floor(n / 2)))
     } else x
   }
   print(show)
@@ -109,8 +118,8 @@ print.consmat <- function(x, n = 25, noHead = FALSE, transpose = FALSE,  ...) {
     ## recalibrate n
     n <- .rowSums(rs, NROW(rs), NCOL(rs))
     Consmat_(
-      rs, n, freq = is.freq(x), offset = offset(x), insertions = ins(x)
-    )
+      rs, n, freq = is.freq(x), offsetBases = offsetBases(x), 
+      insertions = ins(x))
   } else rs
 }
 
@@ -120,7 +129,7 @@ print.consmat <- function(x, n = 25, noHead = FALSE, transpose = FALSE,  ...) {
   ## recalibrate n
   n <- .rowSums(rs, NROW(rs), NCOL(rs))
   Consmat_(
-    rs, n, freq = is.freq(x), offset = offset(x), insertions = ins(x)
+    rs, n, freq = is.freq(x), offsetBases = offsetBases(x), insertions = ins(x)
   )
 }
 
@@ -130,7 +139,7 @@ as.matrix.consmat <- function(x, ...) {
   attr(rs, "n") <- NULL
   attr(rs, "insertions") <- NULL
   attr(rs, "freq") <- NULL
-  attr(rs, "offset") <- NULL
+  attr(rs, "offsetBases") <- NULL
   rs
 }
 
@@ -138,75 +147,76 @@ as.matrix.consmat <- function(x, ...) {
 as.data.frame.consmat <- function(x, ...) {
   df <- dplyr::tbl_df(as.data.frame.table(x)) %>%
     dplyr::transmute(
-      pos = as.integer(as.character(pos)),
-      nucleotide = nucleotide,
-      freq = Freq
+      pos = as.integer(as.character(.data$pos)),
+      nucleotide = .data$nucleotide,
+      freq = .data$Freq
     ) %>%
-    dplyr::arrange(pos, nucleotide)
+    dplyr::arrange(.data$pos, .data$nucleotide)
   df
 }
 
-#' @keywords internal
+#' @rdname consmat 
 #' @export
-n <- function(x, ...) UseMethod("n")
-#' @export
-n.consmat <- function(x) attr(x, "n")
+n <- function(consmat) UseMethod("n")
 
-#' @keywords internal
 #' @export
-`n<-` <- function(x, value, ...) UseMethod("n<-")
+n.consmat <- function(consmat) attr(consmat, "n")
+
+#' @rdname consmat 
 #' @export
-`n<-.consmat` <- function(x, value) {
-  attr(x, "n") <- value
-  x
+`n<-` <- function(consmat, value) UseMethod("n<-")
+#' @export
+`n<-.consmat` <- function(consmat, value) {
+  attr(consmat, "n") <- value
+  consmat
 }
 
-#' @keywords internal
+#' @rdname consmat 
 #' @export
-ins <- function(x, ...) UseMethod("ins")
+ins <- function(consmat) UseMethod("ins")
 #' @export
-ins.consmat <- function(x) attr(x, "insertions")
+ins.consmat <- function(consmat) attr(consmat, "insertions")
 
-#' @keywords internal
+#' @rdname consmat 
 #' @export
-`ins<-` <- function(x, value, ...) UseMethod("ins<-")
+`ins<-` <- function(consmat, value) UseMethod("ins<-")
 #' @export
-`ins<-.consmat` <- function(x, value) {
-  attr(x, "insertions") <- value
-  x
+`ins<-.consmat` <- function(consmat, value) {
+  attr(consmat, "insertions") <- value
+  consmat
 }
 
 
-#' @keywords internal
+#' @rdname consmat 
 #' @export
-offset <- function(x, ...) UseMethod("offset")
+offsetBases <- function(consmat) UseMethod("offsetBases")
 #' @export
-offset.consmat <- function(x) attr(x, "offset")
+offsetBases.consmat <- function(consmat) attr(consmat, "offsetBases")
 
-#' @keywords internal
+#' @rdname consmat 
 #' @export
-`offset<-` <- function(x, value, ...) UseMethod("offset<-")
+`offsetBases<-` <- function(consmat, value) UseMethod("offsetBases<-")
 #' @export
-`offset<-.consmat` <- function(x, value) {
-  attr(x, "offset") <- value
-  x
+`offsetBases<-.consmat` <- function(consmat, value) {
+  attr(consmat, "offsetBases") <- value
+  consmat
 }
 
-#' @keywords internal
+#' @rdname consmat 
 #' @export
-is.freq <- function(x, ...) UseMethod("is.freq")
+is.freq <- function(consmat) UseMethod("is.freq")
 #' @export
-is.freq.consmat <- function(x) attr(x, "freq")
-
-#' @keywords internal
-#' @export
+is.freq.consmat <- function(consmat) attr(consmat, "freq")
 
 ## Note for me: flattens the matrix; compare rowsum to rowsums upstream of pos;
 ## if > t set all to 0
-prune_consensus_matrix <- function(cm, n_look_behind = 36, cutoff = 0.6, verbose = TRUE) {
+.pruneConsensusMatrix <- function(cm, nLookBehind = 36, cutoff = 0.6, 
+                                  verbose = TRUE) {
   rowsum <- rowSums(cm[, 1:4]) ## only consider bases
-  m0 <- do.call(cbind, Map(function(n) dplyr::lag(rowsum, n), n_look_behind:1))
-  wquant <- suppressWarnings(apply(m0, 1, quantile, probs = 0.75, na.rm = TRUE))
+  m0 <- do.call(cbind, Map(function(n) dplyr::lag(rowsum, n), nLookBehind:1))
+  wquant <- suppressWarnings(apply(m0, 1, 
+                                   stats::quantile, 
+                                   probs = 0.75, na.rm = TRUE))
   devi <- (wquant - rowsum)/wquant
   i <- which(devi > cutoff)
   if (length(i) > 0) {
@@ -214,7 +224,7 @@ prune_consensus_matrix <- function(cm, n_look_behind = 36, cutoff = 0.6, verbose
       message("  Pruning positions ", comma(i))
     }
     cm[i, ] <- 0L
-    attr(cm, "pruning_positions") <- unname(i)
+    attr(cm, "pruningPositions") <- unname(i)
   }
   cm
 }
@@ -223,18 +233,23 @@ prune_consensus_matrix <- function(cm, n_look_behind = 36, cutoff = 0.6, verbose
 #'
 #' @param msa A \code{DNAStringSet} object of aligned sequences.
 #' @details
-#' \code{PWM}: a \code{matrix} with positions row names and nucleotides as
+#' \code{PWM}: a \code{matrix} with position as row names and nucleotides as
 #' column manes. Values are nucleotide weights at a position
-#' A ConsensusMatrix is calculated from the MSA using \code{Biostrings::consensusMatrix} and values are converted to probabilities.
-#' Pseudocounts are added and values are divided by DNA probabilities and log2 score is reported
+#' A ConsensusMatrix is calculated from the MSA using 
+#' \code{Biostrings::consensusMatrix} and values are converted to probabilities.
+#' Pseudocounts are added and values are divided by DNA probabilities and log2 
+#' score is reported
 #' @return A \code{PWM} matrix.
 #'
 #' @export
 #' @examples
+#' print("TODO: Add examples")
 #' ###
-create_PWM <- function(msa){
-  # Need to calc first a count based consensus matrix, while removing "+". Prob is calculated afterwards.
-  cmat <- as.matrix(as.matrix(Biostrings::consensusMatrix(msa, as.prob = FALSE))[VALID_DNA(include = "del"),])
+createPWM <- function(msa){
+  # Need to calc first a count based consensus matrix, while removing "+". 
+  # Prob is calculated afterwards.
+  cmat <- as.matrix(Biostrings::consensusMatrix(msa, as.prob = FALSE))
+  cmat <- as.matrix(cmat[VALID_DNA("del"),])
   cmat <- sweep(cmat, 2, colSums(cmat), "/")
   ## Add pseudocount
   cmat <- cmat + 1/length(msa)
@@ -256,11 +271,11 @@ create_PWM <- function(msa){
   for (i in which(seq$length > 5)) {
     ## Assign new gap numbers to each position starting from left
     # meanCoverage <- mean(rowSums(mat[seqStart:seqEnd,1:4]))
-    seqStart <- sum(seq$lengths[1:(i - 1)]) + 1
+    seqStart <- sum(seq$lengths[seq_len(i - 1)]) + 1
     seqEnd <- seqStart + seq$lengths[i] - 1
     region <- paste0(names(reference), ":", seqStart, "-", seqEnd)
 
-    msa <- msa_from_bam(bamfile, reference, paddingLetter = "+", region = region)
+    msa <- .msaFromBam(bamfile, reference, paddingLetter = "+", region = region)
     ## Use only sequences spanning the complete region! Every other sequence
     ## gives no Info
     msa <- msa[sapply(msa, function(x) !"+" %in% Biostrings::uniqueLetters(x))]
@@ -287,7 +302,8 @@ create_PWM <- function(msa){
             # x <- msa[seqsToChange][[1]]
             pos <- Biostrings::matchPattern("-", x)[1]
             Biostrings::replaceLetterAt(x,
-                                     Biostrings::start(Biostrings::matchPattern("-", x)[1]),
+                                     Biostrings::start(
+                                       Biostrings::matchPattern("-", x)[1]),
                                      nt)
           }))
         msa[seqsToChange] <- msaChanged
@@ -300,33 +316,11 @@ create_PWM <- function(msa){
       nGaps <- Biostrings::nchar(x) - Biostrings::nchar(gapless)
       paste0(paste0(rep("-", nGaps), collapse = ""), gapless)
     }))
-    mat[seqStart:seqEnd,] <- t(Biostrings::consensusMatrix(msa))[,VALID_DNA(include = "indel")]
+    mat[seqStart:seqEnd,] <- t(Biostrings::consensusMatrix(msa))[
+      ,VALID_DNA(include = "indel")]
   }
   mat
 }
-
-# .distributeGapsConsMat <- function(mat, bamfile, reference, removeError = FALSE){
-#   stopifnot(is(mat,"consmat"))
-#   if (! "-" %in% colnames(mat)) {
-#     flog.warn("No Gaps to distribute")
-#     return(mat)
-#   }
-#   seq <- .mat2rle(mat)
-#
-#   if (removeError){
-#     for (i in which(seq$length > 1)) {
-#       seqStart <- sum(seq$lengths[1:(i-1)])+1
-#       seqEnd <- seqStart+seq$lengths[i]-1
-#       mat[seqStart:seqEnd,"-"] <- sum(mat[seqStart:seqEnd,"-"])/seq$lengths[i]
-#     }
-#     backgroundGapError <- .getGapErrorBackground(mat)
-#     newGapError <- apply(mat, 1, function(x) sum(x)*backgroundGapError)#
-#     mat[,"-"] <- round(mat[,"-"] - newGapError)
-#     mat[which(mat[,"-"] < 0),"-"] <- 0
-#   }
-#   mat <- .moveGapsToLeft(mat, bamfile, reference)
-#   mat
-# }
 
 .getGapErrorBackground <- function(mat, n = 5){
   seq <- .mat2rle(mat)
@@ -334,7 +328,8 @@ create_PWM <- function(msa){
   longestRegion <- which.max(consecutiveRegions$lengths)
   startSeq <- ifelse(longestRegion == 1,
                      1,
-                     sum(consecutiveRegions$lengths[1:(longestRegion - 1)]))
+                     sum(consecutiveRegions$lengths[
+                       seq_len(longestRegion - 1)]))
   endSeq <- startSeq + consecutiveRegions$lengths[longestRegion] - 1
   ## Add an offset of 10 to acknowledge bad quality after homopolymer regions
   startSeq <- startSeq + 10
@@ -342,50 +337,3 @@ create_PWM <- function(msa){
   backgroundSums <- colSums(background)
   backgroundSums["-"] / sum(backgroundSums)
 }
-# .moveGapsToLeft <- function(mat){
-#   seq <- .mat2rle(mat)
-#   ## debug
-#   al
-#   i <- 7084
-#   ##
-#   for (i in which(seq$length > 9)) {
-#     ## Assign new gap numbers to each position starting from left
-#     # meanCoverage <- mean(rowSums(mat[seqStart:seqEnd,1:4]))
-#     ## !! not true now: start is now -1, end +1
-#     seqStart <- sum(seq$lengths[1:(i-1)])+1
-#     seqEnd <- seqStart+seq$lengths[i]-1
-#     length <- seq$length[i]
-#
-#     msa <-
-#
-#     gaps <- sum(mat[seqStart:seqEnd, "-"])
-#     prevCoverage <- sum(mat[(seqStart-1),1:5])
-#     baseSums <- colSums(mat[seqStart:seqEnd,1:4])
-#     idx <- 0
-#     while(gaps > 0 && !seq$values[i] == "-"){
-#       # move the gaps to the left
-#       gapsAtPos <- min(gaps, prevCoverage)
-#       mat[(seqStart+idx),"-"] <- gapsAtPos
-#       # if more gaps than bases move the bases from a column to the right
-#       if (gaps >= prevCoverage){
-#         length <- length - 1
-#         # move the bases to the right; distribute them
-#         # set bases at gap column to 0
-#         mat[(seqStart+idx),1:4] <- 0
-#         ## distribute the bases to all other columns
-#         newMeanBases <- baseSums/length
-#         for (pos in (seqStart+idx+1):seqEnd){
-#           mat[pos,1:4] <- newMeanBases
-#         }
-#       }
-#       if (length == 1)
-#         break
-#       gaps <- gaps - gapsAtPos
-#       idx <- idx+1
-#     }
-#     newSeqStart <- seqStart + idx
-#     if (!newSeqStart > seqEnd)
-#       mat[newSeqStart:seqEnd, "-"] <- 0
-#   }
-#   m <- round(mat)
-# }

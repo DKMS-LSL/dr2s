@@ -28,26 +28,26 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// cpp_polymorphic_positions
-Rcpp::IntegerVector cpp_polymorphic_positions(Rcpp::NumericMatrix x, const double threshold);
-RcppExport SEXP _DR2S_cpp_polymorphic_positions(SEXP xSEXP, SEXP thresholdSEXP) {
+// cpp_polymorphicPositions
+Rcpp::IntegerVector cpp_polymorphicPositions(Rcpp::NumericMatrix x, const double threshold);
+RcppExport SEXP _DR2S_cpp_polymorphicPositions(SEXP xSEXP, SEXP thresholdSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type x(xSEXP);
     Rcpp::traits::input_parameter< const double >::type threshold(thresholdSEXP);
-    rcpp_result_gen = Rcpp::wrap(cpp_polymorphic_positions(x, threshold));
+    rcpp_result_gen = Rcpp::wrap(cpp_polymorphicPositions(x, threshold));
     return rcpp_result_gen;
 END_RCPP
 }
-// cpp_top2_cols
-Rcpp::List cpp_top2_cols(Rcpp::NumericMatrix x);
-RcppExport SEXP _DR2S_cpp_top2_cols(SEXP xSEXP) {
+// cpp_top2Cols
+Rcpp::List cpp_top2Cols(Rcpp::NumericMatrix x);
+RcppExport SEXP _DR2S_cpp_top2Cols(SEXP xSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type x(xSEXP);
-    rcpp_result_gen = Rcpp::wrap(cpp_top2_cols(x));
+    rcpp_result_gen = Rcpp::wrap(cpp_top2Cols(x));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -55,8 +55,8 @@ END_RCPP
 static const R_CallMethodDef CallEntries[] = {
     {"_DR2S_cpp_hamming", (DL_FUNC) &_DR2S_cpp_hamming, 1},
     {"_DR2S_cpp_PSDM", (DL_FUNC) &_DR2S_cpp_PSDM, 2},
-    {"_DR2S_cpp_polymorphic_positions", (DL_FUNC) &_DR2S_cpp_polymorphic_positions, 2},
-    {"_DR2S_cpp_top2_cols", (DL_FUNC) &_DR2S_cpp_top2_cols, 1},
+    {"_DR2S_cpp_polymorphicPositions", (DL_FUNC) &_DR2S_cpp_polymorphicPositions, 2},
+    {"_DR2S_cpp_top2Cols", (DL_FUNC) &_DR2S_cpp_top2Cols, 1},
     {NULL, NULL, 0}
 };
 

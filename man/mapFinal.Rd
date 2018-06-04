@@ -4,33 +4,31 @@
 \alias{mapFinal}
 \title{Final mapping step (long reads and short reads).}
 \usage{
-mapFinal(x, opts = list(), pct = 100, min_base_quality = 7,
-  min_mapq = 0, max_depth = 100000, min_nucleotide_depth = 3,
-  include_deletions = TRUE, include_insertions = TRUE, force = FALSE,
-  fullname = TRUE, plot = TRUE, clip = TRUE, ...)
+mapFinal(x, opts = list(), minBaseQuality = 7, minMapq = 0,
+  maxDepth = 1e+05, minNucleotideDepth = 3, includeDeletions = TRUE,
+  includeInsertions = TRUE, force = FALSE, fullname = TRUE, plot = TRUE,
+  clip = TRUE)
 }
 \arguments{
 \item{x}{A \code{\link[=DR2S_]{DR2S}} object.}
 
 \item{opts}{Mapper options.}
 
-\item{pct}{Percentage of templates to subsample (before sorting the bam file).}
-
-\item{min_base_quality}{Minimum \sQuote{QUAL} value for each nucleotide in an
+\item{minBaseQuality}{Minimum \sQuote{QUAL} value for each nucleotide in an
 alignment.}
 
-\item{min_mapq}{Minimum \sQuote{MAPQ} value for an alignment to be included
+\item{minMapq}{Minimum \sQuote{MAPQ} value for an alignment to be included
 in pileup.}
 
-\item{max_depth}{Maximum number of overlapping alignments considered for
+\item{maxDepth}{Maximum number of overlapping alignments considered for
 each position in the pileup.}
 
-\item{min_nucleotide_depth}{Minimum count of each nucleotide at a given
+\item{minNucleotideDepth}{Minimum count of each nucleotide at a given
 position required for that nucleotide to appear in the result.}
 
-\item{include_deletions}{If \code{TRUE}, include deletions in pileup.}
+\item{includeDeletions}{If \code{TRUE}, include deletions in pileup.}
 
-\item{include_insertions}{If \code{TRUE}, include insertions in pileup.
+\item{includeInsertions}{If \code{TRUE}, include insertions in pileup.
 from bam files for variants ar polymorphic positions.}
 
 \item{force}{If \code{TRUE}, overwrite existing bam file.}
@@ -47,9 +45,9 @@ from bam files for variants ar polymorphic positions.}
 A \code{\link[=DR2S_]{DR2S}} object.
 }
 \description{
-Partitioned long reads and partitioned or unpartitioned short reads are mapped against the
-consensus sequences inferred at \code{mapIter}. Indels are \strong{included}
-in pileup.
+Partitioned long reads and partitioned or unpartitioned short reads are 
+mapped against the consensus sequences inferred at \code{mapIter}. Indels 
+are \strong{included} in pileup.
 }
 \examples{
 \dontrun{
@@ -68,15 +66,15 @@ x <- DR2Smap(
   partitionShortReads() \%>\%
   mapFinal() \%>\%
   polish() \%>\%
-  report(block_width = 60)
+  report(blockWidth = 60)
 }
 }
 \seealso{
-Other DR2S mapper functions: \code{\link{DR2Smap}},
-  \code{\link{cache}}, \code{\link{clear}},
+Other DR2S mapper functions: \code{\link{cache}},
+  \code{\link{clear}}, \code{\link{createDR2SConf}},
   \code{\link{mapInit}}, \code{\link{mapIter}},
   \code{\link{partitionLongReads}}, \code{\link{polish}},
   \code{\link{refineAlignment}},
-  \code{\link{report_checked_consensus}},
+  \code{\link{reportCheckedConsensus}},
   \code{\link{report}}
 }

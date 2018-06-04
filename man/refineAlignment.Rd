@@ -2,29 +2,32 @@
 % Please edit documentation in R/report.R
 \name{refineAlignment}
 \alias{refineAlignment}
-\title{Refine the mapping of an allele by remap to the checked consensus}
+\title{Refine the mapping of an allele by remapping to the checked consensus}
 \usage{
-refineAlignment(x, hptype)
+refineAlignment(x, hptype, report = FALSE)
 }
 \arguments{
 \item{x}{A \code{\link[=DR2S_]{DR2S}} object.}
 
 \item{hptype}{The allele to refine}
+
+\item{report}{Should the function read a reference from the report folder?
+Only internal parameter.}
 }
 \value{
-Returns the updated \code{\link[=DR2s_]{DR2S}} object.
+Returns the updated \code{\link[=DR2S_]{DR2S}} object.
 
 Creates an executable bash file for inspecting the mapping with IGV
 }
 \description{
-Refine the mapping of an allele by remap to the checked consensus
+Refine the mapping of an allele by remapping to the checked consensus
 }
 \seealso{
-Other DR2S mapper functions: \code{\link{DR2Smap}},
-  \code{\link{cache}}, \code{\link{clear}},
+Other DR2S mapper functions: \code{\link{cache}},
+  \code{\link{clear}}, \code{\link{createDR2SConf}},
   \code{\link{mapFinal}}, \code{\link{mapInit}},
   \code{\link{mapIter}}, \code{\link{partitionLongReads}},
   \code{\link{polish}},
-  \code{\link{report_checked_consensus}},
+  \code{\link{reportCheckedConsensus}},
   \code{\link{report}}
 }

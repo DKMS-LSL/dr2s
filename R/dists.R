@@ -10,7 +10,7 @@
 #' \describe{
 #'   \item{n}{<integer>; Number of reads per row.}
 #'   \item{freq}{<logical>; Is it a frequency matrix or a count matrix.}
-#'   \item{offset}{<integer>; Offset}
+#'   \item{offsetBases}{<integer>; Offset}
 #'   \item{insertions}{<integer>; Insertions}
 #' }
 #'
@@ -20,12 +20,13 @@
 #' ###
 hammingDist <- function(x){
   stopifnot(is(x, "DNAStringSet"))
-  x_tmp <- as.matrix(x)
-  x_mat<- plyr::revalue(x_tmp, c("G" = 1, "A" = 2, "T" = 3, "C" = 4, "-" = 5, "+" = 6), warn_missing = FALSE)
-  x_mat<- sapply(x_mat, as.numeric)
-  dim(x_mat) <- dim(x_tmp)
-  rm(x_tmp)
-  dist <- cpp_hamming(x_mat)
+  xTmp <- as.matrix(x)
+  dnaBaseMapping <- c("G" = 1, "A" = 2, "T" = 3, "C" = 4, "-" = 5, "+" = 6)
+  xMat<- plyr::revalue(xTmp, dnaBaseMapping, warn_missing = FALSE)
+  xMat<- sapply(xMat, as.numeric)
+  dim(xMat) <- dim(xTmp)
+  rm(xTmp)
+  dist <- cpp_hamming(xMat)
   colnames(dist) <- names(x)
   rownames(dist) <- names(x)
   dist
@@ -36,16 +37,15 @@ PSDM <- function(x, consmat){
   stopifnot(is(x, "DNAStringSet"))
 
   ## Create seq matrix as input for cpp_PSDM
-  x_tmp <- as.matrix(x)
-  x_mat<- plyr::revalue(x_tmp,
-                        c("G" = 1, "A" = 2, "T" = 3, "C" = 4, "-" = 5, "+" = 6),
-                        warn_missing = FALSE)
-  x_mat<- sapply(x_mat, as.numeric)
-  dim(x_mat) <- dim(x_tmp)
-  rm(x_tmp)
+  xTmp <- as.matrix(x)
+  dnaBaseMapping <- c("G" = 1, "A" = 2, "T" = 3, "C" = 4, "-" = 5, "+" = 6)
+  xMat<- plyr::revalue(xTmp, dnaBaseMapping, warn_missing = FALSE)
+  xMat<- sapply(xMat, as.numeric)
+  dim(xMat) <- dim(xTmp)
+  rm(xTmp)
 
   ## Get Position Specific Distance Matrix
-  dist <- cpp_PSDM(consmat, x_mat)
+  dist <- cpp_PSDM(consmat, xMat)
   colnames(dist) <- names(x)
   rownames(dist) <- names(x)
   dist

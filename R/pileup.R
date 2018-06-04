@@ -7,13 +7,16 @@
 #'
 #' @param bamfile BAM file path.
 #' @param threshold Threshold used for SNP calling.
+#' @param ... Additional parameters passed to 
+#' \code{\link[Rsamtools]{PileupParam}}.
 #' @inheritParams Rsamtools::PileupParam
 #'
 #' @details
 #' Returns a \code{pileup} object:
 #' A \code{list} with slots:
 #' \describe{
-#'   \item{bamfile}{<character>; Path to the bam file used to construct the pileup}
+#'   \item{bamfile}{<character>; Path to the bam file used to construct the 
+#'   pileup}
 #'   \item{threshold}{<numeric>; Threshold used for calling SNPs}
 #'   \item{param}{A \code{\link[Rsamtools]{PileupParam}} object}
 #'   \item{pilup}{A \code{data.frame} with colums:
@@ -33,65 +36,35 @@
 #' ###
 Pileup <- function(bamfile,
                    threshold = 0.20,
-                   max_depth = 250,
-                   ##min_base_quality = 13,
-                   min_base_quality = 0,
-                   min_mapq = 0,
-                   min_nucleotide_depth = 1,
-                   min_minor_allele_depth = 0,
-                   distinguish_strands = FALSE,
-                   distinguish_nucleotides = TRUE,
-                   ignore_query_Ns = TRUE,
-                   include_deletions = TRUE,
-                   include_insertions = FALSE,
-                   left_bins = NULL,
-                   query_bins = NULL) {
+                   ...) {
+  param <- list(...)
+  
+  if (is.null(param$distinguish_strands))
+      param$distinguish_strands <- FALSE
+      
   bfl <- Rsamtools::BamFile(bamfile)
-  if (packageVersion("Rsamtools") < "1.24.0") {
-    p_param <- Rsamtools::PileupParam(
-      max_depth = max_depth,
-      min_base_quality = min_base_quality,
-      min_mapq = min_mapq,
-      min_nucleotide_depth = min_nucleotide_depth,
-      min_minor_allele_depth = min_minor_allele_depth,
-      distinguish_strands = distinguish_strands,
-      distinguish_nucleotides = distinguish_nucleotides,
-      ignore_query_Ns = ignore_query_Ns,
-      include_deletions = include_deletions,
-      include_insertions = include_insertions,
-      cycle_bins = NULL %||% numeric()
-    )
-  } else {
-    p_param <- Rsamtools::PileupParam(
-      max_depth = max_depth,
-      min_base_quality = min_base_quality,
-      min_mapq = min_mapq,
-      min_nucleotide_depth = min_nucleotide_depth,
-      min_minor_allele_depth = min_minor_allele_depth,
-      distinguish_strands = distinguish_strands,
-      distinguish_nucleotides = distinguish_nucleotides,
-      ignore_query_Ns = ignore_query_Ns,
-      include_deletions = include_deletions,
-      include_insertions = include_insertions,
-      left_bins = left_bins,
-      query_bins = query_bins
-    )
-  }
-  s_param <- Rsamtools::ScanBamParam(
+  pParam <- do.call(Rsamtools::PileupParam, c(param))
+  
+  sParam <- Rsamtools::ScanBamParam(
     flag = Rsamtools::scanBamFlag(
       isUnmappedQuery = FALSE,
       isSecondaryAlignment = FALSE
     )
   )
-  pileup <- Rsamtools:::.pileup(file = bfl, scanBamParam = s_param, pileupParam = p_param)
+  ## TODO: check if still correct
+  # pileup <- Rsamtools:::.pileup(file = bfl, scanBamParam = sParam, 
+  #                               pileupParam = pParam)
+  pileup <- Rsamtools::pileup(file = bfl, scanBamParam = sParam, 
+                                pileupParam = pParam)
   pileup <-
     dplyr::mutate(dplyr::tbl_df(pileup),
-                  seqnames = strsplitN(as.character(seqnames), "~", 1, fixed = TRUE))
+                  seqnames = strsplitN(as.character(.data$seqnames), "~", 1, 
+                                       fixed = TRUE))
   structure(
     list(
       bamfile   = bamfile,
       threshold = threshold,
-      param     = p_param,
+      param     = pParam,
       pileup    = pileup,
       consmat   = consmat(pileup, freq = FALSE)
     ),
@@ -99,19 +72,20 @@ Pileup <- function(bamfile,
   )
 }
 
-
 # Methods: pileup ---------------------------------------------------------
 
 
 #' @export
-print.pileup <- function(x, as_string = FALSE, ...) {
-  values <- sapply(slotNames(x$param), slot, object = x$param)
-  info <- paste(slotNames(x$param), values, sep=": ", collapse="; ")
-  msg <- if (as_string) "" else sprintf("An object of class '%s'.\n", class(x)[1])
+print.pileup <- function(x, asString = FALSE, ...) {
+  values <- sapply(methods::slotNames(x$param), methods::slot, object = x$param)
+  info <- paste(methods::slotNames(x$param), values, sep=": ", collapse="; ")
+  msg <- if (asString) "" else sprintf("An object of class '%s'.\n", 
+                                       class(x)[1])
   msg <- sprintf("%s Bamfile: %s\n Threshold: %s\n %s\n",
                  msg, basename(x$bamfile), x$threshold,
-                 paste0(strwrap(info, initial = "Params: ", exdent = 4), collapse = "\n"))
-  if (as_string)
+                 paste0(strwrap(info, initial = "Params: ", exdent = 4), 
+                        collapse = "\n"))
+  if (asString)
     return(msg)
   else {
     cat(msg)
@@ -123,16 +97,16 @@ print.pileup <- function(x, as_string = FALSE, ...) {
 # Helpers -----------------------------------------------------------------
 
 
-pileup_find_insertion_positions_ <- function(x, threshold) {
+.pileupFindInsertionPositions_ <- function(x, threshold) {
   cm  <- consmat(x, freq = TRUE)
-  pos <- ambiguous_positions(cm, threshold = threshold)
+  pos <- .ambiguousPositions(cm, threshold = threshold)
   pos[cm[pos, "+"] > threshold]
 }
 
-pileup_get_insertions_ <- function(x, threshold) {
+.pileupGetInsertions_ <- function(x, threshold) {
   res <- list()
   colnm <- colnames(x$consmat)
-  inpos <- pileup_find_insertion_positions_(x, threshold)
+  inpos <- .pileupFindInsertionPositions_(x, threshold)
   inpos <- inpos[!inpos %in% 1:5]
   inpos <- inpos[!inpos %in% (NROW(x$consmat) - 5):NROW(x$consmat)]
   bamfile <- x$bamfile
@@ -142,7 +116,7 @@ pileup_get_insertions_ <- function(x, threshold) {
     for (inseq in inseqs) {
       if (length(inseq) < 100) {
         inseq <- inseq[order(Biostrings::width(inseq))]
-        max_width <- max(Biostrings::width(inseq))
+        maxWidth <- max(Biostrings::width(inseq))
         inseq0 <- inseq[inseq != "-"]
         if (length(inseq0) > 2) {
           gT <- data.frame(seq_along(inseq0))
@@ -152,14 +126,18 @@ pileup_get_insertions_ <- function(x, threshold) {
                                 restrict = c(-500, 2, 10), normPower = 0)
           )
           inseq1 <- c(inseq1, Biostrings::DNAStringSet(
-            rep(paste0(rep.int("-", max_width), collapse = ""), sum(inseq == "-"))
+            rep(paste0(rep.int("-", maxWidth), collapse = ""), 
+                sum(inseq == "-"))
           ))
         } else {
           inseq1 <- inseq
         }
       }  else {
-        # get biostringset which fills all positions with gaps where it is not complete, i.e. width is < max width
-        dels <- Biostrings::DNAStringSet(vapply(max(Biostrings::width(inseq)) - Biostrings::width(inseq), function(x) {
+        # get biostringset which fills all positions with gaps where it is 
+        # not complete, i.e. width is < max width
+        dels <- Biostrings::DNAStringSet(vapply(max(Biostrings::width(inseq)) - 
+                                                  Biostrings::width(inseq), 
+                                                function(x) {
           paste0(rep.int("-", x), collapse = "")
         }, FUN.VALUE = ""))
         # merge both biostrings so each seq is of same width
@@ -168,23 +146,20 @@ pileup_get_insertions_ <- function(x, threshold) {
       cm <- t(Biostrings::consensusMatrix(inseq1))[, colnm, drop = FALSE]
       cmf <- sweep(cm, 1, rowSums(cm), "/")
       cmf[, "-"] <- 0
-      cm <- cm[apply(cmf, 1, function(row) any(row > threshold)), , drop = FALSE]
+      cm <- cm[apply(cmf, 1, function(row) any(row > threshold)), , 
+               drop = FALSE]
       res <- c( res, list(cm) )
     }
     res
     names(res) <- names(inseqs)
   }
-  # Remove all empty positions for now!! ToDo: Better apply this to the initial ins pos calling in the python script
+  # Remove all empty positions for now!! ToDo: Better apply this to the initial
+  # ins pos calling in the python script
   res <- Filter(length,res)
   res
 }
 
-#' @keywords internal
-#' @export
-# debug
-# threshold = NULL
-# x <- pileup
-pileup_include_insertions <- function(x, threshold = NULL) {
+.pileupIncludeInsertions <- function(x, threshold = NULL) {
   stopifnot(is(x, "pileup"))
   if (!"+" %in% colnames(x$consmat)) {
     flog.warn("No insertions to call!", name = "info")
@@ -193,42 +168,39 @@ pileup_include_insertions <- function(x, threshold = NULL) {
   if (is.null(threshold)) {
     threshold <- x$threshold
   }
-  ins_ <- pileup_get_insertions_(x, threshold)
+  ins_ <- .pileupGetInsertions_(x, threshold)
   if (length(ins_) == 0) {
     return(x)
   }
-  offset <- 0L
-  ins_idx <- integer()
-  ins_run <- integer()
+  offsetBases <- 0L
+  insIdx <- integer()
+  insRun <- integer()
   cm <- consmat(x, freq = FALSE)
-  cm_attr <- attributes(cm)
+  cmAttr <- attributes(cm)
   # cm[680:700,]
   # i <- 1
   for (i in seq_along(ins_)) {
-    j <- as.integer(names(ins_[i])) + offset
-    # cm[(j-1):(j+1), ]
+    j <- as.integer(names(ins_[i])) + offsetBases
     cm[j, "+"] <- 0L
     cm <- rbind(cm[1:j, ], ins_[[i]], cm[(j + 1):NROW(cm), ])
-    ins_len <- NROW(ins_[[i]])
-    ins_idx <- c(ins_idx, (j + 1):(j + ins_len))
-    ins_run <- c(ins_run, rep(i, ins_len))
-    offset <- offset + ins_len
+    ins_[1]
+    insLen <- NROW(ins_[[i]])
+    insIdx <- c(insIdx, (j + 1):(j + insLen))
+    insRun <- c(insRun, rep(i, insLen))
+    offsetBases <- offsetBases + insLen
   }
-  attr(ins_idx, "run") <- ins_run
-  cm_attr$dim <- dim(cm)
-  cm_attr$dimnames$pos <- as.character(seq_len(NROW(cm)))
-  cm_attr$n <- .rowSums(cm, NROW(cm), NCOL(cm))
-  cm_attr$insertions <- ins_idx
-  attributes(cm) <- cm_attr
+  attr(insIdx, "run") <- insRun
+  cmAttr$dim <- dim(cm)
+  cmAttr$dimnames$pos <- as.character(seq_len(NROW(cm)))
+  cmAttr$n <- .rowSums(cm, NROW(cm), NCOL(cm))
+  cmAttr$insertions <- insIdx
+  attributes(cm) <- cmAttr
   x$consmat <- cm
   x
 }
-#refseq <- hla.map1$map1$A$ref$refseq
-## get msa from bam file
-# debug
-#bamfile <- self$mapInit$bamfile
-#refseq <- self$getRefSeq()
-msa_from_bam <- function(bamfile, refseq = NULL, paddingLetter = "+", region = NULL) {
+
+.msaFromBam <- function(bamfile, refseq = NULL, paddingLetter = "+", 
+                        region = NULL) {
   if (is.null(region)) {
     nRefseq <- names(refseq)
     lRefseq <- length(refseq[[1]])
@@ -261,7 +233,8 @@ msa_from_bam <- function(bamfile, refseq = NULL, paddingLetter = "+", region = N
 #' @export
 #' @examples
 #' ###
-plot_pileup_coverage <- function(x, threshold = 0.2, range = NULL, thin = 0.1, width = 1, label = "", drop.indels = FALSE) {
+plotPileupCoverage <- function(x, threshold = 0.2, range = NULL, thin = 0.1, 
+                               width = 1, label = "", drop.indels = FALSE) {
   stopifnot(is(x, "pileup"))
   x <- as.data.table(x$pileup)
   if (drop.indels) {
@@ -272,22 +245,39 @@ plot_pileup_coverage <- function(x, threshold = 0.2, range = NULL, thin = 0.1, w
   }
   x[, nucleotide := as.character(nucleotide)]
   x[, freq := count/sum(count), by = pos]
-  x[, npoly := sum(freq >= threshold), by = pos]
+  x[nucleotide == "-" & nucleotide == "+", npoly := sum(freq >= max(
+    c(threshold, 0.3))), by = pos]
+  x[nucleotide != "-" & nucleotide != "+", npoly := sum(freq >= max(
+    c(threshold, 0.2))), by = pos]
+  #x
   x[npoly == 1 | (npoly > 1 & freq < threshold), nucleotide := " ", by = pos]
   nonpoly <- x[npoly == 1, unique(pos)]
-  nonpoly_thin <- nonpoly[seq(1, length(nonpoly), floor(length(nonpoly)/(length(nonpoly)*thin)))]
+  nonpolyThin <- nonpoly[seq(1, length(nonpoly), 
+                             floor(length(nonpoly)/(length(nonpoly)*thin)))]
   dt <- x[, list(count = sum(count)), by = list(pos, nucleotide)]
-  dtbg <- dt[pos %in% nonpoly_thin]
+  dtbg <- dt[pos %in% nonpolyThin]
   dtpoly <- dt[!pos %in% nonpoly][order(pos, nucleotide)]
-  dtpoly[, nucleotide := factor(nucleotide, levels = c("+", "-", "A", "C", "G", "T", " "),
-                                labels = c("+", "-", "A", "C", "G", "T", " "), ordered = TRUE)]
+  dtpoly[, nucleotide := factor(nucleotide, 
+                                levels = c("+", "-", "A", "C", "G", "T", " "),
+                                labels = c("+", "-", "A", "C", "G", "T", " "), 
+                                ordered = TRUE)]
   setkeyv(dtpoly, c("pos", "nucleotide"))
-
+  
+  ## Set the width for neighbouring SNPs to 1
+  positions <- dtpoly$pos
+  closePositions <- sort(unique(c(which((positions - 1) %in% positions), 
+                                  which((positions + 1) %in% positions))))
+  dtpoly$width <- width
+  dtpoly[closePositions]$width <- 1
+  
+  
   ggplot(dtbg, aes(x = pos, y = count)) +
-    geom_bar(stat = "identity", position = position_identity(), fill = "grey80") +
+    geom_bar(stat = "identity", position = position_identity(), 
+             fill = "grey80") +
     geom_bar(data = dtpoly, stat = "identity", position = position_stack(),
-             aes(fill = nucleotide), width = width) +
-    scale_fill_manual(values = NUCCOL(), limits = c("A", "C", "G", "T", "-", "+")) +
+             aes(fill = nucleotide), width = dtpoly$width) +
+    scale_fill_manual(values = NUCCOL(), 
+                      limits = c("A", "C", "G", "T", "-", "+")) +
     guides(fill = guide_legend(reverse = TRUE, title = "Bases")) +
     labs(x = "Position [bp]", y = "Count", fill = "Nucleotide", title = label) +
     theme_bw(base_size = 12) +
@@ -310,7 +300,8 @@ plot_pileup_coverage <- function(x, threshold = 0.2, range = NULL, thin = 0.1, w
 #' @export
 #' @examples
 #' ###
-plot_pileup_basecall_frequency <- function(x, threshold = 0.20, label = "", drop.indels = FALSE) {
+plotPileupBasecallFrequency <- function(x, threshold = 0.20, label = "", 
+                                        drop.indels = FALSE) {
   cm <- consmat(x, freq = FALSE)
   if (drop.indels && "-" %in% colnames(cm)) {
     cm[, "-"] <- 0
@@ -319,14 +310,17 @@ plot_pileup_basecall_frequency <- function(x, threshold = 0.20, label = "", drop
     cm[, "+"] <- 0
   }
   cmlong <- dplyr::filter(as.data.frame(consmat(cm, freq = TRUE)), freq > 0)
-  ggplot(cmlong, aes(x = pos, y = freq, colour = nucleotide)) +
-    geom_point(aes(alpha = ifelse(freq > threshold, 0.4, 0.2)), size = 0.75, shape = 15) +
+  ## TOOD check alpha change
+  ggplot(cmlong, aes(x =~ pos, y =~ freq, colour =~ nucleotide)) +
+    geom_point(aes(alpha =~ ifelse(freq > threshold, 0.4, 0.2)), size = 0.75, 
+               shape = 15) +
     scale_color_manual(values = NUCCOL()) +
     scale_alpha_continuous(guide = FALSE) +
     guides(colour = guide_legend(title = "Bases")) +
     scale_y_log10() +
     geom_hline(yintercept = threshold, colour = "grey20", size = 0.25) +
-    geom_hline(yintercept = 0.5, linetype = "dashed", colour = "grey20", size = 0.75) +
+    geom_hline(yintercept = 0.5, linetype = "dashed", colour = "grey20", 
+               size = 0.75) +
     labs(x = "Position [bp]", y = "Base frequency", title = label) +
     theme_bw(base_size = 12) +
     theme(
@@ -335,101 +329,24 @@ plot_pileup_basecall_frequency <- function(x, threshold = 0.20, label = "", drop
     )
 }
 
-# get_reads_at_ppos <- function(bamfile, ppos, nucA = None, nucB = None) {
-#
-#   ppos
-#     if isinstance(ppos, list):
-#         ppos = [int(x) for x in ppos]
-#     else:
-#         ppos = [int(ppos)]
-#
-#     if nucA and nucB:
-#         if isinstance(nucA, list):
-#             nucA = [str(x) for x in nucA]
-#         else:
-#             nucA = [str(nucA)]
-#         if isinstance(nucB, list):
-#             nucB = [str(x) for x in nucB]
-#         else:
-#             nucB = [str(nucB)]
-#         assert len(nucA) == len(nucB)
-#         assert len(ppos) == len(nucA)
-#         posdict = {pos: {A if B != "+" else "-": [], B if A != "+" else "-": []} for pos, A, B in zip(ppos, nucA, nucB)}
-#     else:
-#         posdict = {pos: {"A": [], "C": [], "G": [], "T": [], "-": [], "+": []} for pos in ppos}
-#     bam = pysam.AlignmentFile(bamfile, "rb")
-#     ref = bam.references[0]
-#     pileup = bam.pileup(ref)
-#     for pileupCol in pileup:
-#         pos = int(pileupCol.reference_pos)
-#         if pos not in posdict.keys():
-#             pass
-#         else:
-#             sys.stdout.write("Extracting read IDs for " + " and ".join(posdict[pos].keys()) + " at " + str(pos + 1) + "\n")
-#             for read in pileupCol.pileups:
-#                 refpos = read.alignment.get_reference_positions(full_length = True)
-#                 try:
-#                     i = refpos.index(pos)
-#                     base = read.alignment.query_sequence[i]
-#                     if "+" not in posdict[pos].keys(): # We don't expect an insertion here
-#                         try:
-#                             posdict[pos][base].append(read.alignment.query_name)
-#                         except KeyError:
-#                             pass
-#                     else: # We do expect an insertion here
-#                         j = refpos.index(pos + 1)
-#                         ins = read.alignment.query_sequence[i:j][1:]
-#                         if ins:
-#                             posdict[pos]["+"].append(read.alignment.query_name)
-#                         else:
-#                             posdict[pos]["-"].append(read.alignment.query_name)
-#                 except ValueError:
-#                     try:
-#                         posdict[pos]["-"].append(read.alignment.query_name)
-#                     except KeyError:
-#                         pass
-#     return dict(posdict)
-#
-#
-#
-#
-# }
 .getInsertions <- function(bamfile, inpos, reference, reads = NULL) {
   stopifnot(is.numeric(inpos))
   inpos <- sort(inpos)
-  flog.info("  Extracting insertions at position %s ...", comma(inpos), name = "info")
+  flog.info("  Extracting insertions at position %s ...", comma(inpos), 
+            name = "info")
 
   ## Get the actual position of the first insertion character, not the last
   ##  matching position, so +1
   inpos <- inpos + 1
 
- #  #########################################üü
- #  positionHP
- #  start <- positionHP -10
- #  end <- positionHP + len + 10
- #  inposRanges <- GenomicRanges::GRanges(reference, IRanges::IRanges(start = positionHP-10, end = positionHP+len+10))
- #  bamParam    <- Rsamtools::ScanBamParam(what = "seq", which = inposRanges)
- #  bam <- GenomicAlignments::readGAlignments(bamfile, param = bamParam, use.names = TRUE)
- #  ## Use only reads with an insertion
- #  bamI <- bam[sapply(GenomicAlignments::cigar(bam), function(x) grepl("I",  x))]
- #  insSeqs <- foreach(i = inpos) %do% {
- #    message("Position: ", i)
- #    bamPos <- bamI[GenomicAlignments::start(bamI) <= i & GenomicAlignments::end(bamI) >= 1]
- #    insSeq <- lapply(bamPos, function(a) .extractInsertion(a, i))
- #    Biostrings::DNAStringSet(insSeq)
- #  }
- #
- #  ## decrement to last matching position again to work as expected with downstream
- #  names(insSeqs) <- inpos - 1
- #  insSeqs
- # ###################################ü
- #
-
   ## Get the reference
   reference   <- Rsamtools::seqinfo(Rsamtools::BamFile(bamfile))@seqnames[1]
-  inposRanges <- GenomicRanges::GRanges(reference, IRanges::IRanges(start = inpos, end = inpos))
+  inposRanges <- GenomicRanges::GRanges(reference, 
+                                        IRanges::IRanges(start = inpos, 
+                                                         end = inpos))
   bamParam    <- Rsamtools::ScanBamParam(what = "seq", which = inposRanges)
-  bam <- GenomicAlignments::readGAlignments(bamfile, param = bamParam, use.names = TRUE)
+  bam <- GenomicAlignments::readGAlignments(bamfile, param = bamParam, 
+                                            use.names = TRUE)
   ## Use only reads of interest if specified
   if (!is.null(reads))
     bam <- bam[names(bam) %in% reads]
@@ -437,44 +354,33 @@ plot_pileup_basecall_frequency <- function(x, threshold = 0.20, label = "", drop
   bamI <- bam[sapply(GenomicAlignments::cigar(bam), function(x) grepl("I",  x))]
   insSeqs <- foreach(i = inpos) %do% {
     message("Position: ", i)
-    bamPos <- bamI[GenomicAlignments::start(bamI) <= i & GenomicAlignments::end(bamI) >= 1]
+    bamPos <- bamI[GenomicAlignments::start(bamI) <= i & 
+                     GenomicAlignments::end(bamI) >= 1]
     insSeq <- lapply(bamPos, function(a) .extractInsertion(a, i))
     Biostrings::DNAStringSet(insSeq)
   }
 
-  ## decrement to last matching position again to work as expected with downstream
+  ## decrement to last matching position again to work as expected with 
+  ## downstream
   names(insSeqs) <- inpos - 1
   insSeqs
 }
-
-# .extractQuerySequence <- function(read, start, end) {
-#   read <- bamI[1]
-#   Biostrings::subseq(read@elementMetadata$seq,
-#                      start = start - read@start,
-#                      end = end - GenomicAlignments::end(read))
-#   cigar <- read@cigar
-#   read[1]@end
-#   GenomicAlignments::end(read[1])
-#   seq <- Biostrings::DNAString("-")
-#   ## map insertion position to reference space, extract insertions from query space
-#   insertionQ <- GenomicAlignments::cigarRangesAlongQuerySpace(cigar, ops = "I")[[1]]
-#   insertionR <- GenomicAlignments::cigarRangesAlongReferenceSpace(cigar, ops = "I")[[1]]
-#   insertPos <- insertionQ[which((GenomicAlignments::start(read) + insertionR@start - 1) == i)]
-#   if (length(insertPos) > 0)
-#     seq <- unlist(Biostrings::subseq(read@elementMetadata$seq, start = IRanges::start(insertPos), end = IRanges::end(insertPos)))
-#   seq
-# }
 
 .extractInsertion <- function(read, i) {
   cigar <- read@cigar
 
   seq <- Biostrings::DNAString("-")
-  ## map insertion position to reference space, extract insertions from query space
-  insertionQ <- GenomicAlignments::cigarRangesAlongQuerySpace(cigar, ops = "I")[[1]]
-  insertionR <- GenomicAlignments::cigarRangesAlongReferenceSpace(cigar, ops = "I")[[1]]
-  insertPos <- insertionQ[which((GenomicAlignments::start(read) + insertionR@start - 1) == i)]
+  ## map insertion position to reference space, get insertions from query space
+  insertionQ <- GenomicAlignments::cigarRangesAlongQuerySpace(
+    cigar, ops = "I")[[1]]
+  insertionR <- GenomicAlignments::cigarRangesAlongReferenceSpace(
+    cigar, ops = "I")[[1]]
+  insertPos <- insertionQ[which((
+    GenomicAlignments::start(read) + insertionR@start - 1) == i)]
   if (length(insertPos) > 0)
-    seq <- unlist(Biostrings::subseq(read@elementMetadata$seq, start = IRanges::start(insertPos), end = IRanges::end(insertPos)))
+    seq <- unlist(Biostrings::subseq(read@elementMetadata$seq, 
+                                     start = IRanges::start(insertPos), 
+                                     end = IRanges::end(insertPos)))
   seq
 }
 

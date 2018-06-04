@@ -1,14 +1,8 @@
 #' @export
-#report(i
-# x <-hla.mapFinal
-# debug
-#x <- dedk.bla
-#block_width = 80
-report.DR2S <- function(x, which, block_width = 80, ...) {
-
+report.DR2S <- function(x, which, blockWidth = 80, noRemap = FALSE, ...) {
   flog.info("Step 6: report ...", name = "info")
-
-  ## Check if reporting is already finished and exit safely for downstream analysis
+  
+  ## Check if reporting is finished and exit safely for downstream analysis
   if (x$getReportStatus()) {
     currentCall <- strsplit1(deparse(sys.call()), "\\.")[1]
     flog.info(strwrap("%s: Reporting already done! Nothing to do.
@@ -23,30 +17,30 @@ report.DR2S <- function(x, which, block_width = 80, ...) {
     list2env(args, envir = env)
   }
 
-  outdir <- dir_create_if_not_exists(x$absPath("report"))
+  outdir <- .dirCreateIfNotExists(x$absPath("report"))
   if (missing(which)) {
     ## if `which` is unspecified choose `mapFinal` if available,
     ## otherwise try `mapIter`, then try `map1`
     if (is(x$mapFinal, "mapFinal")) {
-      report_map_(x, map = "mapFinal", outdir = outdir,
-                  block_width = block_width, ...)
+      .reportMap_(x, map = "mapFinal", outdir = outdir,
+                  blockWidth = blockWidth, 
+                  noRemap = noRemap, ...)
     } else if (all(is(object = x$mapIter$`0`$A, class2 = "mapIter"))) {
-      report_map_(x, map = "mapIter", outdir = outdir,
-                  block_width = block_width, ...)
+      .reportMap_(x, map = "mapIter", outdir = outdir,
+                  blockWidth = blockWidth, ...)
     } else
       stop("Nothing to report")
   } else {
     which <- match.arg(tolower(which), c("mapFinal", "mapIter"))
-    report_map_(x, which, outdir, block_width = block_width, ...)
+    .reportMap_(x, which, outdir, blockWidth = blockWidth, ...)
   }
-
   flog.info("Done", name = "info")
   invisible(x)
 }
 
 # debug
 #map = "mapFinal"
-report_map_ <- function(x, map, outdir, block_width, ...) {
+.reportMap_ <- function(x, map, outdir, blockWidth, noRemap = FALSE,...) {
   map <- match.arg(tolower(map), c("mapfinal", "mapiter"))
   ref <-  Biostrings::BStringSet(x$getRefSeq())
   names(ref) <- strsplitN(names(ref), "~", 1, fixed = TRUE)
@@ -58,7 +52,8 @@ report_map_ <- function(x, map, outdir, block_width, ...) {
   haps <- x$getLatestRef()
 
   ## Write html alignment file
-  aln_file <-  paste(map, "aln", x$getLrdType(), x$getLrMapper(), "unchecked", sep = ".")
+  alnFile <-  paste(map, "aln", x$getLrdType(), x$getLrMapper(), "unchecked", 
+                     sep = ".")
   # get all seqs as stringset
   seqs <- unlist(Biostrings::BStringSetList(haps))
   names(seqs) <- names(haps)
@@ -67,58 +62,69 @@ report_map_ <- function(x, map, outdir, block_width, ...) {
   # } else {
   seqs <- c(ref, seqs, addins)
   # }
-  browse_align(seqs, file = file.path(outdir, aln_file), openURL = FALSE)
+  .browseAlign(seqs, file = file.path(outdir, alnFile), openURL = FALSE)
 
   ## Write consensus FASTA files
   for (hptype in x$getHapTypes()) {
-    hap_file <- paste(map, hptype, x$getLrdType(), x$getLrMapper(),
+    hapFile <- paste(map, hptype, x$getLrdType(), x$getLrMapper(),
                       "unchecked.fa", sep = ".")
     seq <- haps[[hptype]]
-    names(seq) <- paste0(names(seq), " LOCUS=", x$getLocus(), ";REF=", x$getReference())
+    names(seq) <- paste0(names(seq), " LOCUS=", x$getLocus(), ";REF=", 
+                         x$getReference())
     Biostrings::writeXStringSet(
       seq,
-      filepath = file.path(outdir, hap_file),
+      filepath = file.path(outdir, hapFile),
       format = "fasta"
     )
   }
 
   ## Write Pairwise or Multiple Alignment
   if (length(x$getHapTypes()) == 2) {
-    pair_file <- paste(map, "aln", x$getLrdType(), x$getLrMapper(), "unchecked", "psa", sep = ".")
+    pairFile <- paste(map, "aln", x$getLrdType(), x$getLrMapper(), "unchecked", 
+                       "psa", sep = ".")
     aln <- Biostrings::pairwiseAlignment(pattern = haps[[x$getHapTypes()[[1]]]],
                                          subject = haps[[x$getHapTypes()[[2]]]],
                                          type = "global")
-    Biostrings::writePairwiseAlignments(aln, file.path(outdir, pair_file),
-                                        block.width = block_width)
+    Biostrings::writePairwiseAlignments(aln, file.path(outdir, pairFile),
+                                        block.width = blockWidth)
 
   } else if (length(x$getHapTypes()) == 1) {
-    aln_file <- paste(map, "aln", x$getLrdType(), x$getLrMapper(), "unchecked", "fa", sep = ".")
+    alnFile <- paste(map, "aln", x$getLrdType(), x$getLrMapper(), "unchecked", 
+                      "fa", sep = ".")
     Biostrings::writeXStringSet(
       haps[[1]],
-      filepath = file.path(outdir,aln_file),
+      filepath = file.path(outdir,alnFile),
       format = "fasta")
   } else if (length(x$getHapTypes()) > 2) {
-    aln_file <- paste(map, "aln", x$getLrdType(), x$getLrMapper(), "unchecked", "msa", sep = ".")
+    alnFile <- paste(map, "aln", x$getLrdType(), x$getLrMapper(), "unchecked", 
+                      "msa", sep = ".")
     aln <- DECIPHER::AlignSeqs(Biostrings::DNAStringSet(
       foreach(h = haps, .combine = c) %do% h
     ), verbose = FALSE)
-    writeMSA(aln , file = file.path(outdir, aln_file))
+    writeMSA(aln , file = file.path(outdir, alnFile))
     # Biostrings::write.phylip(Biostrings::DNAMultipleAlignment(aln),
-                             # file.path(outdir, aln_file))
+                             # file.path(outdir, alnFile))
   }
 
   if (map == "mapfinal") {
     ## Report problematic Variants
-    probvar_file <- paste("problems", x$getLrdType(), x$getLrMapper(), "tsv", sep = ".")
-    vars <- x$consensus$problematic_variants %>%
-      dplyr::arrange(pos, haplotype)
-    readr::write_tsv(vars, path = file.path(outdir, probvar_file),
+    probvarFile <- paste("problems", x$getLrdType(), x$getLrMapper(), "tsv", 
+                          sep = ".")
+    vars <- x$consensus$variants %>%
+      dplyr::arrange(as.numeric(.data$pos), .data$haplotype)
+    readr::write_tsv(vars, path = file.path(outdir, probvarFile),
                      append = FALSE, col_names = TRUE)
 
     ## Write postprocessing scripts
-    writeCheckConsensus(path = x$getOutdir())
-    writeReportCheckedConsensus(path = x$getOutdir())
-    writeRefineAlignments(path = x$getOutdir(), haptypes = x$getHapTypes())
+    .writeCheckConsensus(path = x$getOutdir())
+    .writeReportCheckedConsensus(path = x$getOutdir())
+    .writeRefineAlignments(path = x$getOutdir(), haptypes = x$getHapTypes())
+    
+    if (!noRemap) {
+      flog.info("Remapping final sequences", name = "info")
+      lapply(x$getHapTypes(), function(h) refineAlignment(x, h, report = TRUE))
+    }
+
   }
 
   x$setReportStatus(TRUE)
@@ -131,36 +137,35 @@ report_map_ <- function(x, map, outdir, block_width, ...) {
 #' @param which Which mapping do we want to update.
 #' @return Side effect
 #' @details
-#' \code{report_checked_consensus} will create a \code{checked} directory
-#' containing the consensus sequences \code{\{A,B\}.\{readtype\}.\{mapper\}.checked.fa}
+#' \code{reportCheckedConsensus} will create a \code{checked} directory
+#' containing the consensus sequences 
+#' \code{\{A,B\}.\{readtype\}.\{mapper\}.checked.fa}
 #' and a html alignment file \code{aln.\{readtype\}.\{mapper\}.checked.html}.
 #' @family DR2S mapper functions
 #' @export
-#x <- dpb1_2.rep
-
-report_checked_consensus <- function(x, which = "mapFinal") {
-  map <- match.arg(tolower(which), c("mapfinal", "mapiter"))
+reportCheckedConsensus <- function(x, which = "mapFinal") {
+  map <- match.arg(tolower(which), c("mapfinal", "mapiter", noRemap = FALSE))
   ending <- ifelse(length(x$getHapTypes()) == 2,
                    "psa",
                    ifelse(length(x$getHapTypes()) == 1,
                           "fa",
                           "msa"))
-  pairfile_unchecked <- paste(map, "aln", x$getLrdType(), x$getLrMapper(),
+  pairfileUnchecked <- paste(map, "aln", x$getLrdType(), x$getLrMapper(),
                               "unchecked", ending, sep = ".")
-  pairfile_checked   <- paste(map, "aln", x$getLrdType(), x$getLrMapper(),
+  pairfileChecked   <- paste(map, "aln", x$getLrdType(), x$getLrMapper(),
                               "checked", ending, sep = ".")
-  pairfile_checked   <- normalizePath(x$absPath(file.path("report",
-                                                pairfile_checked)),
+  pairfileChecked   <- normalizePath(x$absPath(file.path("report",
+                                                pairfileChecked)),
                                       mustWork = FALSE)
 
-  if (!file.exists(pairfile_checked)) {
-    msg <- sprintf("The file '%s' must be saved as '%s' before invoking this function",
-                   pairfile_unchecked, pairfile_checked)
+  if (!file.exists(pairfileChecked)) {
+    msg <- sprintf("'%s' must be saved as '%s' before invoking this function",
+                   pairfileUnchecked, pairfileChecked)
     stop(msg, call. = FALSE)
   }
 
-  outdir <- dir_create_if_not_exists(x$absPath("checked"))
-  rs <- readPairFile(pairfile_checked)
+  outdir <- .dirCreateIfNotExists(x$absPath("checked"))
+  rs <- readPairFile(pairfileChecked)
   seqs <- Biostrings::DNAStringSet(
     sapply(rs, function(s) Biostrings::DNAString(gsub("-", "", s))))
 
@@ -169,15 +174,24 @@ report_checked_consensus <- function(x, which = "mapFinal") {
   names(ref) <- strsplitN(names(ref), "~", 1, fixed = TRUE)
 
   seqsAll <- c(ref, seqs)
-  aln_file <-  paste("aln", x$getLrdType(), x$getLrMapper(), "html", sep = ".")
-  browse_align(seqsAll, file = file.path(outdir,aln_file), openURL = FALSE)
+  alnFile <-  paste("aln", x$getLrdType(), x$getLrMapper(), "html", sep = ".")
+  .browseAlign(seqsAll, file = file.path(outdir,alnFile), openURL = FALSE)
 
   ## Export FASTA
-  files <- sapply(1:length(seqs), function(sq) {
-    file <- paste(names(seqs[sq]), x$getLrdType(), x$getLrMapper(), "fa", sep = ".")
+  files <- sapply(seq_along(seqs), function(sq) {
+    file <- paste(names(seqs[sq]), x$getLrdType(), x$getLrMapper(), "fa", 
+                  sep = ".")
     seq <- seqs[sq]
-    names(seq) <- paste0(names(seq), " LOCUS=", x$getLocus(), ";REF=",
-                              x$getReference())
+    seqname <- paste(x$getSampleId(), sub("^hap", "", names(seq)), sep = "_")
+    sampleDetails <- x$getSampleDetails()
+    names(seq) <-  paste(seqname, 
+                         paste(paste0("haplotype=", 
+                                     litQuote(sub("^hap", "", names(seq)))),
+                               sampleDetails,
+                               paste0("date=", 
+                                      litQuote(Sys.Date())),
+                               sep = ";"))
+    
     Biostrings::writeXStringSet(
       seq,
       filepath = file.path(outdir,file),
@@ -186,6 +200,7 @@ report_checked_consensus <- function(x, which = "mapFinal") {
     file
     }
   )
+  # flog.info(x$getSampleDetails(), name = "info")
 }
 
 #' Manually check the alignment of consensus sequences using an editor.
@@ -197,37 +212,41 @@ report_checked_consensus <- function(x, which = "mapFinal") {
 #' @param where Where to focus with the editor.
 #' @param editor Which editor to use. Either "xdg-open" (default) for standard
 #' system editor, "subl" for sublime, "gvim" or "gedit"
+#' @param openEditor should the editor be opened or just create the files?
 #' @export
-check_alignment_file <- function(x, which = "mapFinal", where = 0,
-                                 editor = "xdg-open") {
+checkAlignmentFile <- function(x, which = "mapFinal", where = 0,
+                                 editor = "xdg-open", openEditor = TRUE) {
   which <- match.arg(tolower(which), c("mapfinal", "mapiter"))
   ending <- ifelse(length(x$getHapTypes()) == 2,
                    "psa",
                    ifelse(length(x$getHapTypes()) == 1,
                           "fa",
                           "msa"))
-  pairfile_unchecked <- paste(which, "aln", x$getLrdType(), x$getLrMapper(),
+  pairfileUnchecked <- paste(which, "aln", x$getLrdType(), x$getLrMapper(),
                               "unchecked", ending, sep = ".")
-  pairfile_unchecked <- normalizePath(x$absPath(file.path("report",
-                                                pairfile_unchecked)),
+  pairfileUnchecked <- normalizePath(x$absPath(file.path("report",
+                                                pairfileUnchecked)),
                                       mustWork = FALSE)
   assertthat::assert_that(
-    file.exists(pairfile_unchecked),
-    assertthat::is.readable(pairfile_unchecked)
+    file.exists(pairfileUnchecked),
+    assertthat::is.readable(pairfileUnchecked)
   )
-  pairfile_checked <- paste(which, "aln", x$getLrdType(), x$getLrMapper(),
+  pairfileChecked <- paste(which, "aln", x$getLrdType(), x$getLrMapper(),
                             "checked", ending, sep = ".")
-  pairfile_checked <- normalizePath(x$absPath(file.path("report",
-                                              pairfile_checked)),
+  pairfileChecked <- normalizePath(x$absPath(file.path("report",
+                                              pairfileChecked)),
                                     mustWork = FALSE)
-  if (!file.exists(pairfile_checked)) {
-    file.copy(pairfile_unchecked, pairfile_checked, overwrite = FALSE)
+  if (!file.exists(pairfileChecked)) {
+    file.copy(pairfileUnchecked, pairfileChecked, overwrite = FALSE)
   }
   where <- 23 + 4*floor((where - 1)/80)
-  editor(pairfile_checked, where, use_editor = editor)
+  if (openEditor) {
+    editor(pairfileChecked, where, useEditor = editor)
+  }
+  pairfileChecked
 }
 
-check_report_status <- function(x){
+.checkReportStatus <- function(x){
   if (x$getReportStatus()) {
     currentCall <- strsplit1(strsplit1(deparse(sys.call()), "\\$")[2], "\\(")[1]
     flog.info(paste0("%s: Reporting already done! Nothing to do.",
@@ -237,15 +256,17 @@ check_report_status <- function(x){
   return(x$getReportStatus())
 }
 
-#' Refine the mapping of an allele by remap to the checked consensus
+#' Refine the mapping of an allele by remapping to the checked consensus
 #'
 #' @param x  A \code{\link[=DR2S_]{DR2S}} object.
 #' @param hptype The allele to refine
-#' @return Returns the updated \code{\link[=DR2s_]{DR2S}} object.
+#' @param report Should the function read a reference from the report folder?
+#' Only internal parameter.
+#' @return Returns the updated \code{\link[=DR2S_]{DR2S}} object.
 #' @return Creates an executable bash file for inspecting the mapping with IGV
 #' @family DR2S mapper functions
 #' @export
-refineAlignment <- function(x, hptype){
+refineAlignment <- function(x, hptype, report = FALSE){
   ## Overide default arguments
   args <- x$getOpts("refineMapping")
   if (!is.null(args)) {
@@ -259,7 +280,6 @@ refineAlignment <- function(x, hptype){
     return(invisible(x))
   }
 
-
   if (is.null(x$consensus$refine)) {
     x$consensus$refine <- list(
       mapgroup = list(),
@@ -269,7 +289,7 @@ refineAlignment <- function(x, hptype){
     )
   }
   reftag    <- "refine"
-  outdir    <- dir_create_if_not_exists(x$absPath(reftag))
+  outdir    <- .dirCreateIfNotExists(x$absPath(reftag))
   if (length(x$getHapTypes()) == 1) {
     readpathLR  <- paste0("/", x$mapInit$reads)
     if (x$getFilterScores()) {
@@ -281,7 +301,25 @@ refineAlignment <- function(x, hptype){
     readpathLR  <- x$absPath(x$mapFinal$lreads[hptype])
     readpathSR <- x$absPath(x$mapFinal$sreads[hptype])
   }
-  refpath   <- .getUpdatedSeqs(x, hptype)
+  refpath   <- ifelse(report, {
+                      seq <- x$consensus$noAmbig[[hptype]]
+                      file <- paste(names(seq),
+                                    x$getLrdType(),
+                                    x$getLrMapper(),
+                                    "polished",
+                                    "fa",
+                                    sep = ".")
+                      names(seq) <- paste0(names(seq), " LOCUS=", x$getLocus(), 
+                                           ";REF=",  x$getReference())
+                      seqPath <- x$absPath(file.path("refine", file))
+                      Biostrings::writeXStringSet(
+                        seq,
+                        filepath = seqPath,
+                        format = "fasta"
+                      )
+                      seqPath
+                    },
+                    .getUpdatedSeqs(x, hptype))
   x$consensus$refine$ref[[hptype]] <- x$relPath(refpath)
   names(refpath) <- hptype
 
@@ -292,11 +330,11 @@ refineAlignment <- function(x, hptype){
   maptagLR   <- paste("refine", mapgroupLR, x$getLrdType(),
                       x$getLrMapper(), sep = ".")
   ## Mapper
-  map_fun <- x$getLrMapFun()
+  .mapFun <- x$getLrMapFun()
   ## Run mapper
   flog.info("   Mapping long reads against final consensus sequence ...",
             name = "info")
-  samfile <- map_fun(
+  samfile <- .mapFun(
     reffile  = refpath,
     readfile = readpathLR,
     allele   = mapgroupLR,
@@ -308,7 +346,8 @@ refineAlignment <- function(x, hptype){
 
   ## Run bam - sort - index pipeline
   flog.info("  Indexing ...", name = "info")
-  bamfile <- bam_sort_index(
+  ## Niceify up to here
+  bamfile <- .bamSortIndex(
     samfile = samfile,
     reffile = refpath,
     force   = TRUE
@@ -323,12 +362,12 @@ refineAlignment <- function(x, hptype){
     readfiles <- unlist(readpathSR)
 
     ## Mapper
-    map_fun <- x$getSrMapFun()
+    .mapFun <- x$getSrMapFun()
 
     ## Run mapper
     flog.info("  Mapping short reads against final consensus ...",
               name = "info")
-    samfile <- map_fun(
+    samfile <- .mapFun(
       reffile  = refpath,
       readfile = readfiles,
       allele   = mapgroupSR,
@@ -341,25 +380,25 @@ refineAlignment <- function(x, hptype){
     ## Remove softclipping
     flog.info(" Trimming softclips and polymorphic ends ...", name = "info")
     ## Run bam - sort - index pipeline
-    bamfile <- bam_sort_index(samfile,
+    bamfile <- .bamSortIndex(samfile,
                               refpath,
                               force = TRUE)
     ## Trim softclips
     fq <- .trimSoftclippedEnds(bam = Rsamtools::scanBam(bamfile)[[1]],
-                                preserve_ref_ends = TRUE)
+                                preserveRefEnds = TRUE)
     ## Trim polymorphic ends
-    fq <- trim_polymorphic_ends(fq)
+    fq <- .trimPolymorphicEnds(fq)
     ## Write new shortread file to disc
-    fqdir  <- dir_create_if_not_exists(file.path(x$getOutdir(), "refine"))
+    fqdir  <- .dirCreateIfNotExists(file.path(x$getOutdir(), "refine"))
     fqfile <- paste("sread", hptype, x$getSrMapper(), "trimmed", "fastq",
                     "gz", sep = ".")
-    fqout  <- file_delete_if_exists(file.path(fqdir, fqfile))
+    fqout  <- .fileDeleteIfExists(file.path(fqdir, fqfile))
     ShortRead::writeFastq(fq, fqout, compress = TRUE)
-    file_delete_if_exists(bamfile)
+    .fileDeleteIfExists(bamfile)
     ## Rerun mapper
     flog.info("  Mapping trimmed short reads against latest consensus ... ",
               name = "info")
-    samfile <- map_fun(
+    samfile <- .mapFun(
       reffile  = refpath,
       readfile = fqout,
       allele   = mapgroupSR,
@@ -369,11 +408,11 @@ refineAlignment <- function(x, hptype){
       outdir   = outdir
     )
     # cleanup
-    file_delete_if_exists(fqout)
+    .fileDeleteIfExists(fqout)
 
     ## Run bam - sort - index pipeline
     flog.info("  Indexing ...", name = "info")
-    bamfile <- bam_sort_index(
+    bamfile <- .bamSortIndex(
       samfile,
       refpath,
       force = TRUE
@@ -392,10 +431,10 @@ refineAlignment <- function(x, hptype){
 
   # calc new consensus
   cseq <- conseq(pileup$consmat, paste0("refine", hptype), "ambig",
-                 exclude_gaps = FALSE, threshold = x$getThreshold())
+                 excludeGaps = FALSE, threshold = x$getThreshold())
   x$consensus$refine$consensus[[hptype]] <- cseq
   x$cache()
-  run_igv(x, map = "refine", open_now = FALSE)
+  runIgv(x, map = "refine", open = FALSE)
   invisible(x)
 }
 
@@ -406,12 +445,12 @@ refineAlignment <- function(x, hptype){
   ending <- ifelse(length(x$getHapTypes()) == 1, "fa",
                    ifelse(length(x$getHapTypes()) == 2, "psa",
                           "msa"))
-  pairfile_checked <- paste("mapfinal.aln", x$getLrdType(), x$getLrMapper(),
+  pairfileChecked <- paste("mapfinal.aln", x$getLrdType(), x$getLrMapper(),
                               "checked", ending, sep = ".")
-  pairfile_checked <- normalizePath(x$absPath(file.path("report",
-                                                pairfile_checked)),
+  pairfileChecked <- normalizePath(x$absPath(file.path("report",
+                                                pairfileChecked)),
                                       mustWork = FALSE)
-  rs <- readPairFile(pairfile_checked)
+  rs <- readPairFile(pairfileChecked)
   seqs <- Biostrings::DNAStringSet(
     sapply(rs, function(s) Biostrings::DNAString(gsub("-", "", s))))
 
@@ -442,8 +481,8 @@ readPairFile <- function(pairfile) {
     rsA <- rs[grepl("^hapA", rs)]
     rsB <- rs[grepl("^hap[B-Z]", rs)]
     hap <- c(
-      Biostrings::DNAStringSet(collapse_pair_lines_(rsA)),
-      Biostrings::DNAStringSet(collapse_pair_lines_(rsB))
+      Biostrings::DNAStringSet(.collapsePairLines_(rsA)),
+      Biostrings::DNAStringSet(.collapsePairLines_(rsB))
     )
 
     names(hap) <- c("hapA", strsplit1(rsB, "\\s")[1])
@@ -460,7 +499,7 @@ readPairFile <- function(pairfile) {
   if (!length(ambigLetters) == 0){
     ambigPositions <- sapply(ambigLetters, function(x)
       unlist(Biostrings::vmatchPattern(x, hap)))
-    msg <- sapply(1:length(ambigPositions), function(x)
+    msg <- sapply(seq_along(ambigPositions), function(x)
       extractAmbigLetters(ambigPositions, names(ambigPositions)[x]))
     flog.info(msg, name = "info")
     stop(paste("Check reported reference! Ambiguous positions were found",
@@ -471,10 +510,15 @@ readPairFile <- function(pairfile) {
   hap
 }
 
-collapse_pair_lines_ <- function(x) {
-  paste0(vapply(strsplit(x, split = "\\s+"), `[[`, 3, FUN.VALUE = ""), collapse = "")
+.collapsePairLines_ <- function(x) {
+  paste0(vapply(strsplit(x, split = "\\s+"), `[[`, 3, FUN.VALUE = ""), 
+         collapse = "")
 }
 
+#' Read a multiple sequence alignment from file.
+#' @param file The absolute path to the file storing the MSA.
+#' @details The format  a \code{phylip} like format written by 
+#' \code{\link{writeMSA}}.
 #' @export
 readMSA <- function(file) {
   seqs <- c()
@@ -502,16 +546,23 @@ extractAmbigLetters <- function(irange, ambigLetter){
                        collapse = " or "))
   ambigPositionLetter <- unlist(irange[[ambigLetter]])
 
-  msg %<<% paste0(sapply(1:length(ambigPositionLetter), function(x)
+  msg %<<% paste0(sapply(seq_along(ambigPositionLetter), function(x)
     sprintf("%s: %s",
             names(ambigPositionLetter[x]),
             ambigPositionLetter[x])), collapse = "\n") %<<% "\n"
 }
 
-
-
-## Write a multiple sequence alignment in a phylip like format. Formatted for
-## easily accessing positions and differences
+#' Write a multiple sequence alignment in a phylip like format. 
+#' Formatted for easily accessing positions and differences
+#' @param aln The alignment as a \code{\link[Biostrings]{DNAStringSet}}.
+#' @param file The filename and path.
+#' @param block.width The block width of the resulting alignment.
+#' @examples
+#' \dontrun{
+#' library(Biostrings)
+#' msa <- DNAStringSet(c("AAA", "AGA", ))
+#' print("TODO: write rep seq example which runs")
+#' }
 #' @export
 writeMSA <- function(aln, file="", block.width = 50){
   # ToDo add check for length
@@ -520,7 +571,7 @@ writeMSA <- function(aln, file="", block.width = 50){
   if (!is.numeric(block.width))
     stop("'block.width' must be a single number")
 
-  get_cons_position <- function(pos) {
+  .getConsPosition <- function(pos) {
    if (length(unique(pos)) == 1) {
      return(".")
    } else if ("-" %in% pos){
@@ -530,47 +581,50 @@ writeMSA <- function(aln, file="", block.width = 50){
    }
   }
 
-  aln_mat <-as.matrix(aln)
-  aln_stat_line <- Biostrings::BStringSet(paste0(apply(aln_mat, 2, function(x) get_cons_position(x)), collapse = ""))
-  alignment <- c(Biostrings::BStringSet(aln), aln_stat_line)
+  alnMat <-as.matrix(aln)
+  alnStatLine <- Biostrings::BStringSet(paste0(apply(alnMat, 2, function(x) 
+    .getConsPosition(x)), collapse = ""))
+  alignment <- c(Biostrings::BStringSet(aln), alnStatLine)
 
   ## Write Header
   cat("#=======================================\n", file=file)
   cat("#\n", file=file, append = TRUE)
   cat("# Aligned_sequences: ", length(aln)," \n", file=file, append = TRUE)
-  sapply(1:length(aln), function(x) cat(sprintf("# %s: %s\n", x, names(aln[x])), file=file, append = TRUE))
+  sapply(seq_along(aln), function(x) cat(sprintf("# %s: %s\n", 
+                                                 x, names(aln[x])),
+                                        file=file, append = TRUE))
   cat("#\n#\n", file=file, append = TRUE)
   cat("#=======================================\n", file=file,append = TRUE)
 
   # Write sequences
   lstart <- 1L
   lend <- block.width
-  alignment_length <- Biostrings::width(alignment[1])
-  start_width <- nchar(as.character(1 + alignment_length))
-  name_width <- max(20L, nchar(names(alignment)))
-  nblock <- alignment_length %/% block.width
-  if (alignment_length %% block.width != 0L)
+  alignmentLength <- Biostrings::width(alignment[1])
+  startWidth <- nchar(as.character(1 + alignmentLength))
+  nameWidth <- max(20L, nchar(names(alignment)))
+  nblock <- alignmentLength %/% block.width
+  if (alignmentLength %% block.width != 0L)
     nblock <- nblock + 1L
   for (i in seq_len(nblock)) {
     to <- i * block.width
     from <- to - block.width + 1L
-    if (to > alignment_length)
-      to <- alignment_length
+    if (to > alignmentLength)
+      to <- alignmentLength
     names <- names(alignment)
     strings <- Biostrings::subseq(alignment, from, to)
 
     ## Split the seq every 10 chars
     sp <- "(.{10})"
     addSp <- "\\1 "
-    a <- sapply(1:(length(alignment)-1), function(x) {
-      cat(format(names[x], width = name_width), " ",
-          format(lstart, justify = "right", width = start_width), " ",
+    a <- sapply(seq_len(length(alignment)-1), function(x) {
+      cat(format(names[x], width = nameWidth), " ",
+          format(lstart, justify = "right", width = startWidth), " ",
           gsub(sp, addSp, Biostrings::toString(strings[x])), " ",
           format(lend, justify = "right"), "\n",
           sep = "", file = file, append = TRUE)
     })
-    cat(format(" ", width = name_width), " ",
-          format(" ", justify = "right", width = start_width), " ",
+    cat(format(" ", width = nameWidth), " ",
+          format(" ", justify = "right", width = startWidth), " ",
           gsub(sp, addSp, Biostrings::toString(strings[length(alignment)])),
         "\n\n", sep = "", file = file, append = TRUE)
 

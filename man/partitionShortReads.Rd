@@ -4,12 +4,14 @@
 \alias{partitionShortReads}
 \title{Assign short reads from mapInit to haplotypes}
 \usage{
-partitionShortReads(x, force = TRUE, ...)
+partitionShortReads(x, opts = list(), force = TRUE, ...)
 }
 \arguments{
 \item{x}{A \code{\link[=DR2S_]{DR2S}} object.}
 
-\item{force}{force the creation of new fastq files if they already exist}
+\item{opts}{list with options passed to the mapper.}
+
+\item{force}{force the creation of new fastq files if they already exist.}
 
 \item{...}{Further arguments passed to methods.}
 }
@@ -36,6 +38,6 @@ x <- DR2Smap(
   partitionShortReads() \%>\%
   mapFinal() \%>\%
   polish() \%>\%
-  report(block_width = 60)
+  report(blockWidth = 60)
 }
 }

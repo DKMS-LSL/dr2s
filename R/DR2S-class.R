@@ -1,46 +1,7 @@
 #' @export
-DR2Smap.default <- function(sample,
-                            locus,
-                            longreads = list(type = "pacbio", dir = "pacbio"),
-                            shortreads = list(type = "illumina", dir = "illumina"),
-                            datadir = ".",
-                            outdir = ".",
-                            reference = NULL,
-                            consensus = "multialign",
-                            threshold = 0.20,
-                            iterations = 1,
-                            microsatellite = FALSE,
-                            partSR = TRUE,
-                            forceBadMapping = FALSE,
-                            filterScores = TRUE,
-                            dist_alleles = 2,
-                            fullname = TRUE,
-                            create_outdir = TRUE,
-                            ...) {
-  conf <- create_dr2s_conf(
-    sample = sample,
-    locus = locus,
-    longreads = longreads,
-    shortreads = shortreads,
-    datadir = datadir,
-    outdir = outdir,
-    reference = reference,
-    consensus = consensus,
-    threshold = threshold,
-    iterations = iterations,
-    microsatellite = microsatellite,
-    filterScores = filterScores,
-    partSR = partSR,
-    fullname = fullname,
-    dist_alleles = dist_alleles,
-    forceBadMapping = forceBadMapping,
-    ...
-  )
-  DR2S_$new(conf, create_outdir = create_outdir)
+InitDR2S.DR2Sconf <- function(config, createOutdir = TRUE) {
+  DR2S_$new(config, createOutdir)
 }
-
-#' @export
-DR2Smap.DR2Sconf <- function(sample) DR2S_$new(conf)
 
 #' @export
 cache.DR2S <- function(x, outname, ...) {
@@ -64,43 +25,39 @@ clear.DR2S <- function(x, ...) {
 #' Class \code{"DR2S"}
 #'
 #' @docType class
-#' @usage DR2Smap(sample, locus, longreads = list(type = "pacbio", dir = "pacbio"),
-#' shortreads = list(type = "illumina", dir = "illumina"), datadir = ".",
-#' outdir = "./output", reference = NULL, consensus = "mapping",
-#' threshold = 0.20, iterations = 1, microsatellite = FALSE, dist_alleles = 2,
-#' filterScores = TRUE, partSR = TRUE, fullname = TRUE, create_outdir = TRUE, ...)
-#' @field mapInit \code{[mapInit]}; the mapping of long reads to \code{reference}.
-#' @field partition \code{[PartList]}; the partitioning of full-length mapped
-#'   long reads into different haplotypes.
-#' @field mapIter \code{[mapIter]}; the mapping of A and B reads to consensus
-#'   sequences produced in the previous step.
-#' @field mapFinal \code{[mapFinal]}; the mapping of A, B, and short reads to consensus
-#'   sequences produced in the previous step.
-#' @field consensus \code{[ConsList]}; final consensus sequences for A and B.
-#'
+#' @usage InitDR2S(config, createOutdir = TRUE)
+#' @field InitDR2S Initialize DR2S from a config.
+#' @field mapInit \code{[mapInit]}; the mapping of long reads to 
+#' \code{reference}.
+#' @field partition \code{[PartList]}; the partitioning of full-length 
+#'   mapped long reads into different haplotypes.
+#' @field mapIter \code{[mapIter]}; the mapping of A and B reads to 
+#' consensus sequences produced in the previous step.
+#' @field mapFinal \code{[mapFinal]}; the mapping of A, B, and short reads 
+#' to consensus sequences produced in the previous step.
+#' @field consensus \code{[ConsList]}; final consensus sequences for A and 
+#' B.
 #' @keywords data internal
-#' @return Object of \code{\link{R6Class}} representing a DR2S analysis.
+#' @return Object of \code{\link[R6]{R6Class}} representing a DR2S analysis.
 #' @section Public Methods:
 #' \describe{
-#' \item{\code{x$runMapInit(opts = list(), optsname = "", pct = 100, threshold = 0.20,
-#' iterations = 1, microsatellite = FALSE, dist_alleles = 2, filterScores = TRUE,
-#' partSR = TRUE, min_base_quality = 3, min_mapq = 0, max_depth = 1e4, min_nucleotide_depth = 3,
-#' include_deletions = FALSE, include_insertions = FALSE, force = FALSE,
-#' fullname = TRUE, plot = TRUE)}}{
-#' Run the inital mapping step (long reads against the reference allele)}
-#' \item{\code{x$runHaplotypePartitioning(max_depth = 1e4, shuffle = TRUE,
-#' skip_gap_freq = 2/3, plot = TRUE)}}{
+#' \item{\code{x$runMapInit(opts = list(), optsname = "",  threshold = 0.20, 
+#' iterations = 1, microsatellite = FALSE, distAlleles = 2, filterScores = TRUE,
+#' partSR = TRUE, minBaseQuality = 3, minMapq = 0, maxDepth = 1e4,
+#' minNucleotideDepth = 3, includeDeletions = FALSE, includeInsertions = FALSE,
+#' force = FALSE, fullname = TRUE, plot = TRUE)}}{Run the inital mapping step 
+#' (long reads against the reference allele)}
+#' \item{\code{x$runHaplotypePartitioning(maxDepth = 1e4, shuffle = TRUE,
+#' skipGapFreq = 2/3, plot = TRUE)}}{
 #' Partition mapped long reads into haplotypes}
 #' \item{\code{x$splitReadsByHaplotype(limit = list(), #' plot = TRUE)}}{
 #' Partition mapped long reads into haplotypes}
-#' \item{\code{x$extractFastq(nreads = NULL, replace = FALSE, nalign = 30)}}{
-#' Extract FASTQs for partitioned reads and if the consensus method is
-#' \code{multialign} contruct a multiple sequence alignment from the best
-#' \code{nalign} reads.}
-#' }
+#' \item{\code{x$extractFastq()}}{
+#' Extract FASTQs for partitioned reads.
+#' }}
 #' @section Internals:
 #' \describe{
-#' \item{\code{x$new(conf, create_outdir = TRUE)}}{Initialise object of class
+#' \item{\code{x$new(conf, createOutdir = TRUE)}}{Initialise object of class
 #'  \code{DR2S}.}
 #' \item{x$getConfig(name = NULL}{Extract configuration}
 #' \item{x$setConfig(name, value}{Modify configuration}
@@ -116,7 +73,7 @@ DR2S_ <- R6::R6Class(
     ## Final consensus sequences for A and B
     ## class: ConsList
     consensus   = list(),
-    initialize  = function(conf, create_outdir = TRUE) {
+    initialize  = function(conf, createOutdir = TRUE) {
       ## Public fields
       self$mapInit   = list()
       self$partition = list()
@@ -124,44 +81,29 @@ DR2S_ <- R6::R6Class(
       self$mapFinal  = list()
       self$consensus = list()
       ## Private fields
-      private$conf   = initialise_dr2s(conf, create_outdir = create_outdir)
+      private$conf   = initialiseDR2S(conf, createOutdir = createOutdir)
       private$reportStatus = FALSE
 
-      if (file.exists(ref_path <- private$conf$reference)) {
-        private$conf$reference = basename(ref_path)
-        private$conf$ref_path  = basename(ref_path)
+      if (file.exists(refPath <- private$conf$reference)) {
+        private$conf$reference = basename(refPath)
+        private$conf$refPath  = basename(refPath)
       } else {
-        private$conf$reference = expand_allele(conf$reference, conf$locus)
-        private$conf$ref_path  = generateReferenceSequence(private$conf$reference,
-                                                             private$conf$locus,
-                                                             private$conf$outdir,
-                                                             "mapInit",
-                                                             fullname = FALSE)
+        private$conf$reference = .expandAllele(conf$reference, conf$locus)
+        private$conf$refPath  = generateReferenceSequence(
+          private$conf$reference,
+          private$conf$locus,
+          private$conf$outdir,
+          "mapInit",
+          fullname = FALSE)
       }
-      if (is.null(private$conf$alternate)) {
-        private$conf["alternate"] = list(NULL)
-      }
-      else {
-        if (file.exists(alt_path <- private$conf$alternate)) {
-          private$conf$alternate = basename(alt_path)
-          private$conf$alt_path  = basename(alt_path)
-        } else {
-          private$conf$alternate = expand_allele(private$conf$alternate, private$conf$locus)
-          outdir <- dir_create_if_not_exists(normalizePath(
-            file.path(private$conf$outdir, "mapInit"), mustWork = FALSE))
-          private$conf$ref_path  = generateReferenceSequence(private$conf$alternate,
-                                                               private$conf$locus,
-                                                               private$conf$outdir,
-                                                               "mapInit",
-                                                               fullname = FALSE)
-        }
-      }
-      conf_log(outdir = private$conf$outdir, logName = "info")
+      .confLog(outdir = private$conf$outdir, logName = "info")
+      writeDR2SConf(self)
       flog.info("Creating DR2S Object", name = "info")
     },
     cache = function(outname) {
       if (missing(outname)) {
-        outname <- paste("DR2S", self$getLrdType(), self$getLrMapper(), "rds", sep = ".")
+        outname <- paste("DR2S", self$getLrdType(), self$getLrMapper(), "rds", 
+                         sep = ".")
       }
       path <- file.path(self$getOutdir(), outname)
       flog.info("Caching <%s>", path, name = "info")
@@ -170,38 +112,22 @@ DR2S_ <- R6::R6Class(
     },
     clear = function() {
       unlink(self$getOutdir(), recursive = TRUE)
-      dir_create_if_not_exists(file.path(self$getOutdir()))
+      .dirCreateIfNotExists(file.path(self$getOutdir()))
 
-      if (file.exists(ref_path <- private$conf$reference)) {
-        private$conf$reference = basename(ref_path)
-        private$conf$ref_path  = basename(ref_path)
+      if (file.exists(refPath <- private$conf$reference)) {
+        private$conf$reference = basename(refPath)
+        private$conf$refPath  = basename(refPath)
       } else {
-        private$conf$reference = expand_allele(private$conf$reference, private$conf$locus)
-        outdir <- dir_create_if_not_exists(normalizePath(
+        private$conf$reference = .expandAllele(private$conf$reference, 
+                                               private$conf$locus)
+        outdir <- .dirCreateIfNotExists(normalizePath(
           file.path(private$conf$outdir, "mapInit"), mustWork = FALSE))
-        private$conf$ref_path  = generateReferenceSequence(self$getReference(),
-                                                             self$getLocus(),
-                                                             private$conf$outdir,
-                                                             "mapInit",
-                                                             fullname = FALSE)
-      }
-      if (is.null(private$conf$alternate)) {
-        private$conf["alternate"] = list(NULL)
-      }
-      else {
-        if (file.exists(alt_path <- private$conf$alternate)) {
-          private$conf$alternate = basename(alt_path)
-          private$conf$alt_path  = basename(alt_path)
-        } else {
-          private$conf$alternate = expand_allele(private$conf$alternate, private$conf$locus)
-          outdir <- dir_create_if_not_exists(normalizePath(
-            file.path(private$conf$outdir, "mapInit"), mustWork = FALSE))
-          private$conf$ref_path  = generateReferenceSequence(self$getAlternate(),
-                                                               self$getLocus(),
-                                                               private$conf$outdir,
-                                                               "mapInit",
-                                                               fullname = FALSE)
-        }
+        private$conf$refPath  = generateReferenceSequence(
+          self$getReference(),
+          self$getLocus(),
+          private$conf$outdir,
+          "mapInit",
+          fullname = FALSE)
       }
       invisible(self)
     },
@@ -217,13 +143,34 @@ DR2S_ <- R6::R6Class(
     print = function() {
       fmt0 <- "DR2S mapper for sample <%s> locus <%s>\n"
       cat(sprintf(fmt0, self$getSampleId(), self$getLocus()))
-      fmt1 <- "Reference alleles: <%s%s>\nLongreads: <%s> Shortreads: <%s>\nMapper: <%s>\nDatadir: <%s>\nOutdir: <%s>\n"
+      fmt1 <- paste0("Reference alleles: <%s>\n", 
+                     "Longreads: <%s> Shortreads: <%s>\n", 
+                     "Mapper: <%s>\nDatadir: <%s>\nOutdir: <%s>\n")
       cat(sprintf(fmt1,
                   self$getReference(),
-                  if (is.null(self$getAlternate())) "" else paste0(", ", self$getAlternate()),
-                  self$getLrdType(), self$getSrdType(), self$getLrMapper(), self$getDatadir(), self$getOutdir()
+                  self$getLrdType(), self$getSrdType(), self$getLrMapper(), 
+                  self$getDatadir(), self$getOutdir()
       ))
       invisible(self)
+    },
+    run_         = function(step) {
+      switch(
+        step,
+        clear          = self$clear(),
+        cache          = self$cache(),
+        partitionLongReads         = {
+          self$runPartitionLongReads()
+          self$runSplitLongReadsByHaplotype()
+          self$runExtractLongReads()
+        },
+        partitionShortReads         = self$runPartitionShortReads(),
+        mapInit        = self$runMapInit(),
+        mapIter        = self$runMapIter(),
+        mapFinal       = self$runMapFinal(),
+        polish         = DR2S::polish(self),
+        report         = DR2S::report(self),
+        stop("<", step, "> is not a valid step in the mapping pipeline")
+      )
     },
     ##
     ## Getters and Setters ####
@@ -288,13 +235,23 @@ DR2S_ <- R6::R6Class(
       invisible(self)
     },
     ##
-    getForceBadMapping = function(forceBadMapping){
-      self$getConfig("forceBadMapping")
+    getDetails = function(){
+      self$getConfig("details")
     },
     ##
-    setForceBadMapping = function(forceBadMapping){
-      stopifnot(is.logical(forceBadMapping))
-      self$setConfig("forceBadMapping", forceBadMapping)
+    setDetails = function(details){
+      stopifnot(is.character(details))
+      self$setConfig("details", details)
+      invisible(self)
+    },
+    ##
+    getForceMapping = function(forceMapping){
+      self$getConfig("forceMapping")
+    },
+    ##
+    setForceMapping = function(forceMapping){
+      stopifnot(is.logical(forceMapping))
+      self$setConfig("forceMapping", forceMapping)
       invisible(self)
     },
     ##
@@ -318,13 +275,39 @@ DR2S_ <- R6::R6Class(
       invisible(self)
     },
     ##
-    getDistAlleles = function() {
-      self$getConfig("dist_alleles")
+    getSampleDetails = function() {
+      details <- semicolon(
+        sapply(seq_along(self$getDetails()), 
+               function(item) paste(names(
+                 self$getDetails()[item]), 
+                 underscore(litQuote(self$getDetails()[item])), 
+                 sep = "=")))
+      sr <- !is(try(self$getShortreads(), silent = TRUE), "try-error")
+      lr <- !is(try(self$getShortreads(), silent = TRUE), "try-error")
+      paste(paste0("locus=", litQuote(self$getLocus())),
+            paste0("ref=", litQuote(self$getReference())),
+            details,
+            paste0("short_read_data=", litQuote(ifelse(sr, "yes", "no"))),
+            paste0("short_read_type=", litQuote(ifelse(sr, 
+                                                       self$getSrdType(), 
+                                                       ""))),
+            paste0("long_read_data=", litQuote(ifelse(sr, "yes", "no"))),
+            paste0("long_read_type=", litQuote(ifelse(lr, 
+                                                       self$getLrdType(), 
+                                                       ""))),
+            "software=\"DR2S\"", 
+            paste0("version=", 
+                   litQuote(packageVersion("DR2S"))),
+            sep = ";")
     },
     ##
-    setDistAlleles = function(dist_alleles) {
-      stopifnot(is.numeric(dist_alleles))
-      self$setConfig("dist_alleles", dist_alleles)
+    getDistAlleles = function() {
+      self$getConfig("distAlleles")
+    },
+    ##
+    setDistAlleles = function(distAlleles) {
+      stopifnot(is.numeric(distAlleles))
+      self$setConfig("distAlleles", distAlleles)
       invisible(self)
     },
     ##
@@ -332,7 +315,8 @@ DR2S_ <- R6::R6Class(
       dir <- self$getLrdDir()
       readpath <- findReads(dir, self$getSampleId(), self$getLocus())
       if (is.null(readpath) || length(readpath) == 0) {
-        flog.error("No reads available for readtype <%s>", self$getLrdType(), name = "info")
+        flog.error("No reads available for readtype <%s>", 
+                   self$getLrdType(), name = "info")
         stop("No reads available for readtype <", self$getLrdType(), ">")
       }
       readpath
@@ -345,7 +329,8 @@ DR2S_ <- R6::R6Class(
       }
       readpath <- findReads(dir, self$getSampleId(), self$getLocus())
       if (is.null(readpath) || length(readpath) == 0) {
-        flog.error("No reads available for readtype <%s>", self$getSrdType(), name = "info")
+        flog.error("No reads available for readtype <%s>", 
+                   self$getSrdType(), name = "info")
         stop("No reads available for readtype <", self$getSrdType(), ">")
       }
       readpath
@@ -414,12 +399,8 @@ DR2S_ <- R6::R6Class(
       self$getConfig("reference")
     },
     ##
-    getAlternate = function() {
-      self$getConfig("alternate")
-    },
-    ##
     getSampleId = function() {
-      self$getConfig("sample_id")
+      self$getConfig("sampleId")
     },
     ##
     getLocus = function() {
@@ -427,7 +408,7 @@ DR2S_ <- R6::R6Class(
     },
     ##
     getRefPath = function() {
-      self$absPath(self$getConfig("ref_path"))
+      self$absPath(self$getConfig("refPath"))
     },
     ##
     getRefSeq = function() {
@@ -439,42 +420,13 @@ DR2S_ <- R6::R6Class(
       }
     },
     ##
-    getAltPath = function() {
-      self$absPath(self$getConfig("alt_path"))
-    },
-    ##
-    getAltSeq = function() {
-      if (!is.null(self$getAltPath())) {
-        Biostrings::readDNAStringSet(self$getAltPath())
-      } else if (self$getAlternate() %in%
-                 ipd.Hsapiens.db::getAlleles(self$getLocus()) ){
-        ipd.Hsapiens.db::getClosestComplete(self$getAlternate(),
-                                            self$getLocus())
-      } else NULL
-      # if (!is.null(self$getAlternate())) {
-      #   if (!is.null(self$getIPD())) {
-      #     self$getIPD()$get_reference_sequence(self$getAlternate())
-      #   } else {
-      #     Biostrings::readDNAStringSet(self$getAltPath())
-      #   }
-      # } else NULL
-    },
-    ##
-    getNreads = function() {
-      self$getConfig("nreads")
-    },
-    ##
-    setNreads = function(nreads) {
-      stopifnot(is.null(nreads) || nreads >= 1)
-      self$setConfig("nreads", nreads)
-      invisible(self)
-    },
-    ##
-    getOpts = function(name = "mapInit") {
+    getOpts = function(name = NULL) {
       if (is.null(name))
-        merge_list(self$getConfig("opts"), self$getConfig("longreads")$opts, update = TRUE)
+        .mergeList(self$getConfig("opts"), self$getConfig("longreads")$opts, 
+                   update = TRUE)
       else {
-        opts <- merge_list(self$getConfig("opts"), self$getConfig("longreads")$opts, update = TRUE)
+        opts <- .mergeList(self$getConfig("opts"), 
+                           self$getConfig("longreads")$opts, update = TRUE)
         if (is.list(opts))
           opts[[name]]
         else
@@ -482,10 +434,6 @@ DR2S_ <- R6::R6Class(
       }
     },
     ##
-    # getIPD = function() {
-    #   private$ipd
-    # },
-    # ##
     getPileup = function() {
       self$mapInit$pileup
     },
@@ -510,8 +458,8 @@ DR2S_ <- R6::R6Class(
       if (length(self$mapFinal) > 0) {
         return(self$absPath(self$mapFinal$seq))
       } else if (length(self$mapIter) > 0) {
-        return(sapply(self$mapIter[max(names(self$mapIter))][self$getHapTypes()],
-                      function(x) self$absPath(x$seqpath)))
+        latest <-  self$mapIter[max(names(self$mapIter))][self$getHapTypes()]
+        return(sapply(latest, function(x) self$absPath(x$seqpath)))
       } else {
         return(self$getRefPath())
       }
@@ -523,7 +471,8 @@ DR2S_ <- R6::R6Class(
       }else if (length(self$mapFinal) > 0) {
         return(self$mapFinal$seq)
       } else if (length(self$mapIter) > 0) {
-        return(sapply(self$mapIter[max(names(self$mapIter))][self$getHapTypes()], function(x) x$conseq))
+        latest <- self$mapIter[max(names(self$mapIter))][self$getHapTypes()]
+        return(sapply(latest, function(x) x$conseq))
       }  else {
         return(self$getRefSeq())
       }
@@ -532,32 +481,21 @@ DR2S_ <- R6::R6Class(
     getConseqs = function(group = NULL, mapn = 1) {
       group <- match.arg(group, self$getHapTypes)
       if (mapn == 1) {
-        ref <- self$mapIter[["0"]][[group]]$conseq$reference %||% Biostrings::BStringSet()
-        alt <- self$mapIter[["0"]][[group]]$conseq$alternate %||% Biostrings::BStringSet()
-        merged <- self$mapIter[["0"]][[group]]$conseq$merged %||% Biostrings::BStringSet()
+        ref <- self$mapIter[["0"]][[group]]$conseq$reference %||% 
+          Biostrings::BStringSet()
+          Biostrings::BStringSet()
       } else if (mapn == 2) {
-        ref <- alt <- Biostrings::BStringSet()
-        merged <- self$mapIter[[group]]$conseq %||% Biostrings::BStringSet()
+        ref <- Biostrings::BStringSet()
       }
       seqs <- tryCatch({
-        Biostrings::DNAStringSet(c(ref, alt, merged))
+        Biostrings::DNAStringSet(ref)
       }, error = function(e) {
         warning("Possibly indels in consensus")
-        Biostrings::DNAStringSet(gsub("[-+]", "", c(ref, alt, merged)))
+        Biostrings::DNAStringSet(gsub("[-+]", "", ref ))
       })
       metadata(seqs) <- compact(list(
         ref = tryCatch(
           metadata(ref)$zscore,
-          error = function(e)
-            NULL
-        ),
-        alt =  tryCatch(
-          metadata(alt)$zscore,
-          error = function(e)
-            NULL
-        ),
-        merged = tryCatch(
-          metadata(merged)$zscore,
           error = function(e)
             NULL
         )
@@ -602,18 +540,14 @@ DR2S_ <- R6::R6Class(
     },
     ##
     getLrMapFun = function() {
-      match.fun(paste0("run_", self$getLrMapper()))
+      match.fun(paste0("run", self$getLrMapper()))
     },
     ##
     getSrMapFun = function() {
-      match.fun(paste0("run_", self$getSrMapper()))
+      match.fun(paste0("run", self$getSrMapper()))
     },
     ##
     ## Predicate methods ####
-    ##
-    hasMultialign = function() {
-      self$getConfig("consensus") == "multialign"
-    },
     ##
     hasPileup = function() {
       tryCatch(
@@ -670,7 +604,7 @@ DR2S_ <- R6::R6Class(
         LR = self$getPileup(),
         SR = self$mapInit$SR2$pileup
       )
-      plot_pileup_coverage(
+      plotPileupCoverage(
         pileup,
         threshold,
         range,
@@ -695,7 +629,7 @@ DR2S_ <- R6::R6Class(
       if (is.null(threshold)) {
         threshold <- self$getThreshold()
       }
-      plot_pileup_coverage(
+      plotPileupCoverage(
         pileup,
         threshold,
         range,
@@ -706,12 +640,13 @@ DR2S_ <- R6::R6Class(
       )
     },
     ##
-    plotBasecallFrequency = function(threshold, label = "", drop.indels = FALSE) {
+    plotBasecallFrequency = function(threshold, label = "", 
+                                     drop.indels = FALSE) {
       tag <- self$getMapTag()
       if (missing(threshold)) {
         threshold <- self$getThreshold()
       }
-      plot_pileup_basecall_frequency(
+      plotPileupBasecallFrequency(
         self$getPileup(),
         threshold,
         label %|ch|% tag,
@@ -730,7 +665,7 @@ DR2S_ <- R6::R6Class(
       if (is.null(threshold)) {
         threshold <- self$getThreshold()
       }
-      plot_pileup_basecall_frequency(
+      plotPileupBasecallFrequency(
         pileup,
         threshold,
         label %|ch|% lbl,
@@ -741,48 +676,26 @@ DR2S_ <- R6::R6Class(
     plotPartitionHistogram = function(label = "", limits = NULL) {
       tag <- self$getMapTag()
       if (length(self$getHapTypes()) == 2) {
-        plot_partition_histogram(x = self$getPartition(), label %|ch|% tag, limits = limits)
+        plotPartitionHistogram(x = self$getPartition(), label %|ch|% tag, 
+                                 limits = limits)
       }else {
-        plot_partition_histogram_multi(x = self$getPartition(), limits = self$getLimits(), label %|ch|% tag)
+        plotPartitionHistogramMulti(x = self$getPartition(), 
+                                       limits = self$getLimits(), 
+                                       label %|ch|% tag)
       }
     },
     ##
     plotPartitionTree = function() {
-      plot_partition_tree(x = self$getPartition())
+      plotPartitionTree(x = self$getPartition())
     },
     ##
     plotPartitionRadar = function() {
-      plot_radar_partition(x = self$getPartition())
+      plotRadarPartition(x = self$getPartition())
     },
     ##
     plotPartitionHaplotypes = function(thin = 1, label = "") {
       tag <- self$getMapTag()
-      plot_partition_haplotypes(x = self$getPartition(), thin, label %|ch|% tag)
-    },
-    ##
-    plotConseqProbability = function(ref = NULL,
-                                     iteration = "init",
-                                     threshold = "auto",
-                                     text_size = 3,
-                                     point_size = 1) {
-      hptypes <- self$getHapTypes()
-      cseqs <- foreach(hp = hptypes) %do% {
-        seqs <- list(
-          label = self$getMapTag(iteration, hp),
-          if(is.numeric(iteration)) {
-            cseq = self$mapIter[[as.character(iteration)]][[hp]]$conseq
-          } else {
-            cseq = self$mapFinal$conseq[[hp]]
-          } )
-        names(seqs) <- c("label", "cseq")
-        seqs
-      }
-
-      # label = self$getMapTag(iteration, hp)
-
-      names(cseqs) <- hptypes
-      plot_conseq_probability(cseqs, threshold, text_size, point_size)
-
+      plotPartitionHaplotypes(x = self$getPartition(), thin, label %|ch|% tag)
     },
     ##
     ## Summary methods ####
@@ -796,132 +709,112 @@ DR2S_ <- R6::R6Class(
       } else {
         pileup <- self$getPileup()
       }
-      polymorphic_positions(pileup, threshold)
+      polymorphicPositions(pileup, threshold)
     },
     ##
-    summarisePartitions = function() {
-      stopifnot(self$hasHapList())
-      summary(self$getHapList())
-    },
-    ##
-    plotmapInitSummary = function(thin = 0.2, width = 4, label = "", readtype = "LR") {
-      # debug
-      # readtype = "SR"
-      tag <- self$getMapTag(ref = readtype)
-      multiplot(
+    plotmapInitSummary = function(thin = 0.2, width = 4, label = "") {
+      readtypes <- if (self$getPartSR()) {
+        c("SR", "LR")
+      } else {
+        c("LR")
+      }
+      plotlist <- foreach(readtype = readtypes) %do% {
+        
+        tag <- self$getMapTag(ref = readtype)
         self$plotCoverage(
-          thin = thin,
+          thin  = thin,
           width = width,
           label = label %|ch|% tag,
           readtype = readtype
-        ),
-        self$plotBasecallFrequency(threshold = self$getThreshold(), label = " "),
-        layout = matrix(c(1, 2, 2, 2), ncol = 1)
-      )
+        )
+      }
+      cowplot::plot_grid(plotlist = plotlist, labels = readtypes, 
+                         nrow = length(plotlist))
     },
     ##
     plotPartitionSummary = function(label = "", limits = NULL) {
       tag <- self$getMapTag()
-      p1 <-  self$plotPartitionHistogram(label = label %||% tag, limits = limits) +
+      p1 <-  self$plotPartitionHistogram(label = label %||% tag, 
+                                         limits = limits) +
         ggplot2::theme(legend.position = "none")
       p2 <- self$plotPartitionTree()
       p3 <- self$plotPartitionRadar()
-      if (!is.null(p2)) {
-        multiplot(p1, p2, p3, layout = matrix(c(1, 2, 2, 2, 3), ncol = 1))
+      if (is.null(p2)) {
+        cowplot::plot_grid(p1, p3, ncol = 1)
       } else {
-        multiplot(p1,p3, layout = matrix(c(1,2)))
+        cowplot::plot_grid(p1, p2, p3, ncol = 1, rel_heights = c(1,2,1))
       }
     },
     ##
-    plotmapIterSummary = function(thin = 0.2, width = 10, iteration = 0, drop.indels = TRUE) {
+    plotmapIterSummary = function(thin = 0.2, width = 10, iteration = 0, 
+                                  drop.indels = TRUE) {
       hptypes <- self$getHapTypes()
-      if (iteration > 2) {
+      if (iteration == self$getIterations()) {
         drop.indels <- FALSE
         width <- 10
       }
       plotlist <- foreach(hp = hptypes) %do% {
         tag <- self$getMapTag(iteration, hp)
-        list(self$plotGroupCoverage(hp, ref = NULL, iteration = iteration,
+        self$plotGroupCoverage(hp, ref = NULL, iteration = iteration,
                                     threshold = NULL, range = NULL, thin, width,
-                                    label = tag, drop.indels = drop.indels),
-             self$plotGroupBasecallFrequency(hp, NULL, iteration, NULL, " ", drop.indels = drop.indels))
+                                    label = tag, drop.indels = drop.indels)
       }
-      plotlist <- unlist(plotlist, recursive = FALSE)
-      layout_vector <- rep(1:length(plotlist), rep(c(1,3), length(hptypes)))
-      layout = matrix(layout_vector, ncol = length(hptypes))
-
-      multiplot(
-        plotlist = plotlist,
-        layout = layout)
+      cowplot::plot_grid(plotlist = plotlist, labels = hptypes)
     },
     ##
-    plotmapFinalSummary = function(readtype, thin = 0.2, width = 10, iteration = "final") {
+    plotSeqLogo = function(ppos = NULL, pwm = NULL) {
+      if (is.null(ppos)) {
+        ppos <- SNP(self$getPartition())
+        names(ppos) <- seq_along(ppos)
+      }
+      if (is.null(pwm)) {
+        pwm <- lapply(PWM(self$getPartition()), function(pwm) {
+          pwm[pwm < 0.1] <- 0
+          pwm
+        })
+      }
+      ggplot() +
+        geom_logo(pwm, method = "bits", seq_type = "dna", 
+                             stack_width = 0.9) +
+        facet_wrap(~seq_group, ncol = 1, strip.position = "left") +
+        scale_x_continuous(labels = ppos, breaks = seq_along(ppos)) +
+        theme_logo() +
+        theme(axis.text.x  = ggplot2::element_text(size = 10, angle = 60),
+              axis.title.y = ggplot2::element_blank(),
+              axis.text.y  = ggplot2::element_blank(),
+              axis.ticks.y = ggplot2::element_blank(),
+              strip.text.y = ggplot2::element_text(face = "bold", 
+                                                   size = 42, angle = 180))
+    },
+    ##
+    plotmapFinalSummary = function(readtype, thin = 0.2, width = 10, 
+                                   iteration = "final") {
       hptypes <- self$getHapTypes()
       plotlist <- foreach(hp = hptypes) %do% {
         tag <- self$getMapTag(iteration, hp, readtype)
         ref <- paste0(readtype, hp)
         # tag <- self$mapFinal$tag[[ref]]
-        self$plotGroupCoverage(group = hp, ref = readtype, iteration = iteration,
-                               threshold = NULL, range = NULL, thin = thin,
+        self$plotGroupCoverage(group = hp, ref = readtype, 
+                               iteration = iteration, threshold = NULL, 
+                               range = NULL, thin = thin,
                                width = width, label = tag)
-        list(
-          self$plotGroupCoverage(group = hp, ref = readtype, iteration = iteration,
-                                 threshold = NULL, range = NULL, thin = thin,
-                                 width = width, label = tag),
-          self$plotGroupBasecallFrequency(group = hp, ref = readtype, iteration = iteration,
-                                          threshold = NULL, label = " "))
       }
-      self$plotGroupBasecallFrequency(group = hp, ref = readtype, iteration = iteration,
-                                      threshold = NULL, label = " ")
-      plotlist <- unlist(plotlist, recursive = FALSE)
-      layout_vector <- rep(1:length(plotlist), rep(c(1,3), length(hptypes)))
-      layout = matrix(layout_vector, ncol = length(hptypes))
-      multiplot(
-        plotlist = plotlist,
-        layout = layout)
-    },
-    ##
-    plotmapIterSummaryConseqProb = function(iteration = 0,
-                                            text_size = 1.75,
-                                            point_size = 0.75,
-                                            threshold = "auto") {
-      # debug
-      # reads = "pacbio2"
-      # ref = NULL
-      print(
-        self$plotConseqProbability(
-          iteration = iteration,
-          text_size = text_size,
-          point_size = point_size,
-          threshold = threshold))
-    },
-    ##
-    plotmapFinalSummaryConseqProb = function(iteration = "final",
-                                             text_size = 1.75,
-                                             point_size = 0.75,
-                                             threshold = "auto") {
-      print(
-        self$plotConseqProbability(
-          iteration = iteration,
-          text_size = text_size,
-          point_size = point_size,
-          threshold = threshold))
+      
+      cowplot::plot_grid(plotlist = plotlist, labels = hptypes)
     },
     ##
     getmapIterConseqPileup = function(group) {
       conseq <- self$getConseqs(group, 2)
       pileup <- self$getGroupPileup(group, reads = "pacbio2")
-      cutoff <- self$mapIter[[group]]$params$pruning_cutoff
+      cutoff <- self$mapIter[[group]]$params$pruningCutoff
       cm <- consmat.pileup(pileup, freq = FALSE)
       cm <- cm[, which(.colSums(cm, NROW(cm), NCOL(cm)) > 0)]
-      cm <- prune_consensus_matrix(cm, cutoff = cutoff, verbose = FALSE)
-      if (!is.null(attr(cm, "pruning_position"))) {
-        cm <- cm[-attr(cm, "pruning_position"), ]
+      cm <- .pruneConsensusMatrix(cm, cutoff = cutoff, verbose = FALSE)
+      if (!is.null(attr(cm, "pruningPosition"))) {
+        cm <- cm[-attr(cm, "pruningPosition"), ]
       }
       dplyr::bind_cols(dplyr::data_frame(
-        seq = strsplit1(toString(conseq), ""),
-        z   = S4Vectors::metadata(conseq)$merged,
-        p   = pnorm(S4Vectors::metadata(conseq)$merged)
+        seq = strsplit1(toString(conseq), "")
       ),
       as.data.frame(cm))
     }
@@ -931,45 +824,21 @@ DR2S_ <- R6::R6Class(
   ##
   private = list(
     conf         = NULL,
-    reportStatus = NULL,
-    run_         = function(step) {
-      switch(
-        step,
-        clear          = self$clear(),
-        cache          = self$cache(),
-        partLR         = {
-          self$runPartitionLongReads()
-          self$runSplitLongReadsByHaplotype()
-          self$runExtractLongReads()
-        },
-        partSR         = self$runPartitionShortReads(),
-        mapInit        = self$runMapInit(),
-        mapIter        = self$runMapIter(),
-        mapFinal       = self$runMapFinal(),
-        polish         = DR2S::polish(self),
-        report         = DR2S::report(self),
-        stop("<", step, "> is not a valid step in the mapping pipeline")
-      )
-    }
+    reportStatus = NULL
   )
 )
 
 
 # Helpers -----------------------------------------------------------------
 
-findReads <- function(datadir, sample_id, locus) {
+findReads <- function(datadir, sampleId, locus) {
   locus <- sub("^HLA-", "", toupper(locus))
   locus <- sub("^KIR-", "", toupper(locus))
-  file_pattern <- paste0(sample_id, ".+", "fast(q|a)(\\.gz)?$")
-  read_path <- dir(datadir, pattern = file_pattern, full.names = TRUE)
-  read_path <- read_path[grep(pattern = "^((?!_trimmed.fastq).)*$", read_path, perl = TRUE)]
-  if (length(read_path) > 0) {
-    normalizePath(read_path, mustWork = TRUE)
-  } else read_path
+  filePattern <- paste0(sampleId, ".+", "fast(q|a)(\\.gz)?$")
+  readPath <- dir(datadir, pattern = filePattern, full.names = TRUE)
+  readPath <- readPath[grep(pattern = "^((?!_trimmed.fastq).)*$", 
+                              readPath, perl = TRUE)]
+  if (length(readPath) > 0) {
+    normalizePath(readPath, mustWork = TRUE)
+  } else readPath
 }
-
-
-# findLocus <- function(locus) {
-#   stopifnot(requireNamespace("ipd.Hsapiens.db", quietly = TRUE))
-#   IPDdata::loadIPDdata(locus)
-# }

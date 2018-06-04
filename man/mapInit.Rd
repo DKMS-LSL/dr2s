@@ -4,45 +4,54 @@
 \alias{mapInit}
 \title{Initial mapping step (long reads).}
 \usage{
-mapInit(x, opts = list(), refname = "ref", optsname = "", pct = 100,
-  threshold = 0.2, min_base_quality = 7, min_mapq = 0,
-  max_depth = 10000, min_nucleotide_depth = 3, include_deletions = FALSE,
-  include_insertions = FALSE, force = FALSE, fullname = TRUE,
-  plot = TRUE, ...)
+mapInit(x, opts = list(), optsname = "", partSR = TRUE,
+  threshold = NULL, minBaseQuality = 3, minMapq = 50, maxDepth = 10000,
+  minNucleotideDepth = 3, includeDeletions = TRUE,
+  includeInsertions = TRUE, microsatellite = FALSE, force = FALSE,
+  fullname = TRUE, filterScores = TRUE, forceMapping = FALSE,
+  plot = TRUE)
 }
 \arguments{
 \item{x}{A \code{\link[=DR2S_]{DR2S}} object.}
 
 \item{opts}{Mapper options.}
 
-\item{refname}{Which allele do we use as primary reference; the
-\strong{ref}erence allele or the \strong{alt}ernate allele.}
-
 \item{optsname}{Additional text to describe the options used.}
 
-\item{pct}{Percentage of templates to subsample (before sorting the bam file).}
+\item{partSR}{If \code{TRUE} use shortreads to infer the polymorphic 
+positions for clustering.}
 
 \item{threshold}{Threshold to call a variant.}
 
-\item{min_base_quality}{Minimum \sQuote{QUAL} value for each nucleotide in an
+\item{minBaseQuality}{Minimum \sQuote{QUAL} value for each nucleotide in an
 alignment.}
 
-\item{min_mapq}{Minimum \sQuote{MAPQ} value for an alignment to be included
+\item{minMapq}{Minimum \sQuote{MAPQ} value for an alignment to be included
 in pileup.}
 
-\item{max_depth}{Maximum number of overlapping alignments considered for
+\item{maxDepth}{Maximum number of overlapping alignments considered for
 each position in the pileup.}
 
-\item{min_nucleotide_depth}{Minimum count of each nucleotide at a given
+\item{minNucleotideDepth}{Minimum count of each nucleotide at a given
 position required for that nucleotide to appear in the result.}
 
-\item{include_deletions}{If \code{TRUE}, include deletions in pileup.}
+\item{includeDeletions}{If \code{TRUE}, include deletions in pileup.}
 
-\item{include_insertions}{If \code{TRUE}, include insertions in pileup.}
+\item{includeInsertions}{If \code{TRUE}, include insertions in pileup.}
+
+\item{microsatellite}{If \code{TRUE} remap the shortreads again to expand
+the reference to a maximum length. Works better for larger insertions and
+repeats like microsatellites.}
 
 \item{force}{If \code{TRUE}, overwrite existing bam file.}
 
 \item{fullname}{If \code{TRUE}, use the full name in reference fasta.}
+
+\item{filterScores}{Apply a harsh filtering on the reads. Filters for mapping
+quality and removes all softclipping reads. Usually not necessary.}
+
+\item{forceMapping}{if \code{FALSE} the program throws an error in case the
+coverage of shortreads is too different at different parts of the sequence.}
 
 \item{plot}{Produce diagnostic plots.}
 
@@ -72,15 +81,15 @@ x <- DR2Smap(
   partitionShortReads() \%>\%
   mapFinal() \%>\%
   polish() \%>\%
-  report(block_width = 60)
+  report(blockWidth = 60)
 }
 }
 \seealso{
-Other DR2S mapper functions: \code{\link{DR2Smap}},
-  \code{\link{cache}}, \code{\link{clear}},
+Other DR2S mapper functions: \code{\link{cache}},
+  \code{\link{clear}}, \code{\link{createDR2SConf}},
   \code{\link{mapFinal}}, \code{\link{mapIter}},
   \code{\link{partitionLongReads}}, \code{\link{polish}},
   \code{\link{refineAlignment}},
-  \code{\link{report_checked_consensus}},
+  \code{\link{reportCheckedConsensus}},
   \code{\link{report}}
 }

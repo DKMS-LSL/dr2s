@@ -11,10 +11,6 @@ DNA_BASES <- function() {
   c("A", "C", "G", "T", "a", "c", "g", "t")
 }
 
-DNA_BASES_UPPER <- function() {
-  c("A", "C", "G", "T")
-}
-
 VALID_DNA <- function(include = "del"){
   include <- match.arg(include, c("none", "del", "ins", "indel"))
   if (include == "indel") return(c("G", "A", "T", "C", "-", "+"))
@@ -25,10 +21,11 @@ VALID_DNA <- function(include = "del"){
 
 CODE_MAP <- function() {
   c(
-    A =  "A",  C = "C",   G = "G",   T = "T",    M = "AC",   R = "AG",   W = "AT",
-    S = "CG",  Y = "CT",  K = "GT",  V = "ACG",  H = "ACT",  D = "AGT",  B = "CGT",  N = "ACGT",
-    a = "-A",  c = "-C",  g = "-G",  t = "-T",   m = "-AC",  r = "-AG",  w = "-AT",
-    s = "-CG", y = "-CT", k = "-GT", v = "-ACG", h = "-ACT", d = "-AGT", b = "-CGT", n = "-ACGT"
+    A =  "A",  C = "C",    G = "G",    T = "T",    M = "AC",   R = "AG",   
+    W = "AT",  S = "CG",   Y = "CT",   K = "GT",   V = "ACG",  H = "ACT",  
+    D = "AGT", B = "CGT",  N = "ACGT", a = "-A",   c = "-C",   g = "-G",  
+    t = "-T",  m = "-AC",  r = "-AG",  w = "-AT",  s = "-CG",  y = "-CT", 
+    k = "-GT", v = "-ACG", h = "-ACT", d = "-AGT", b = "-CGT", n = "-ACGT"
   )
 }
 
@@ -86,19 +83,19 @@ VALID_LOCI <- function() {
 
 HLA_LOCI <- function() {
   loci <- VALID_LOCI()
-  hla_loci <- loci[startsWith(loci, "HLA")]
-  unname(sapply(hla_loci, function(x) strsplit1(x, "-")[2]))
+  hlaLoci <- loci[startsWith(loci, "HLA")]
+  unname(sapply(hlaLoci, function(x) strsplit1(x, "-")[2]))
 }
 
 KIR_LOCI <- function() {
   loci <- VALID_LOCI()
-  kir_loci <- loci[startsWith(loci, "KIR")]
-  gsub(pattern = "KIR", "", kir_loci)
+  kirLoci <- loci[startsWith(loci, "KIR")]
+  gsub(pattern = "KIR", "", kirLoci)
 }
 
 # Helpers -----------------------------------------------------------------
 
-normalise_locus <- function(locus) {
+.normaliseLocus <- function(locus) {
   locus <- sub("(HLA[-_]?|KIR[-_]?)", "", toupper(locus))
   if (locus %in% HLA_LOCI()) {
     paste0("HLA-", locus)
@@ -113,8 +110,8 @@ normalise_locus <- function(locus) {
   }
 }
 
-expand_allele <- function(allele, locus) {
-  locus <- normalise_locus(locus)
+.expandAllele <- function(allele, locus) {
+  locus <- .normaliseLocus(locus)
   locus <- sub("KIR", "", toupper(locus))
   locus <- sub("HLA-", "", toupper(locus))
   if (locus %in% HLA_LOCI()) {
@@ -161,12 +158,14 @@ strsplitN <- function(x, split, n, from = "start", collapse = split, ...) {
                              value = end), NULL)
   }
   n <- lapply(n, sort %.% unique)
-  unlist(.mapply(function(x, n) paste0(x[n], collapse = collapse), list(x = xs, n = n), NULL))
+  unlist(.mapply(function(x, n) paste0(x[n], collapse = collapse), 
+                 list(x = xs, n = n), NULL))
 }
 
 optstring <- function(opts, ...) {
   opts[vapply(opts, isTRUE, FALSE)] <- ""
-  paste0(c(sprintf("-%s%s", names(opts), opts), ...), collapse = " ") %|ch|% "default"
+  paste0(c(sprintf("-%s%s", names(opts), opts), ...), collapse = " ") %|ch|% 
+    "default"
 }
 
 compact <- function(x) {
@@ -175,13 +174,19 @@ compact <- function(x) {
 
 usc <- function(x) gsub("[*:?<>|]", "_", x)
 
+underscore <- function(x) gsub("\\s+", "_", x)
+
 comma <- function(...) paste0(..., collapse = ", ")
+
+semicolon <- function(...) paste0(..., collapse = ";")
 
 colon <- function(...) paste0(..., collapse = ":")
 
 dot <- function(...) paste0(..., collapse = ".")
 
-merge_list <- function(x, y, update = FALSE) {
+litQuote <- function(x) paste0("\"", x, "\"")
+
+.mergeList <- function(x, y, update = FALSE) {
   if (length(x) == 0)
     return(y)
   if (length(y) == 0)
@@ -202,20 +207,12 @@ wrap <- function(x, wrap = "\"") {
   sprintf("%s%s%s", wrap, x, wrap)
 }
 
-#' @keywords internal
-#' @export
 minimum <- function(n, m) {
   if (n > m) n else m
 }
 
-#' @keywords internal
-#' @export
 maximum <- function(n, m) {
   if (n < m) n else m
-}
-
-det2 <- function(m) {
-  m[1, 1] * m[2, 2] - m[1, 2] * m[2, 1]
 }
 
 `%||%` <- function(a, b) {
@@ -248,7 +245,7 @@ det2 <- function(m) {
   function(...) f(g(...))
 }
 
-dir_create_if_not_exists <- function(path) {
+.dirCreateIfNotExists <- function(path) {
   path <- normalizePath(path, mustWork = FALSE)
   if (!dir.exists(path)) {
     dir.create(path, recursive = TRUE)
@@ -259,7 +256,7 @@ dir_create_if_not_exists <- function(path) {
   normalizePath(path, mustWork = TRUE)
 }
 
-file_delete_if_exists <- function(path) {
+.fileDeleteIfExists <- function(path) {
   path <- normalizePath(path, mustWork = FALSE)
   if (file.exists(path)) {
     unlink(path)
@@ -267,61 +264,24 @@ file_delete_if_exists <- function(path) {
   invisible(path)
 }
 
-recode_fastq_header <- function(fqpath) {
-  fq <- ShortRead::readFastq(fqpath)
-  ids <- as.character(ShortRead::id(fq))
-  if (any(grepl(" MD:Z:", ids))) {
-    return(TRUE)
-  }
-  read_id <- sub("(;|\\s+).+$", "", ids)
-  mdata <- sub("^[^; ]+[; ]+", "", ids)
-  mdata <- if (all(grepl(";", mdata))) {
-    paste0(strsplitN(mdata, " ", 1), paste0(";BARCODE=", gsub("(\\]|\\[)", "", strsplitN(mdata, " ", 2))))
-  } else if (all(grepl("ONBC", mdata))) {
-    paste0("BARCODE=", gsub("(\\]|\\[)", "", mdata))
-  } else {
-    gsub("(\\s+|:)", ";", mdata)
-  }
-  ids <- Biostrings::BStringSet(paste0(read_id, " MD:Z:", mdata))
-  fq@id <- ids
-  fq2 <- paste0(fqpath, "~")
-  ShortRead::writeFastq(fq, file = fq2, compress = FALSE)
-  if (file.copy(fq2, fqpath, overwrite = TRUE)) {
-    unlink(fq2)
-    return(TRUE)
-  }
-  FALSE
-}
-
-file_create_if_not_exists <- function(file) {
-  path <- file.path(
-    dir_create_if_not_exists(dirname(file)),
-    basename(file)
-  )
-  if (!file.exists(path)) {
-    file.create(path)
-  }
-  normalizePath(path, mustWork = TRUE)
-}
-
-has_command <- function(cmd) {
+.hasCommand <- function(cmd) {
   stopifnot(assertthat::is.string(cmd))
   unname(Sys.which(cmd) != "")
 }
 
-editor <- function(x, pos = NULL, use_editor = "xdg-open") {
-  use_editor <- match.arg(use_editor, c("xdg-open", "subl", "gvim", "gedit"))
-  assertthat::assert_that(has_command(use_editor))
+editor <- function(x, pos = NULL, useEditor = "xdg-open") {
+  useEditor <- match.arg(useEditor, c("xdg-open", "subl", "gvim", "gedit"))
+  assertthat::assert_that(.hasCommand(useEditor))
   if (tryCatch(assertthat::is.readable(x), assertError = function(e) FALSE)) {
     x <- normalizePath(x, mustWork = TRUE)
-    if (!is.null(pos) && use_editor == "subl") {
+    if (!is.null(pos) && useEditor == "subl") {
       x <- paste0(x, ":", pos)
     }
-    system(paste(use_editor, x, sep = " "))
+    system(paste(useEditor, x, sep = " "))
   } else {
     tmp <- tempfile()
     write(x, file = tmp)
-    system(paste(use_editor, tmp, sep = " "))
+    system(paste(useEditor, tmp, sep = " "))
   }
 }
 
@@ -334,8 +294,7 @@ editor <- function(x, pos = NULL, use_editor = "xdg-open") {
 # Alignment browser -------------------------------------------------------
 
 
-#' @export
-browse_seqs <- function(seq,
+.browseSeqs <- function(seq,
                         file = tempfile(fileext = ".html"),
                         openURL = TRUE,
                         patterns = CODE_PATTERN(),
@@ -355,8 +314,7 @@ browse_seqs <- function(seq,
   )
 }
 
-#' @export
-browse_align <- function(seq,
+.browseAlign <- function(seq,
                          file = tempfile(fileext = ".html"),
                          openURL = TRUE,
                          patterns = CODE_PATTERN(),
@@ -365,9 +323,9 @@ browse_align <- function(seq,
                          gapOpening = -14,
                          gapExtension = -2,
                          ...) {
-  dna_seq <- Biostrings::DNAStringSet(gsub("+", "N", seq, fixed = TRUE))
+  dnaSeq <- Biostrings::DNAStringSet(gsub("+", "N", seq, fixed = TRUE))
   aln <- DECIPHER::AlignSeqs(
-    dna_seq,
+    dnaSeq,
     verbose = FALSE,
     gapOpening = gapOpening,
     gapExtension = gapExtension#,
@@ -386,19 +344,31 @@ browse_align <- function(seq,
     colWidth
   )
 }
-
+#' Plot an alignment of all intermediate sequences and reference
+#'
+#' @param x A \code{\link[=DR2S_]{DR2S}} object.
+#' @param onlyFinal restrict to final sequences 
+#'
+#' @return NULL
+#' @details Calls \code{\link[DECIPHER]{BrowseSeqs}} to open the alignment of 
+#' references, final and intermediate (only if \code{onlyFinal} is FALSE) in a 
+#' browser. The alignment is created with \code{\link[DECIPHER]{AlignSeqs}}.
+#' @examples
+#' ###
 #' @export
-plot_diagnostic_alignment <- function(x, onlyFinal = FALSE) {
+plotDiagnosticAlignment <- function(x, onlyFinal = FALSE) {
 
   # Given Ref
   seqs1 <- x$getRefSeq()
   names(seqs1) <- paste0("0 ", names(seqs1))
-  # References from multialign or ref; and mapIter steps
-  seqs2 <- Biostrings::DNAStringSet(unlist(lapply(x$mapIter, function(y) sapply(y, function(a) unlist(a$conseq)))))
-  names(seqs2) <- unlist(lapply(names(x$mapIter), function(y) paste(x$getHapTypes(), "map", y)))
+  seqs2 <- Biostrings::DNAStringSet(unlist(lapply(x$mapIter, function(y) 
+    sapply(y, function(a) unlist(a$conseq)))))
+  names(seqs2) <- unlist(lapply(names(x$mapIter), function(y) 
+    paste(x$getHapTypes(), "map", y)))
 
   # final reference
-  seqs3 <- Biostrings::DNAStringSet(lapply(x$mapFinal$seq, function(y) unlist(y)))
+  seqs3 <- Biostrings::DNAStringSet(lapply(x$mapFinal$seq, function(y) 
+    unlist(y)))
   names(seqs3) <- paste(names(seqs3), "mapFinal")
 
   seqs <- c(seqs1, seqs2, seqs3)

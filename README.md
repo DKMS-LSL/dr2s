@@ -3,6 +3,9 @@
 gDR2S - generic Dual redundant reference sequencing
 ===================================================
 
+TODO: Rewrite and adapt to current API.
+---------------------------------------
+
 An R package designed to facilitate generating reliable, full-length phase-defined reference sequences for novel HLA and KIR alleles.
 
 **Note, that this package is still maturing. There's no guarantee yet that the API or the under-the-hood workings of the package won't change substantially**
@@ -50,7 +53,6 @@ x <- DR2Smap(
   datadir = "~/dr2s_data",
   outdir = "~/dr2s_data/output",
   reference = "04:02:01:01",
-  consensus = "mapping",
   iterations = 1,
   partSR = TRUE,
   dist_alleles = 2,
@@ -63,8 +65,6 @@ x <- DR2Smap(
 This call generates an `R6` object of class `DR2S` that encapsulates all data and methods for all subsequent analysis steps.
 
 The argument `reference` is the name of the allele against which an initial mapping of the long reads will be performed. A suitable allele can typically be chosen from existing typing information.
-
-The argument `consensus` should be set to `mapping`.
 
 `threshold` is the frequency below which SNP variants are considered noise. num \[0.2\]
 

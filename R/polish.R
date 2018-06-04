@@ -1,20 +1,24 @@
 #' @export
 #debug
-# x <- dpb1_3
+#x <- readDR2S("~/bioinf/DR2S/KIR/20171130/3DL3/out/7203477/")
+# x <- dr2s
 # threshold <- x$getThreshold()
-# lower_limit <- 0.6
 # cache = TRUE
 # library(foreach)
-# x <- self
+# library(futile.logger)
+#x <- dr2s
 polish.DR2S <- function(x,
-                        threshold = x$getThreshold(),
-                        lower_limit = 0.80,
-                        check_hp_count = TRUE,
+                        threshold = NULL,
+                        checkHpCount = TRUE,
                         cache = TRUE) {
-
   flog.info("Step 5: polish ...", name = "info")
+  ## Set this threshold to double the usual.
+  ## Probably better to do this only for lr
+  if (is.null(threshold)) {
+    threshold <- max(x$getThreshold(), 0.2)
+  }
 
-  ## Check if reporting is already finished and exit safely for downstream analysis
+  ## Check if reporting is finished and exit safely for downstream analysis
   if (x$getReportStatus()) {
     currentCall <- strsplit1(deparse(sys.call()), "\\.")[1]
     flog.info(paste0("%s: Reporting already done! Nothing to do.",
@@ -22,11 +26,10 @@ polish.DR2S <- function(x,
               currentCall, name = "info")
     return(invisible(x))
   }
-
   assertthat::assert_that(
     is(x$mapFinal, "mapFinal"),
-    all(unlist(foreach(rtype = x$mapFinal$pileup) %do% {
-      is(rtype$consmat, "consmat")
+    all(unlist(foreach(i = x$mapFinal$pileup) %do% {
+      is(i$consmat, "consmat")
     }))
   )
 
@@ -44,15 +47,12 @@ polish.DR2S <- function(x,
     menv$init(hptype)
     menv$walk(hptype)
   }
-
   rs <- menv$export()
-
-  ## Problematic Variants
-  vars <- get_problematic_variants(x = rs, lower_limit = 0.6)
-  vars <- dplyr::ungroup(vars)
+  ## Get variants
+  vars <- .getVariants(x = rs)
 
   ## Check homopolymer count; Only check if the count is found in both
-  if (check_hp_count) {
+  if (checkHpCount) {
     checkHomoPolymerCount(rs)
     vars <- rbind(vars, foreach(hptype = hptypes, .combine = rbind) %do% {
       if (hptype %in% names(rs$mapFinal$homopolymers)) {
@@ -60,23 +60,29 @@ polish.DR2S <- function(x,
         seqrle <- .seq2rle(seq)
         n <- seqrle$length[seqrle$length > 10]
         modeN <- sort(rs$mapFinal$homopolymers[[hptype]])
+        names(n) <- names(modeN)
         if (!all(modeN == n)) {
           missingN <- modeN[which(!n == modeN)]
           varsHP <- tibble::tibble(haplotype = hptype,
-                                   pos = names(missingN),
-                                   ref = "",
-                                   alt = "",
-                                   freq = "",
-                                   lower = "",
-                                   warning = sprintf("Homopolymer at position %s should be of length %s",
-                                                     names(missingN), missingN))
+                                   pos       = names(missingN),
+                                   ref       = "",
+                                   alt       = "",
+                                   warning   = sprintf(paste(
+                                     "Homopolymer at position %s should be of", 
+                                     "length %s, but is %s"),
+                                     names(missingN), missingN, 
+                                     n[names(missingN)]),
+                                   refSR     = "",
+                                   altSR     = "",
+                                   refLR     = "",
+                                   altLR     = "")
           varsHP
         }
       }
     })
   }
 
-  rs$consensus$problematic_variants = dplyr::arrange(vars, pos, haplotype)
+  rs$consensus$variants = dplyr::arrange(vars, .data$pos, .data$haplotype)
 
   if (cache)
     rs$cache()
@@ -87,18 +93,9 @@ polish.DR2S <- function(x,
 
 # Helpers -----------------------------------------------------------------
 
-# x <- rs
-
-get_problematic_variants <- function(x, lower_limit) {
-  stopifnot(is(x, "DR2S"))
-  vars <- collect_variants(x)
-  vars <- dplyr::group_by(vars, haplotype)
-  vars <- dplyr::filter(vars, lower < lower_limit | nzchar(warning))
-  dplyr::mutate(vars, freq = round(freq, 3), lower = round(lower, 3))
-}
 
 
-collect_variants <- function(x) {
+.getVariants <- function(x) {
   hptypes <- x$getHapTypes()
   hvars <- lapply(hptypes, function(t) x$consensus[[t]]$variants)
   names(hvars) <- hptypes
@@ -107,8 +104,8 @@ collect_variants <- function(x) {
     return(
       dplyr::data_frame(
         haplotype = character(0), pos = integer(0), ref = character(0),
-        alt = character(0), freq = double(0), lower = double(0),
-        warning = character(0)
+        alt = character(0), warning = character(0), refSR = character(0),
+        altSR = character(0), refLR = character(0), altLR = character(0)
       )
     )
   }
@@ -116,19 +113,20 @@ collect_variants <- function(x) {
   df <- do.call("rbind",
                 lapply(hptypes, function(h)
                   do.call("rbind", lapply(hvars[[h]],
-                                          extract_variant_, h = h))))
+                                          .extractVariant_, h = h))))
   df
 }
-
-extract_variant_ <- function(v, h) {
+.extractVariant_ <- function(v, h) {
   data.frame(
     haplotype = h,
     pos = attr(v, "position") %||% NA,
-    ref = v[["ref"]] %||% NA,
-    alt = v[["alt"]] %||% NA,
-    freq = attr(v, "proportion") %||% NA,
-    lower = (attr(v, "proportion") - attr(v, "margin_of_error")) %||% NA,
+    ref = v[[1]] %||% NA,
+    alt = v[[2]] %||% NA,
     warning = attr(v, "warning") %||% NA,
+    refSR = attr(v, "srBases")[[1]] %||% NA,
+    altSR = attr(v, "srBases")[[2]] %||% NA,
+    refLR = attr(v, "lrBases")[[1]] %||% NA,
+    altLR = attr(v, "lrBases")[[2]] %||% NA,
     stringsAsFactors = FALSE
   )
 }

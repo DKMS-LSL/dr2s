@@ -4,72 +4,15 @@
 \alias{Pileup}
 \title{Calculate pile-up for a BAM file.}
 \usage{
-Pileup(bamfile, threshold = 0.2, max_depth = 250, min_base_quality = 0,
-  min_mapq = 0, min_nucleotide_depth = 1, min_minor_allele_depth = 0,
-  distinguish_strands = FALSE, distinguish_nucleotides = TRUE,
-  ignore_query_Ns = TRUE, include_deletions = TRUE,
-  include_insertions = FALSE, left_bins = NULL, query_bins = NULL)
+Pileup(bamfile, threshold = 0.2, ...)
 }
 \arguments{
 \item{bamfile}{BAM file path.}
 
 \item{threshold}{Threshold used for SNP calling.}
 
-\item{max_depth}{integer(1); maximum number of overlapping alignments
-    considered for each position in the pileup.}
-
-\item{min_base_quality}{integer(1); minimum \sQuote{QUAL} value for
-    each nucleotide in an alignment. Use \code{phred2ASCIIOffset} to
-    help translate numeric or character values to these offsets.}
-
-\item{min_mapq}{integer(1); minimum \sQuote{MAPQ} value for an
-    alignment to be included in pileup.}
-
-\item{min_nucleotide_depth}{integer(1); minimum count of each
-    nucleotide (\emph{independent} of other nucleotides) at a given
-    position required for said nucleotide to appear in the result.}
-
-\item{min_minor_allele_depth}{integer(1); minimum count of \emph{all}
-    nucleotides other than the major allele at a given position required
-    for a particular nucleotide to appear in the result.}
-
-\item{distinguish_strands}{logical(1); \code{TRUE} if result should
-    differentiate between strands.}
-
-\item{distinguish_nucleotides}{logical(1); \code{TRUE} if result
-    should differentiate between nucleotides.}
-
-\item{ignore_query_Ns}{logical(1); \code{TRUE} if non-determinate
-    nucleotides in alignments should be excluded from the pileup.}
-
-\item{include_deletions}{logical(1); \code{TRUE} to include deletions
-    in pileup.}
-
-\item{include_insertions}{logical(1); \code{TRUE} to include
-    insertions in pileup.}
-
-\item{left_bins}{numeric; all same sign; unique positions within a
-    read to delimit bins. Position within read is based on counting from
-    the \emph{5' end regardless of strand}. Minimum of two values are
-    required so at least one range can be formed. \code{NULL} (default)
-    indicates no binning. Use negative values to count from the opposite
-    end. Sorted order not required. Floating-point values are coerced to
-    \code{integer}.
-
-    If you want to delimit bins based on sequencing cycles to, e.g.,
-    discard later cycles, \code{\link{query_bins}} probably gives the
-    desired behavior.
-
-  }
-
-\item{query_bins}{numeric; all same sign; unique positions within a
-    read to delimit bins. Position within a read is based on counting
-    from the \emph{5' end} when the read aligns to \emph{plus strand},
-    counting from the \emph{3' end} when read aligns to minus
-    strand. Minimum of two values are required so at least one range can
-    be formed. \code{NULL} (default) indicates no binning. Use negative
-    values to count from the opposite end. Sorted order not
-    required. Floating-point values are coerced to \code{integer}.}
+\item{...}{Additional parameters passed to 
+\code{\link[Rsamtools]{PileupParam}}.}
 }
 \value{
 A \code{pileup} object. See \code{Details}.
@@ -81,7 +24,8 @@ Calculate pile-up for a BAM file.
 Returns a \code{pileup} object:
 A \code{list} with slots:
 \describe{
-  \item{bamfile}{<character>; Path to the bam file used to construct the pileup}
+  \item{bamfile}{<character>; Path to the bam file used to construct the 
+  pileup}
   \item{threshold}{<numeric>; Threshold used for calling SNPs}
   \item{param}{A \code{\link[Rsamtools]{PileupParam}} object}
   \item{pilup}{A \code{data.frame} with colums:

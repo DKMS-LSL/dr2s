@@ -8,7 +8,7 @@
 bool is_true (bool i) { return (i == true); }
 
 // [[Rcpp::export]]
-Rcpp::IntegerVector cpp_polymorphic_positions(Rcpp::NumericMatrix x, const double threshold) {
+Rcpp::IntegerVector cpp_polymorphicPositions(Rcpp::NumericMatrix x, const double threshold) {
   auto nrows = x.rows();
   Rcpp::IntegerVector ppos;
   for (int i{}; i < nrows; ++i) {
@@ -24,7 +24,7 @@ Rcpp::IntegerVector cpp_polymorphic_positions(Rcpp::NumericMatrix x, const doubl
 bool desc (double i, double j) { return (i > j); }
 
 // [[Rcpp::export]]
-Rcpp::List cpp_top2_cols(Rcpp::NumericMatrix x) {
+Rcpp::List cpp_top2Cols(Rcpp::NumericMatrix x) {
   auto nrows = x.rows();
   Rcpp::List out;
   Rcpp::IntegerVector i1, i2; // column indices for greatest/second greatest value

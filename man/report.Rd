@@ -4,7 +4,7 @@
 \alias{report}
 \title{Report the final haplotype sequences.}
 \usage{
-report(x, which, block_width = 80, ...)
+report(x, which, blockWidth = 80, ...)
 }
 \arguments{
 \item{x}{A \code{\link[=DR2S_]{DR2S}} object.}
@@ -12,7 +12,8 @@ report(x, which, block_width = 80, ...)
 \item{which}{Which mapping do we want to report. Will choose \code{mapFinal},
 \code{mapIter} in this order if available.}
 
-\item{block_width}{Maximum number of sequence letters per line in pairwise alignment.}
+\item{blockWidth}{Maximum number of sequence letters per line in pairwise 
+alignment.}
 
 \item{...}{Additional arguments passed to methods.}
 }
@@ -25,15 +26,18 @@ Report the final haplotype sequences.
 \details{
 \code{report} will create a \code{report} directory containing the consensus
 sequences \code{map\{1,2,3\}.\{A,B\}.\{readtype\}.\{mapper\}.unchecked.fa},
-an html alignment file \code{map\{1,2,3\}.aln.\{readtype\}.\{mapper\}.unchecked.html},
-a pairwise alignment file \code{map\{1,2,3\}.\{A,B\}.\{readtype\}.\{mapper\}.unchecked.pair},
-and a tab-separated file \code{problems.\{readtype\}.\{mapper\}.tsv} reporting
+an html alignment file 
+\code{map\{1,2,3\}.aln.\{readtype\}.\{mapper\}.unchecked.html},
+a pairwise alignment file 
+\code{map\{1,2,3\}.\{A,B\}.\{readtype\}.\{mapper\}.unchecked.pair},
+and a tab-separated file 
+\code{problems.\{readtype\}.\{mapper\}.tsv} reporting
 positions with potentially problematic results.
 
 To finalise the consensus sequences open the pairwise alignment file and save
 it replacing \strong{unchecked} with \strong{checked} in the file name.
-In the \strong{checked} file manual edits can be performed. After the pairwise
-alignment is verified call \code{\link{report_checked_consensus}}.
+In the \strong{checked} file manual edits can be performed. After the 
+pairwise alignment is verified call \code{\link{reportCheckedConsensus}}.
 }
 \examples{
 \dontrun{
@@ -52,14 +56,14 @@ x <- DR2Smap(
   partitionShortReads() \%>\%
   mapFinal() \%>\%
   polish() \%>\%
-  report(block_width = 60)
+  report(blockWidth = 60)
 }
 }
 \seealso{
-Other DR2S mapper functions: \code{\link{DR2Smap}},
-  \code{\link{cache}}, \code{\link{clear}},
+Other DR2S mapper functions: \code{\link{cache}},
+  \code{\link{clear}}, \code{\link{createDR2SConf}},
   \code{\link{mapFinal}}, \code{\link{mapInit}},
   \code{\link{mapIter}}, \code{\link{partitionLongReads}},
   \code{\link{polish}}, \code{\link{refineAlignment}},
-  \code{\link{report_checked_consensus}}
+  \code{\link{reportCheckedConsensus}}
 }

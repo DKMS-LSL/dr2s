@@ -2,22 +2,50 @@
 % Please edit documentation in R/consmat.R
 \name{consmat}
 \alias{consmat}
-\title{Construct a consensus matrix from pileup}
+\alias{n}
+\alias{n<-}
+\alias{ins}
+\alias{ins<-}
+\alias{offsetBases}
+\alias{offsetBases<-}
+\alias{is.freq}
+\title{Construct a consensus matrix from pileup.}
 \usage{
-consmat(x, ...)
+consmat(x, freq = TRUE, ...)
+
+n(consmat)
+
+n(consmat) <- value
+
+ins(consmat)
+
+ins(consmat) <- value
+
+offsetBases(consmat)
+
+offsetBases(consmat) <- value
+
+is.freq(consmat)
 }
 \arguments{
-\item{x}{A \code{pileup} object.}
-
-\item{...}{Additional arguments such as \code{n}, \code{offset}, \code{insertions}}
+\item{x}{A \code{pileup} object. Additional inputs can be a \code{matrix}, 
+\code{tbl_df} or \code{consmat} objects.}
 
 \item{freq}{If \code{TRUE} then frequencies are reported, otherwise counts.}
+
+\item{...}{Additional arguments such as \code{n}, \code{offsetBases}, 
+\code{insertions}}
+
+\item{consmat}{The \code{\link{consmat}} object that is changed.}
+
+\item{value}{The value to replace with.}
 }
 \value{
 A \code{consmat} object.
 }
 \description{
-Construct a consensus matrix from pileup
+Accessor and replacement methods are available: n(consmat), ins(consmat),
+offsetBases(consmat), is.freq(consmat).
 }
 \details{
 \code{consmat}: a \code{matrix} with positions row names and nucleotides as
@@ -26,10 +54,11 @@ A \code{consmat} object includes the attributes:
 \describe{
   \item{n}{<integer>; Number of reads per row.}
   \item{freq}{<logical>; Is it a frequency matrix or a count matrix.}
-  \item{offset}{<integer>; Offset}
+  \item{offsetBases}{<integer>; OffsetBases}
   \item{insertions}{<integer>; Insertions}
 }
 }
 \examples{
+print("TODO: ADD EXAMPLES")
 ###
 }

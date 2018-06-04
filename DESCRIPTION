@@ -1,10 +1,10 @@
 Package: DR2S
 Title: Dual redundant reference sequencing
-Version: 0.0.2
+Version: 0.0.4
 Author: Steffen Klasberg <klasberg@dkms-lab.de>; Gerhard Schöfl <schoefl@dkms-lab.de>
 Description: Generate highly accurate reference sequences from heterozygous
     HLA and KIR samples by combining data from long-read and short-read
-    sequencing technologies
+    sequencing technologies.
 Depends:
     R (>= 3.4.0)
 License: MIT + file LICENSE
@@ -13,6 +13,11 @@ Suggests:
     knitr,
     rmarkdown
 LazyData: true
+biocViews: 
+    GenomicVariation, VariantAnnotation, VariantDetection, SequenceMatching,
+    GeneticVariability, IndelDetection, MicrosatelliteDetection, SNP, 
+    BiomedicalInformatics, Genetics, Classification, Clustering, DNASeq, 
+    SingleCell, Sequencing
 Type: Package
 Maintainer: Steffen Klasberg <klasberg@dkms-lab.de>
 Encoding: UTF-8
@@ -23,6 +28,7 @@ Imports:
     Rsamtools,
     dplyr,
     ggplot2,
+    cowplot,
     data.table,
     Biostrings,
     DECIPHER,
@@ -32,11 +38,8 @@ Imports:
     itertools,
     foreach,
     futile.logger,
-    grid,
     assertthat,
     magrittr,
-    memoise,
-    digest,
     yaml,
     doParallel,
     tibble,
@@ -47,6 +50,11 @@ Imports:
     XML,
     ipd.Hsapiens.db,
     ggseqlogo,
+    GenomicAlignments,
+    GenomicRanges,
+    plyr,
+    IRanges,
+    rlang,
 SystemRequirements: C++11, samtools, bwa (>= 0.7.11), optional: minimap2
 VignetteBuilder: knitr
 RoxygenNote: 6.0.1
@@ -59,19 +67,15 @@ Collate:
     'MergeEnv-class.R'
     'RcppExports.R'
     'all-generics.R'
-    'bwamem.R'
     'config.R'
     'conseq.R'
     'consmat.R'
     'dists.R'
-    'errors.R'
     'log-config.R'
-    'minimap.R'
-    'multiplot.R'
+    'mapper.R'
     'partition-reads.R'
     'partitionShortReads.R'
     'pileup.R'
-    'polish-utils.R'
     'polish.R'
     'polymorphic-positions.R'
     'postprocessScripts.R'
