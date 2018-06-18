@@ -53,6 +53,9 @@ subSampleBam <- function(bamfile, windowSize = NULL, sampleSize = 100,
   assert_that(is.numeric(sampleSize))
   bam <- BamFile(bamfile)
   
+  #library(Rsamtools)
+  #bamfile <- dr2s$absPath(dr2s$mapInit$bamfile)
+  
   ## Get everything from the bamfile if nothing else is specified
   if(is.null(what))
     what <- scanBamWhat()
@@ -79,12 +82,21 @@ subSampleBam <- function(bamfile, windowSize = NULL, sampleSize = 100,
     sampledAlignmentBam <- do.call(c, sapply(windows, function(i, m, maxCov, 
                                                                windowSize) {
       readMid <- start(m)+floor(windowSize/2)
-      sample(m[readMid > i - windowSize & readMid < i], maxCov)
+      if (maxCov < length(m)) {
+        return(sample(m[readMid > i - windowSize & readMid < i], maxCov))
+      } else {
+        return(m)
+      }
     }, m = alignmentBam, maxCov = sampleSize, windowSize = windowSize))
   } else {
-    sampledAlignmentBam <- sample(alignmentBam, sampleSize)
+    if (sampleSize < length(alignmentBam)) {
+      sampledAlignmentBam <- sample(alignmentBam, sampleSize)
+    } else {
+      sampledAlignmentBam <- alignmentBam
+    }
   }
   
+  length(sampledAlignmentBam)
   newBamfile <- gsub(".bam", ".sampled.bam", bamfile)
   export(sampledAlignmentBam, newBamfile)
   list(
