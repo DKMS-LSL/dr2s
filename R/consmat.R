@@ -276,6 +276,11 @@ createPWM <- function(msa){
     region <- paste0(names(reference), ":", seqStart, "-", seqEnd)
 
     msa <- .msaFromBam(bamfile, reference, paddingLetter = "+", region = region)
+    
+    ## Skip position if empty
+    if (length(msa) == 0)
+      next
+    
     ## Use only sequences spanning the complete region! Every other sequence
     ## gives no Info
     msa <- msa[sapply(msa, function(x) !"+" %in% Biostrings::uniqueLetters(x))]
