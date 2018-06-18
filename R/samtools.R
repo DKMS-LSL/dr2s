@@ -79,10 +79,18 @@ subSampleBam <- function(bamfile, windowSize = NULL, sampleSize = 100,
     sampledAlignmentBam <- do.call(c, sapply(windows, function(i, m, maxCov, 
                                                                windowSize) {
       readMid <- start(m)+floor(windowSize/2)
-      sample(m[readMid > i - windowSize & readMid < i], maxCov)
+      if (maxCov < length(m)) {
+        return(sample(m[readMid > i - windowSize & readMid < i], maxCov))
+      } else {
+        return(m)
+      }
     }, m = alignmentBam, maxCov = sampleSize, windowSize = windowSize))
   } else {
-    sampledAlignmentBam <- sample(alignmentBam, sampleSize)
+    if (sampleSize < length(alignmentBam)) {
+      sampledAlignmentBam <- sample(alignmentBam, sampleSize)
+    } else {
+      sampledAlignmentBam <- alignmentBam
+    }
   }
   
   newBamfile <- gsub(".bam", ".sampled.bam", bamfile)
