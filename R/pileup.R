@@ -42,11 +42,11 @@ Pileup <- function(bamfile,
   if (is.null(param$distinguish_strands))
       param$distinguish_strands <- FALSE
       
-  bfl <- Rsamtools::BamFile(bamfile)
-  pParam <- do.call(Rsamtools::PileupParam, c(param))
+  bfl <- BamFile(bamfile)
+  pParam <- do.call(PileupParam, c(param))
   
-  sParam <- Rsamtools::ScanBamParam(
-    flag = Rsamtools::scanBamFlag(
+  sParam <- ScanBamParam(
+    flag = scanBamFlag(
       isUnmappedQuery = FALSE,
       isSecondaryAlignment = FALSE
     )
@@ -54,7 +54,7 @@ Pileup <- function(bamfile,
   ## TODO: check if still correct
   # pileup <- Rsamtools:::.pileup(file = bfl, scanBamParam = sParam, 
   #                               pileupParam = pParam)
-  pileup <- Rsamtools::pileup(file = bfl, scanBamParam = sParam, 
+  pileup <- pileup(file = bfl, scanBamParam = sParam, 
                                 pileupParam = pParam)
   pileup <-
     dplyr::mutate(dplyr::tbl_df(pileup),
@@ -340,11 +340,11 @@ plotPileupBasecallFrequency <- function(x, threshold = 0.20, label = "",
   inpos <- inpos + 1
 
   ## Get the reference
-  reference   <- Rsamtools::seqinfo(Rsamtools::BamFile(bamfile))@seqnames[1]
+  reference   <- seqinfo(BamFile(bamfile))@seqnames[1]
   inposRanges <- GenomicRanges::GRanges(reference, 
                                         IRanges::IRanges(start = inpos, 
                                                          end = inpos))
-  bamParam    <- Rsamtools::ScanBamParam(what = "seq", which = inposRanges)
+  bamParam    <- ScanBamParam(what = "seq", which = inposRanges)
   bam <- GenomicAlignments::readGAlignments(bamfile, param = bamParam, 
                                             use.names = TRUE)
   ## Use only reads of interest if specified

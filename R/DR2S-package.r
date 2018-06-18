@@ -14,6 +14,8 @@
 #' @import ggplot2
 #' @import futile.logger
 #' @import ipd.Hsapiens.db
+#' @import rtracklayer
+#' @import Rsamtools
 #' @importFrom iterators iter nextElem
 #' @importFrom Rcpp compileAttributes
 #' @importFrom ggseqlogo geom_logo theme_logo

@@ -88,7 +88,7 @@ readDR2S <- function(path) {
 #' "mapFinal" or "refine".
 #' @param open whether to open an IGV instance now.
 #' @export
-runIgv <- function(x, position, map = "mapFinal", open = TRUE) {
+createIgvConfigs <- function(x, position, map = "mapFinal", open = TRUE) {
   assertthat::assert_that(
     is(x, "DR2S")
   )
@@ -217,4 +217,29 @@ runIgv <- function(x, position, map = "mapFinal", open = TRUE) {
       message("\nOpen IGV manually")
     }
   }
+}
+
+
+#' Create subsampled bam files and fasta index files for igv.js instances.
+#' 
+#' @param reference The reference fasta file used for mapping
+#' @param bamfile The bamfile which should be viewed in IGV.js
+#' @param ... Additional parameters passed to \code{\link{subSampleBam}}.
+#' @export
+createIgvJsFiles <- function(reference, bamfile, outdir, ...) {
+  assert_that(file.exists(bamfile))
+  assert_that(endsWith(bamfile, ".bam"))
+  assert_that(file.exists(reference))
+  assert_that(endsWith(reference, ".fa"))
+  ## Subsample the bam file
+  resultList <- subSampleBam(bamfile = bamfile, ...)
+  ## Index the reference
+  indexFa(reference)
+  resultList$referenceFile <- .cropPath(outdir, reference)
+  resultList$original <- .cropPath(outdir, resultList$original)
+  resultList$sampled <- .cropPath(outdir, resultList$sampled)
+  structure(
+    resultList, 
+   class = c("igvjs", "list")
+  )
 }

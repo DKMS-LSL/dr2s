@@ -582,7 +582,7 @@ DR2S_ <- R6::R6Class(
     },
     ## Get the relative path
     relPath = function(filepath) {
-      gsub("^/", "", gsub(self$getOutdir(),"",filepath))
+      .cropPath(self$getOutdir(), filepath)
     },
     ##
     ## Plotting methods ####

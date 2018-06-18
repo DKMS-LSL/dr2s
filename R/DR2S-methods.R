@@ -94,6 +94,7 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
   filterScores    <- self$getFilterScores()
   outdir          <- .dirCreateIfNotExists(self$absPath("mapInit"))
   .dirCreateIfNotExists(path = file.path(self$absPath(".plots")))
+  igv <- list()
 
   if (partSR) {
     mapfmt  <- "mapInit1 <%s> <%s> <%s> <%s>"
@@ -124,11 +125,9 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
       bamfile <- .bamSortIndex(samfile, self$getRefPath(),
                                 minMapq, force = force, clean = TRUE)
       ## Filter Reads
-      bam <- Rsamtools::scanBam(bamfile,
-                                param = Rsamtools::ScanBamParam(
-                                  tag = "AS",
-                                  what = c("qname", "pos", "cigar")
-                                ))[[1]]
+      bam <- scanBam(bamfile,
+                     param = ScanBamParam(tag = "AS",
+                     what = c("qname", "pos", "cigar")))[[1]]
       readfilter <- .filterReads(bam = bam, preserveRefEnds = TRUE)
       .fileDeleteIfExists(bamfile)
 
@@ -325,11 +324,11 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
 
     ## Second mapping to infer polymorphic positions
     ## from same reference as longreads
-    mapfmt  <- "mapInit2 <%s> <%s> <%s> <%s>"
-    maptag  <- sprintf(mapfmt, mapInitSR1$ref,self$getSrdType(),
-                       self$getSrMapper(), optstring(opts, optsname))
+    mapfmt   <- "mapInit2 <%s> <%s> <%s> <%s>"
+    maptag   <- sprintf(mapfmt, mapInitSR1$ref,self$getSrdType(),
+                        self$getSrMapper(), optstring(opts, optsname))
     readfile <- self$getShortreads()
-
+    reffile  <- self$absPath(mapInitSR1$seqpath)
     flog.info(" Remap shortreads to consensus for SNP calling", name = "info")
 
     ## Fetch mapper
@@ -337,7 +336,7 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
     ## Run mapper
     flog.info("  Mapping ...", name = "info")
     samfile <- mapFun(
-      reffile  = self$absPath(mapInitSR1$seqpath),
+      reffile  = reffile,
       readfile = readfile,
       allele   = mapInitSR1$ref,
       readtype = self$getSrdType(),
@@ -352,11 +351,14 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
     flog.info("  Indexing ...", name = "info")
     bamfile <- .bamSortIndex(
       samfile = samfile,
-      reffile = self$absPath(mapInitSR1$seqpath),
+      reffile = reffile,
       minMapq = minMapq,
       force = force,
       clean = TRUE
     )
+    igv[["SR"]] <- createIgvJsFiles(reffile, bamfile, 
+                                    self$getOutdir(),
+                                    sampleSize = 100)
 
     ## Calculate pileup from graphmap produced SAM file
     flog.info("  Piling up ...", name = "info")
@@ -428,6 +430,8 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
     force = force,
     clean = TRUE
   )
+  igv[["LR"]] <- createIgvJsFiles(reffile, bamfile, self$getOutdir(),
+                                  sampleSize = 100, fragmentReads = TRUE)
 
   ## Calculate pileup from graphmap produced SAM file
   flog.info("  Piling up ...", name = "info")
@@ -452,7 +456,8 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
       pileup  = pileup,
       tag     = maptag,
       SR1     = NULL,
-      SR2     = NULL
+      SR2     = NULL,
+      igv     = igv
     ),
     class  = c("mapInit", "list")
   )
@@ -462,7 +467,7 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
     self$mapInit$SR2 <- mapInitSR2
   }
 
-  runIgv(self, map = "mapInit", open = "FALSE")
+  createIgvConfigs(self, map = "mapInit", open = "FALSE")
 
   if (plot) {
     flog.info(" Plot MapInit summary ", name = "info")
@@ -1049,7 +1054,7 @@ DR2S_$set("public", "runMapIter", function(opts = list(),
               base_height = 6*self$getIterations())
     
   }
-  runIgv(self,map = "mapIter", open = "FALSE")
+  createIgvConfigs(self,map = "mapIter", open = "FALSE")
 
   invisible(self)
 })
@@ -1368,6 +1373,11 @@ DR2S_$set("public", "runMapFinal", function(opts = list(),
       clean = TRUE
     )
     self$mapFinal$bamfile[[mapgroupLR]] = bamfile
+    self$mapFinal$igv[[mapgroupLR]] <- createIgvJsFiles(
+      refpath, bamfile, 
+      self$getOutdir(),
+      sampleSize = 100,
+      fragmentReads = TRUE)
 
     ## Calculate pileup from graphmap produced SAM file
     flog.info("  Piling up ...", name = "info")
@@ -1431,8 +1441,8 @@ DR2S_$set("public", "runMapFinal", function(opts = list(),
         bamfile <- .bamSortIndex(samfile, refpath, minMapq,
                                   force = force, clean = TRUE)
         ## Trim softclips
-        fq <- .trimSoftclippedEnds(bam = Rsamtools::scanBam(bamfile)[[1]],
-                                    preserveRefEnds = TRUE)
+        fq <- .trimSoftclippedEnds(bam = scanBam(bamfile)[[1]],
+                                   preserveRefEnds = TRUE)
         ## Trim polymorphic ends
         fq <- .trimPolymorphicEnds(fq)
         ## Write new shortread file to disc
@@ -1470,7 +1480,10 @@ DR2S_$set("public", "runMapFinal", function(opts = list(),
         force = force,
         clean = TRUE
       )
-      self$mapFinal$bamfile[[mapgroupSR]] = self$relPath(bamfile)
+      self$mapFinal$bamfile[[mapgroupSR]] <- self$relPath(bamfile)
+      self$mapFinal$igv[[mapgroupSR]] <- createIgvJsFiles(refpath, bamfile, 
+                                                          self$getOutdir(),
+                                                          sampleSize = 100)
 
       ## Calculate pileup from graphmap produced SAM file
       flog.info("  Piling up ...", name = "info")
@@ -1521,7 +1534,6 @@ DR2S_$set("public", "runMapFinal", function(opts = list(),
                 base_width = 24*length(hptypes),
                 base_height = 6*length(readtypes))
   }
-  runIgv(self, map = "mapFinal", open = FALSE)
 
   return(invisible(self))
 })

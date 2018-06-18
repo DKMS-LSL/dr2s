@@ -285,7 +285,8 @@ refineAlignment <- function(x, hptype, report = FALSE){
       mapgroup = list(),
       bamfile = list(),
       consensus = list(),
-      ref = list()
+      ref = list(),
+      igv = list()
     )
   }
   reftag    <- "refine"
@@ -353,7 +354,12 @@ refineAlignment <- function(x, hptype, report = FALSE){
     force   = TRUE
   )
   x$consensus$refine$bamfile[[mapgroupLR]] = x$relPath(bamfile)
-
+  
+  x$consensus$refine$igv[[mapgroupLR]] <- createIgvJsFiles(refpath, bamfile, 
+                                                         x$getOutdir(),
+                                                         sampleSize = 100, 
+                                                         fragmentReads = TRUE)
+  
   ## Map short reads
   if (!is.null(unlist(readpathSR))){
     mapgroupSR <- paste0("SR", hptype)
@@ -384,8 +390,8 @@ refineAlignment <- function(x, hptype, report = FALSE){
                               refpath,
                               force = TRUE)
     ## Trim softclips
-    fq <- .trimSoftclippedEnds(bam = Rsamtools::scanBam(bamfile)[[1]],
-                                preserveRefEnds = TRUE)
+    fq <- .trimSoftclippedEnds(bam = scanBam(bamfile)[[1]],
+                               preserveRefEnds = TRUE)
     ## Trim polymorphic ends
     fq <- .trimPolymorphicEnds(fq)
     ## Write new shortread file to disc
@@ -418,7 +424,10 @@ refineAlignment <- function(x, hptype, report = FALSE){
       force = TRUE
     )
     x$consensus$refine$bamfile[[mapgroupSR]] = x$relPath(bamfile)
-
+    x$consensus$refine$igv[[mapgroupSR]] <- createIgvJsFiles(refpath, bamfile, 
+                                                           x$getOutdir(),
+                                                           sampleSize = 100)
+    
   }
   ## Calculate pileup from graphmap produced SAM file
   flog.info("  Piling up ...", name = "info")
@@ -434,7 +443,7 @@ refineAlignment <- function(x, hptype, report = FALSE){
                  excludeGaps = FALSE, threshold = x$getThreshold())
   x$consensus$refine$consensus[[hptype]] <- cseq
   x$cache()
-  runIgv(x, map = "refine", open = FALSE)
+  createIgvConfigs(x, map = "refine", open = FALSE)
   invisible(x)
 }
 

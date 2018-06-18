@@ -264,6 +264,11 @@ maximum <- function(n, m) {
   invisible(path)
 }
 
+
+.cropPath <- function(base, path) {
+  gsub("^/", "", gsub(base,"", path))
+}
+
 .hasCommand <- function(cmd) {
   stopifnot(assertthat::is.string(cmd))
   unname(Sys.which(cmd) != "")

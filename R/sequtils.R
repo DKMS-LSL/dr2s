@@ -1,7 +1,7 @@
 ## Extract (a subset of) reads from a bamfile
 .extractFastq <- function(x, qnames=NULL) {
   stopifnot(is.character(x) && length(x) == 1)
-  bam <- Rsamtools::scanBam(x)[[1]]
+  bam <- scanBam(x)[[1]]
   qn <-
     if (!is.null(qnames)) {
       qnames
@@ -145,7 +145,7 @@ generateReferenceSequence <- function(allele, locus, outdir, dirtag=NULL,
   }
   assertthat::assert_that(is(sref, "DNAStringSet"))
   # workaround for these damn windows filename conventions
-  alleleNm <- gsub("[*]", "#", gsub("[:]", "_", paste0(allele, collapse="~")))
+  alleleNm <- gsub("[*]", "_", gsub("[:]", "_", paste0(allele, collapse="~")))
   filename <- ifelse(is.null(dirtag), paste0(alleleNm, ".ref.fa"),
                      file.path(dirtag, paste0(alleleNm, ".ref.fa")))
   outpath <- normalizePath(file.path(outdir, filename), mustWork=FALSE)
@@ -360,16 +360,19 @@ checkHomoPolymerCount <- function(x, count = 10, map = "mapFinal") {
           as.character(modeHP$position)]] <- modeHP$mode
       }
     }
-    ggplot(data = homopolymersHP) +
+    plots <- ggplot(data = homopolymersHP) +
       geom_histogram(aes(length), binwidth = 1) +
       scale_x_continuous(breaks = seq(min(homopolymersHP$length), 
                                       max(homopolymersHP$length), 1)) +
       facet_grid(position~., scales = "free_y") +
       ggtitle(paste("Homopolymer length", hp)) +
       theme_minimal()
+    list(n = n, plot = plots)
   }
   if (!all(is.null(unlist(p)))) {
-    p1 <- cowplot::plot_grid(plotlist = p, nrow = length(n))
+    plots <- lapply(p, function(x) x$plot)
+    n <- max(sapply(p, function(x) length(x$n)))
+    p1 <- cowplot::plot_grid(plotlist = plots, nrow = length(n))
     cowplot::save_plot(p1, filename = x$absPath("plot.Homopolymers.pdf"),
                 base_width = 7*length(hptypes),
                 title     = paste(x$getLocus(), x$getSampleId(), sep = "." ),
