@@ -124,18 +124,23 @@ generateReferenceSequence <- function(allele, locus, outdir, dirtag=NULL,
     return(NULL)
   }
   locus <- .normaliseLocus(locus)
-  if (!allele %in% ipd.Hsapiens.db::getAlleles(locus)) 
+  if (startsWith(locus, "HLA")) {
+    ipd <- loadHlaData()
+  } else {
+    ipd <- loadKirData()
+  }
+  if (!allele %in% ipd$getAlleles(locus)) 
     stop(sprintf("Allele %s not found in database", allele))
     
   .dirCreateIfNotExists(normalizePath(
     file.path(outdir, dirtag), mustWork=FALSE))
-  assertthat::assert_that(
+  assert_that(
     file.exists(outdir),
-    assertthat::is.dir(outdir),
-    assertthat::is.writeable(outdir)
+    is.dir(outdir),
+    is.writeable(outdir)
   )
   sref <- foreach(i=allele, .combine="c") %do% {
-    sref <- ipd.Hsapiens.db::getClosestComplete(i, locus)
+    sref <- ipd$getClosestComplete(i, locus)
     if (fullname) {
       names(sref) <- gsub(" +", "_", names(sref))
     } else {
@@ -143,7 +148,7 @@ generateReferenceSequence <- function(allele, locus, outdir, dirtag=NULL,
     }
     sref
   }
-  assertthat::assert_that(is(sref, "DNAStringSet"))
+  assert_that(is(sref, "DNAStringSet"))
   # workaround for these damn windows filename conventions
   alleleNm <- gsub("[*]", "_", gsub("[:]", "_", paste0(allele, collapse="~")))
   filename <- ifelse(is.null(dirtag), paste0(alleleNm, ".ref.fa"),
@@ -243,7 +248,7 @@ generateReferenceSequence <- function(allele, locus, outdir, dirtag=NULL,
 .collapseHomopolymers <- function(path, n = 5) {
 
   path <- normalizePath(path, mustWork = TRUE)
-  assertthat::is.count(n)
+  assert_that(is.count(n))
 
   seq <- Biostrings::readBStringSet(path)
   seqname <- names(seq)

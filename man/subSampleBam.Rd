@@ -20,8 +20,8 @@ If NULL defaults to the complete output of
 \code{\link[Rsamtools]{scanBamWhat}}.}
 }
 \value{
-A list containing the filename of the original bamfile, the name of the 
- new bamfile, the reference length and the sampleSize
+A list containing the filename of the original bamfile, the name of 
+the new bamfile, the reference length and the sampleSize
 }
 \description{
 Subsample a bam file according to coverage

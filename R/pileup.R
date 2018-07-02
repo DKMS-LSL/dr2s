@@ -1,5 +1,4 @@
 
-
 # Pileup ------------------------------------------------------------------
 
 
@@ -51,9 +50,6 @@ Pileup <- function(bamfile,
       isSecondaryAlignment = FALSE
     )
   )
-  ## TODO: check if still correct
-  # pileup <- Rsamtools:::.pileup(file = bfl, scanBamParam = sParam, 
-  #                               pileupParam = pParam)
   pileup <- pileup(file = bfl, scanBamParam = sParam, 
                                 pileupParam = pParam)
   pileup <-
@@ -74,10 +70,11 @@ Pileup <- function(bamfile,
 
 # Methods: pileup ---------------------------------------------------------
 
-
 #' @export
 print.pileup <- function(x, asString = FALSE, ...) {
-  values <- sapply(methods::slotNames(x$param), methods::slot, object = x$param)
+  params <- methods::slotNames(x$param)
+  names(params) <- params
+  values <- lapply(params, methods::slot, object = x$param)
   info <- paste(methods::slotNames(x$param), values, sep=": ", collapse="; ")
   msg <- if (asString) "" else sprintf("An object of class '%s'.\n", 
                                        class(x)[1])
@@ -92,7 +89,6 @@ print.pileup <- function(x, asString = FALSE, ...) {
     print(x$consmat, n = 4)
   }
 }
-
 
 # Helpers -----------------------------------------------------------------
 
@@ -329,7 +325,7 @@ plotPileupBasecallFrequency <- function(x, threshold = 0.20, label = "",
     )
 }
 
-.getInsertions <- function(bamfile, inpos, reference, reads = NULL) {
+.getInsertions <- function(bamfile, inpos, reads = NULL) {
   stopifnot(is.numeric(inpos))
   inpos <- sort(inpos)
   flog.info("  Extracting insertions at position %s ...", comma(inpos), 
@@ -351,12 +347,18 @@ plotPileupBasecallFrequency <- function(x, threshold = 0.20, label = "",
   if (!is.null(reads))
     bam <- bam[names(bam) %in% reads]
   ## Use only reads with an insertion
-  bamI <- bam[sapply(GenomicAlignments::cigar(bam), function(x) grepl("I",  x))]
+  readsWithIns <- vapply(GenomicAlignments::cigar(bam), 
+                            function(x) grepl("I",  x), 
+                            FUN.VALUE = logical(1))
+  bamI <- bam[readsWithIns]
   insSeqs <- foreach(i = inpos) %do% {
     message("Position: ", i)
     bamPos <- bamI[GenomicAlignments::start(bamI) <= i & 
                      GenomicAlignments::end(bamI) >= 1]
-    insSeq <- lapply(bamPos, function(a) .extractInsertion(a, i))
+    insSeq <- bplapply(seq_along(bamPos), function(a, bamPos, i) {
+      read <- bamPos[a] 
+      .extractInsertion(read, i)
+    }, i = i, bamPos = bamPos)
     Biostrings::DNAStringSet(insSeq)
   }
 
@@ -384,3 +386,33 @@ plotPileupBasecallFrequency <- function(x, threshold = 0.20, label = "",
   seq
 }
 
+.checkCoverage <- function(pileup, forceMapping, plotFile, maptag) {
+  flog.warn(" Shortreads seem corrupted or the reference is bad!",
+            name = "info")
+  maxCov <- max(rowSums(pileup$consmat))
+  q75Cov <- quantile(rowSums(pileup$consmat), .75)
+  flog.warn(paste0("   Maximum of coverage %s / 75%% quantile %s: %s > 5.",
+                   " No equal distribution of coverage!",
+                   " Have a look at the mapInit plot"),
+            maxCov, q75Cov, maxCov/q75Cov, name = "info")
+  plt <- plotPileupCoverage(
+    x = pileup,
+    thin = 0.25,
+    width = 2,
+    label = maptag,
+    drop.indels = TRUE
+  )
+  flog.error(paste(" Aborting. If you want to force processing set ",
+                   "forceMapping = TRUE in DR2S object initialisation",
+                   " "),
+             name = "info")
+  save_plot(plotFile, plt, base_aspect_ratio = 3,
+                          onefile = TRUE)
+  if (!forceMapping) {
+    stop("Shortreads probably of bad quality. Bad coverage distribution.
+         Run with forceMapping = TRUE to force processing.")
+  } else {
+    flog.warn(" Continue. Be aware that resulsts may not be correct!!",
+              name = "info")
+  }
+}

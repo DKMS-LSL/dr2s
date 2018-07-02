@@ -26,7 +26,7 @@ polish.DR2S <- function(x,
               currentCall, name = "info")
     return(invisible(x))
   }
-  assertthat::assert_that(
+  assert_that(
     is(x$mapFinal, "mapFinal"),
     all(unlist(foreach(i = x$mapFinal$pileup) %do% {
       is(i$consmat, "consmat")

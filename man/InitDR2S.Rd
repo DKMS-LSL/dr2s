@@ -2,12 +2,14 @@
 % Please edit documentation in R/all-generics.R
 \name{InitDR2S}
 \alias{InitDR2S}
-\title{Initialise a DR2S instance}
+\title{Initialise a \code{\link[=DR2S_]{DR2S}} mapper.}
 \usage{
 InitDR2S(config, createOutdir = TRUE)
 }
 \arguments{
-\item{config}{A DR2S configuration object.}
+\item{config}{A DR2S configuration object. Either created by 
+\code{\link[=DR2S_]{createDR2SConfig}} or loaded by 
+\code{\link[=DR2S_]{readDR2SConf}}.}
 
 \item{createOutdir}{Create the outdir if not exists.}
 }
@@ -15,5 +17,5 @@ InitDR2S(config, createOutdir = TRUE)
 A \code{\link[=DR2S_]{DR2S}} object.
 }
 \description{
-Initialise a DR2S instance
+Initialise a \code{\link[=DR2S_]{DR2S}} mapper.
 }

@@ -213,6 +213,8 @@ reportCheckedConsensus <- function(x, which = "mapFinal") {
 #' @param editor Which editor to use. Either "xdg-open" (default) for standard
 #' system editor, "subl" for sublime, "gvim" or "gedit"
 #' @param openEditor should the editor be opened or just create the files?
+#' @return The path to the newliy created alignment file to check the polished 
+#'   consensus sequences.
 #' @export
 checkAlignmentFile <- function(x, which = "mapFinal", where = 0,
                                  editor = "xdg-open", openEditor = TRUE) {
@@ -227,9 +229,9 @@ checkAlignmentFile <- function(x, which = "mapFinal", where = 0,
   pairfileUnchecked <- normalizePath(x$absPath(file.path("report",
                                                 pairfileUnchecked)),
                                       mustWork = FALSE)
-  assertthat::assert_that(
+  assert_that(
     file.exists(pairfileUnchecked),
-    assertthat::is.readable(pairfileUnchecked)
+    is.readable(pairfileUnchecked)
   )
   pairfileChecked <- paste(which, "aln", x$getLrdType(), x$getLrMapper(),
                             "checked", ending, sep = ".")

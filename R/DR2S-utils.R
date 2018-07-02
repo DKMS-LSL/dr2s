@@ -89,7 +89,7 @@ readDR2S <- function(path) {
 #' @param open whether to open an IGV instance now.
 #' @export
 createIgvConfigs <- function(x, position, map = "mapFinal", open = TRUE) {
-  assertthat::assert_that(
+  assert_that(
     is(x, "DR2S")
   )
   map <- match.arg(map, c("mapInit",
@@ -227,10 +227,11 @@ createIgvConfigs <- function(x, position, map = "mapFinal", open = TRUE) {
 #' @param ... Additional parameters passed to \code{\link{subSampleBam}}.
 #' @export
 createIgvJsFiles <- function(reference, bamfile, outdir, ...) {
-  assert_that(file.exists(bamfile))
-  assert_that(endsWith(bamfile, ".bam"))
-  assert_that(file.exists(reference))
-  assert_that(endsWith(reference, ".fa"))
+  assert_that(
+    file.exists(bamfile),
+    endsWith(bamfile, ".bam"),
+    file.exists(reference),
+    endsWith(reference, ".fa"))
   ## Subsample the bam file
   resultList <- subSampleBam(bamfile = bamfile, ...)
   ## Index the reference

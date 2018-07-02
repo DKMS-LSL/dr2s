@@ -16,7 +16,7 @@ NULL
 #' @examples
 #' ###
 MergeEnv <- function(x, threshold) {
-  assertthat::assert_that(is(x, "DR2S"))
+  assert_that(is(x, "DR2S"))
   if (missing(threshold)) {
     threshold <- x$getThreshold()
   }
@@ -47,7 +47,7 @@ MergeEnv_ <- R6::R6Class(
     hptypes   = NA,
     x = NA,
     initialize = function(x, threshold = x$getThreshold()) {
-      assertthat::assert_that(is(x, "DR2S"))
+      assert_that(is(x, "DR2S"))
       self$hptypes <- foreach(hptype = x$getHapTypes(),
                               .final = function(h) 
                                 setNames(h, x$getHapTypes())) %do% {

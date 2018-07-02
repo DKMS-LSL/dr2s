@@ -78,7 +78,9 @@ COL_PATTERN <- function() {
 }
 
 VALID_LOCI <- function() {
-  ipd.Hsapiens.db::getLoci()
+  hlaLoci <- ipdDb::loadHlaData()$getLoci()
+  kirLoci <- ipdDb::loadKirData()$getLoci()
+  c(hlaLoci, kirLoci)
 }
 
 HLA_LOCI <- function() {
@@ -186,6 +188,8 @@ dot <- function(...) paste0(..., collapse = ".")
 
 litQuote <- function(x) paste0("\"", x, "\"")
 
+litArrows <- function(x) paste0("<", x, ">")
+
 .mergeList <- function(x, y, update = FALSE) {
   if (length(x) == 0)
     return(y)
@@ -246,14 +250,17 @@ maximum <- function(n, m) {
 }
 
 .dirCreateIfNotExists <- function(path) {
+  assert_that(is.character(path))
   path <- normalizePath(path, mustWork = FALSE)
-  if (!dir.exists(path)) {
-    dir.create(path, recursive = TRUE)
-  }
-  if (startsWith(path, "./")) {
-    path <- file.path(getwd(), path)
-  }
-  normalizePath(path, mustWork = TRUE)
+  vapply(path, function(p) {
+    if (!dir.exists(p)) {
+      dir.create(p, recursive = TRUE)
+    }
+    if (startsWith(p, "./")) {
+      path <- file.path(getwd(), p)
+    }
+    normalizePath(p, mustWork = TRUE)
+  }, FUN.VALUE = character(1))
 }
 
 .fileDeleteIfExists <- function(path) {
@@ -270,14 +277,14 @@ maximum <- function(n, m) {
 }
 
 .hasCommand <- function(cmd) {
-  stopifnot(assertthat::is.string(cmd))
+  assert_that(is.string(cmd))
   unname(Sys.which(cmd) != "")
 }
 
 editor <- function(x, pos = NULL, useEditor = "xdg-open") {
   useEditor <- match.arg(useEditor, c("xdg-open", "subl", "gvim", "gedit"))
-  assertthat::assert_that(.hasCommand(useEditor))
-  if (tryCatch(assertthat::is.readable(x), assertError = function(e) FALSE)) {
+  assert_that(.hasCommand(useEditor))
+  if (tryCatch(is.readable(x), assertError = function(e) FALSE)) {
     x <- normalizePath(x, mustWork = TRUE)
     if (!is.null(pos) && useEditor == "subl") {
       x <- paste0(x, ":", pos)

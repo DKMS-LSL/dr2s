@@ -145,7 +145,7 @@ partitionReads <- function(x, distAlleles = 2, sortBy = count, threshold = 0.2,
 .getClusts <- function(xseqs, minLen = 0.80, clMethod = "ward.D",
                        deepSplit = 1, minReadsFrac = 1/3, threshold = 0.2) {
 
-  assertthat::assert_that(
+  assert_that(
     is.double(minLen),
     is.double(minReadsFrac),
     is.double(threshold)

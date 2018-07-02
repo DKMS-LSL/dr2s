@@ -77,7 +77,7 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
   # library(futile.logger)
   # library(cowplot)
   # self <-dr2s
-  
+
   ## Overide default arguments
   args <- self$getOpts("mapInit")
   if (!is.null(args)) {
@@ -88,235 +88,142 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
     threshold <- self$getThreshold()
   }
 
+  ## Get all options and prepare mapping
   microsatellite  <- self$getMicrosatellite()
   partSR          <- self$getPartSR()
-  forceMapping <- self$getForceMapping()
+  forceMapping    <- self$getForceMapping()
   filterScores    <- self$getFilterScores()
   outdir          <- .dirCreateIfNotExists(self$absPath("mapInit"))
   .dirCreateIfNotExists(path = file.path(self$absPath(".plots")))
   igv <- list()
+  clean <- TRUE
 
   if (partSR) {
-    mapfmt  <- "mapInit1 <%s> <%s> <%s> <%s>"
-    maptag  <- sprintf(mapfmt, self$getReference(), self$getSrdType(),
-                       self$getSrMapper(), optstring(opts, optsname))
-    readfile <- self$getShortreads()
+    mapLabel <- "mapInit1"
+    reffile  <- self$getRefPath()
+    allele  <- self$getReference()
+    readtype <- self$getSrdType()
+    
+    maptag  <- paste(mapLabel, paste(litArrows(c(allele, readtype, 
+                                                 self$getSrMapper(), 
+                                                 optstring(opts, optsname))),
+                                     collapse = " "))
+    
     flog.info(" Map shortreads to provided reference", name = "info")
-
-    ## Fetch mapper
-    mapFun <- self$getSrMapFun()
-    ## Run mapper
-    flog.info("  Mapping ...", name = "info")
-    samfile <- mapFun(
-      reffile  = self$getRefPath(),
-      readfile = readfile,
-      allele   = self$getReference(),
-      readtype = self$getSrdType(),
-      opts     = opts,
-      refname  = "",
-      optsname = optsname,
-      force    = force,
-      outdir   = outdir
-    )
-
-    if (filterScores) {
-      flog.info(" Filter reads with low alignment scores", name = "info")
-      ## Run bam - sort - index pipeline
-      bamfile <- .bamSortIndex(samfile, self$getRefPath(),
-                                minMapq, force = force, clean = TRUE)
-      ## Filter Reads
-      bam <- scanBam(bamfile,
-                     param = ScanBamParam(tag = "AS",
-                     what = c("qname", "pos", "cigar")))[[1]]
-      readfilter <- .filterReads(bam = bam, preserveRefEnds = TRUE)
-      .fileDeleteIfExists(bamfile)
-
-      flog.info(" Write new shortread fastqs to file", name = "info")
-      fqs <- self$getShortreads()
-      fqdir <- .dirCreateIfNotExists(file.path(outdir,self$getSrdType()))
-      # write fastq's
-      readfile <- c()
-      readfile <- foreach(fq = fqs, .combine = c) %do% {
-        srFastqHap = file.path(fqdir, basename(fq))
-        .writePartFq(fq = fq, srFastqHap = srFastqHap,
-                      dontUseReads = readfilter)
-        srFastqHap
-      }
-      # set new shortread directory
-      self$setConfig("filteredShortreads", self$relPath(fqdir))
-
-      flog.info(" Map filtered shortreads to provided reference", name = "info")
-      ## Rerun mapper
-      flog.info("  Mapping ...", name = "info")
-      samfile <- mapFun(
-        reffile  = self$getRefPath(),
-        readfile = readfile,
-        allele   = self$getReference(),
-        readtype = self$getSrdType(),
-        opts     = opts,
-        refname  = "",
-        optsname = optsname,
-        force    = force,
-        outdir   = outdir
-      )
-    }
-
-    ## Run bam - sort - index pipeline
-    flog.info("  Indexing ...", name = "info")
-    bamfile <- .bamSortIndex(
-      samfile = samfile,
-      reffile = self$getRefPath(),
-      minMapq = minMapq,
-      force = force,
-      clean = TRUE
-    )
-
-    ## Calculate pileup from graphmap produced SAM file
-    flog.info("  Piling up ...", name = "info")
-    pileup <- Pileup(
-      bamfile,
-      threshold,
-      max_depth = maxDepth,
-      min_base_quality = minBaseQuality,
-      min_mapq= minMapq,
-      min_nucleotide_depth = minNucleotideDepth,
-      include_deletions = includeDeletions,
-      include_insertions = includeInsertions
-    )
-
-    if (includeInsertions && is.null(ins(pileup$consmat))) {
-      pileup <- .pileupIncludeInsertions(x = pileup, threshold = 0.1)
-    }
-    ## distribution of gaps not necessary for shortreads (need to check if also
-    ## true for homopolymer regions > 15)
-    # pileup$consmat <- .distributeGaps(pileup$consmat, removeError = FALSE)
-
-    # debug
-    # pileup$consmat[which(pileup$consmat[,6] > 15),]
+    
+    pileup <- mapReads(maptag = maptag, reffile = reffile, 
+                       readfile = self$getShortreads(), threshold = threshold,
+                       allele = allele, readtype = readtype, opts = opts, 
+                       outdir = outdir, minMapq = minMapq, optsname = optsname,
+                       minBaseQuality = minBaseQuality, maxDepth = maxDepth,
+                       minNucleotideDepth = minNucleotideDepth, force = force,
+                       includeDeletions = includeDeletions, clean = clean,
+                       includeInsertions = includeInsertions, 
+                       mapFun = self$getSrMapFun())
+    # ## TODO: maybe bum this?
+    # if (filterScores) {
+    #   flog.info(" Filter reads with low alignment scores", name = "info")
+    #   ## Run bam - sort - index pipeline
+    #   bamfile <- .bamSortIndex(samfile, self$getRefPath(),
+    #                             minMapq, force = force, clean = TRUE)
+    #   ## Filter Reads
+    #   bam <- scanBam(bamfile,
+    #                  param = ScanBamParam(tag = "AS",
+    #                  what = c("qname", "pos", "cigar")))[[1]]
+    #   readfilter <- .filterReads(bam = bam, preserveRefEnds = TRUE)
+    #   .fileDeleteIfExists(bamfile)
+    # 
+    #   flog.info(" Write new shortread fastqs to file", name = "info")
+    #   fqs <- self$getShortreads()
+    #   fqdir <- .dirCreateIfNotExists(file.path(outdir,self$getSrdType()))
+    #   # write fastq's
+    #   readfile <- c()
+    #   readfile <- foreach(fq = fqs, .combine = c) %do% {
+    #     srFastqHap = file.path(fqdir, basename(fq))
+    #     .writePartFq(fq = fq, srFastqHap = srFastqHap,
+    #                   dontUseReads = readfilter)
+    #     srFastqHap
+    #   }
+    #   # set new shortread directory
+    #   self$setConfig("filteredShortreads", self$relPath(fqdir))
+    # 
+    #   flog.info(" Map filtered shortreads to provided reference", name = "info")
+    #   ## Rerun mapper
+    #   flog.info("  Mapping ...", name = "info")
+    #   samfile <- mapFun(
+    #     reffile  = self$getRefPath(),
+    #     readfile = readfile,
+    #     allele   = self$getReference(),
+    #     readtype = self$getSrdType(),
+    #     opts     = opts,
+    #     refname  = "",
+    #     optsname = optsname,
+    #     force    = force,
+    #     outdir   = outdir
+    #   )
+    # }
+    
+    ## Check if the coverage is somewhat equally distributed
     if (max(rowSums(pileup$consmat)) /
         quantile(rowSums(pileup$consmat), 0.75) > 5) {
-      flog.warn(" Shortreads seem corrupted or the reference is bad!",
-                name = "info")
-      maxCov <- max(rowSums(pileup$consmat))
-      q75Cov <- quantile(rowSums(pileup$consmat), .75)
-      flog.warn(paste0("   Maximum of coverage %s / 75%% quantile %s: %s > 5.",
-                       " No equal distribution of coverage!",
-                       " Have a look at the mapInit plot"),
-                maxCov, q75Cov, maxCov/q75Cov, name = "info")
-      if (!forceMapping) {
-        file <- self$absPath(paste0("plot.MapInit.SR.",
-                                    sub("bam$", "pdf", usc(basename(bamfile)))))
-        plt <- plotPileupCoverage(
-          x = pileup,
-          thin = 0.25,
-          width = 2,
-          label = self$getMapTag("init", "SR"),
-          drop.indels = TRUE
-        )
-        flog.error(paste(" Aborting. If you want to force processing set ",
-                         "forceMapping = TRUE in DR2S object initialisation",
-                         " "),
-                   name = "info")
-        suppressWarnings(ggsave(file, plt, width = 12, height = 10,
-                                onefile = TRUE,
-                                title = paste(self$getLocus(),
-                                              self$getSampleId(), sep = ".")))
-
-        stop("Shortreads probably of bad quality. Bad coverage distribution.
-             Run with forceMapping = TRUE to force processing.")
-      } else {
-        flog.warn(" Continue. Be aware that resulsts may not be correct!!",
-                  name = "info")
-      }
+        plotFile <- self$absPath("plot.MapInit.SR.problem.pdf")
+        .checkCoverage(pileup, forceMapping, plotFile, maptag)
     }
-
+    
     # calc initial consensus
     flog.info(" Construct initial consensus from shortreads", name = "info")
-
-    conseq <- conseq(pileup$consmat, name = "mapInit", type = "prob",
-                     threshold = threshold, forceExcludeGaps = TRUE)
+    ## Get conseq
     conseqName <- paste0("Init.consensus.",
-                          sub(".sam.gz", "", basename(samfile)))
-    conseqpath  <- file.path(outdir, paste0(conseqName, ".fa"))
-    Biostrings::writeXStringSet(
-      Biostrings::DNAStringSet(gsub("[-+]", "N", conseq)),
-      conseqpath)
-
+                          sub(".bam", "", basename(pileup$bamfile)))
+    conseqPath  <- file.path(outdir, paste0(conseqName, ".fa"))
+    conseq <- .getWriteConseq(pileup = pileup, name = "mapInit", 
+                              type = "prob",  threshold = threshold, 
+                              forceExcludeGaps = TRUE, conseqPath = conseqPath) 
+    
     if (microsatellite) {
-      mapfmt  <- "mapInit1.2 <%s> <%s> <%s> <%s>"
-      maptag  <- sprintf(mapfmt, conseqName, self$getSrdType(),
-                         self$getSrMapper(), optstring(opts, optsname))
-      readfile = self$getShortreads()
+      mapLabel  <- "mapInit1.2"
+      reffile <- conseqPath
+      allele <- conseqName
+      readtype <- self$getSrdType()
+      maptag  <- paste(mapLabel, paste0(litArrows(c(conseqName, readtype,
+                                                    self$getSrMapper(), 
+                                                    optstring(opts, optsname))),
+                                        collapse = " "))
 
       flog.info(" Refine microsatellites or repeats by extending the reference",
                 name = "info")
       flog.info(" Remap shortreads to initial consensus from shortreads",
                 name = "info")
+      
+      pileup <- mapReads(maptag = maptag, reffile = reffile, 
+                         readfile = self$getShortreads(), threshold = threshold,
+                         allele = allele, readtype = readtype, opts = opts, 
+                         outdir = outdir, minMapq = minMapq, force = force,
+                         minBaseQuality = minBaseQuality, optsname = optsname,
+                         minNucleotideDepth = minNucleotideDepth, clean = clean,
+                         mapFun = self$getSrMapFun(), maxDepth = maxDepth,
+                         includeDeletions = includeDeletions, 
+                         includeInsertions = includeInsertions) 
 
-      ## Fetch mapper
-      mapFun <- self$getSrMapFun()
-      ## Run mapper
-      flog.info("  Mapping ...", name = "info")
-      samfile <- mapFun(
-        reffile  = conseqpath,
-        readfile = readfile,
-        allele   = conseqName,
-        readtype = self$getSrdType(),
-        opts     = opts,
-        refname  = "",
-        optsname = optsname,
-        force    = force,
-        outdir   = outdir
-      )
-
-      ## Run bam - sort - index pipeline
-      flog.info("  Indexing ...", name = "info")
-      bamfile <- .bamSortIndex(
-        samfile = samfile,
-        reffile = conseqpath,
-        minMapq = minMapq,
-        force = force,
-        clean = TRUE
-      )
-
-      ## Calculate pileup from graphmap produced SAM file
-      flog.info("  Piling up ...", name = "info")
-        pileup <- Pileup(
-        bamfile,
-        threshold,
-        max_depth = maxDepth,
-        min_base_quality = minBaseQuality,
-        min_mapq= minMapq,
-        min_nucleotide_depth = minNucleotideDepth,
-        include_deletions = includeDeletions,
-        include_insertions = includeInsertions
-      )
-
-      if (includeInsertions && is.null(ins(pileup$consmat))) {
-        pileup <- .pileupIncludeInsertions(pileup, threshold = 0.1)
-      }
 
       # Infer initial consensus
       flog.info(paste0(" Construct second consensus from shortreads ",
                        "with refined repeats"), name = "info")
-      conseq <- conseq(pileup$consmat, name = "mapInit1.2", type = "prob",
-                       threshold = 0.2, forceExcludeGaps = TRUE)
       conseqName <- paste0("Init.consensus.2",
-                            sub(".sam.gz", "", basename(samfile)))
-      conseqpath  <- file.path(outdir, paste0(conseqName, ".fa"))
-      Biostrings::writeXStringSet(
-        Biostrings::DNAStringSet(gsub("[-+]", "N", conseq)),
-        conseqpath)
+                           sub(".bam", "", basename(pileup$bamfile)))
+      conseqPath  <- file.path(outdir, paste0(conseqName, ".fa"))
+      conseq <- .getWriteConseq(pileup, name = "mapInit1.2", 
+                               type = "prob",  threshold = threshold, 
+                               forceExcludeGaps = TRUE, conseqPath = conseqPath) 
     }
-
     mapInitSR1 = structure(
       list(
         reads   = self$relPath(self$getShortreads()),
-        bamfile = self$relPath(bamfile),
+        bamfile = self$relPath(pileup$bamfile),
         pileup  = pileup,
         tag     = maptag,
         conseq  = conseq,
-        seqpath = self$relPath(conseqpath),
+        seqpath = self$relPath(conseqPath),
         ref     = conseqName
       ),
       class  = c("mapInit", "list")
@@ -324,63 +231,38 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
 
     ## Second mapping to infer polymorphic positions
     ## from same reference as longreads
-    mapfmt   <- "mapInit2 <%s> <%s> <%s> <%s>"
-    maptag   <- sprintf(mapfmt, mapInitSR1$ref,self$getSrdType(),
-                        self$getSrMapper(), optstring(opts, optsname))
-    readfile <- self$getShortreads()
     reffile  <- self$absPath(mapInitSR1$seqpath)
+    allele <- mapInitSR1$ref
+    readtype <- self$getSrdType()
+    mapLabel  <- "mapInit2"
+    maptag  <- paste(mapLabel, paste0(litArrows(c(allele, readtype,
+                                                  self$getSrMapper(), 
+                                                  optstring(opts, optsname))),
+                                      collapse = " "))
+
     flog.info(" Remap shortreads to consensus for SNP calling", name = "info")
+    pileup <- mapReads(maptag = maptag, reffile = reffile, 
+                       readfile = self$getShortreads(), threshold = threshold,
+                       allele = allele, readtype = readtype, opts = opts, 
+                       outdir = outdir, minMapq = minMapq, optsname = optsname,
+                       minBaseQuality = minBaseQuality, maxDepth = maxDepth,
+                       minNucleotideDepth = minNucleotideDepth, force = force,
+                       includeDeletions = includeDeletions, clean = clean,
+                       includeInsertions = includeInsertions, 
+                       mapFun = self$getSrMapFun())
 
-    ## Fetch mapper
-    mapFun <- self$getSrMapFun()
-    ## Run mapper
-    flog.info("  Mapping ...", name = "info")
-    samfile <- mapFun(
-      reffile  = reffile,
-      readfile = readfile,
-      allele   = mapInitSR1$ref,
-      readtype = self$getSrdType(),
-      opts     = opts,
-      refname  = "",
-      optsname = optsname,
-      force    = force,
-      outdir   = outdir
-    )
-
-    ## Run bam - sort - index pipeline
-    flog.info("  Indexing ...", name = "info")
-    bamfile <- .bamSortIndex(
-      samfile = samfile,
-      reffile = reffile,
-      minMapq = minMapq,
-      force = force,
-      clean = TRUE
-    )
-    igv[["SR"]] <- createIgvJsFiles(reffile, bamfile, 
+    igv[["SR"]] <- createIgvJsFiles(reffile, pileup$bamfile, 
                                     self$getOutdir(),
                                     sampleSize = 100)
-
-    ## Calculate pileup from graphmap produced SAM file
-    flog.info("  Piling up ...", name = "info")
-    pileup <- Pileup(
-      bamfile,
-      threshold,
-      max_depth = maxDepth,
-      min_base_quality = minBaseQuality,
-      min_mapq= minMapq,
-      min_nucleotide_depth = minNucleotideDepth,
-      include_deletions = includeDeletions,
-      include_insertions = includeInsertions
-    )
 
     mapInitSR2 = structure(
       list(
         reads   = self$relPath(self$getShortreads()),
-        bamfile = self$relPath(bamfile),
+        bamfile = self$relPath(pileup$bamfile),
         pileup  = pileup,
         tag     = maptag,
         conseq  = conseq,
-        seqpath = self$relPath(conseqpath),
+        seqpath = self$relPath(conseqPath),
         ref     = conseqName
       ),
       class  = c("mapInit", "list")
@@ -401,58 +283,35 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
     refseq <- self$getRefSeq()
     allele <- self$getReference()
   }
-
-  mapfmt  <- "mapInit <%s> <%s> <%s> <%s>"
-  maptag  <- sprintf(mapfmt, allele, self$getLrdType(), self$getLrMapper(),
-                     optstring(opts, optsname))
-  ## Fetch mapper
+  readfile <- self$getLongreads()
+  readtype <- self$getLrdType()
   mapFun <- self$getLrMapFun()
-  ## Run mapper
-  flog.info("  Mapping ...", name = "info")
-  samfile <- mapFun(
-    reffile  = reffile,
-    readfile = self$getLongreads(),
-    allele   = allele,
-    readtype = self$getLrdType(),
-    opts     = opts,
-    refname  = "",
-    optsname = optsname,
-    force    = force,
-    outdir   = outdir
-  )
+  mapLabel  <- "mapInit"
+  maptag  <- paste(mapLabel, paste0(litArrows(c(conseqName, readtype,
+                                                self$getLrMapper(), 
+                                                optstring(opts, optsname))),
+                                    collapse = " "))
 
-  ## Run bam - sort - index pipeline
-  flog.info("  Indexing ...", name = "info")
-  bamfile <- .bamSortIndex(
-    samfile = samfile,
-    reffile = reffile,
-    minMapq = minMapq,
-    force = force,
-    clean = TRUE
-  )
-  igv[["LR"]] <- createIgvJsFiles(reffile, bamfile, self$getOutdir(),
+  pileup <- mapReads(maptag = maptag, reffile = reffile, readfile = readfile, 
+                     allele = allele, readtype = readtype, opts = opts, 
+                     optsname = optsname, force = force, maxDepth = maxDepth,
+                     outdir = outdir, minMapq = minMapq, threshold = threshold,
+                     minBaseQuality = minBaseQuality, clean = clean,
+                     minNucleotideDepth = minNucleotideDepth, 
+                     includeDeletions = TRUE, includeInsertions = FALSE,
+                     mapFun = mapFun)
+
+  # map <- pileup$consmat
+  # bamfile <- pileup$bamfile
+  pileup$consmat <- .distributeGaps(pileup$consmat, pileup$bamfile, 
+                                    reference = refseq, removeError = TRUE)
+  igv[["LR"]] <- createIgvJsFiles(reffile, pileup$bamfile, outdir,
                                   sampleSize = 100, fragmentReads = TRUE)
-
-  ## Calculate pileup from graphmap produced SAM file
-  flog.info("  Piling up ...", name = "info")
-  pileup <- Pileup(
-    bamfile,
-    threshold,
-    max_depth = maxDepth,
-    min_base_quality = minBaseQuality,
-    min_mapq= minMapq,
-    min_nucleotide_depth = minNucleotideDepth,
-    include_deletions = TRUE,
-    include_insertions = FALSE
-  )
-
-  pileup$consmat <- .distributeGaps(pileup$consmat, bamfile, reference = refseq,
-                                    removeError = TRUE)
 
   self$mapInit = structure(
     list(
       reads   = self$relPath(self$getLongreads()),
-      bamfile = self$relPath(bamfile),
+      bamfile = self$relPath(pileup$bamfile),
       pileup  = pileup,
       tag     = maptag,
       SR1     = NULL,
@@ -466,7 +325,6 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
     self$mapInit$SR1 <- mapInitSR1
     self$mapInit$SR2 <- mapInitSR2
   }
-
   createIgvConfigs(self, map = "mapInit", open = "FALSE")
 
   if (plot) {
@@ -557,11 +415,11 @@ DR2S_$set("public",
   if (is.null(distAlleles)) {
     distAlleles <- self$getDistAlleles()
   }
-  assertthat::assert_that(
+  assert_that(
     self$hasPileup(),
     is.double(skipGapFreq),
     is.double(threshold),
-    assertthat::is.count(distAlleles),
+    is.count(distAlleles),
     is.logical(plot)
   )
 
@@ -670,6 +528,7 @@ DR2S_$set("public", "runSplitLongReadsByHaplotype", function(plot = TRUE) {
   haplotypes <- levels(prt$haplotype)
 
   # Set all limits to NULL
+  ## TODO sapply
   self$setLimits(sapply(haplotypes, function(x) NULL))
   prts <-  lapply(haplotypes, function(x) prt[prt$haplotype == x,])
   names(prts) <- haplotypes

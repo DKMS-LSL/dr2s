@@ -270,12 +270,13 @@ DR2S_ <- R6::R6Class(
     },
     ##
     setMicrosatellite = function(microsatellite) {
-      stopifnot(is.logical(microsatellite))
+      assert_that(is.logical(microsatellite))
       self$setConfig("microsatellite", microsatellite)
       invisible(self)
     },
     ##
     getSampleDetails = function() {
+      ## TODO sapply
       details <- semicolon(
         sapply(seq_along(self$getDetails()), 
                function(item) paste(names(
@@ -415,8 +416,10 @@ DR2S_ <- R6::R6Class(
       if (!is.null(self$getRefPath())) {
         Biostrings::readDNAStringSet(self$getRefPath())
       } else  {
-        ipd.Hsapiens.db::getClosestComplete(self$getReference(),
-                                            self$getLocus())
+        # ipd.Hsapiens.db::getClosestComplete(self$getReference(),
+        #                                     self$getLocus())
+        ipdDb::loadHlaData()$getClosestComplete(self$getReference(),
+                                         self$getLocus()) 
       }
     },
     ##
@@ -459,6 +462,7 @@ DR2S_ <- R6::R6Class(
         return(self$absPath(self$mapFinal$seq))
       } else if (length(self$mapIter) > 0) {
         latest <-  self$mapIter[max(names(self$mapIter))][self$getHapTypes()]
+        ## TODO sapply
         return(sapply(latest, function(x) self$absPath(x$seqpath)))
       } else {
         return(self$getRefPath())
@@ -472,6 +476,7 @@ DR2S_ <- R6::R6Class(
         return(self$mapFinal$seq)
       } else if (length(self$mapIter) > 0) {
         latest <- self$mapIter[max(names(self$mapIter))][self$getHapTypes()]
+        ## TODO sapply
         return(sapply(latest, function(x) x$conseq))
       }  else {
         return(self$getRefSeq())
@@ -574,14 +579,16 @@ DR2S_ <- R6::R6Class(
     },
     ## Get the absolut path
     absPath = function(filename) {
-      sapply(filename, function(x) {
+      assert_that(is.character(filename))
+      vapply(filename, function(x) {
         normalizePath(
           file.path(self$getOutdir(), x),
           mustWork = FALSE)
-      })
+      }, FUN.VALUE = character(1))
     },
     ## Get the relative path
     relPath = function(filepath) {
+      ## TODO add assertives
       .cropPath(self$getOutdir(), filepath)
     },
     ##

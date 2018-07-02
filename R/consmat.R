@@ -212,6 +212,7 @@ is.freq.consmat <- function(consmat) attr(consmat, "freq")
 ## if > t set all to 0
 .pruneConsensusMatrix <- function(cm, nLookBehind = 36, cutoff = 0.6, 
                                   verbose = TRUE) {
+  ## Use names; by helper function
   rowsum <- rowSums(cm[, 1:4]) ## only consider bases
   m0 <- do.call(cbind, Map(function(n) dplyr::lag(rowsum, n), nLookBehind:1))
   wquant <- suppressWarnings(apply(m0, 1, 

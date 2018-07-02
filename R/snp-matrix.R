@@ -16,7 +16,7 @@
 SNPmatrix <- function(bamfile,
                       refseq,
                       polymorphicPositions) {
-  assertthat::assert_that(requireNamespace("readr", quietly = TRUE))
+  assert_that(requireNamespace("readr", quietly = TRUE))
   if (is(polymorphicPositions, "tbl_df") &&
       all(colnames(polymorphicPositions) %in% c("position", "a1", 
                                                 "f1", "a2", "f2"))) {
@@ -30,7 +30,7 @@ SNPmatrix <- function(bamfile,
   if (is.character(polymorphicPositions)) {
     polymorphicPositions <- as.integer(polymorphicPositions)
   }
-  assertthat::assert_that(is.numeric(polymorphicPositions))
+  assert_that(is.count(polymorphicPositions))
   msa <- .msaFromBam(bamfile, refseq)
   mat <- sapply(polymorphicPositions, function(x) 
     as.matrix(Biostrings::subseq(msa, start = x, width = 1)))

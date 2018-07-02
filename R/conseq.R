@@ -229,3 +229,14 @@ conseq.matrix <- function(x,
 
   x
 }
+
+
+.getWriteConseq <- function(pileup, name, type, threshold, forceExcludeGaps,
+                           conseqPath) {
+  conseq <- conseq(pileup$consmat, name = name, type = type,
+                   threshold = threshold, forceExcludeGaps = TRUE)
+  Biostrings::writeXStringSet(
+    Biostrings::DNAStringSet(gsub("[-+]", "N", conseq)),
+    conseqPath)
+  conseq
+}

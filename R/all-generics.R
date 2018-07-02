@@ -3,9 +3,7 @@
 # constructor -------------------------------------------------------------
 
 
-#' Constructor for \code{\link[=DR2S_]{DR2S}} mapper objects.
-#'
-#' Initialise a \code{\link[=DR2S_]{DR2S}} mapper.
+#' Constructor for configuration to create a \code{\link[=DR2S_]{DR2S}} object.
 #'
 #' @usage createDR2SConf(sample, locus, longreads = list(type = "pacbio", 
 #' dir = "pacbio"), shortreads = list(type = "illumina", dir = "illumina"), 
@@ -23,13 +21,12 @@
 #' @section Outdir:
 #'
 #' All output will be placed in directory hierarchy
-#' \code{OUTDIR/SAMPLE/READTYPE/LOCUS}.
+#' \code{OUTDIR/SAMPLE}
 #'
 #' @section Reference:
 #'
 #' References can be specified as allele codes or a path to a fasta file
-#' containing the reference sequence. If \code{reference = NULL} a global 
-#' generic reference for a given locus will be used.
+#' containing the reference sequence. 
 #'
 #' @param sample A unique sample identifier used to locate the long and short
 #' read FASTQ files.
@@ -60,19 +57,20 @@
 #' @param details Metadata of a sample. Will be written to the fasta header of 
 #' the final sequences and stored in the config dump.
 #' @param ... Additional arguments.
+#' @return A \code{\link[DR2S]{DR2S}} config object
 #' @family DR2S mapper functions
 #' @export
 #' @importFrom S4Vectors metadata metadata<-
 #' @examples
 #' \dontrun{
-#' x <- DR2SConf(
+#' x <- InitDR2S(createDR2SConf(
 #'   sample = "ID12300527",
 #'   locus = "DPB1",
 #'   datadir = "/path/to/data",
 #'   outdir = "/path/to/output",
 #'   reference = "04:01:01:01",
 #'   consensus = "mapping"
-#'   ) %>%
+#'   )) %>%
 #'   clear() %>%
 #'   mapInit() %>%
 #'   partitionLongReads() %>%
@@ -104,8 +102,10 @@ createDR2SConf <- function(sample,
   UseMethod("DR2SConf")
 }
 
-#' Initialise a DR2S instance
-#' @param config A DR2S configuration object.
+#' Initialise a \code{\link[=DR2S_]{DR2S}} mapper.
+#' @param config A DR2S configuration object. Either created by 
+#' \code{\link[=DR2S_]{createDR2SConfig}} or loaded by 
+#' \code{\link[=DR2S_]{readDR2SConf}}.
 #' @param createOutdir Create the outdir if not exists.
 #' @return A \code{\link[=DR2S_]{DR2S}} object.
 #' @export

@@ -2,7 +2,7 @@
 % Please edit documentation in R/all-generics.R
 \name{createDR2SConf}
 \alias{createDR2SConf}
-\title{Constructor for \code{\link[=DR2S_]{DR2S}} mapper objects.}
+\title{Constructor for configuration to create a \code{\link[=DR2S_]{DR2S}} object.}
 \usage{
 createDR2SConf(sample, locus, longreads = list(type = "pacbio", 
 dir = "pacbio"), shortreads = list(type = "illumina", dir = "illumina"), 
@@ -58,8 +58,11 @@ the final sequences and stored in the config dump.}
 
 \item{...}{Additional arguments.}
 }
+\value{
+A \code{\link[DR2S]{DR2S}} config object
+}
 \description{
-Initialise a \code{\link[=DR2S_]{DR2S}} mapper.
+Constructor for configuration to create a \code{\link[=DR2S_]{DR2S}} object.
 }
 \section{datadir}{
 
@@ -74,27 +77,26 @@ A \code{datadir} must contain arbitrarily named subdirectories
 
 
 All output will be placed in directory hierarchy
-\code{OUTDIR/SAMPLE/READTYPE/LOCUS}.
+\code{OUTDIR/SAMPLE}
 }
 
 \section{Reference}{
 
 
 References can be specified as allele codes or a path to a fasta file
-containing the reference sequence. If \code{reference = NULL} a global 
-generic reference for a given locus will be used.
+containing the reference sequence.
 }
 
 \examples{
 \dontrun{
-x <- DR2SConf(
+x <- InitDR2S(createDR2SConf(
   sample = "ID12300527",
   locus = "DPB1",
   datadir = "/path/to/data",
   outdir = "/path/to/output",
   reference = "04:01:01:01",
   consensus = "mapping"
-  ) \%>\%
+  )) \%>\%
   clear() \%>\%
   mapInit() \%>\%
   partitionLongReads() \%>\%
