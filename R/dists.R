@@ -34,13 +34,14 @@ hammingDist <- function(x){
 
 # Todo Export and write man entry
 PSDM <- function(x, consmat){
-  stopifnot(is(x, "DNAStringSet"))
+  assert_that(is(x, "DNAStringSet"))
 
   ## Create seq matrix as input for cpp_PSDM
   xTmp <- as.matrix(x)
   dnaBaseMapping <- c("G" = 1, "A" = 2, "T" = 3, "C" = 4, "-" = 5, "+" = 6)
-  xMat<- plyr::revalue(xTmp, dnaBaseMapping, warn_missing = FALSE)
-  xMat<- sapply(xMat, as.numeric)
+  xMat <- plyr::revalue(xTmp, dnaBaseMapping, warn_missing = FALSE)
+  xMat <- as.numeric(xMat)
+  
   dim(xMat) <- dim(xTmp)
   rm(xTmp)
 

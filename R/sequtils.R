@@ -25,7 +25,7 @@
   }
   cigar <- bam$cigar[i]
   id    <- if (!is.null(attr(qnames, "q"))) {
-    paste0(bam$qname[i], " q=", round(attr(qnames, "q"), 4))
+    bam$qname[i] %<<% " q=" %<<% round(attr(qnames, "q"), 4)
   } else bam$qname[i]
   sc <- .mapSoftclip(cigar)
   if (preserveRefEnds) {
@@ -44,8 +44,8 @@
   alignmentScoreThreshold = 0.3*readlength # Change to dynamic
   badScore <- bam$qname[bam$tag$AS < alignmentScoreThreshold]
   trim <- id[trim < 0.3 * readlength]
-  flog.info(paste0("  Filtering %s softclipping reads from %s reads in total;",
-                   "removing reads < %s bp ..."),
+  flog.info("  Filtering %s softclipping reads from %s reads in total;" %<<%
+              "removing reads < %s bp ...",
             length(trim),
             length(id),
             0.3*readlength,
@@ -69,7 +69,7 @@
   sread <- bam$seq[i]
   qual  <- bam$qual[i]
   id    <- if (!is.null(attr(qnames, "q"))) {
-    paste0(bam$qname[i], " q=", round(attr(qnames, "q"), 4))
+    bam$qname[i] %<<% " q=" %<<% round(attr(qnames, "q"), 4)
   } else bam$qname[i]
   sc <- .mapSoftclip(cigar)
   if (preserveRefEnds) {
@@ -151,8 +151,8 @@ generateReferenceSequence <- function(allele, locus, outdir, dirtag=NULL,
   assert_that(is(sref, "DNAStringSet"))
   # workaround for these damn windows filename conventions
   alleleNm <- gsub("[*]", "_", gsub("[:]", "_", paste0(allele, collapse="~")))
-  filename <- ifelse(is.null(dirtag), paste0(alleleNm, ".ref.fa"),
-                     file.path(dirtag, paste0(alleleNm, ".ref.fa")))
+  filename <- ifelse(is.null(dirtag), alleleNm %<<% ".ref.fa",
+                     file.path(dirtag, alleleNm %<<% ".ref.fa"))
   outpath <- normalizePath(file.path(outdir, filename), mustWork=FALSE)
 
   Biostrings::writeXStringSet(sref, outpath)
@@ -314,7 +314,7 @@ checkHomoPolymerCount <- function(x, count = 10, map = "mapFinal") {
     if (length(n) == 0) {
       return(NULL)
     }
-    bamfile <- ifelse(length(hptypes) == 1, bambase, bambase[paste0("SR", hp)])
+    bamfile <- ifelse(length(hptypes) == 1, bambase, bambase["SR" %<<% hp])
     bamfile <- file.path(x$getOutdir(), bamfile)
     homopolymersHP <- foreach(pos = n, .combine = rbind) %do% {
       positionHP <- sum(seqrle$length[seq_len(pos-1)])+1

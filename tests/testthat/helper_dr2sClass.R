@@ -1,8 +1,8 @@
 testLogicalGetSet <- function(x, funValue) {
   # dr2s <- InitDR2S(createDR2SConf())
   #funValue <- "Microsatellite"
-  getter <- paste0("get", funValue)
-  setter <- paste0("set", funValue)
+  getter <- "get" %<<% funValue
+  setter <- "set" %<<% funValue
   getterFun <- dr2s[[getter]]
   setterFun <- dr2s[[setter]]
   expect_is(getterFun(), "logical")
@@ -18,8 +18,8 @@ testLogicalGetSet <- function(x, funValue) {
 testCharacterGetSet <- function(x, funValue) {
   # dr2s <- InitDR2S(createDR2SConf())
   #funValue <- "Microsatellite"
-  getter <- paste0("get", funValue)
-  setter <- paste0("set", funValue)
+  getter <- "get" %<<% funValue
+  setter <- "set" %<<% funValue
   getterFun <- dr2s[[getter]]
   setterFun <- dr2s[[setter]]
   expect_is(getterFun(), "character")

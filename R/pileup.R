@@ -200,7 +200,7 @@ print.pileup <- function(x, asString = FALSE, ...) {
   if (is.null(region)) {
     nRefseq <- names(refseq)
     lRefseq <- length(refseq[[1]])
-    region <- paste0(nRefseq, ":1-", lRefseq)
+    region <- nRefseq %<<% ":1-" %<<% lRefseq
   }
   assert_that(grepl(pattern = "^[[:alnum:]_\\*#\\.]+:\\d+-\\d+", region))
   GenomicAlignments::stackStringsFromBam(
@@ -391,9 +391,9 @@ plotPileupBasecallFrequency <- function(x, threshold = 0.20, label = "",
             name = "info")
   maxCov <- max(rowSums(pileup$consmat))
   q75Cov <- quantile(rowSums(pileup$consmat), .75)
-  flog.warn(paste0("   Maximum of coverage %s / 75%% quantile %s: %s > 5.",
-                   " No equal distribution of coverage!",
-                   " Have a look at the mapInit plot"),
+  flog.warn("   Maximum of coverage %s / 75%% quantile %s: %s > 5." %<<%
+                   " No equal distribution of coverage!" %<<%
+                   " Have a look at the mapInit plot",
             maxCov, q75Cov, maxCov/q75Cov, name = "info")
   plt <- plotPileupCoverage(
     x = pileup,

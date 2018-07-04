@@ -100,9 +100,9 @@ KIR_LOCI <- function() {
 .normaliseLocus <- function(locus) {
   locus <- sub("(HLA[-_]?|KIR[-_]?)", "", toupper(locus))
   if (locus %in% HLA_LOCI()) {
-    paste0("HLA-", locus)
+    "HLA-" %<<% locus
   } else if (locus %in% KIR_LOCI()) {
-    paste0("KIR", locus)
+    "KIR" %<<% locus
   } else if (locus == "ABO") {
     locus
   } else if (locus %in% c("MICA", "MICB")) {
@@ -117,26 +117,26 @@ KIR_LOCI <- function() {
   locus <- sub("KIR", "", toupper(locus))
   locus <- sub("HLA-", "", toupper(locus))
   if (locus %in% HLA_LOCI()) {
-    pattern1 <- paste0("^HLA-", locus, "[*]\\d\\d\\d?:.+$")
-    pattern2 <- paste0("^", locus, "[*]\\d\\d\\d?:.+$")
+    pattern1 <- "^HLA-" %<<% locus %<<% "[*]\\d\\d\\d?:.+$"
+    pattern2 <- "^" %<<% locus %<<% "[*]\\d\\d\\d?:.+$"
     pattern3 <- "^\\d\\d\\d?:.+$"
     if (grepl(pattern1, allele)) {
       allele
     } else if (grepl(pattern2, allele)) {
-      paste0("HLA-", allele)
+      "HLA-" %<<% allele
     } else if (grepl(pattern3, allele)) {
-      paste0("HLA-", locus, "*", allele)
+      "HLA-" %<<% locus %<<% "*" %<<% allele
     }
   } else if (locus %in% KIR_LOCI()) {
-    pattern1 <- paste0("^KIR", locus, "[*]\\d+$")
-    pattern2 <- paste0("^", locus, "[*]\\d+$")
+    pattern1 <- "^KIR" %<<% locus %<<% "[*]\\d+$"
+    pattern2 <- "^" %<<% locus %<<% "[*]\\d+$"
     pattern3 <- "^\\d+$"
     if (grepl(pattern1, allele)) {
       allele
     } else if (grepl(pattern2, allele)) {
-      paste0("KIR", allele)
+      "KIR" %<<% allele
     } else if (grepl(pattern3, allele)) {
-      paste0("KIR", locus, "*", allele)
+      "KIR" %<<% locus %<<% "*" %<<% allele
     }
   } else allele
 }

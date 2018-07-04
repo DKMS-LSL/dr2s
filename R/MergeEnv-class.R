@@ -88,11 +88,11 @@ MergeEnv_$set("public", "init", function(hapEnv) {
   readtype <- ifelse(!is.null(self$x$mapFinal$sreads[[hapEnv]]), "SR", "LR")
 
   if (readtype == "SR"){
-    envir$SR <- self$x$mapFinal$pileup[[paste0("SR", hapEnv)]]$consmat 
-    lr <- self$x$mapFinal$pileup[[paste0("LR", hapEnv)]]$consmat 
+    envir$SR <- self$x$mapFinal$pileup[["SR" %<<% hapEnv]]$consmat 
+    lr <- self$x$mapFinal$pileup[["LR" %<<% hapEnv]]$consmat 
     envir$LR <- .expandLongreadConsmat(lrm = lr, srm = envir$SR)
   } else {
-    envir$LR <- self$x$mapFinal$pileup[[paste0("LR", hapEnv)]]$consmat 
+    envir$LR <- self$x$mapFinal$pileup[["LR" %<<% hapEnv]]$consmat 
     envir$SR <- NULL
   }
   
@@ -240,10 +240,10 @@ MergeEnv_$set("public", "export", function() {
                              reads <- self$hptypes[[hptype]]$SR
                            } else {
                              reads <- self$x$mapFinal$pileup[[
-                               paste0("LR",hptype)]]$consmat
+                               "LR" %<<% hptype]]$consmat
                            }
                            seqname = 
-                           cseq <- conseq(reads, paste0("hap", hptype), "ambig",
+                           cseq <- conseq(reads, "hap" %<<% hptype, "ambig",
                                           excludeGaps = TRUE, 
                                           threshold = self$threshold)
                            metadata(cseq) <- list()
@@ -258,9 +258,9 @@ MergeEnv_$set("public", "export", function() {
                                    reads <- self$hptypes[[hptype]]$SR
                                  } else {
                                    reads <- self$x$mapFinal$pileup[[
-                                     paste0("LR",hptype)]]$consmat
+                                     "LR" %<<%hptype]]$consmat
                                  }
-                                 cseq <- conseq(reads, paste0("hap", hptype), 
+                                 cseq <- conseq(reads, "hap" %<<% hptype, 
                                                 "prob", excludeGaps = TRUE)
                                  metadata(cseq) <- list()
                                  cseq

@@ -30,7 +30,7 @@ SNPmatrix <- function(bamfile,
   if (is.character(polymorphicPositions)) {
     polymorphicPositions <- as.integer(polymorphicPositions)
   }
-  assert_that(is.count(polymorphicPositions))
+  assert_that(is.integer(polymorphicPositions))
   msa <- .msaFromBam(bamfile, refseq)
   mat <- sapply(polymorphicPositions, function(x) 
     as.matrix(Biostrings::subseq(msa, start = x, width = 1)))

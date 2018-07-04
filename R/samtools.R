@@ -1,19 +1,20 @@
 .bamSortIndex <- function(samfile,
-                           reffile,
-                           minMapq = 0,
-                           threads = 12,
-                           threadmem = "1G",
-                           force = FALSE) {
+                          reffile,
+                          minMapq = 0,
+                          threads = 12,
+                          threadmem = "1G",
+                          clean = TRUE,
+                          force = FALSE) {
   
   samfile <- normalizePath(samfile, mustWork = TRUE)
   reffile <- normalizePath(reffile, mustWork = TRUE)
   ext <- sprintf("%s.sorted",
                  if (minMapq > 0)
-                   minMapq %+% "MAPQ"
+                   minMapq %<<% "MAPQ"
                  else
                    "")
   
-  samtoolsPath <- Sys.which("samtools1")
+  samtoolsPath <- Sys.which("samtools")
   sorted <- sub("\\.sam(\\.gz)?", paste(ext, "bam", sep = "."), samfile)
   
   if (nzchar(samtoolsPath)) {
@@ -39,7 +40,7 @@
     flag <- scanBamFlag(isUnmappedQuery = FALSE,
                          isSecondaryAlignment = FALSE)
     ## remove also the in Rsamtools unsupported supplmentary alignment flags
-    filter <- FilterRules(list(flag = function(x) x$flag <= flag[2]))
+    filter <- S4Vectors::FilterRules(list(flag = function(x) x$flag <= flag[2]))
     param <- ScanBamParam(
       flag = flag,
       what = scanBamWhat())
@@ -49,9 +50,10 @@
     indexBam(sorted)
   }
   ## Clean up only if the bamfile now exists
-  if (file.exists(sorted)) {
+  if (clean && file.exists(sorted)) {
     unlink(samfile)
   }
+  sorted
 }
 
 #' Subsample a bam file according to coverage

@@ -133,7 +133,7 @@ DR2S_ <- R6::R6Class(
     },
     cleanup = function() {
       unlink(self$absPath(self$mapInit$bamfile))
-      unlink(paste0(self$absPath(self$mapInit$bamfile), ".bai"))
+      unlink(self$absPath(self$mapInit$bamfile) %<<% ".bai")
       foreach(hpt = self$getHapTypes()) %do% {
         unlink(self$absPath(hpt), recursive = TRUE)
       }
@@ -143,9 +143,9 @@ DR2S_ <- R6::R6Class(
     print = function() {
       fmt0 <- "DR2S mapper for sample <%s> locus <%s>\n"
       cat(sprintf(fmt0, self$getSampleId(), self$getLocus()))
-      fmt1 <- paste0("Reference alleles: <%s>\n", 
-                     "Longreads: <%s> Shortreads: <%s>\n", 
-                     "Mapper: <%s>\nDatadir: <%s>\nOutdir: <%s>\n")
+      fmt1 <- "Reference alleles: <%s>\n" %<<% 
+              "Longreads: <%s> Shortreads: <%s>\n" %<<% 
+              "Mapper: <%s>\nDatadir: <%s>\nOutdir: <%s>\n" 
       cat(sprintf(fmt1,
                   self$getReference(),
                   self$getLrdType(), self$getSrdType(), self$getLrMapper(), 
@@ -285,20 +285,19 @@ DR2S_ <- R6::R6Class(
                  sep = "=")))
       sr <- !is(try(self$getShortreads(), silent = TRUE), "try-error")
       lr <- !is(try(self$getShortreads(), silent = TRUE), "try-error")
-      paste(paste0("locus=", litQuote(self$getLocus())),
-            paste0("ref=", litQuote(self$getReference())),
+      paste("locus=" %<<% litQuote(self$getLocus()),
+            "ref=" %<<% litQuote(self$getReference()),
             details,
-            paste0("short_read_data=", litQuote(ifelse(sr, "yes", "no"))),
-            paste0("short_read_type=", litQuote(ifelse(sr, 
+            "short_read_data=" %<<% litQuote(ifelse(sr, "yes", "no")),
+            "short_read_type=" %<<% litQuote(ifelse(sr, 
                                                        self$getSrdType(), 
-                                                       ""))),
-            paste0("long_read_data=", litQuote(ifelse(sr, "yes", "no"))),
-            paste0("long_read_type=", litQuote(ifelse(lr, 
+                                                       "")),
+            "long_read_data=" %<<% litQuote(ifelse(sr, "yes", "no")),
+            "long_read_type=" %<<% litQuote(ifelse(lr, 
                                                        self$getLrdType(), 
-                                                       ""))),
+                                                       "")),
             "software=\"DR2S\"", 
-            paste0("version=", 
-                   litQuote(packageVersion("DR2S"))),
+            "version=" %<<% litQuote(packageVersion("DR2S")),
             sep = ";")
     },
     ##
@@ -524,7 +523,7 @@ DR2S_ <- R6::R6Class(
       if (iter == "final") {
         group = match.arg(group, self$getHapTypes())
         ref = match.arg(ref, c("LR", "SR"))
-        return(self$mapFinal$tag[[paste0(ref, group)]])
+        return(self$mapFinal$tag[[ref %<<% group]])
       }
     },
     ##
@@ -534,7 +533,7 @@ DR2S_ <- R6::R6Class(
       if (is.numeric(iteration)) {
         self$mapIter[[as.character(iteration)]][[group]]$pileup
       } else {
-        self$mapFinal$pileup[[paste0(ref, group)]]
+        self$mapFinal$pileup[[ref %<<% group]]
       }
     },
     ##
@@ -545,11 +544,11 @@ DR2S_ <- R6::R6Class(
     },
     ##
     getLrMapFun = function() {
-      match.fun(paste0("run", self$getLrMapper()))
+      match.fun("run" %<<% self$getLrMapper())
     },
     ##
     getSrMapFun = function() {
-      match.fun(paste0("run", self$getSrMapper()))
+      match.fun("run" %<<% self$getSrMapper())
     },
     ##
     ## Predicate methods ####
@@ -799,8 +798,7 @@ DR2S_ <- R6::R6Class(
       hptypes <- self$getHapTypes()
       plotlist <- foreach(hp = hptypes) %do% {
         tag <- self$getMapTag(iteration, hp, readtype)
-        ref <- paste0(readtype, hp)
-        # tag <- self$mapFinal$tag[[ref]]
+        ref <- readtype %<<% hp
         self$plotGroupCoverage(group = hp, ref = readtype, 
                                iteration = iteration, threshold = NULL, 
                                range = NULL, thin = thin,
@@ -841,7 +839,7 @@ DR2S_ <- R6::R6Class(
 findReads <- function(datadir, sampleId, locus) {
   locus <- sub("^HLA-", "", toupper(locus))
   locus <- sub("^KIR-", "", toupper(locus))
-  filePattern <- paste0(sampleId, ".+", "fast(q|a)(\\.gz)?$")
+  filePattern <- sampleId %<<% ".+" %<<% "fast(q|a)(\\.gz)?$"
   readPath <- dir(datadir, pattern = filePattern, full.names = TRUE)
   readPath <- readPath[grep(pattern = "^((?!_trimmed.fastq).)*$", 
                               readPath, perl = TRUE)]
