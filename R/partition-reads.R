@@ -21,9 +21,9 @@
 #' @examples
 #' ###
 
-partitionReads <- function(x, distAlleles = 2, sortBy = count, threshold = 0.2,
+partitionReads <- function(x, distAlleles = 2, sortBy = "count", threshold = 0.2,
                            clMethod = "ward.D", minLen = 0.5, skipGapFreq = 2/3,
-                           deepSplit = 1) {
+                           deepSplit = 1, minClusterSize = 15) {
   match.arg(sortBy, c("count", "distance"))
   # get SNPs
   ppos <- colnames(x)
@@ -56,7 +56,8 @@ partitionReads <- function(x, distAlleles = 2, sortBy = count, threshold = 0.2,
 
   ## Get only the fraction of reads that contain at least minLen of total SNPs
   clustres <- .getClusts(xseqs, clMethod = clMethod, minLen = minLen,
-                         deepSplit = deepSplit, threshold = threshold)
+                         deepSplit = deepSplit, threshold = threshold, 
+                         minClusterSize = minClusterSize)
   subclades <- factor(clustres$clades[!clustres$clades == "@"])
   tree <- clustres$tree
   hptypes <- levels(subclades)
@@ -143,7 +144,8 @@ partitionReads <- function(x, distAlleles = 2, sortBy = count, threshold = 0.2,
 # Helpers -----------------------------------------------------------------
 
 .getClusts <- function(xseqs, minLen = 0.80, clMethod = "ward.D",
-                       deepSplit = 1, minReadsFrac = 1/3, threshold = 0.2) {
+                       deepSplit = 1, minReadsFrac = 1/3, threshold = 0.2,
+                       minClusterSize = 15) {
 
   assert_that(
     is.double(minLen),
@@ -183,7 +185,7 @@ partitionReads <- function(x, distAlleles = 2, sortBy = count, threshold = 0.2,
   hcc <-  stats::hclust(dist, method = clMethod)
   ## do a dynamic cut. Need to be evaluated
   clusts <- dynamicTreeCut::cutreeHybrid(hcc,
-                                         minClusterSize = 15,
+                                         minClusterSize = minClusterSize,
                                          distM = as.matrix(dist),
                                          deepSplit = deepSplit,
                                          verbose = FALSE)

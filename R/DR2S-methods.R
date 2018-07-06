@@ -366,12 +366,14 @@ partitionLongReads.DR2S <- function(x,
                                     distAlleles       = NULL,
                                     noGapPartitioning = FALSE,
                                     selectAllelesBy   = "count",
+                                    minClusterSize    = 15,
                                     plot              = TRUE,
                                     ...) {
   x$runPartitionLongReads(threshold         = threshold,
                           skipGapFreq       = skipGapFreq,
                           noGapPartitioning = noGapPartitioning,
                           selectAllelesBy   = selectAllelesBy,
+                          minClusterSize    = minClusterSize,
                           distAlleles       = distAlleles,
                           plot              = plot,
                           ...)
@@ -388,6 +390,7 @@ DR2S_$set("public",
                    distAlleles = NULL,
                    noGapPartitioning = FALSE,
                    selectAllelesBy = "count",
+                   minClusterSize = 15,
                    plot = TRUE,
                    ...) {
   # debug
@@ -399,6 +402,7 @@ DR2S_$set("public",
   # plot = TRUE
   # self <- dr2s
   # library(futile.logger)
+  # library(assertthat)
 
   flog.info("Step 1: PartitionLongReads ...", name = "info")
   flog.info(" Partition longreads into haplotypes", name = "info")
@@ -469,11 +473,12 @@ DR2S_$set("public",
   flog.info(" Partition %s longreads over %s SNPs", NROW(mat), NCOL(mat), 
             name = "info")
   prt <- partitionReads(x = mat,
-                         skipGapFreq = skipGapFreq,
-                         deepSplit = 1,
-                         threshold = threshold,
-                         distAlleles = distAlleles,
-                         sortBy = selectAllelesBy)
+                        skipGapFreq = skipGapFreq,
+                        deepSplit = 1,
+                        threshold = threshold,
+                        distAlleles = distAlleles,
+                        sortBy = selectAllelesBy,
+                        minClusterSize = minClusterSize)
   ## Set sample haplotypes
   self$setHapTypes(levels(as.factor(PRT(prt))))
 
@@ -1176,12 +1181,12 @@ DR2S_$set("public", "runMapFinal", function(opts = list(),
       readtype <- self$getSrdType()
       
       pileup <- mapReads(
-        maptag = maptagSR, reffile = reffile,  readfile = readfiles,   
-        threshold = threshold, allele = mapgroupSR, readtype = readtype,
+        maptag = maptagSR, reffile = reffile,  readfile = readfiles, 
+        threshold = threshold, allele = mapgroupSR, readtype = readtype, opts = opts,  
         outdir = outdir, minMapq = minMapq, optsname = optstring(opts), 
-        minBaseQuality = minBaseQuality + 10, maxDepth = maxDepth, opts = opts,
+        minBaseQuality = minBaseQuality + 10, maxDepth = maxDepth, 
         minNucleotideDepth = minNucleotideDepth, force = force, 
-        includeDeletions = includeDeletions, clean = TRUE, refname = hptype,
+        includeDeletions = includeDeletions, clean = TRUE, 
         includeInsertions = includeInsertions,  mapFun = self$getSrMapFun(),
         distributeGaps = TRUE, refseq = refseq) 
       # calc new consensus
