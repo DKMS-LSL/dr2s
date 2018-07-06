@@ -202,7 +202,7 @@ print.pileup <- function(x, asString = FALSE, ...) {
     lRefseq <- length(refseq[[1]])
     region <- nRefseq %<<% ":1-" %<<% lRefseq
   }
-  assert_that(grepl(pattern = "^[[:alnum:]_\\*#\\.]+:\\d+-\\d+", region))
+  assert_that(grepl(pattern = "^[[:alnum:]_\\*#\\.\\-]+:\\d+-\\d+", region))
   GenomicAlignments::stackStringsFromBam(
     bamfile,
     param = region,
@@ -326,7 +326,7 @@ plotPileupBasecallFrequency <- function(x, threshold = 0.20, label = "",
 }
 
 .getInsertions <- function(bamfile, inpos, reads = NULL) {
-  stopifnot(is.numeric(inpos))
+  assert_that(is.numeric(inpos))
   inpos <- sort(inpos)
   flog.info("  Extracting insertions at position %s ...", comma(inpos), 
             name = "info")
@@ -351,39 +351,49 @@ plotPileupBasecallFrequency <- function(x, threshold = 0.20, label = "",
                             function(x) grepl("I",  x), 
                             FUN.VALUE = logical(1))
   bamI <- bam[readsWithIns]
+  ## Get all insertions from all reads
+  insSeq <- unlist(Biostrings::DNAStringSetList(
+    bplapply(seq_along(bamI), function(a, bamI, inpos) {
+      read <- bamI[a] 
+      .extractInsertion(read, inpos)
+  }, bamI = bamI, inpos = inpos)))
+  
+  ## Extract per positions
   insSeqs <- foreach(i = inpos) %do% {
     message("Position: ", i)
-    bamPos <- bamI[GenomicAlignments::start(bamI) <= i & 
-                     GenomicAlignments::end(bamI) >= 1]
-    insSeq <- bplapply(seq_along(bamPos), function(a, bamPos, i) {
-      read <- bamPos[a] 
-      .extractInsertion(read, i)
-    }, i = i, bamPos = bamPos)
-    Biostrings::DNAStringSet(insSeq)
+    insSeq[which(names(insSeq) == i)]
   }
-
   ## decrement to last matching position again to work as expected with 
   ## downstream
   names(insSeqs) <- inpos - 1
   insSeqs
 }
 
-.extractInsertion <- function(read, i) {
+.extractInsertion <- function(read, inpos) {
   cigar <- read@cigar
-
-  seq <- Biostrings::DNAString("-")
   ## map insertion position to reference space, get insertions from query space
   insertionQ <- GenomicAlignments::cigarRangesAlongQuerySpace(
     cigar, ops = "I")[[1]]
   insertionR <- GenomicAlignments::cigarRangesAlongReferenceSpace(
     cigar, ops = "I")[[1]]
-  insertPos <- insertionQ[which((
-    GenomicAlignments::start(read) + insertionR@start - 1) == i)]
-  if (length(insertPos) > 0)
-    seq <- unlist(Biostrings::subseq(read@elementMetadata$seq, 
-                                     start = IRanges::start(insertPos), 
-                                     end = IRanges::end(insertPos)))
-  seq
+  
+  qPos <- GenomicAlignments::start(read) + insertionR@start - 1
+  foundPositions <- which(qPos %in% inpos)
+  fInPos <- qPos[foundPositions]
+  insertPos <- insertionQ[foundPositions]
+  
+  if (length(insertPos) > 0) {
+    seq <- unlist(Biostrings::DNAStringSetList(lapply(seq_along(insertPos), 
+                                                      function(ip) {
+      ipp <- insertPos[ip]
+      Biostrings::subseq(read@elementMetadata$seq, 
+                         start = IRanges::start(ipp), 
+                         end = IRanges::end(ipp))
+    })))
+    names(seq) <- fInPos
+    return(seq)
+  }
+  Biostrings::DNAStringSet("-")
 }
 
 .checkCoverage <- function(pileup, forceMapping, plotFile, maptag) {

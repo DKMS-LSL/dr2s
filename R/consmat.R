@@ -273,7 +273,7 @@ createPWM <- function(msa){
   changeMat <- bplapply(which(seq$length > 5),
                       function(i, bamfile,
                                reference, removeError) {
-     # i <- which(seq$length > 5)[3]
+    #i <- which(seq$length > 5)[3]
     ## Assign new gap numbers to each position starting from left
     # meanCoverage <- mean(rowSums(mat[seqStart:seqEnd,1:4]))
     seqStart <- sum(seq$lengths[seq_len(i - 1)]) + 1

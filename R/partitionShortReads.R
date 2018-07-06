@@ -51,7 +51,7 @@ getSRPartitionScores <- function(refname, bamfile, mats,
   ppos <- colnames(mats[[1]])
   flog.info(" Partition shortreads on %s positions", length(ppos),
             name = "info")
-  res <- foreach (pos = ppos, .combine = "rbind") %dopar% {
+  res <- do.call(rbind, bplapply(ppos, function(pos, refname, bamfile, mats) {
     message("Get reads on position ", pos)
     param <- paste(paste(refname, pos, sep = ":"), pos, sep = "-")
     stack <- GenomicAlignments::stackStringsFromBam(bamfile, param = param,
@@ -59,7 +59,9 @@ getSRPartitionScores <- function(refname, bamfile, mats,
     dplyr::bind_cols(read = rep(names(stack), each = length(mats)),
                      dplyr::bind_rows(lapply(stack, function(x)
                        .partRead(x, mats, pos))))
-  }
+    
+  }, refname = refname, bamfile = bamfile, mats = mats))
+  
   structure(
     list(
       bamfile     = bamfile,
@@ -100,7 +102,6 @@ scoreHighestSR <- function(srpartition, diffThreshold = 0.001) {
 
   srtmp <- NULL
   sr2 <- NULL
-  diffThreshold <- 0.001
   while (TRUE) {
     flog.info(" Calculate shortread scoring with cutoff = %s",
               diffThreshold, name = "info")
@@ -110,8 +111,11 @@ scoreHighestSR <- function(srpartition, diffThreshold = 0.001) {
     } else {
       srtmp <- sr[abs(1 - (clade/max)) < diffThreshold]
     }
-    correctScoring <- sapply(unique(srtmp$pos), function(position)
-      .checkSRScoring(position, srtmp[pos == position]))
+    correctScoring <- vapply(unique(srtmp$pos), 
+                             function(position, srtmp)
+                               .checkSRScoring(position, 
+                                               srtmp[pos == position]), 
+                             srtmp = srtmp, FUN.VALUE = logical(1))
     if (all(correctScoring)) {
       if (NROW(sr2) == 0)
         sr2 <- srtmp
@@ -120,7 +124,7 @@ scoreHighestSR <- function(srpartition, diffThreshold = 0.001) {
     sr2 <- dplyr::bind_rows(sr2, srtmp[pos %in% names(which(correctScoring))])
     diffThreshold <- 1.2*diffThreshold
   }
-  return(sr2)
+  sr2
 }
 
 .writePartFq <- function(fq, srFastqHap, dontUseReads = NULL, useReads = NULL) {
@@ -145,14 +149,14 @@ scoreHighestSR <- function(srpartition, diffThreshold = 0.001) {
   close(fqstream)
 }
 
-# --- Helper ---
-
+####### Helper #############
 .partRead <- function(a, mats, pos){
-  l <- sapply(mats, function(x) x[,pos][as.character(a)])
+  l <- vapply(mats, function(x) x[,pos][as.character(a)], FUN.VALUE = double(1))
   list(prob = l,  haplotype = names(mats), pos = rep(pos, length(l)))
 }
 .checkSRScoring <- function(position, dfpos){
-  scoreOk <- all(sapply(unique(dfpos$haplotype), function(hp)
-    sum( dfpos$read %in% dfpos[dfpos$haplotype == hp]$read)/NROW(dfpos) > 0.2))
+  scoreOk <- all(vapply(unique(dfpos$haplotype), function(hp, dfpos)
+    sum( dfpos$read %in% dfpos[dfpos$haplotype == hp]$read)/NROW(dfpos) > 0.2,
+    dfpos = dfpos, FUN.VALUE = logical(1)))
   return(scoreOk)
 }

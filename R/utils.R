@@ -265,8 +265,8 @@ maximum <- function(n, m) {
 
 .fileDeleteIfExists <- function(path) {
   path <- normalizePath(path, mustWork = FALSE)
-  if (file.exists(path)) {
-    unlink(path)
+  if (any(exP <- file.exists(path))) {
+    unlink(path[exP])
   }
   invisible(path)
 }

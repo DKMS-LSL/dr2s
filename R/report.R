@@ -316,9 +316,10 @@ refineAlignment <- function(x, hptype, report = FALSE){
                         filepath = seqPath,
                         format = "fasta"
                       )
-                      seqPath
+                      set_names(seqPath, hptype)
                     },
-                    .getUpdatedSeqs(x, hptype))
+                    set_names(.getUpdatedSeqs(x, hptype)))
+  
   x$consensus$refine$ref[[hptype]] <- x$relPath(refpath)
   names(refpath) <- hptype
 
@@ -328,35 +329,21 @@ refineAlignment <- function(x, hptype, report = FALSE){
   mapgroupLR <- "LR" %<<% hptype
   maptagLR   <- paste("refine", mapgroupLR, x$getLrdType(),
                       x$getLrMapper(), sep = ".")
-  ## Mapper
-  .mapFun <- x$getLrMapFun()
-  ## Run mapper
-  flog.info("   Mapping long reads against final consensus sequence ...",
-            name = "info")
-  samfile <- .mapFun(
-    reffile  = refpath,
-    readfile = readpathLR,
-    allele   = mapgroupLR,
-    readtype = x$getLrdType(),
-    refname  = hptype,
-    force    = TRUE,
-    outdir   = outdir
-  )
-
-  ## Run bam - sort - index pipeline
-  flog.info("  Indexing ...", name = "info")
-  ## Niceify up to here
-  bamfile <- .bamSortIndex(
-    samfile = samfile,
-    reffile = refpath,
-    force   = TRUE
-  )
-  x$consensus$refine$bamfile[[mapgroupLR]] = x$relPath(bamfile)
+  pileup <- mapReads(maptag = maptagLR, reffile = refpath, 
+                     readfile = readpathLR, threshold = x$getThreshold(),
+                     allele = mapgroupLR, readtype = x$getLrdType(), 
+                     outdir = outdir, force = TRUE, clean = TRUE,
+                     includeDeletions = FALSE, includeInsertions = FALSE, 
+                     mapFun = x$getLrMapFun(), refname = hptype)
   
-  x$consensus$refine$igv[[mapgroupLR]] <- createIgvJsFiles(refpath, bamfile, 
-                                                         x$getOutdir(),
-                                                         sampleSize = 100, 
-                                                         fragmentReads = TRUE)
+
+  x$consensus$refine$bamfile[[mapgroupLR]] = x$relPath(pileup$bamfile)
+  
+  x$consensus$refine$igv[[mapgroupLR]] <- createIgvJsFiles(refpath, 
+                                                           pileup$bamfile, 
+                                                           x$getOutdir(),
+                                                           sampleSize = 100, 
+                                                           fragmentReads = TRUE)
   
   ## Map short reads
   if (!is.null(unlist(readpathSR))){
@@ -366,75 +353,20 @@ refineAlignment <- function(x, hptype, report = FALSE){
     readfiles <- unlist(readpathSR)
 
     ## Mapper
-    .mapFun <- x$getSrMapFun()
-
-    ## Run mapper
-    flog.info("  Mapping short reads against final consensus ...",
-              name = "info")
-    samfile <- .mapFun(
-      reffile  = refpath,
-      readfile = readfiles,
-      allele   = mapgroupSR,
-      readtype = x$getSrdType(),
-      refname  = hptype,
-      outdir   = outdir,
-      force    = TRUE
-    )
-
-    ## Remove softclipping
-    flog.info(" Trimming softclips and polymorphic ends ...", name = "info")
-    ## Run bam - sort - index pipeline
-    bamfile <- .bamSortIndex(samfile,
-                              refpath,
-                              force = TRUE)
-    ## Trim softclips
-    fq <- .trimSoftclippedEnds(bam = scanBam(bamfile)[[1]],
-                               preserveRefEnds = TRUE)
-    ## Trim polymorphic ends
-    fq <- .trimPolymorphicEnds(fq)
-    ## Write new shortread file to disc
-    fqdir  <- .dirCreateIfNotExists(file.path(x$getOutdir(), "refine"))
-    fqfile <- paste("sread", hptype, x$getSrMapper(), "trimmed", "fastq",
-                    "gz", sep = ".")
-    fqout  <- .fileDeleteIfExists(file.path(fqdir, fqfile))
-    ShortRead::writeFastq(fq, fqout, compress = TRUE)
-    .fileDeleteIfExists(bamfile)
-    ## Rerun mapper
-    flog.info("  Mapping trimmed short reads against latest consensus ... ",
-              name = "info")
-    samfile <- .mapFun(
-      reffile  = refpath,
-      readfile = fqout,
-      allele   = mapgroupSR,
-      readtype = x$getSrdType(),
-      refname  = hptype,
-      force    = TRUE,
-      outdir   = outdir
-    )
-    # cleanup
-    .fileDeleteIfExists(fqout)
-
-    ## Run bam - sort - index pipeline
-    flog.info("  Indexing ...", name = "info")
-    bamfile <- .bamSortIndex(
-      samfile,
-      refpath,
-      force = TRUE
-    )
-    x$consensus$refine$bamfile[[mapgroupSR]] = x$relPath(bamfile)
-    x$consensus$refine$igv[[mapgroupSR]] <- createIgvJsFiles(refpath, bamfile, 
-                                                           x$getOutdir(),
-                                                           sampleSize = 100)
+    pileup <- mapReads(maptag = maptagSR, reffile = refpath, 
+                       readfile = readfiles, threshold = x$getThreshold(),
+                       allele = mapgroupSR, readtype = x$getSrdType(), 
+                       outdir = outdir, force = TRUE, clean = TRUE,
+                       includeDeletions = FALSE, includeInsertions = FALSE, 
+                       mapFun = x$getSrMapFun(), refname = hptype, clip = TRUE)
+  
+    x$consensus$refine$bamfile[[mapgroupSR]] = x$relPath(pileup$bamfile)
+    x$consensus$refine$igv[[mapgroupSR]] <- createIgvJsFiles(refpath, 
+                                                             pileup$bamfile, 
+                                                             x$getOutdir(),
+                                                             sampleSize = 100)
     
   }
-  ## Calculate pileup from graphmap produced SAM file
-  flog.info("  Piling up ...", name = "info")
-  pileup <- Pileup(
-    bamfile,
-    x$getThreshold(),
-    include_deletions = TRUE,
-    include_insertions = TRUE
-  )
 
   # calc new consensus
   cseq <- conseq(pileup$consmat, "refine" %<<% hptype, "ambig",

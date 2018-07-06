@@ -1,16 +1,46 @@
 ## mapping wrapper functions
 ## 
-mapReads <- function(maptag, reffile, readfile, allele, readtype, opts, refname,
-                  optsname, force, outdir, minMapq, clean, threshold, maxDepth,
-                  minBaseQuality, minNucleotideDepth, includeDeletions, 
-                  includeInsertions, mapFun) {
+mapReads <- function(
+  maptag, reffile, readfile, allele, readtype, opts = NULL,  refname = "", 
+  optsname = "", force, outdir, minMapq = 0, clean,  threshold, maxDepth = 1e4, 
+  minBaseQuality = 3,  minNucleotideDepth = 3, refseq = NULL, includeInsertions,
+  mapFun,   clip = FALSE, distributeGaps = FALSE, includeDeletions, 
+  removeError = TRUE) {
+  
   ## Run mapper
   flog.info("  Mapping ...", name = "info")
-  if (missing(refname))
-    refname <- ""
   samfile <- mapFun(reffile = reffile, readfile = readfile, allele = allele,
     readtype = readtype, opts = opts, refname  = refname, optsname = optsname,
     force = force, outdir = outdir)
+  
+  if (clip) {
+    flog.info("  Trimming softclips and polymorphic ends ...",
+              name = "info")
+    ## Run bam - sort - index pipeline
+    bamfile <- .bamSortIndex(samfile = samfile, reffile = reffile,
+                             minMapq = minMapq, force = force, clean = TRUE)
+    ## Trim softclips
+    fq <- .trimSoftclippedEnds(bam = scanBam(bamfile)[[1]],
+                               preserveRefEnds = TRUE)
+    ## Trim polymorphic ends
+    fq <- .trimPolymorphicEnds(fq)
+    ## Write new shortread file to disc
+    fqdir  <- .dirCreateIfNotExists(file.path(outdir,
+                                              "mapFinal"))
+    fqfile <- gsub(".fastq(.gz)?", ".trimmed.fastq", basename(readfile[1]))
+    fqout  <- .fileDeleteIfExists(file.path(fqdir, fqfile))
+    ShortRead::writeFastq(fq, fqout, compress = TRUE)
+    .fileDeleteIfExists(bamfile)
+    ## Rerun mapper
+    flog.info("   Mapping trimmed short reads against latest consensus ...",
+              name = "info")
+    samfile <- mapFun(
+      reffile = reffile, readfile = fqout, allele = maptag, readtype = readtype,
+      opts = list(A = 1, B = 4, O = 2), refname = refname, 
+      optsname = optstring(opts), force = force, outdir = outdir)
+    # cleanup
+    .fileDeleteIfExists(fqout)
+  }
     
   ## Run bam - sort - index pipeline
   flog.info("  Indexing ...", name = "info")
@@ -24,6 +54,12 @@ mapReads <- function(maptag, reffile, readfile, allele, readtype, opts, refname,
     min_nucleotide_depth = minNucleotideDepth,
     include_deletions = includeDeletions,
     include_insertions = includeInsertions)
+  
+  if (distributeGaps) {
+    pileup$consmat <- .distributeGaps(pileup$consmat, bamfile, 
+                                      reference = refseq, 
+                                      removeError = removeError)
+  }
 
   if (includeInsertions && is.null(ins(pileup$consmat))) {
     ## TODO check threshold
