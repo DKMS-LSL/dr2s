@@ -4,8 +4,8 @@
 \alias{checkAlignmentFile}
 \title{Manually check the alignment of consensus sequences using an editor.}
 \usage{
-checkAlignmentFile(x, which = "mapFinal", where = 0, editor = "xdg-open",
-  openEditor = TRUE)
+checkAlignmentFile(x, which = "mapFinal", where = 0,
+  editor = "xdg-open", openEditor = TRUE)
 }
 \arguments{
 \item{x}{A \code{\link[=DR2S_]{DR2S}} object.}

@@ -5,8 +5,8 @@
 \title{Initial mapping step (long reads).}
 \usage{
 mapInit(x, opts = list(), optsname = "", partSR = TRUE,
-  threshold = NULL, minBaseQuality = 3, minMapq = 50, maxDepth = 10000,
-  minNucleotideDepth = 3, includeDeletions = TRUE,
+  threshold = NULL, minBaseQuality = 3, minMapq = 50,
+  maxDepth = 10000, minNucleotideDepth = 3, includeDeletions = TRUE,
   includeInsertions = TRUE, microsatellite = FALSE, force = FALSE,
   fullname = TRUE, filterScores = TRUE, forceMapping = FALSE,
   plot = TRUE)
@@ -93,3 +93,4 @@ Other DR2S mapper functions: \code{\link{cache}},
   \code{\link{reportCheckedConsensus}},
   \code{\link{report}}
 }
+\concept{DR2S mapper functions}

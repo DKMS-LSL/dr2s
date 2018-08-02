@@ -46,3 +46,4 @@ Other DR2S mapper functions: \code{\link{clear}},
   \code{\link{reportCheckedConsensus}},
   \code{\link{report}}
 }
+\concept{DR2S mapper functions}

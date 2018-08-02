@@ -31,3 +31,4 @@ Other DR2S mapper functions: \code{\link{cache}},
   \code{\link{polish}}, \code{\link{refineAlignment}},
   \code{\link{report}}
 }
+\concept{DR2S mapper functions}

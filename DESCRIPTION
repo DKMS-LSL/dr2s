@@ -59,7 +59,7 @@ Imports:
 SystemRequirements: bwa (>= 0.7.11) and/or minimap2; optional: samtools (faster, 
   but RSamtools do also work)
 VignetteBuilder: knitr
-RoxygenNote: 6.0.1
+RoxygenNote: 6.1.0
 Collate: 
     'DR2S-class.R'
     'DR2S-methods.R'

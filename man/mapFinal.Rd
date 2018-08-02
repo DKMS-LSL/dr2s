@@ -5,9 +5,9 @@
 \title{Final mapping step (long reads and short reads).}
 \usage{
 mapFinal(x, opts = list(), minBaseQuality = 7, minMapq = 0,
-  maxDepth = 1e+05, minNucleotideDepth = 3, includeDeletions = TRUE,
-  includeInsertions = TRUE, force = FALSE, fullname = TRUE, plot = TRUE,
-  clip = TRUE)
+  maxDepth = 100000, minNucleotideDepth = 3, includeDeletions = TRUE,
+  includeInsertions = TRUE, force = FALSE, fullname = TRUE,
+  plot = TRUE, clip = TRUE)
 }
 \arguments{
 \item{x}{A \code{\link[=DR2S_]{DR2S}} object.}
@@ -78,3 +78,4 @@ Other DR2S mapper functions: \code{\link{cache}},
   \code{\link{reportCheckedConsensus}},
   \code{\link{report}}
 }
+\concept{DR2S mapper functions}

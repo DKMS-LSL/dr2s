@@ -4,7 +4,8 @@
 \alias{polish}
 \title{Polish final haplotype sequences.}
 \usage{
-polish(x, threshold = x$getThreshold(), checkHpCount = TRUE, cache = TRUE)
+polish(x, threshold = x$getThreshold(), checkHpCount = TRUE,
+  cache = TRUE)
 }
 \arguments{
 \item{x}{A \code{\link[=DR2S_]{DR2S}} object.}
@@ -55,3 +56,4 @@ Other DR2S mapper functions: \code{\link{cache}},
   \code{\link{reportCheckedConsensus}},
   \code{\link{report}}
 }
+\concept{DR2S mapper functions}
