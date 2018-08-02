@@ -1,5 +1,4 @@
 
-
 # Pileup ------------------------------------------------------------------
 
 
@@ -42,19 +41,16 @@ Pileup <- function(bamfile,
   if (is.null(param$distinguish_strands))
       param$distinguish_strands <- FALSE
       
-  bfl <- Rsamtools::BamFile(bamfile)
-  pParam <- do.call(Rsamtools::PileupParam, c(param))
+  bfl <- BamFile(bamfile)
+  pParam <- do.call(PileupParam, c(param))
   
-  sParam <- Rsamtools::ScanBamParam(
-    flag = Rsamtools::scanBamFlag(
+  sParam <- ScanBamParam(
+    flag = scanBamFlag(
       isUnmappedQuery = FALSE,
       isSecondaryAlignment = FALSE
     )
   )
-  ## TODO: check if still correct
-  # pileup <- Rsamtools:::.pileup(file = bfl, scanBamParam = sParam, 
-  #                               pileupParam = pParam)
-  pileup <- Rsamtools::pileup(file = bfl, scanBamParam = sParam, 
+  pileup <- pileup(file = bfl, scanBamParam = sParam, 
                                 pileupParam = pParam)
   pileup <-
     dplyr::mutate(dplyr::tbl_df(pileup),
@@ -74,10 +70,11 @@ Pileup <- function(bamfile,
 
 # Methods: pileup ---------------------------------------------------------
 
-
 #' @export
 print.pileup <- function(x, asString = FALSE, ...) {
-  values <- sapply(methods::slotNames(x$param), methods::slot, object = x$param)
+  params <- methods::slotNames(x$param)
+  names(params) <- params
+  values <- lapply(params, methods::slot, object = x$param)
   info <- paste(methods::slotNames(x$param), values, sep=": ", collapse="; ")
   msg <- if (asString) "" else sprintf("An object of class '%s'.\n", 
                                        class(x)[1])
@@ -92,7 +89,6 @@ print.pileup <- function(x, asString = FALSE, ...) {
     print(x$consmat, n = 4)
   }
 }
-
 
 # Helpers -----------------------------------------------------------------
 
@@ -204,9 +200,9 @@ print.pileup <- function(x, asString = FALSE, ...) {
   if (is.null(region)) {
     nRefseq <- names(refseq)
     lRefseq <- length(refseq[[1]])
-    region <- paste0(nRefseq, ":1-", lRefseq)
+    region <- nRefseq %<<% ":1-" %<<% lRefseq
   }
-  assert_that(grepl(pattern = "^[[:alnum:]_\\*#\\.]+:\\d+-\\d+", region))
+  assert_that(grepl(pattern = "^[[:alnum:]_\\*#\\.\\-]+:\\d+-\\d+", region))
   GenomicAlignments::stackStringsFromBam(
     bamfile,
     param = region,
@@ -329,8 +325,8 @@ plotPileupBasecallFrequency <- function(x, threshold = 0.20, label = "",
     )
 }
 
-.getInsertions <- function(bamfile, inpos, reference, reads = NULL) {
-  stopifnot(is.numeric(inpos))
+.getInsertions <- function(bamfile, inpos, reads = NULL) {
+  assert_that(is.numeric(inpos))
   inpos <- sort(inpos)
   flog.info("  Extracting insertions at position %s ...", comma(inpos), 
             name = "info")
@@ -340,47 +336,93 @@ plotPileupBasecallFrequency <- function(x, threshold = 0.20, label = "",
   inpos <- inpos + 1
 
   ## Get the reference
-  reference   <- Rsamtools::seqinfo(Rsamtools::BamFile(bamfile))@seqnames[1]
+  reference   <- seqinfo(BamFile(bamfile))@seqnames[1]
   inposRanges <- GenomicRanges::GRanges(reference, 
                                         IRanges::IRanges(start = inpos, 
                                                          end = inpos))
-  bamParam    <- Rsamtools::ScanBamParam(what = "seq", which = inposRanges)
+  bamParam    <- ScanBamParam(what = "seq", which = inposRanges)
   bam <- GenomicAlignments::readGAlignments(bamfile, param = bamParam, 
                                             use.names = TRUE)
   ## Use only reads of interest if specified
   if (!is.null(reads))
     bam <- bam[names(bam) %in% reads]
   ## Use only reads with an insertion
-  bamI <- bam[sapply(GenomicAlignments::cigar(bam), function(x) grepl("I",  x))]
+  readsWithIns <- vapply(GenomicAlignments::cigar(bam), 
+                            function(x) grepl("I",  x), 
+                            FUN.VALUE = logical(1))
+  bamI <- bam[readsWithIns]
+  ## Get all insertions from all reads
+  insSeq <- unlist(Biostrings::DNAStringSetList(
+    bplapply(seq_along(bamI), function(a, bamI, inpos) {
+      read <- bamI[a] 
+      .extractInsertion(read, inpos)
+  }, bamI = bamI, inpos = inpos)))
+  
+  ## Extract per positions
   insSeqs <- foreach(i = inpos) %do% {
     message("Position: ", i)
-    bamPos <- bamI[GenomicAlignments::start(bamI) <= i & 
-                     GenomicAlignments::end(bamI) >= 1]
-    insSeq <- lapply(bamPos, function(a) .extractInsertion(a, i))
-    Biostrings::DNAStringSet(insSeq)
+    insSeq[which(names(insSeq) == i)]
   }
-
   ## decrement to last matching position again to work as expected with 
   ## downstream
   names(insSeqs) <- inpos - 1
   insSeqs
 }
 
-.extractInsertion <- function(read, i) {
+.extractInsertion <- function(read, inpos) {
   cigar <- read@cigar
-
-  seq <- Biostrings::DNAString("-")
   ## map insertion position to reference space, get insertions from query space
   insertionQ <- GenomicAlignments::cigarRangesAlongQuerySpace(
     cigar, ops = "I")[[1]]
   insertionR <- GenomicAlignments::cigarRangesAlongReferenceSpace(
     cigar, ops = "I")[[1]]
-  insertPos <- insertionQ[which((
-    GenomicAlignments::start(read) + insertionR@start - 1) == i)]
-  if (length(insertPos) > 0)
-    seq <- unlist(Biostrings::subseq(read@elementMetadata$seq, 
-                                     start = IRanges::start(insertPos), 
-                                     end = IRanges::end(insertPos)))
-  seq
+  
+  qPos <- GenomicAlignments::start(read) + insertionR@start - 1
+  foundPositions <- which(qPos %in% inpos)
+  fInPos <- qPos[foundPositions]
+  insertPos <- insertionQ[foundPositions]
+  
+  if (length(insertPos) > 0) {
+    seq <- unlist(Biostrings::DNAStringSetList(lapply(seq_along(insertPos), 
+                                                      function(ip) {
+      ipp <- insertPos[ip]
+      Biostrings::subseq(read@elementMetadata$seq, 
+                         start = IRanges::start(ipp), 
+                         end = IRanges::end(ipp))
+    })))
+    names(seq) <- fInPos
+    return(seq)
+  }
+  Biostrings::DNAStringSet("-")
 }
 
+.checkCoverage <- function(pileup, forceMapping, plotFile, maptag) {
+  flog.warn(" Shortreads seem corrupted or the reference is bad!",
+            name = "info")
+  maxCov <- max(rowSums(pileup$consmat))
+  q75Cov <- quantile(rowSums(pileup$consmat), .75)
+  flog.warn("   Maximum of coverage %s / 75%% quantile %s: %s > 5." %<<%
+                   " No equal distribution of coverage!" %<<%
+                   " Have a look at the mapInit plot",
+            maxCov, q75Cov, maxCov/q75Cov, name = "info")
+  plt <- plotPileupCoverage(
+    x = pileup,
+    thin = 0.25,
+    width = 2,
+    label = maptag,
+    drop.indels = TRUE
+  )
+  flog.error(paste(" Aborting. If you want to force processing set ",
+                   "forceMapping = TRUE in DR2S object initialisation",
+                   " "),
+             name = "info")
+  save_plot(plotFile, plt, base_aspect_ratio = 3,
+                          onefile = TRUE)
+  if (!forceMapping) {
+    stop("Shortreads probably of bad quality. Bad coverage distribution.
+         Run with forceMapping = TRUE to force processing.")
+  } else {
+    flog.warn(" Continue. Be aware that resulsts may not be correct!!",
+              name = "info")
+  }
+}

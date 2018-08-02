@@ -1,7 +1,7 @@
 ## Extract (a subset of) reads from a bamfile
 .extractFastq <- function(x, qnames=NULL) {
   stopifnot(is.character(x) && length(x) == 1)
-  bam <- Rsamtools::scanBam(x)[[1]]
+  bam <- scanBam(x)[[1]]
   qn <-
     if (!is.null(qnames)) {
       qnames
@@ -25,7 +25,7 @@
   }
   cigar <- bam$cigar[i]
   id    <- if (!is.null(attr(qnames, "q"))) {
-    paste0(bam$qname[i], " q=", round(attr(qnames, "q"), 4))
+    bam$qname[i] %<<% " q=" %<<% round(attr(qnames, "q"), 4)
   } else bam$qname[i]
   sc <- .mapSoftclip(cigar)
   if (preserveRefEnds) {
@@ -44,8 +44,8 @@
   alignmentScoreThreshold = 0.3*readlength # Change to dynamic
   badScore <- bam$qname[bam$tag$AS < alignmentScoreThreshold]
   trim <- id[trim < 0.3 * readlength]
-  flog.info(paste0("  Filtering %s softclipping reads from %s reads in total;",
-                   "removing reads < %s bp ..."),
+  flog.info("  Filtering %s softclipping reads from %s reads in total;" %<<%
+              "removing reads < %s bp ...",
             length(trim),
             length(id),
             0.3*readlength,
@@ -69,7 +69,7 @@
   sread <- bam$seq[i]
   qual  <- bam$qual[i]
   id    <- if (!is.null(attr(qnames, "q"))) {
-    paste0(bam$qname[i], " q=", round(attr(qnames, "q"), 4))
+    bam$qname[i] %<<% " q=" %<<% round(attr(qnames, "q"), 4)
   } else bam$qname[i]
   sc <- .mapSoftclip(cigar)
   if (preserveRefEnds) {
@@ -124,18 +124,23 @@ generateReferenceSequence <- function(allele, locus, outdir, dirtag=NULL,
     return(NULL)
   }
   locus <- .normaliseLocus(locus)
-  if (!allele %in% ipd.Hsapiens.db::getAlleles(locus)) 
+  if (startsWith(locus, "HLA")) {
+    ipd <- loadHlaData()
+  } else {
+    ipd <- loadKirData()
+  }
+  if (!allele %in% ipd$getAlleles(locus)) 
     stop(sprintf("Allele %s not found in database", allele))
     
   .dirCreateIfNotExists(normalizePath(
     file.path(outdir, dirtag), mustWork=FALSE))
-  assertthat::assert_that(
+  assert_that(
     file.exists(outdir),
-    assertthat::is.dir(outdir),
-    assertthat::is.writeable(outdir)
+    is.dir(outdir),
+    is.writeable(outdir)
   )
   sref <- foreach(i=allele, .combine="c") %do% {
-    sref <- ipd.Hsapiens.db::getClosestComplete(i, locus)
+    sref <- ipd$getClosestComplete(i, locus)
     if (fullname) {
       names(sref) <- gsub(" +", "_", names(sref))
     } else {
@@ -143,11 +148,11 @@ generateReferenceSequence <- function(allele, locus, outdir, dirtag=NULL,
     }
     sref
   }
-  assertthat::assert_that(is(sref, "DNAStringSet"))
+  assert_that(is(sref, "DNAStringSet"))
   # workaround for these damn windows filename conventions
-  alleleNm <- gsub("[*]", "#", gsub("[:]", "_", paste0(allele, collapse="~")))
-  filename <- ifelse(is.null(dirtag), paste0(alleleNm, ".ref.fa"),
-                     file.path(dirtag, paste0(alleleNm, ".ref.fa")))
+  alleleNm <- gsub("[*]", "_", gsub("[:]", "_", paste0(allele, collapse="~")))
+  filename <- ifelse(is.null(dirtag), alleleNm %<<% ".ref.fa",
+                     file.path(dirtag, alleleNm %<<% ".ref.fa"))
   outpath <- normalizePath(file.path(outdir, filename), mustWork=FALSE)
 
   Biostrings::writeXStringSet(sref, outpath)
@@ -243,7 +248,7 @@ generateReferenceSequence <- function(allele, locus, outdir, dirtag=NULL,
 .collapseHomopolymers <- function(path, n = 5) {
 
   path <- normalizePath(path, mustWork = TRUE)
-  assertthat::is.count(n)
+  assert_that(is.count(n))
 
   seq <- Biostrings::readBStringSet(path)
   seqname <- names(seq)
@@ -309,7 +314,7 @@ checkHomoPolymerCount <- function(x, count = 10, map = "mapFinal") {
     if (length(n) == 0) {
       return(NULL)
     }
-    bamfile <- ifelse(length(hptypes) == 1, bambase, bambase[paste0("SR", hp)])
+    bamfile <- ifelse(length(hptypes) == 1, bambase, bambase["SR" %<<% hp])
     bamfile <- file.path(x$getOutdir(), bamfile)
     homopolymersHP <- foreach(pos = n, .combine = rbind) %do% {
       positionHP <- sum(seqrle$length[seq_len(pos-1)])+1
@@ -360,16 +365,19 @@ checkHomoPolymerCount <- function(x, count = 10, map = "mapFinal") {
           as.character(modeHP$position)]] <- modeHP$mode
       }
     }
-    ggplot(data = homopolymersHP) +
+    plots <- ggplot(data = homopolymersHP) +
       geom_histogram(aes(length), binwidth = 1) +
       scale_x_continuous(breaks = seq(min(homopolymersHP$length), 
                                       max(homopolymersHP$length), 1)) +
       facet_grid(position~., scales = "free_y") +
       ggtitle(paste("Homopolymer length", hp)) +
       theme_minimal()
+    list(n = n, plot = plots)
   }
   if (!all(is.null(unlist(p)))) {
-    p1 <- cowplot::plot_grid(plotlist = p, nrow = length(n))
+    plots <- lapply(p, function(x) x$plot)
+    n <- max(sapply(p, function(x) length(x$n)))
+    p1 <- cowplot::plot_grid(plotlist = plots, nrow = length(n))
     cowplot::save_plot(p1, filename = x$absPath("plot.Homopolymers.pdf"),
                 base_width = 7*length(hptypes),
                 title     = paste(x$getLocus(), x$getSampleId(), sep = "." ),

@@ -13,11 +13,14 @@
 #' @import foreach
 #' @import ggplot2
 #' @import futile.logger
-#' @import ipd.Hsapiens.db
+#' @import ipdDb
+#' @import rtracklayer
+#' @import Rsamtools
 #' @importFrom iterators iter nextElem
 #' @importFrom Rcpp compileAttributes
 #' @importFrom ggseqlogo geom_logo theme_logo
-#' @importFrom rlang .data
+#' @importFrom rlang .data set_names
+#' @importFrom BiocParallel bplapply
 
 
 NULL

@@ -57,11 +57,7 @@ report.DR2S <- function(x, which, blockWidth = 80, noRemap = FALSE, ...) {
   # get all seqs as stringset
   seqs <- unlist(Biostrings::BStringSetList(haps))
   names(seqs) <- names(haps)
-  # if (is.null(addins)){
-    # seqs <- c(ref, seqs, alt )
-  # } else {
   seqs <- c(ref, seqs, addins)
-  # }
   .browseAlign(seqs, file = file.path(outdir, alnFile), openURL = FALSE)
 
   ## Write consensus FASTA files
@@ -69,8 +65,8 @@ report.DR2S <- function(x, which, blockWidth = 80, noRemap = FALSE, ...) {
     hapFile <- paste(map, hptype, x$getLrdType(), x$getLrMapper(),
                       "unchecked.fa", sep = ".")
     seq <- haps[[hptype]]
-    names(seq) <- paste0(names(seq), " LOCUS=", x$getLocus(), ";REF=", 
-                         x$getReference())
+    names(seq) <- names(seq) %<<% " LOCUS=" %<<% x$getLocus() %<<% ";REF=" %<<% 
+                         x$getReference()
     Biostrings::writeXStringSet(
       seq,
       filepath = file.path(outdir, hapFile),
@@ -185,11 +181,11 @@ reportCheckedConsensus <- function(x, which = "mapFinal") {
     seqname <- paste(x$getSampleId(), sub("^hap", "", names(seq)), sep = "_")
     sampleDetails <- x$getSampleDetails()
     names(seq) <-  paste(seqname, 
-                         paste(paste0("haplotype=", 
-                                     litQuote(sub("^hap", "", names(seq)))),
+                         paste("haplotype=" %<<%
+                                 litQuote(sub("^hap", "", names(seq))),
                                sampleDetails,
-                               paste0("date=", 
-                                      litQuote(Sys.Date())),
+                               "date=" %<<% 
+                                 litQuote(Sys.Date()),
                                sep = ";"))
     
     Biostrings::writeXStringSet(
@@ -213,6 +209,8 @@ reportCheckedConsensus <- function(x, which = "mapFinal") {
 #' @param editor Which editor to use. Either "xdg-open" (default) for standard
 #' system editor, "subl" for sublime, "gvim" or "gedit"
 #' @param openEditor should the editor be opened or just create the files?
+#' @return The path to the newliy created alignment file to check the polished 
+#'   consensus sequences.
 #' @export
 checkAlignmentFile <- function(x, which = "mapFinal", where = 0,
                                  editor = "xdg-open", openEditor = TRUE) {
@@ -227,9 +225,9 @@ checkAlignmentFile <- function(x, which = "mapFinal", where = 0,
   pairfileUnchecked <- normalizePath(x$absPath(file.path("report",
                                                 pairfileUnchecked)),
                                       mustWork = FALSE)
-  assertthat::assert_that(
+  assert_that(
     file.exists(pairfileUnchecked),
-    assertthat::is.readable(pairfileUnchecked)
+    is.readable(pairfileUnchecked)
   )
   pairfileChecked <- paste(which, "aln", x$getLrdType(), x$getLrMapper(),
                             "checked", ending, sep = ".")
@@ -249,8 +247,8 @@ checkAlignmentFile <- function(x, which = "mapFinal", where = 0,
 .checkReportStatus <- function(x){
   if (x$getReportStatus()) {
     currentCall <- strsplit1(strsplit1(deparse(sys.call()), "\\$")[2], "\\(")[1]
-    flog.info(paste0("%s: Reporting already done! Nothing to do.",
-              "Exit safely for downstream analysis ..."),
+    flog.info("%s: Reporting already done! Nothing to do." %<<%
+                "Exit safely for downstream analysis ...",
               currentCall, name = "info")
   }
   return(x$getReportStatus())
@@ -285,13 +283,14 @@ refineAlignment <- function(x, hptype, report = FALSE){
       mapgroup = list(),
       bamfile = list(),
       consensus = list(),
-      ref = list()
+      ref = list(),
+      igv = list()
     )
   }
   reftag    <- "refine"
   outdir    <- .dirCreateIfNotExists(x$absPath(reftag))
   if (length(x$getHapTypes()) == 1) {
-    readpathLR  <- paste0("/", x$mapInit$reads)
+    readpathLR  <- "/" %<<% x$mapInit$reads
     if (x$getFilterScores()) {
       readpathSR <- x$absPath(x$mapInit$SR1$reads)
     } else {
@@ -299,7 +298,7 @@ refineAlignment <- function(x, hptype, report = FALSE){
     }
   } else {
     readpathLR  <- x$absPath(x$mapFinal$lreads[hptype])
-    readpathSR <- x$absPath(x$mapFinal$sreads[hptype])
+    readpathSR <- x$absPath(x$mapFinal$sreads[[hptype]])
   }
   refpath   <- ifelse(report, {
                       seq <- x$consensus$noAmbig[[hptype]]
@@ -309,132 +308,72 @@ refineAlignment <- function(x, hptype, report = FALSE){
                                     "polished",
                                     "fa",
                                     sep = ".")
-                      names(seq) <- paste0(names(seq), " LOCUS=", x$getLocus(), 
-                                           ";REF=",  x$getReference())
+                      names(seq) <- names(seq) %<<% " LOCUS=" %<<% 
+                        x$getLocus() %<<% ";REF=" %<<%  x$getReference()
                       seqPath <- x$absPath(file.path("refine", file))
                       Biostrings::writeXStringSet(
                         seq,
                         filepath = seqPath,
                         format = "fasta"
                       )
-                      seqPath
+                      set_names(seqPath, hptype)
                     },
-                    .getUpdatedSeqs(x, hptype))
+                    set_names(.getUpdatedSeqs(x, hptype)))
+  
   x$consensus$refine$ref[[hptype]] <- x$relPath(refpath)
   names(refpath) <- hptype
 
 
   ## Remap long reads to the same reference sequences as short reads
   flog.info(" Refine mapping for haplotype %s ...", hptype, name = "info" )
-  mapgroupLR <- paste0("LR", hptype)
+  mapgroupLR <- "LR" %<<% hptype
   maptagLR   <- paste("refine", mapgroupLR, x$getLrdType(),
                       x$getLrMapper(), sep = ".")
-  ## Mapper
-  .mapFun <- x$getLrMapFun()
-  ## Run mapper
-  flog.info("   Mapping long reads against final consensus sequence ...",
-            name = "info")
-  samfile <- .mapFun(
-    reffile  = refpath,
-    readfile = readpathLR,
-    allele   = mapgroupLR,
-    readtype = x$getLrdType(),
-    refname  = hptype,
-    force    = TRUE,
-    outdir   = outdir
-  )
+  pileup <- mapReads(maptag = maptagLR, reffile = refpath, 
+                     readfile = readpathLR, threshold = x$getThreshold(),
+                     allele = mapgroupLR, readtype = x$getLrdType(), 
+                     outdir = outdir, force = TRUE, clean = TRUE,
+                     includeDeletions = FALSE, includeInsertions = FALSE, 
+                     mapFun = x$getLrMapFun(), refname = hptype)
+  
 
-  ## Run bam - sort - index pipeline
-  flog.info("  Indexing ...", name = "info")
-  ## Niceify up to here
-  bamfile <- .bamSortIndex(
-    samfile = samfile,
-    reffile = refpath,
-    force   = TRUE
-  )
-  x$consensus$refine$bamfile[[mapgroupLR]] = x$relPath(bamfile)
-
+  x$consensus$refine$bamfile[[mapgroupLR]] = x$relPath(pileup$bamfile)
+  
+  x$consensus$refine$igv[[mapgroupLR]] <- createIgvJsFiles(refpath, 
+                                                           pileup$bamfile, 
+                                                           x$getOutdir(),
+                                                           sampleSize = 100, 
+                                                           fragmentReads = TRUE)
+  
   ## Map short reads
   if (!is.null(unlist(readpathSR))){
-    mapgroupSR <- paste0("SR", hptype)
+    mapgroupSR <- "SR" %<<% hptype
     maptagSR   <- paste("refine", mapgroupSR, x$getLrdType(),
                         x$getSrMapper(), sep = ".")
     readfiles <- unlist(readpathSR)
 
     ## Mapper
-    .mapFun <- x$getSrMapFun()
-
-    ## Run mapper
-    flog.info("  Mapping short reads against final consensus ...",
-              name = "info")
-    samfile <- .mapFun(
-      reffile  = refpath,
-      readfile = readfiles,
-      allele   = mapgroupSR,
-      readtype = x$getSrdType(),
-      refname  = hptype,
-      outdir   = outdir,
-      force    = TRUE
-    )
-
-    ## Remove softclipping
-    flog.info(" Trimming softclips and polymorphic ends ...", name = "info")
-    ## Run bam - sort - index pipeline
-    bamfile <- .bamSortIndex(samfile,
-                              refpath,
-                              force = TRUE)
-    ## Trim softclips
-    fq <- .trimSoftclippedEnds(bam = Rsamtools::scanBam(bamfile)[[1]],
-                                preserveRefEnds = TRUE)
-    ## Trim polymorphic ends
-    fq <- .trimPolymorphicEnds(fq)
-    ## Write new shortread file to disc
-    fqdir  <- .dirCreateIfNotExists(file.path(x$getOutdir(), "refine"))
-    fqfile <- paste("sread", hptype, x$getSrMapper(), "trimmed", "fastq",
-                    "gz", sep = ".")
-    fqout  <- .fileDeleteIfExists(file.path(fqdir, fqfile))
-    ShortRead::writeFastq(fq, fqout, compress = TRUE)
-    .fileDeleteIfExists(bamfile)
-    ## Rerun mapper
-    flog.info("  Mapping trimmed short reads against latest consensus ... ",
-              name = "info")
-    samfile <- .mapFun(
-      reffile  = refpath,
-      readfile = fqout,
-      allele   = mapgroupSR,
-      readtype = x$getSrdType(),
-      refname  = hptype,
-      force    = TRUE,
-      outdir   = outdir
-    )
-    # cleanup
-    .fileDeleteIfExists(fqout)
-
-    ## Run bam - sort - index pipeline
-    flog.info("  Indexing ...", name = "info")
-    bamfile <- .bamSortIndex(
-      samfile,
-      refpath,
-      force = TRUE
-    )
-    x$consensus$refine$bamfile[[mapgroupSR]] = x$relPath(bamfile)
-
+    pileup <- mapReads(maptag = maptagSR, reffile = refpath, 
+                       readfile = readfiles, threshold = x$getThreshold(),
+                       allele = mapgroupSR, readtype = x$getSrdType(), 
+                       outdir = outdir, force = TRUE, clean = TRUE,
+                       includeDeletions = FALSE, includeInsertions = FALSE, 
+                       mapFun = x$getSrMapFun(), refname = hptype, clip = TRUE)
+  
+    x$consensus$refine$bamfile[[mapgroupSR]] = x$relPath(pileup$bamfile)
+    x$consensus$refine$igv[[mapgroupSR]] <- createIgvJsFiles(refpath, 
+                                                             pileup$bamfile, 
+                                                             x$getOutdir(),
+                                                             sampleSize = 100)
+    
   }
-  ## Calculate pileup from graphmap produced SAM file
-  flog.info("  Piling up ...", name = "info")
-  pileup <- Pileup(
-    bamfile,
-    x$getThreshold(),
-    include_deletions = TRUE,
-    include_insertions = TRUE
-  )
 
   # calc new consensus
-  cseq <- conseq(pileup$consmat, paste0("refine", hptype), "ambig",
+  cseq <- conseq(pileup$consmat, "refine" %<<% hptype, "ambig",
                  excludeGaps = FALSE, threshold = x$getThreshold())
   x$consensus$refine$consensus[[hptype]] <- cseq
   x$cache()
-  runIgv(x, map = "refine", open = FALSE)
+  createIgvConfigs(x, map = "refine", open = FALSE)
   invisible(x)
 }
 
@@ -455,15 +394,15 @@ refineAlignment <- function(x, hptype, report = FALSE){
     sapply(rs, function(s) Biostrings::DNAString(gsub("-", "", s))))
 
   ## Export FASTA
-  seq <- seqs[paste0("hap", hptype)]
+  seq <- seqs["hap" %<<% hptype]
   file <- paste(names(seq),
                 x$getLrdType(),
                 x$getLrMapper(),
                 "refined",
                 "fa",
                 sep = ".")
-  names(seq) <- paste0(names(seq), " LOCUS=", x$getLocus(), ";REF=",
-                          x$getReference())
+  names(seq) <- names(seq) %<<% " LOCUS=" %<<% x$getLocus() %<<% ";REF=" %<<%
+                          x$getReference()
   seqPath <- x$absPath(file.path("refine", file))
   Biostrings::writeXStringSet(
     seq,

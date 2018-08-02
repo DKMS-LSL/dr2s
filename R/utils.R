@@ -78,7 +78,9 @@ COL_PATTERN <- function() {
 }
 
 VALID_LOCI <- function() {
-  ipd.Hsapiens.db::getLoci()
+  hlaLoci <- ipdDb::loadHlaData()$getLoci()
+  kirLoci <- ipdDb::loadKirData()$getLoci()
+  c(hlaLoci, kirLoci)
 }
 
 HLA_LOCI <- function() {
@@ -98,9 +100,9 @@ KIR_LOCI <- function() {
 .normaliseLocus <- function(locus) {
   locus <- sub("(HLA[-_]?|KIR[-_]?)", "", toupper(locus))
   if (locus %in% HLA_LOCI()) {
-    paste0("HLA-", locus)
+    "HLA-" %<<% locus
   } else if (locus %in% KIR_LOCI()) {
-    paste0("KIR", locus)
+    "KIR" %<<% locus
   } else if (locus == "ABO") {
     locus
   } else if (locus %in% c("MICA", "MICB")) {
@@ -115,26 +117,26 @@ KIR_LOCI <- function() {
   locus <- sub("KIR", "", toupper(locus))
   locus <- sub("HLA-", "", toupper(locus))
   if (locus %in% HLA_LOCI()) {
-    pattern1 <- paste0("^HLA-", locus, "[*]\\d\\d\\d?:.+$")
-    pattern2 <- paste0("^", locus, "[*]\\d\\d\\d?:.+$")
+    pattern1 <- "^HLA-" %<<% locus %<<% "[*]\\d\\d\\d?:.+$"
+    pattern2 <- "^" %<<% locus %<<% "[*]\\d\\d\\d?:.+$"
     pattern3 <- "^\\d\\d\\d?:.+$"
     if (grepl(pattern1, allele)) {
       allele
     } else if (grepl(pattern2, allele)) {
-      paste0("HLA-", allele)
+      "HLA-" %<<% allele
     } else if (grepl(pattern3, allele)) {
-      paste0("HLA-", locus, "*", allele)
+      "HLA-" %<<% locus %<<% "*" %<<% allele
     }
   } else if (locus %in% KIR_LOCI()) {
-    pattern1 <- paste0("^KIR", locus, "[*]\\d+$")
-    pattern2 <- paste0("^", locus, "[*]\\d+$")
+    pattern1 <- "^KIR" %<<% locus %<<% "[*]\\d+$"
+    pattern2 <- "^" %<<% locus %<<% "[*]\\d+$"
     pattern3 <- "^\\d+$"
     if (grepl(pattern1, allele)) {
       allele
     } else if (grepl(pattern2, allele)) {
-      paste0("KIR", allele)
+      "KIR" %<<% allele
     } else if (grepl(pattern3, allele)) {
-      paste0("KIR", locus, "*", allele)
+      "KIR" %<<% locus %<<% "*" %<<% allele
     }
   } else allele
 }
@@ -185,6 +187,8 @@ colon <- function(...) paste0(..., collapse = ":")
 dot <- function(...) paste0(..., collapse = ".")
 
 litQuote <- function(x) paste0("\"", x, "\"")
+
+litArrows <- function(x) paste0("<", x, ">")
 
 .mergeList <- function(x, y, update = FALSE) {
   if (length(x) == 0)
@@ -246,33 +250,41 @@ maximum <- function(n, m) {
 }
 
 .dirCreateIfNotExists <- function(path) {
+  assert_that(is.character(path))
   path <- normalizePath(path, mustWork = FALSE)
-  if (!dir.exists(path)) {
-    dir.create(path, recursive = TRUE)
-  }
-  if (startsWith(path, "./")) {
-    path <- file.path(getwd(), path)
-  }
-  normalizePath(path, mustWork = TRUE)
+  vapply(path, function(p) {
+    if (!dir.exists(p)) {
+      dir.create(p, recursive = TRUE)
+    }
+    if (startsWith(p, "./")) {
+      path <- file.path(getwd(), p)
+    }
+    normalizePath(p, mustWork = TRUE)
+  }, FUN.VALUE = character(1))
 }
 
 .fileDeleteIfExists <- function(path) {
   path <- normalizePath(path, mustWork = FALSE)
-  if (file.exists(path)) {
-    unlink(path)
+  if (any(exP <- file.exists(path))) {
+    unlink(path[exP])
   }
   invisible(path)
 }
 
+
+.cropPath <- function(base, path) {
+  gsub("^/", "", gsub(base,"", path))
+}
+
 .hasCommand <- function(cmd) {
-  stopifnot(assertthat::is.string(cmd))
+  assert_that(is.string(cmd))
   unname(Sys.which(cmd) != "")
 }
 
 editor <- function(x, pos = NULL, useEditor = "xdg-open") {
   useEditor <- match.arg(useEditor, c("xdg-open", "subl", "gvim", "gedit"))
-  assertthat::assert_that(.hasCommand(useEditor))
-  if (tryCatch(assertthat::is.readable(x), assertError = function(e) FALSE)) {
+  assert_that(.hasCommand(useEditor))
+  if (tryCatch(is.readable(x), assertError = function(e) FALSE)) {
     x <- normalizePath(x, mustWork = TRUE)
     if (!is.null(pos) && useEditor == "subl") {
       x <- paste0(x, ":", pos)

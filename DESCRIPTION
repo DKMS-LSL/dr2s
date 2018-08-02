@@ -6,7 +6,7 @@ Description: Generate highly accurate reference sequences from heterozygous
     HLA and KIR samples by combining data from long-read and short-read
     sequencing technologies.
 Depends:
-    R (>= 3.4.0)
+    R (>= 3.5.0)
 License: MIT + file LICENSE
 Suggests:
     testthat (>= 0.8),
@@ -48,14 +48,16 @@ Imports:
     ggdendro,
     ShortRead,
     XML,
-    ipd.Hsapiens.db,
     ggseqlogo,
     GenomicAlignments,
     GenomicRanges,
+    rtracklayer,
     plyr,
     IRanges,
     rlang,
-SystemRequirements: C++11, samtools, bwa (>= 0.7.11), optional: minimap2
+    BiocParallel,
+SystemRequirements: bwa (>= 0.7.11) and/or minimap2; optional: samtools (faster, 
+  but RSamtools do also work)
 VignetteBuilder: knitr
 RoxygenNote: 6.0.1
 Collate: 
@@ -72,6 +74,7 @@ Collate:
     'consmat.R'
     'dists.R'
     'log-config.R'
+    'mapWrap.R'
     'mapper.R'
     'partition-reads.R'
     'partitionShortReads.R'

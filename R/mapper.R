@@ -19,22 +19,21 @@ runminimap <- function(reffile,
     optsname <- gsub("[[:punct:][:space:]]", "", optstring(opts, optsname))
   }
   opts <- .mergeList(opts, list(t = parallel::detectCores()/4))
-
-  cmd <- .generateMappingCommands("minimap", readtype, reffile, readfile,
+  
+  cmd <- Sys.which("minimap2")
+  args <- .generateMappingCommands("minimap", readtype, reffile, readfile,
                                    allele, opts, refname, optsname,
                                    outdir = outdir)
   ## Don't execute if file exists and force is false
-  if (force || !file.exists(cmd$outfile)) {
-    system(cmd$cmd)
+  if (force || !file.exists(args$outfile)) {
+    system2(cmd, args$args)
   }
-  cmd$outfile
+  args$outfile
 }
 
 minimapCmd <- function(paths, opts) {
-  exepath <- normalizePath(Sys.which("minimap2"), mustWork = TRUE)
   sprintf(
-    "%s -a %s '%s' %s | gzip -3 > '%s'",
-    exepath,
+    "-a %s '%s' %s | gzip -3 > '%s'",
     .makeOpts(opts),
     paths$reffile,
     paths$readfile,
@@ -70,38 +69,39 @@ runbwamem <- function(reffile,
   # refname <- "n"
   # outdir <- self$getOutdir()
 
-  cmd <- .generateMappingCommands("bwamem", readtype, reffile, readfile,
+  cmd <- normalizePath(Sys.which("bwa"), mustWork = TRUE)
+  args <- .generateMappingCommands("bwamem", readtype, reffile, readfile,
                                    allele, opts, refname, optsname,
                                    outdir = outdir)
   ## Don't execute if file exists and force is false
-  if (force || !file.exists(cmd$outfile)) {
-    system(cmd$cmd)
+  if (force || !file.exists(args$outfile)) {
+    system2(cmd, args$args$idx)
+    system2(cmd, args$args$map)
   }
   ## cleanup
-  .fileDeleteIfExists(paste0(cmd$reffile, ".amb"))
-  .fileDeleteIfExists(paste0(cmd$reffile, ".ann"))
-  .fileDeleteIfExists(paste0(cmd$reffile, ".bwt"))
-  .fileDeleteIfExists(paste0(cmd$reffile, ".fai"))
-  .fileDeleteIfExists(paste0(cmd$reffile, ".pac"))
-  .fileDeleteIfExists(paste0(cmd$reffile, ".sa"))
+  .fileDeleteIfExists(args$reffile %<<% ".amb")
+  .fileDeleteIfExists(args$reffile %<<% ".ann")
+  .fileDeleteIfExists(args$reffile %<<% ".bwt")
+  .fileDeleteIfExists(args$reffile %<<% ".fai")
+  .fileDeleteIfExists(args$reffile %<<% ".pac")
+  .fileDeleteIfExists(args$reffile %<<% ".sa")
 
-  cmd$outfile
+  args$outfile
 }
 
 # Options: -x STR read type (pacbio, ont2d, intractg)
 #          -t INT number of threads
 bwamemCmd <- function(paths, opts) {
-  exepath <- normalizePath(Sys.which("bwa"), mustWork = TRUE)
-  .idx <- sprintf("%s index -a is '%s'", exepath, paths$reffile)
-  sprintf(
-    "%s && %s mem %s '%s' %s | gzip -3 > '%s'",
-    .idx,
-    exepath,
+  .idx <- sprintf("index -a is '%s'", paths$reffile)
+  map <- sprintf(
+    "mem %s '%s' %s | gzip -3 > '%s'",
     .makeOpts(opts),
     paths$reffile,
     paths$readfile,
     paths$outfile
   )
+  list(idx = .idx,
+       map = map)
 }
 
 .makeOpts <- function(opts) {
@@ -121,7 +121,7 @@ bwamemCmd <- function(paths, opts) {
                                       outdir = "./output") {
   mapper   <- match.arg(mapper, c("minimap", "bwamem"))
   readtype <- match.arg(readtype, c("pacbio", "nanopore", "illumina"))
-  mapfun <- match.fun(paste0(mapper, "Cmd"))
+  mapfun <- match.fun(mapper %<<% "Cmd")
   outdir <- .dirCreateIfNotExists(outdir)
 
   reffile <- normalizePath(reffile, mustWork = TRUE)
@@ -260,11 +260,11 @@ bwamemCmd <- function(paths, opts) {
   ## reffile and outfile format
   ## [prefix.]allele.readtype.mapper.[refname.][optsname.][suffix.]ext
   # workaround for these damn windows filename conventions
-  alleleNm  <- gsub("[*]", "#", 
+  alleleNm  <- gsub("[*]", "_", 
                     gsub("[:]", "_", paste0(allele, collapse = "~")))
-  allelename <- sprintf("%s%s.%s.", alleleNm %+% ".", readtype, mapper)
-  refname <- refname %+% "."
-  optsname <- optsname %+% "."
+  allelename <- sprintf("%s%s.%s.", alleleNm %<<% ".", readtype, mapper)
+  refname <- refname %<<% "."
+  optsname <- optsname %<<% "."
 
   paths <- list(
     reffile  = ref,
@@ -275,7 +275,7 @@ bwamemCmd <- function(paths, opts) {
   )
 
   list(
-    cmd      = mapfun(paths, opts),
+    args      = mapfun(paths, opts),
     reffile  = paths$reffile,
     readfile = paths$readfile,
     outfile  = paths$outfile

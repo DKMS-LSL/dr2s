@@ -28,7 +28,7 @@ print.variantList <- function(x, threshold = 0.2, ...) {
     print(x$variant)
   } else {
     m <- rbind(x$lr, x$sr)
-    grp <- paste0("Pos [", colon(unique(rownames(m))), "]")
+    grp <- "Pos [" %<<% colon(unique(rownames(m))) %<<% "]"
     rownames(m) <- if(NROW(m) == 2) (c("LR", "SR")) else  ("LR")
 
     cat(sprintf("%+10s", grp), sep = "\n")

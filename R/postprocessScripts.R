@@ -23,7 +23,7 @@ tryCatch(reportCheckedConsensus(x),
          })
 '
 
-  write(paste0("#!/usr/bin/env bash\nRscript ", rFile), bashFile)
+  write("#!/usr/bin/env bash\nRscript " %<<% rFile, bashFile)
   write(script, file.path(path, rFile))
   Sys.chmod(bashFile, mode = "775")
 }
@@ -52,15 +52,15 @@ tryCatch(checkAlignmentFile(x),
          })
 '
   write(script, file.path(path, rFile))
-  write(paste0("#!/usr/bin/env bash\nRscript ", rFile), bashFile)
+  write("#!/usr/bin/env bash\nRscript " %<<% rFile, bashFile)
   Sys.chmod(bashFile, mode = "775")
 }
 
 .writeRefineAlignments <- function(path, haptypes, libpath = ".pplib") {
   .writeScript <- function(hptype, path) {
-    bashFile <- file.path(path, paste0("run_remap", hptype, ".sh"))
-    rFile    <- file.path(libpath, paste0("remap", hptype, ".R"))
-    script   <- paste0(
+    bashFile <- file.path(path, "run_remap" %<<% hptype %<<% ".sh")
+    rFile    <- file.path(libpath, "remap" %<<% hptype %<<% ".R")
+    script   <- sprintf(
 '#!/usr/bin/env Rscript
 library(DR2S)
 ## get the scripts dir for change wd
@@ -71,7 +71,7 @@ scriptBaseName <- dirname(scriptName)
 setwd(scriptBaseName)
 
 x <- readDR2S("..")
-tryCatch({refineAlignment(x, "', hptype, '")
+tryCatch({refineAlignment(x, "%s")
          },
          error = function(e) {
            system(paste(
@@ -80,9 +80,9 @@ tryCatch({refineAlignment(x, "', hptype, '")
              shQuote(e),
              shQuote("Run in terminal to see whats wrong")))
          })
-')
+', hptype)
     write(script, file.path(path, rFile))
-    write(paste0("#!/usr/bin/env bash\nRscript ", rFile), bashFile)
+    write("#!/usr/bin/env bash\nRscript " %<<% rFile, bashFile)
     Sys.chmod(bashFile, mode = "775")
   }
   invisible(lapply(haptypes, function(hp) .writeScript(hp, path)))

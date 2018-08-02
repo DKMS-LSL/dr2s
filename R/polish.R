@@ -21,12 +21,12 @@ polish.DR2S <- function(x,
   ## Check if reporting is finished and exit safely for downstream analysis
   if (x$getReportStatus()) {
     currentCall <- strsplit1(deparse(sys.call()), "\\.")[1]
-    flog.info(paste0("%s: Reporting already done! Nothing to do.",
-                     " Exit safely for downstream analysis."),
+    flog.info("%s: Reporting already done! Nothing to do." %<<%
+                " Exit safely for downstream analysis.",
               currentCall, name = "info")
     return(invisible(x))
   }
-  assertthat::assert_that(
+  assert_that(
     is(x$mapFinal, "mapFinal"),
     all(unlist(foreach(i = x$mapFinal$pileup) %do% {
       is(i$consmat, "consmat")

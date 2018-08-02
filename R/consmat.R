@@ -212,6 +212,7 @@ is.freq.consmat <- function(consmat) attr(consmat, "freq")
 ## if > t set all to 0
 .pruneConsensusMatrix <- function(cm, nLookBehind = 36, cutoff = 0.6, 
                                   verbose = TRUE) {
+  ## Use names; by helper function
   rowsum <- rowSums(cm[, 1:4]) ## only consider bases
   m0 <- do.call(cbind, Map(function(n) dplyr::lag(rowsum, n), nLookBehind:1))
   wquant <- suppressWarnings(apply(m0, 1, 
@@ -268,56 +269,78 @@ createPWM <- function(msa){
   if (removeError) {
     gapError <- .getGapErrorBackground(mat, n = 5)
   }
-  for (i in which(seq$length > 5)) {
+  ## Collect changed matrix elements
+  changeMat <- bplapply(which(seq$length > 5),
+                      function(i, bamfile,
+                               reference, removeError) {
+    #i <- which(seq$length > 5)[3]
     ## Assign new gap numbers to each position starting from left
     # meanCoverage <- mean(rowSums(mat[seqStart:seqEnd,1:4]))
     seqStart <- sum(seq$lengths[seq_len(i - 1)]) + 1
     seqEnd <- seqStart + seq$lengths[i] - 1
-    region <- paste0(names(reference), ":", seqStart, "-", seqEnd)
+    region <- names(reference) %<<% ":" %<<% seqStart %<<% "-" %<<% seqEnd
 
     msa <- .msaFromBam(bamfile, reference, paddingLetter = "+", region = region)
-    ## Use only sequences spanning the complete region! Every other sequence
-    ## gives no Info
-    msa <- msa[sapply(msa, function(x) !"+" %in% Biostrings::uniqueLetters(x))]
-
-    if (removeError) {
-      aFreq <- Biostrings::alphabetFrequency(msa[1])
-      nt <- colnames(aFreq)[which.max(aFreq)]
-      nucs <- sum(Biostrings::nchar(msa))
-      falseGaps <- round(nucs * gapError)
-      while (falseGaps > 0) {
-        seqsWithGap <- which(sapply(msa, function(x)
-          "-" %in% Biostrings::uniqueLetters(x)))
-        if (length(seqsWithGap) > 1) {
-          seqsToChange <- sample(seqsWithGap,
-                                 min(falseGaps,
-                                     length(seqsWithGap)))
-        } else {
-          seqsToChange <- seqsWithGap
+    
+    ## Skip position if empty
+    if (length(msa) == 0) {
+      NULL
+    } else {
+      ## Use only sequences spanning the complete region! Every other sequence
+      ## gives no Info
+      msa <- msa[vapply(msa, function(x) !"+" %in% Biostrings::uniqueLetters(x), 
+                        FUN.VALUE = logical(1))]
+  
+      if (removeError) {
+        aFreq <- Biostrings::alphabetFrequency(msa[1])
+        nt <- colnames(aFreq)[which.max(aFreq)]
+        nucs <- sum(Biostrings::nchar(msa))
+        falseGaps <- round(nucs * gapError)
+        while (falseGaps > 0) {
+          seqsWithGap <- which(vapply(msa, function(x)
+            "-" %in% Biostrings::uniqueLetters(x), FUN.VALUE = logical(1)))
+          if (length(seqsWithGap) > 1) {
+            set.seed(3)
+            seqsToChange <- sample(seqsWithGap,
+                                   min(falseGaps,
+                                       length(seqsWithGap)))
+            s1 <- seqsToChange
+          } else {
+            seqsToChange <- seqsWithGap
+          }
+          if (length(seqsToChange) == 0)
+            break
+          msaChanged <- Biostrings::DNAStringSet(
+            lapply(msa[seqsToChange], function(x) {
+              # x <- msa[seqsToChange][[1]]
+              pos <- Biostrings::matchPattern("-", x)[1]
+              Biostrings::replaceLetterAt(x,
+                                       Biostrings::start(
+                                         Biostrings::matchPattern("-", x)[1]),
+                                       nt)
+            }))
+          msa[seqsToChange] <- msaChanged
+          falseGaps <- falseGaps - length(seqsToChange)
         }
-        if (length(seqsToChange) == 0)
-          break
-        msaChanged <- Biostrings::DNAStringSet(
-          sapply(msa[seqsToChange], function(x) {
-            # x <- msa[seqsToChange][[1]]
-            pos <- Biostrings::matchPattern("-", x)[1]
-            Biostrings::replaceLetterAt(x,
-                                     Biostrings::start(
-                                       Biostrings::matchPattern("-", x)[1]),
-                                     nt)
-          }))
-        msa[seqsToChange] <- msaChanged
-        falseGaps <- falseGaps - length(seqsToChange)
       }
+  
+      msa <- Biostrings::DNAStringSet(vapply(msa, function(x) {
+        gapless <- gsub(pattern = "-", "", x)
+        nGaps <- Biostrings::nchar(x) - Biostrings::nchar(gapless)
+        paste0(rep("-", nGaps), collapse = "") %<<% gapless
+      }, FUN.VALUE = character(1)))
+      list(
+        seqStart = seqStart,
+        seqEnd = seqEnd,
+        matPart = t(Biostrings::consensusMatrix(msa))[ ,VALID_DNA(include = "indel")]
+      )
+      # mat[seqStart:seqEnd,] <- t(Biostrings::consensusMatrix(msa))[
+      #   ,VALID_DNA(include = "indel")]
     }
-
-    msa <- Biostrings::DNAStringSet(sapply(msa, function(x) {
-      gapless <- gsub(pattern = "-", "", x)
-      nGaps <- Biostrings::nchar(x) - Biostrings::nchar(gapless)
-      paste0(paste0(rep("-", nGaps), collapse = ""), gapless)
-    }))
-    mat[seqStart:seqEnd,] <- t(Biostrings::consensusMatrix(msa))[
-      ,VALID_DNA(include = "indel")]
+  }, bamfile = bamfile, reference = reference, removeError = removeError)
+  ## Change the matrix
+  for (i in changeMat) {
+    mat[i$seqStart:i$seqEnd,] <- i$mat
   }
   mat
 }
@@ -336,4 +359,12 @@ createPWM <- function(msa){
   background <- mat[startSeq:endSeq,]
   backgroundSums <- colSums(background)
   backgroundSums["-"] / sum(backgroundSums)
+}
+
+
+.extractIdsFromMat <- function(mat, readIds) {
+  consmat(t(
+      Biostrings::consensusMatrix(mat[readIds], as.prob = FALSE)[
+        VALID_DNA(include = "indel"), ]
+    ), freq = FALSE)
 }

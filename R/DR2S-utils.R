@@ -69,8 +69,9 @@ readDR2S <- function(path) {
   }
   x$mapFinal$seq$A <- cseq
 
-  flog.info(paste0("Polish and look for inconsistencies between shortreads ", 
-                   "and longreads ..."), name = "info")
+  flog.info(
+    "Polish and look for inconsistencies between shortreads and longreads ...", 
+    name = "info")
   polish(x)
   flog.info("Report consensus sequence and potential problematic variants", 
             name = "info")
@@ -88,8 +89,8 @@ readDR2S <- function(path) {
 #' "mapFinal" or "refine".
 #' @param open whether to open an IGV instance now.
 #' @export
-runIgv <- function(x, position, map = "mapFinal", open = TRUE) {
-  assertthat::assert_that(
+createIgvConfigs <- function(x, position, map = "mapFinal", open = TRUE) {
+  assert_that(
     is(x, "DR2S")
   )
   map <- match.arg(map, c("mapInit",
@@ -119,27 +120,27 @@ runIgv <- function(x, position, map = "mapFinal", open = TRUE) {
     x$getHapTypes()
   }
   for (hp in haptypes){
-    igv <- file.path(igvdir, paste0("igv", hp, map, ".xml"))
+    igv <- file.path(igvdir, "igv" %<<% hp %<<% map %<<% ".xml")
     if (map == "mapFinal") {
       ref   <- x$mapIter[[as.character(x$getIterations())]][[hp]]$seqpath
       bamLR <- file.path("mapFinal", 
-                         basename(x$mapFinal$bamfile[[paste0("LR", hp)]]))
+                         basename(x$mapFinal$bamfile[["LR" %<<% hp]]))
       if (!is.null(x$mapFinal$sreads[[hp]]))
         bamSR <- file.path("mapFinal", 
-                           basename(x$mapFinal$bamfile[[paste0("SR", hp)]]))
+                           basename(x$mapFinal$bamfile[["SR" %<<% hp]]))
     } else if (map == "refine") {
       if (!is.null(x$consensus$refine$ref[[hp]])) {
         ref   <- x$consensus$refine$ref[[hp]]
-        bamLR <- x$consensus$refine$bamfile[[paste0("LR", hp)]]
+        bamLR <- x$consensus$refine$bamfile[["LR" %<<% hp]]
         if (!is.null(x$mapFinal$sreads[[hp]]))
-          bamSR <- x$consensus$refine$bamfile[[paste0("SR", hp)]]
+          bamSR <- x$consensus$refine$bamfile[["SR" %<<% hp]]
       } else {
         ref   <- x$mapIter[[as.character(x$getIterations())]][[hp]]$seqpath
         bamLR <- file.path("mapFinal", 
-                           basename(x$mapFinal$bamfile[[paste0("LR", hp)]]))
+                           basename(x$mapFinal$bamfile[["LR" %<<% hp]]))
         if (!is.null(x$mapFinal$sreads[[hp]]))
           bamSR <- file.path("mapFinal", 
-                             basename(x$mapFinal$bamfile[[paste0("SR", hp)]]))
+                             basename(x$mapFinal$bamfile[["SR" %<<% hp]]))
       }
     } else if (map == "mapInit") {
       if (x$getPartSR()) {
@@ -156,8 +157,7 @@ runIgv <- function(x, position, map = "mapFinal", open = TRUE) {
     }
     chr <- strsplit1(sub(">", "", 
                          readLines(file.path(basedir, ref), 1)), "\\s+")[1]
-    locus <- paste0(chr,  ":", 
-                    min(c((abs(position - 50)),0)), "-",  position + 50)
+    locus <-paste0(chr, ":", min(c((abs(position - 50)),0)), "-", position + 50)
 
     xml <- XML::xmlTree()
     suppressWarnings(xml$addTag("Global",
@@ -195,16 +195,16 @@ runIgv <- function(x, position, map = "mapFinal", open = TRUE) {
 
     igvConfigs[[hp]] <- x$relPath(igv)
   }
-  igvCommand <- file.path(basedir, paste0("runIGV_", map, ".sh"))
-  cmds <- paste0("igv ", igvConfigs, " &")
+  igvCommand <- file.path(basedir, "runIGV_" %<<% map %<<% ".sh")
+  cmds <- "igv " %<<% igvConfigs %<<% " &"
   write(cmds, igvCommand)
   Sys.chmod(igvCommand, mode = "775")
 
   ## for windows
-  igvCommandWin <- file.path(basedir, "win", paste0("runIGV_", map, ".bat"))
-  cmdsWin <- paste0("START P:\\IGV_2.4.10\\jre1.8.0_131\\bin\\javaw -Xmx2G ",
-                    "-jar P:\\IGV_2.4.10\\lib\\igv.jar  ", "%~dp0..\\", 
-                    gsub("/", "\\\\", gsub(".xml", ".win.xml", igvConfigs)))
+  igvCommandWin <- file.path(basedir, "win", "runIGV_" %<<% map %<<% ".bat")
+  cmdsWin <- "START P:\\IGV_2.4.10\\jre1.8.0_131\\bin\\javaw -Xmx2G " %<<%
+    "-jar P:\\IGV_2.4.10\\lib\\igv.jar  " %<<% "%~dp0..\\" %<<%
+    gsub("/", "\\\\", gsub(".xml", ".win.xml", igvConfigs))
   write(cmdsWin, igvCommandWin)
 
   if (open) {
@@ -217,4 +217,30 @@ runIgv <- function(x, position, map = "mapFinal", open = TRUE) {
       message("\nOpen IGV manually")
     }
   }
+}
+
+
+#' Create subsampled bam files and fasta index files for igv.js instances.
+#' 
+#' @param reference The reference fasta file used for mapping
+#' @param bamfile The bamfile which should be viewed in IGV.js
+#' @param ... Additional parameters passed to \code{\link{subSampleBam}}.
+#' @export
+createIgvJsFiles <- function(reference, bamfile, outdir, ...) {
+  assert_that(
+    file.exists(bamfile),
+    endsWith(bamfile, ".bam"),
+    file.exists(reference),
+    endsWith(reference, ".fa"))
+  ## Subsample the bam file
+  resultList <- subSampleBam(bamfile = bamfile, ...)
+  ## Index the reference
+  indexFa(reference)
+  resultList$referenceFile <- .cropPath(outdir, reference)
+  resultList$original <- .cropPath(outdir, resultList$original)
+  resultList$sampled <- .cropPath(outdir, resultList$sampled)
+  structure(
+    resultList, 
+   class = c("igvjs", "list")
+  )
 }

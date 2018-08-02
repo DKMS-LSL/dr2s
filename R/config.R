@@ -49,9 +49,6 @@ createDR2SConf <- function(sample,
   structure(conf1, class = c("DR2Sconf", "list"))
 }
 
-## TODO rm
-#configFile <- "~/bioinf/DR2S/KIR/20171130/3DP1_fertig/dr2s_conf.yaml"
-#readDR2SConf(configFile)
 #' Read a DR2S config file in yaml format
 #' @param configFile The path to the config file.
 #' @details DR2S config files can be created manually or by the 
