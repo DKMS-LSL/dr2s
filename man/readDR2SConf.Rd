@@ -13,6 +13,6 @@ readDR2SConf(configFile)
 Read a DR2S config file in yaml format
 }
 \details{
-DR2S config files can be created manually or by the 
+DR2S config files can be created manually or by the
 \code{\link{writeDR2SConf}} function.
 }

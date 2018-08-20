@@ -21,10 +21,10 @@ VALID_DNA <- function(include = "del"){
 
 CODE_MAP <- function() {
   c(
-    A =  "A",  C = "C",    G = "G",    T = "T",    M = "AC",   R = "AG",   
-    W = "AT",  S = "CG",   Y = "CT",   K = "GT",   V = "ACG",  H = "ACT",  
-    D = "AGT", B = "CGT",  N = "ACGT", a = "-A",   c = "-C",   g = "-G",  
-    t = "-T",  m = "-AC",  r = "-AG",  w = "-AT",  s = "-CG",  y = "-CT", 
+    A =  "A",  C = "C",    G = "G",    T = "T",    M = "AC",   R = "AG",
+    W = "AT",  S = "CG",   Y = "CT",   K = "GT",   V = "ACG",  H = "ACT",
+    D = "AGT", B = "CGT",  N = "ACGT", a = "-A",   c = "-C",   g = "-G",
+    t = "-T",  m = "-AC",  r = "-AG",  w = "-AT",  s = "-CG",  y = "-CT",
     k = "-GT", v = "-ACG", h = "-ACT", d = "-AGT", b = "-CGT", n = "-ACGT"
   )
 }
@@ -78,8 +78,8 @@ COL_PATTERN <- function() {
 }
 
 VALID_LOCI <- function() {
-  hlaLoci <- ipdDb::loadHlaData()$getLoci()
-  kirLoci <- ipdDb::loadKirData()$getLoci()
+  hlaLoci <- suppressWarnings(suppressMessages(ipdDb::loadHlaData()$getLoci()))
+  kirLoci <- suppressWarnings(suppressMessages(ipdDb::loadKirData()$getLoci()))
   c(hlaLoci, kirLoci)
 }
 
@@ -160,13 +160,13 @@ strsplitN <- function(x, split, n, from = "start", collapse = split, ...) {
                              value = end), NULL)
   }
   n <- lapply(n, sort %.% unique)
-  unlist(.mapply(function(x, n) paste0(x[n], collapse = collapse), 
+  unlist(.mapply(function(x, n) paste0(x[n], collapse = collapse),
                  list(x = xs, n = n), NULL))
 }
 
 optstring <- function(opts, ...) {
   opts[vapply(opts, isTRUE, FALSE)] <- ""
-  paste0(c(sprintf("-%s%s", names(opts), opts), ...), collapse = " ") %|ch|% 
+  paste0(c(sprintf("-%s%s", names(opts), opts), ...), collapse = " ") %|ch|%
     "default"
 }
 
@@ -359,11 +359,11 @@ editor <- function(x, pos = NULL, useEditor = "xdg-open") {
 #' Plot an alignment of all intermediate sequences and reference
 #'
 #' @param x A \code{\link[=DR2S_]{DR2S}} object.
-#' @param onlyFinal restrict to final sequences 
+#' @param onlyFinal restrict to final sequences
 #'
 #' @return NULL
-#' @details Calls \code{\link[DECIPHER]{BrowseSeqs}} to open the alignment of 
-#' references, final and intermediate (only if \code{onlyFinal} is FALSE) in a 
+#' @details Calls \code{\link[DECIPHER]{BrowseSeqs}} to open the alignment of
+#' references, final and intermediate (only if \code{onlyFinal} is FALSE) in a
 #' browser. The alignment is created with \code{\link[DECIPHER]{AlignSeqs}}.
 #' @examples
 #' ###
@@ -373,13 +373,13 @@ plotDiagnosticAlignment <- function(x, onlyFinal = FALSE) {
   # Given Ref
   seqs1 <- x$getRefSeq()
   names(seqs1) <- paste0("0 ", names(seqs1))
-  seqs2 <- Biostrings::DNAStringSet(unlist(lapply(x$mapIter, function(y) 
+  seqs2 <- Biostrings::DNAStringSet(unlist(lapply(x$mapIter, function(y)
     sapply(y, function(a) unlist(a$conseq)))))
-  names(seqs2) <- unlist(lapply(names(x$mapIter), function(y) 
+  names(seqs2) <- unlist(lapply(names(x$mapIter), function(y)
     paste(x$getHapTypes(), "map", y)))
 
   # final reference
-  seqs3 <- Biostrings::DNAStringSet(lapply(x$mapFinal$seq, function(y) 
+  seqs3 <- Biostrings::DNAStringSet(lapply(x$mapFinal$seq, function(y)
     unlist(y)))
   names(seqs3) <- paste(names(seqs3), "mapFinal")
 

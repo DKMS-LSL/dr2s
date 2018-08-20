@@ -15,8 +15,8 @@ plotDiagnosticAlignment(x, onlyFinal = FALSE)
 Plot an alignment of all intermediate sequences and reference
 }
 \details{
-Calls \code{\link[DECIPHER]{BrowseSeqs}} to open the alignment of 
-references, final and intermediate (only if \code{onlyFinal} is FALSE) in a 
+Calls \code{\link[DECIPHER]{BrowseSeqs}} to open the alignment of
+references, final and intermediate (only if \code{onlyFinal} is FALSE) in a
 browser. The alignment is created with \code{\link[DECIPHER]{AlignSeqs}}.
 }
 \examples{

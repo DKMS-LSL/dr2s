@@ -1,18 +1,18 @@
 ## mapping wrapper functions
-## 
+##
 mapReads <- function(
-  maptag, reffile, readfile, allele, readtype, opts = NULL,  refname = "", 
-  optsname = "", force, outdir, minMapq = 0, clean,  threshold, maxDepth = 1e4, 
+  maptag, reffile, readfile, allele, readtype, opts = NULL,  refname = "",
+  optsname = "", force, outdir, minMapq = 0, clean,  threshold, maxDepth = 1e4,
   minBaseQuality = 3,  minNucleotideDepth = 3, refseq = NULL, includeInsertions,
-  mapFun,   clip = FALSE, distributeGaps = FALSE, includeDeletions, 
+  mapFun,   clip = FALSE, distributeGaps = FALSE, includeDeletions,
   removeError = TRUE) {
-  
+
   ## Run mapper
   flog.info("  Mapping ...", name = "info")
   samfile <- mapFun(reffile = reffile, readfile = readfile, allele = allele,
     readtype = readtype, opts = opts, refname  = refname, optsname = optsname,
     force = force, outdir = outdir)
-  
+
   if (clip) {
     flog.info("  Trimming softclips and polymorphic ends ...",
               name = "info")
@@ -36,12 +36,12 @@ mapReads <- function(
               name = "info")
     samfile <- mapFun(
       reffile = reffile, readfile = fqout, allele = maptag, readtype = readtype,
-      opts = list(A = 1, B = 4, O = 2), refname = refname, 
+      opts = list(A = 1, B = 4, O = 2), refname = refname,
       optsname = optstring(opts), force = force, outdir = outdir)
     # cleanup
     .fileDeleteIfExists(fqout)
   }
-    
+
   ## Run bam - sort - index pipeline
   flog.info("  Indexing ...", name = "info")
   bamfile <- .bamSortIndex(samfile = samfile, reffile = reffile,
@@ -49,21 +49,22 @@ mapReads <- function(
 
   ## Calculate pileup from graphmap produced SAM file
   flog.info("  Piling up ...", name = "info")
-  pileup <- Pileup( bamfile, threshold, max_depth = maxDepth,
+  pileup <- Pileup(bamfile, threshold, max_depth = maxDepth,
     min_base_quality = minBaseQuality, min_mapq = minMapq,
     min_nucleotide_depth = minNucleotideDepth,
     include_deletions = includeDeletions,
     include_insertions = includeInsertions)
-  
+
   if (distributeGaps) {
-    pileup$consmat <- .distributeGaps(pileup$consmat, bamfile, 
-                                      reference = refseq, 
+    pileup$consmat <- .distributeGaps(mat = pileup$consmat,
+                                      bamfile = bamfile,
+                                      reference = refseq,
                                       removeError = removeError)
   }
 
   if (includeInsertions && is.null(ins(pileup$consmat))) {
     ## TODO check threshold
-    pileup <- .pileupIncludeInsertions(x = pileup, threshold = 0.1)
+    pileup <- .pileupIncludeInsertions(x = pileup, threshold = 0.15)
   }
   pileup
 }

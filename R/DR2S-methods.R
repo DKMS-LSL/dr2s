@@ -398,8 +398,9 @@ DR2S_$set("public",
     # threshold = NULL
     # skipGapFreq = 2/3
     # distAlleles = NULL
-    # noGapPartitioning = TRUE
-    # selectAllelesBy = "count"
+    # noGapPartitioning = FALSE
+    # selectAllelesBy = "distance"
+    # minClusterSize = 15
     # plot = TRUE
     # self <- dr2s
     # library(futile.logger)
@@ -1051,6 +1052,7 @@ mapFinal.DR2S <- function(x,
                 minNucleotideDepth = minNucleotideDepth,
                 includeDeletions = includeDeletions,
                 includeInsertions = includeInsertions,
+                force = force,
                 fullname = fullname,
                 plot = plot,
                 clip = clip)
@@ -1080,7 +1082,7 @@ DR2S_$set("public", "runMapFinal", function(opts = list(),
   # force = FALSE
   # fullname = TRUE
   # plot = TRUE
-  # clip = TRUE
+  # clip = FALSE
   # self <- dr2s
   # library(futile.logger)
   # library(foreach)
@@ -1091,7 +1093,7 @@ DR2S_$set("public", "runMapFinal", function(opts = list(),
             name = "info")
 
   ## Check if reporting is already finished and exit safely
-  if (.checkReportStatus(self)) return(invisible(self))
+  if (!force && .checkReportStatus(self)) return(invisible(self))
 
   ## Overide default arguments
   args <- self$getOpts("mapFinal")
@@ -1149,7 +1151,7 @@ DR2S_$set("public", "runMapFinal", function(opts = list(),
     flog.info("  Map longreads to consensus", name = "info")
 
     pileup <- mapReads(
-      maptag = maptagLR, reffile = reffile,  readfile = readfileLR,
+      maptag = maptagLR, reffile = reffile, readfile = readfileLR,
       threshold = threshold, allele = mapgroupLR, readtype = readtype,
       opts = opts, outdir = outdir, minMapq = minMapq, refname = hptype,
       optsname = optstring(opts), minBaseQuality = minBaseQuality,
@@ -1250,7 +1252,7 @@ DR2S_$set("public", "runPipeline", function() {
   steps_ <- self$getPipeline()
   while (length(steps_) > 0) {
     step <- steps_[1]
-    private$run_(step)
+    self$run_(step)
     steps_ <- steps_[-1]
   }
   self

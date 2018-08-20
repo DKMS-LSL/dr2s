@@ -13,7 +13,7 @@ partitionReads(x, distAlleles = 2, sortBy = "count", threshold = 0.2,
 
 \item{distAlleles}{Number of distinct alleles in the sample.}
 
-\item{sortBy}{sort by "distance" or "count". See 
+\item{sortBy}{sort by "distance" or "count". See
 \code{\link{partitionLongReads}} for details}
 
 \item{threshold}{Only gaps above threshold will be treated as gaps.
