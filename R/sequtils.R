@@ -36,9 +36,9 @@
     dplyr::transmute(keep = ifelse(is.na(.data$start) & is.na(.data$end),
                                    readlength,
                                    readlength -
-                                     abs(ifelse(is.na(.data$end), 0, 
+                                     abs(ifelse(is.na(.data$end), 0,
                                                 .data$end) -
-                                           ifelse(is.na(.data$start), 0, 
+                                           ifelse(is.na(.data$start), 0,
                                                   .data$start))))
 
   alignmentScoreThreshold = 0.3*readlength # Change to dynamic
@@ -118,8 +118,8 @@
 #' @keywords internal
 #' @examples
 #' ###
-generateReferenceSequence <- function(allele, locus, outdir, dirtag=NULL,
-                                        fullname=TRUE) {
+generateReferenceSequence <- function(allele, locus, outdir, dirtag = NULL,
+                                      fullname = TRUE) {
   if (is.null(allele)) {
     return(NULL)
   }
@@ -131,7 +131,7 @@ generateReferenceSequence <- function(allele, locus, outdir, dirtag=NULL,
   }
   if (!allele %in% ipd$getAlleles(locus)) 
     stop(sprintf("Allele %s not found in database", allele))
-    
+
   .dirCreateIfNotExists(normalizePath(
     file.path(outdir, dirtag), mustWork=FALSE))
   assert_that(
@@ -139,7 +139,7 @@ generateReferenceSequence <- function(allele, locus, outdir, dirtag=NULL,
     is.dir(outdir),
     is.writeable(outdir)
   )
-  sref <- foreach(i=allele, .combine="c") %do% {
+  sref <- foreach(i = allele, .combine = "c") %do% {
     sref <- ipd$getClosestComplete(i, locus)
     if (fullname) {
       names(sref) <- gsub(" +", "_", names(sref))
@@ -197,8 +197,8 @@ generateReferenceSequence <- function(allele, locus, outdir, dirtag=NULL,
     i <- i[Biostrings::width(sr[i]) > pos]
     if (length(i) == 0)
       next
-    i <- i[Biostrings::subseq(sr[i], pos, pos) == Biostrings::subseq(sr[i], 
-                                                                     pos + 1, 
+    i <- i[Biostrings::subseq(sr[i], pos, pos) == Biostrings::subseq(sr[i],
+                                                                     pos + 1,
                                                                      pos + 1)]
     start[i] <- start[i] + 1
     pos <- pos + 1
@@ -217,9 +217,9 @@ generateReferenceSequence <- function(allele, locus, outdir, dirtag=NULL,
     i <- i[pos[i] > 1]
     if (length(i) == 0)
       next
-    i <- i[Biostrings::subseq(sr[i], pos[i], 
-                              pos[i]) == Biostrings::subseq(sr[i], 
-                                                            pos[i] - 1, 
+    i <- i[Biostrings::subseq(sr[i], pos[i],
+                              pos[i]) == Biostrings::subseq(sr[i],
+                                                            pos[i] - 1,
                                                             pos[i] - 1)]
     end[i] <- end[i] - 1
     pos[i] <- pos[i] - 1
@@ -369,7 +369,7 @@ checkHomoPolymerCount <- function(x, count = 10, map = "mapFinal") {
     }
     plots <- ggplot(data = homopolymersHP) +
       geom_histogram(aes(length), binwidth = 1) +
-      scale_x_continuous(breaks = seq(min(homopolymersHP$length), 
+      scale_x_continuous(breaks = seq(min(homopolymersHP$length),
                                       max(homopolymersHP$length), 1)) +
       facet_grid(position~., scales = "free_y") +
       ggtitle(paste("Homopolymer length", hp)) +
@@ -377,7 +377,6 @@ checkHomoPolymerCount <- function(x, count = 10, map = "mapFinal") {
     list(n = n, plot = plots)
   }
   if (!all(is.null(unlist(p)))) {
-    
     plots <- lapply(p, function(x) x$plot)
     n <- max(vapply(p, function(x) length(x$n), FUN.VALUE = integer(1)))
     p1 <- cowplot::plot_grid(plotlist = plots, nrow = length(n))

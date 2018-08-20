@@ -65,3 +65,4 @@ Other DR2S mapper functions: \code{\link{cache}},
   \code{\link{reportCheckedConsensus}},
   \code{\link{report}}
 }
+\concept{DR2S mapper functions}

@@ -2,7 +2,7 @@
 % Please edit documentation in R/partition-reads.R
 \name{plotPartitionHistogramMulti}
 \alias{plotPartitionHistogramMulti}
-\title{Plot distribution of haplotype partitioned reads for more than two 
+\title{Plot distribution of haplotype partitioned reads for more than two
 haplotypes}
 \usage{
 plotPartitionHistogramMulti(x, limits, label = "")
@@ -18,7 +18,7 @@ plotPartitionHistogramMulti(x, limits, label = "")
 A \code{ggplot} object.
 }
 \description{
-Plot distribution of haplotype partitioned reads for more than two 
+Plot distribution of haplotype partitioned reads for more than two
 haplotypes
 }
 \examples{

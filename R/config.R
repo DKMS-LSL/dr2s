@@ -31,9 +31,9 @@ createDR2SConf <- function(sample,
     srmapper       = conf0$srmapper %||% "bwamem",
     limits         = conf0$limits   %||% NULL,
     haptypes       = conf0$haptypes %||% NULL,
-    pipeline       = conf0$pipeline %||% c("clear", "mapInit", 
-                                           "partitionLongReads", "mapIter", 
-                                           "partitionShortReads", "mapFinal", 
+    pipeline       = conf0$pipeline %||% c("clear", "mapInit",
+                                           "partitionLongReads", "mapIter",
+                                           "partitionShortReads", "mapFinal",
                                            "polish", "report"),
     longreads      = longreads,
     shortreads     = shortreads,
@@ -48,15 +48,15 @@ createDR2SConf <- function(sample,
 
 #' Read a DR2S config file in yaml format
 #' @param configFile The path to the config file.
-#' @details DR2S config files can be created manually or by the 
+#' @details DR2S config files can be created manually or by the
 #' \code{\link{writeDR2SConf}} function.
 #' @export
 readDR2SConf <- function(configFile) {
   conf <- yaml::yaml.load_file(configFile)
   ## set defaults if necessary
-  conf$datadir        <- conf$datadir        %||% normalizePath(".", 
+  conf$datadir        <- conf$datadir        %||% normalizePath(".",
                                                                 mustWork = TRUE)
-  conf$outdir         <- conf$outdir         %||% file.path(conf$datadir, 
+  conf$outdir         <- conf$outdir         %||% file.path(conf$datadir,
                                                             "output")
   conf$threshold      <- conf$threshold      %||% 0.2
   conf$iterations     <- conf$iterations     %||% 2
@@ -70,16 +70,18 @@ readDR2SConf <- function(configFile) {
   conf$haptypes       <- conf$haptypes       %||% list(NULL)
   conf$distAlleles    <- conf$distAlleles    %||% 2
   conf$pipeline       <- conf$pipeline       %||% c("clear", "mapInit",
-                                                     "partitionLongReads", 
-                                                     "mapIter", 
-                                                     "partitionShortReads", 
-                                                     "mapFinal",
-                                                     "polish", "report")
-  conf$longreads       <- conf$longreads     %||% list(type = "pacbio", 
-                                                        dir = "pacbio")
+                                                    "partitionLongReads",
+                                                    "mapIter",
+                                                    "partitionShortReads",
+                                                    "mapFinal",
+                                                    "polish", "report")
+
+  conf$longreads       <- conf$longreads     %||% list(type = "pacbio",
+                                                       dir = "pacbio")
+
   conf$shortreads      <- conf$shortreads    %||% NULL
   conf$details         <- gsub(";", ",", conf$details)       %||% list(NULL)
-  
+
   if (length(conf$shortreads) == 1 && is.list(conf$shortreads[[1]]))
     conf$shortreads <- conf$shortreads[[1]]
 
@@ -87,6 +89,7 @@ readDR2SConf <- function(configFile) {
     conf["opts"] <-  list(NULL)
   expandDR2SConf(structure(conf, class = c("DR2Sconf", "list")))
 }
+
 expandDR2SConf <- function(conf) {
   ## we can have more than one sample
   samples <- conf$samples
@@ -103,12 +106,12 @@ expandDR2SConf <- function(conf) {
     foreach(lrd = lrds, .combine = "c") %:%
     foreach(dst = sample$distAlleles, .combine = "c") %:%
     foreach(ref = sample$reference, .combine = "c") %do% {
-      updateDR2SConf(conf, lrd, sampleId, sample, ref, 
+      updateDR2SConf(conf, lrd, sampleId, sample, ref,
                      dst)
     }
 }
 
-updateDR2SConf <- function(conf0, lrd, sampleId, locus, reference, 
+updateDR2SConf <- function(conf0, lrd, sampleId, locus, reference,
                           dst) {
   conf0$datadir   <- normalizePath(conf0$datadir, mustWork = TRUE)
   conf0$outdir    <- normalizePath(conf0$outdir, mustWork = FALSE)
@@ -129,17 +132,17 @@ initialiseDR2S <- function(conf, createOutdir = TRUE) {
       conf$sampleId#,
       ## Use only sample id
       # conf$longreads$name %||% conf$longreads$dir %||% "",
-      # paste0(.normaliseLocus(conf$locus), ".", conf$longreads$type, ".", 
+      # paste0(.normaliseLocus(conf$locus), ".", conf$longreads$type, ".",
     )))
   }
   conf
 }
 
 validateDR2SConf <- function(conf) {
-  fields <- c("datadir", "outdir", "threshold", "iterations", "microsatellite", 
-              "distAlleles", "filterScores", "partSR", "forceMapping", 
-              "lrmapper", "srmapper", "limits", "haptypes", "pipeline", 
-              "longreads", "shortreads", "opts", "sampleId", "locus", 
+  fields <- c("datadir", "outdir", "threshold", "iterations", "microsatellite",
+              "distAlleles", "filterScores", "partSR", "forceMapping",
+              "lrmapper", "srmapper", "limits", "haptypes", "pipeline",
+              "longreads", "shortreads", "opts", "sampleId", "locus",
               "reference", "details")
   assert_that(all(fields %in% names(conf)),
               msg = paste("Missing fields <", 
@@ -177,7 +180,7 @@ validateDR2SConf <- function(conf) {
   
   ## Check pipeline
   pipesteps <- c("clear", "cache", "mapInit", "mapIter", "mapFinal",
-                 "partitionLongReads", "partitionShortReads", "polish", 
+                 "partitionLongReads", "partitionShortReads", "polish",
                  "report")
   assert_that(all(conf$pipeline %in% pipesteps),
               msg = paste(

@@ -49,7 +49,7 @@ MergeEnv_ <- R6::R6Class(
     initialize = function(x, threshold = x$getThreshold()) {
       assert_that(is(x, "DR2S"))
       self$hptypes <- foreach(hptype = x$getHapTypes(),
-                              .final = function(h) 
+                              .final = function(h)
                                 setNames(h, x$getHapTypes())) %do% {
        structure(as.environment(list(haplotype = hptype)), class = "HapEnv")
       }
@@ -58,7 +58,6 @@ MergeEnv_ <- R6::R6Class(
       self$threshold = threshold
       self$x = x
     },
-
     isInitialised = function(hapEnv) {
       hapEnv <- match.arg(hapEnv, self$x$getHapTypes())
       !is.null(self$hptypes[[hapEnv]]$init)
@@ -81,27 +80,30 @@ MergeEnv_ <- R6::R6Class(
   )
 )
 
+## self$init() ####
 MergeEnv_$set("public", "init", function(hapEnv) {
   hapEnv <- match.arg(hapEnv, self$x$getHapTypes())
   envir <- self$hptypes[[hapEnv]]
 
   readtype <- ifelse(!is.null(self$x$mapFinal$sreads[[hapEnv]]), "SR", "LR")
 
-  if (readtype == "SR"){
-    envir$SR <- self$x$mapFinal$pileup[["SR" %<<% hapEnv]]$consmat 
-    lr <- self$x$mapFinal$pileup[["LR" %<<% hapEnv]]$consmat 
-    envir$LR <- .expandLongreadConsmat(lrm = lr, srm = envir$SR)
+  if (readtype == "SR") {
+    lr <- self$x$mapFinal$pileup[["LR" %<<% hapEnv]]$consmat
+    sr <- self$x$mapFinal$pileup[["SR" %<<% hapEnv]]$consmat
+    rs <- .equaliseConsmat(lrm = lr, srm = sr)
+    envir$LR <- rs$lrm
+    envir$SR <- rs$srm
   } else {
-    envir$LR <- self$x$mapFinal$pileup[["LR" %<<% hapEnv]]$consmat 
+    envir$LR <- self$x$mapFinal$pileup[["LR" %<<% hapEnv]]$consmat
     envir$SR <- NULL
   }
-  
+
   apos <- foreach(rt = c("LR", "SR"), .combine = c) %do% {
     # threshold <- ifelse(rt == "LR", max(c(threshold, 0.2)), threshold)
     .ambiguousPositions(envir[[rt]], self$threshold)
   }
   apos <- unique(sort(apos))
-  
+
   envir$POSit = itertools::ihasNext(
     iter(apos))
   envir$variants = list()
@@ -145,28 +147,28 @@ MergeEnv_$set("public", "walk", function(hapEnv, verbose = FALSE) {
 
   invisible(self)
 })
+
 ## private$stepThrough() ####
 MergeEnv_$set("private", "stepThrough", function(envir) {
-# stepThrough <- function(envir) {
+  # stepThrough <- function(envir) {
   if (!itertools::hasNext(envir$POSit)) {
     return(FALSE)
   }
   envir$pos <- ifelse(!is.null(envir$SR),
                       iterators::nextElem(envir$POSit) + offsetBases(envir$SR),
                       iterators::nextElem(envir$POSit) + offsetBases(envir$LR))
-  p <- envir$pos
-  x <- yield(envir)
+  # p  <- envir$pos
+  # x  <- yield(envir)
   rs <- disambiguateVariant(yield(envir), threshold = self$threshold)
-  
+
   .update(envir) <- rs
   TRUE
-}
-)
+})
 
 ## self$showConsensus() ####
-MergeEnv_$set("public", "showConsensus", function(envir, 
-                                                  pos, left = 6, right = left, 
-                                                  offseBasest = 0) {
+MergeEnv_$set("public", "showConsensus", function(envir,
+                                                  pos, left = 6, right = left,
+                                                  offsetBases = 0) {
   # debug
   # envir <- self$a
   #self$a$init()
@@ -181,20 +183,20 @@ MergeEnv_$set("public", "showConsensus", function(envir,
   lr <- envir$LR[min:(pos + offsetBases + right), , drop = FALSE]
   sr <- envir$SR[min:(pos + offsetBases + right), , drop = FALSE]
   ## Conseq
-  lcs <- tolower(.makeAmbigConsensus_(lr, threshold = self$threshold, 
+  lcs <- tolower(.makeAmbigConsensus_(lr, threshold = self$threshold,
                                        excludeGaps = FALSE, asString = TRUE))
     # here
   substr(lcs, left + 1, left + 1) <- toupper(substr(lcs, left + 1, left + 1))
-  scs <- tolower(.makeAmbigConsensus_(sr, threshold = self$threshold, 
+  scs <- tolower(.makeAmbigConsensus_(sr, threshold = self$threshold,
                                        excludeGaps = FALSE, asString = TRUE))
   substr(scs, left + 1, left + 1) <- toupper(substr(scs, left + 1, left + 1))
-  show <- sprintf(" Haplotype %s [%s] \nlr: %s\nsr: %s\n\n", 
+  show <- sprintf(" Haplotype %s [%s] \nlr: %s\nsr: %s\n\n",
                   envir$haplotype, pos, lcs, scs)
   cat(show)
 })
 
 ## self$showMatrix() ####
-MergeEnv_$set("public", "showMatrix", function(envir, pos, left = 6, 
+MergeEnv_$set("public", "showMatrix", function(envir, pos, left = 6,
                                                right = left, offsetBases = 0) {
   if (is.null(envir$init)) {
     cat("Haplotype", envir$haplotype, "not initialised.")
@@ -206,15 +208,15 @@ MergeEnv_$set("public", "showMatrix", function(envir, pos, left = 6,
   min <- minimum(pos + offsetBases - left, 1)
   lr <- envir$LR[min:(pos + offsetBases + right), , drop = FALSE]
   sr <- envir$SR[min:(pos + offsetBases + right), , drop = FALSE]
-  lcs <- .makeAmbigConsensus_(lr, threshold = self$threshold, 
+  lcs <- .makeAmbigConsensus_(lr, threshold = self$threshold,
                                excludeGaps = FALSE, asString = TRUE)
-  scs <- .makeAmbigConsensus_(sr, threshold = self$threshold, 
+  scs <- .makeAmbigConsensus_(sr, threshold = self$threshold,
                                excludeGaps = FALSE, asString = TRUE)
-  cat("Haplotype ", envir$haplotype, 
-      "\nLong read map position [", pos + offsetBases, 
+  cat("Haplotype ", envir$haplotype,
+      "\nLong read map position [", pos + offsetBases,
       "] Consensus [", lcs, "]\n")
   print(lr, n = NROW(lr), noHead = TRUE, transpose = TRUE)
-  cat("Short read map position [", pos + offsetBases, "] Consensus [", 
+  cat("Short read map position [", pos + offsetBases, "] Consensus [",
       scs, "]\n")
   print(sr, n = NROW(sr), noHead = TRUE, transpose = TRUE)
 })
@@ -233,7 +235,7 @@ MergeEnv_$set("public", "export", function() {
               },
       ## consensus for checking
       seq = list(foreach(hptype = self$x$getHapTypes(),
-                         .final = function(x) 
+                         .final = function(x)
                            setNames(x, self$x$getHapTypes())) %do% {
                            self$x$mapFinal$pileup
                            if (!is.null(self$hptypes[[hptype]]$SR)){
@@ -242,17 +244,17 @@ MergeEnv_$set("public", "export", function() {
                              reads <- self$x$mapFinal$pileup[[
                                "LR" %<<% hptype]]$consmat
                            }
-                           seqname = 
+                           seqname =
                            cseq <- conseq(reads, "hap" %<<% hptype, "ambig",
-                                          excludeGaps = TRUE, 
+                                          excludeGaps = TRUE,
                                           threshold = self$threshold)
                            metadata(cseq) <- list()
                            cseq
                          }),
-      
+
       ## consensus for remapping without ambig characters
       noAmbig = list(foreach(hptype = self$x$getHapTypes(),
-                             .final = function(x) 
+                             .final = function(x)
                                setNames(x, self$x$getHapTypes())) %do% {
                                  if (!is.null(self$hptypes[[hptype]]$SR)){
                                    reads <- self$hptypes[[hptype]]$SR
@@ -260,7 +262,7 @@ MergeEnv_$set("public", "export", function() {
                                    reads <- self$x$mapFinal$pileup[[
                                      "LR" %<<%hptype]]$consmat
                                  }
-                                 cseq <- conseq(reads, "hap" %<<% hptype, 
+                                 cseq <- conseq(reads, "hap" %<<% hptype,
                                                 "prob", excludeGaps = TRUE)
                                  metadata(cseq) <- list()
                                  cseq
@@ -310,5 +312,107 @@ MergeEnv_$set("public", "export", function() {
   }
   lrm <- consmat(m, freq = FALSE)
   lrm
+}
+
+
+.equaliseConsmat <- function(lrm, srm) {
+  if (NROW(srm) + length(ins(lrm)) != NROW(lrm) + length(ins(srm))) {
+    warning("SR and LR consensus matrices differ in length", immediate. = TRUE)
+  }
+
+  # lm[ins(lrm), ]
+  # sm[ins(srm), ]
+  # ref <- Biostrings::readDNAStringSet(self$x$absPath(self$x$mapFinal$ref[["B"]]))
+  # ref
+  # i <- i
+  # j <- i
+  # t(lm[(i-6):(i+6), ])
+  # t(sm[(j-6):(j+6), ])
+  # Biostrings::subseq(ref, j-9, j+9)
+  # NROW(lm)
+  # NROW(sm)
+  # tail(lm)
+  # tail(sm)
+
+  sm <- as.matrix(srm)
+  if (NCOL(srm) == 5) {
+    sm <- cbind(sm, `+` = 0)
+  }
+  if (length(ins(lrm)) > 0) {
+    insert <- matrix(c(0, 0, 0, 0, stats::median(rowSums(sm)), 0), ncol = 6)
+    myIns  <- sort(ins(lrm))
+    myIns  <- myIns[myIns < NROW(srm) + length(ins(lrm))]
+    INSit  <- itertools::ihasNext(iterators::iter(myIns))
+    if (length(ins(srm)) > 0) {
+      while (itertools::hasNext(INSit)) {
+        i  <- iterators::nextElem(INSit)
+        if (i %in% ins(srm))
+          next
+        ins(srm)[ins(srm) > i] <- ins(srm)[ins(srm) > i] + 1
+        sm <- rbind(sm[seq_len(i - 1), ], insert, sm[i:NROW(sm), ])
+      }
+    } else {
+      while (itertools::hasNext(INSit)) {
+        i  <- iterators::nextElem(INSit)
+        sm <- rbind(sm[seq_len(i - 1), ], insert, sm[i:NROW(sm), ])
+      }
+    }
+  }
+  dimnames(sm) <- list(pos = as.character(1:NROW(sm)),
+                       nucleotide = c("G", "A", "T", "C", "-", "+"))
+
+  lm <- as.matrix(lrm)
+  if (NCOL(lrm) == 5) {
+    lm <- cbind(lm, `+` = 0)
+  }
+  if (length(ins(srm)) > 0) {
+    insert <- matrix(c(0, 0, 0, 0, stats::median(rowSums(lm)), 0), ncol = 6)
+    myIns  <- sort(ins(srm))
+    myIns  <- myIns[myIns < NROW(lrm) + length(ins(srm))]
+    INSit  <- itertools::ihasNext(iterators::iter(myIns))
+    if (length(ins(lrm)) > 0) {
+      while (itertools::hasNext(INSit)) {
+        i  <- iterators::nextElem(INSit)
+        if (i %in% ins(lrm))
+          next
+        ins(lrm)[ins(lrm) > i] <- ins(lrm)[ins(lrm) > i] + 1
+        lm <- rbind(lm[seq_len(i - 1), ], insert, lm[i:NROW(lm), ])
+      }
+    } else {
+      while (itertools::hasNext(INSit)) {
+        i  <- iterators::nextElem(INSit)
+        lm <- rbind(lm[seq_len(i - 1), ], insert, lm[i:NROW(lm), ])
+      }
+    }
+  }
+  dimnames(lm) <- list(pos = as.character(1:NROW(lm)),
+                       nucleotide = c("G", "A", "T", "C", "-", "+"))
+
+  if (NROW(sm) != NROW(lm)) {
+    warning("SR and LR of different length! Check problem file")
+    if (NROW(lm) < NROW(sm)) {
+      flog.info(" fill longreads with gaps from %s to %s",
+                NROW(sm), NROW(sm), name = "info")
+      add <- ((NROW(lm) + 1):NROW(sm))
+      lm <- rbind(lm, sm[add, ])
+      lm[add, ] <- rep.int(0, 6*length(add))
+    } else if (NROW(lm) > NROW(sm)) {
+      flog.info(" fill shortreads with gaps from %s to %s",
+                NROW(sm), NROW(lm), name = "info")
+      add <- ((NROW(sm) + 1):NROW(lm))
+      sm  <- rbind(sm, lm[add, ])
+      sm[add, ] <- rep.int(0, 6*length(add))
+    }
+  }
+
+  stopifnot(NROW(sm) == NROW(lm))
+
+  sm.out <- consmat(sm, freq = FALSE)
+  ins(sm.out) <- ins(srm)
+
+  lm.out <- consmat(lm, freq = FALSE)
+  ins(lm.out) <- ins(lrm)
+
+  list(srm = sm.out, lrm = lm.out)
 }
 

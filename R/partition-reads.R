@@ -4,7 +4,7 @@
 #'
 #' @param x A \code{[read x position]} SNP matrix.
 #' @param distAlleles Number of distinct alleles in the sample.
-#' @param sortBy sort by "distance" or "count". See 
+#' @param sortBy sort by "distance" or "count". See
 #' \code{\link{partitionLongReads}} for details
 #' @param threshold  Only gaps above threshold will be treated as gaps.
 #' Removes noisy positions in longreads.
@@ -24,7 +24,7 @@
 partitionReads <- function(x, distAlleles = 2, sortBy = "count", threshold = 0.2,
                            clMethod = "ward.D", minLen = 0.5, skipGapFreq = 2/3,
                            deepSplit = 1, minClusterSize = 15) {
-  match.arg(sortBy, c("count", "distance"))
+  sortBy <- match.arg(sortBy, c("count", "distance"))
   # get SNPs
   ppos <- colnames(x)
   badPpos <- c()
@@ -80,15 +80,15 @@ partitionReads <- function(x, distAlleles = 2, sortBy = "count", threshold = 0.2
   mats <- lapply(msa, function(x) createPWM(x))
   hpseqs <- Biostrings::DNAStringSet(vapply(msa, function(x) {
     unlist(conseq(
-      t(Biostrings::consensusMatrix(x)[c(VALID_DNA(), "+"), ]), 
+      t(Biostrings::consensusMatrix(x)[c(VALID_DNA(), "+"), ]),
       type = "simple"))
   }, FUN.VALUE = character(1)))
   names(hpseqs) <- vapply(hptypes, function(hptype)
-    paste(hptype, sum(subclades == hptype), sep = ":"), 
+    paste(hptype, sum(subclades == hptype), sep = ":"),
     FUN.VALUE = character(1))
 
   if (length(hptypes) > distAlleles) {
-    flog.info("  Trying to identify chimeric reads/haplotypes ...", 
+    flog.info("  Trying to identify chimeric reads/haplotypes ...",
               name = "info")
     if (sortBy == "count") {
       rC <- names(sort(table(subclades),
@@ -111,7 +111,7 @@ partitionReads <- function(x, distAlleles = 2, sortBy = "count", threshold = 0.2
     dplyr::mutate(clustclade = ifelse(.data$read %in% names(subclades),
                                       as.character(subclades[.data$read]),
                                       NA)) %>%
-    dplyr::mutate(correct = dplyr::if_else(.data$clustclade == .data$clade, 
+    dplyr::mutate(correct = dplyr::if_else(.data$clustclade == .data$clade,
                                            TRUE, FALSE))
 
   ## Correctly classified clades in the initial clustering
@@ -160,10 +160,10 @@ partitionReads <- function(x, distAlleles = 2, sortBy = "count", threshold = 0.2
 
   ## Consensus matrix with pseudocount
   flog.info("  Constructing a Position Specific Distance Matrix" %<<%
-              " of the reamaining %s sequences ...",
+            " of the remaining %s sequences ...",
             length(xSub), name = "info")
   consmat  <- as.matrix(
-    Biostrings::consensusMatrix(xSub, as.prob = TRUE)[c(VALID_DNA(), "+" ), ] + 
+    Biostrings::consensusMatrix(xSub, as.prob = TRUE)[c(VALID_DNA(), "+" ), ] +
       1/length(xSub)
   )
   # Remove gaps below a threshold as they are probably sequencing artifacts
@@ -171,7 +171,7 @@ partitionReads <- function(x, distAlleles = 2, sortBy = "count", threshold = 0.2
     a["-"] <- ifelse(a["-"] < threshold, min(a), a["-"])
     a
   })
-  
+
   ## Get Position Specific Distance Matrix
   dist <- PSDM(xSub, as.matrix(consmat))
   dist <- stats::as.dist(dist)
@@ -181,6 +181,7 @@ partitionReads <- function(x, distAlleles = 2, sortBy = "count", threshold = 0.2
 
   ## Perform a hierarchical clustering
   hcc <-  stats::hclust(dist, method = clMethod)
+
   ## do a dynamic cut. Need to be evaluated
   clusts <- dynamicTreeCut::cutreeHybrid(hcc,
                                          minClusterSize = minClusterSize,
@@ -211,7 +212,7 @@ partitionReads <- function(x, distAlleles = 2, sortBy = "count", threshold = 0.2
         minl*Biostrings::width(xseqs[1])
       ])/length(xseqs)
   }, FUN.VALUE = numeric(1))
-  
+
   names(lenCounts) <- minLens
   minLen <- max(as.numeric(names(
     lenCounts[which(lenCounts > adjustedMinReadsFrac)][1])), minLen)
@@ -236,7 +237,7 @@ partitionReads <- function(x, distAlleles = 2, sortBy = "count", threshold = 0.2
   # Use only non empty seqs
   seqs <- seqs[vapply(seqs, function(x) {
     !nchar(gsub("\\+|-","", as.character(x))) == 0}, FUN.VALUE = logical(1))]
-  
+
   forward <- lapply(seq_len(Biostrings::width(seqs[1])), function(x) {
     hammingDist(Biostrings::DNAStringSet(seqs, start = 1, width = x))})
   reverse <- lapply(seq_len(Biostrings::width(seqs[1])), function(x) {
@@ -249,15 +250,15 @@ partitionReads <- function(x, distAlleles = 2, sortBy = "count", threshold = 0.2
       r <- vapply(reverse, function(x) x[h,hp], FUN.VALUE = numeric(1))
       unname(stats::quantile(f + r)[2])
     }
-  nms <- vapply(strsplit(names(seqs), ":"), function(x) x[1], 
+  nms <- vapply(strsplit(names(seqs), ":"), function(x) x[1],
                 FUN.VALUE = character(1))
   rownames(dm) <- colnames(dm) <- nms
-  c("A", (names(sort(unlist(dm[1,]), 
+  c("A", (names(sort(unlist(dm[1,]),
                      decreasing = TRUE)[seq_len(distAlleles - 1)])))
 }
 
 # Class: HapPart -----------------------------------------------------------
-#' HapPart (Haplotype Partition) stores the haplotype information from 
+#' HapPart (Haplotype Partition) stores the haplotype information from
 #' longread clustering.
 #' @param readNames The names of reads in each cluster.
 #' @param snpPos SNP positions used for clustering.
@@ -265,8 +266,8 @@ partitionReads <- function(x, distAlleles = 2, sortBy = "count", threshold = 0.2
 #' @return HapPart object.
 #' @slot readNames The names of reads in each cluster.
 #' @slot snpPos SNP positions used for clustering.
-#' @slot mcoef membership coefficient. Score for each read for belonging 
-#' to its cluster. Based on the sum of probabilities of a PWM of the haplotype 
+#' @slot mcoef membership coefficient. Score for each read for belonging
+#' to its cluster. Based on the sum of probabilities of a PWM of the haplotype
 #' sequences.
 #' @slot tree The resulting tree from \code{\link[stats]{hclust}}.
 #' @slot scores The same scores as in mcoef, but for all clusters.
@@ -418,7 +419,7 @@ K.HapPart <- function(x) {
   x
 }
 
-## The consensus sequence 
+## The consensus sequence
 SQS <- function(x) UseMethod("SQS")
 #' @describeIn HapPart
 #' Get the consensus sequences of the haplotypes.
@@ -466,8 +467,8 @@ SNP.HapPart <- function(x) {
 ## Get the partition table
 PRT <- function(x) UseMethod("PRT")
 #' @describeIn HapPart
-#' Get the haplotype partition as a 
-#' \code{\link[base]{data.frame}} containing 
+#' Get the haplotype partition as a
+#' \code{\link[base]{data.frame}} containing
 #' columns of \code{read}, \code{haplotype} and \code{mcoef} for each read.
 #' @export
 PRT.HapPart <- function(x) {
@@ -525,7 +526,7 @@ plotPartitionHistogram <- function(x, label = "", limits = NULL) {
     theme_bw()
 }
 
-#' Plot distribution of haplotype partitioned reads for more than two 
+#' Plot distribution of haplotype partitioned reads for more than two
 #' haplotypes
 #'
 #' @param x A \code{HapPart} object.
@@ -632,7 +633,7 @@ plotRadarPartition <- function(x){
   # use bigger size for 2d radarplot.
   size <- ifelse(length(levels(df$haplotype)) == 2, 4, 0.05)
   ggplot(df, aes_string(x = 'clade', y = 'score')) +
-    geom_polygon(aes_string(group = 'read', color = 'haplotype'), fill = NA, 
+    geom_polygon(aes_string(group = 'read', color = 'haplotype'), fill = NA,
                  size = size, show.legend = FALSE, alpha = 1) +
     facet_grid( ~ haplotype) +
     ggtitle("Similarity to clusters") +
@@ -685,7 +686,7 @@ plotPartitionTree <- function(x){
     dendr$segments <- dendr$segments %>%
       dplyr::mutate(cluster = dplyr::if_else(.data$line == 1, 1, ifelse(
         .data$cluster == 0, NA, .data$cluster)))
-    dendr$segments$cluster <- vapply(seq_len(NROW(dendr$segments$cluster)), 
+    dendr$segments$cluster <- vapply(seq_len(NROW(dendr$segments$cluster)),
                                      function(x) {
       getCl(x, dendr$segments$cluster, change)}, FUN.VALUE = numeric(1))
     # Correct order
@@ -695,7 +696,7 @@ plotPartitionTree <- function(x){
     # Make plot
     ggplot() +
       geom_segment(data=ggdendro::segment(dendr), aes_string(x = 'x', y = 'y',
-                                                             xend = 'xend', 
+                                                             xend = 'xend',
                                                              yend = 'yend',
                                                              color = 'cluster'),
                    size = 1.25) +
@@ -755,7 +756,7 @@ getCl <- function(n, cluster, change) {
                                              r = unlist(rHap[hapType])) %>%
                              dplyr::mutate(haplotype = hapType,
                                            score = ((.data$r^l)*c)) %>%
-                             dplyr::mutate(max.score = .data$score == 
+                             dplyr::mutate(max.score = .data$score ==
                                              max(.data$score)))
   }
   dfmax <- dplyr::filter(df, .data$max.score) %>%

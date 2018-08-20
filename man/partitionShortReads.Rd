@@ -41,3 +41,4 @@ x <- DR2Smap(
   report(blockWidth = 60)
 }
 }
+\concept{DR2S partition functions}

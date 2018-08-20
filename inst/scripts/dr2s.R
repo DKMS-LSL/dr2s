@@ -28,13 +28,13 @@ config_file <- arguments$args
 configs     <- readDR2SConf(config_file)
 
 rs <- foreach(conf = configs) %do% {
-  mapper <- DR2Smap(conf)
+  mapper <- InitDR2S(conf)
   cat("\nRunning\n", sep = "")
-  print(mapper$getConfig())
+  #print(mapper$getConfig())
   cat("\n")
   print(mapper)
   cat("\n")
-  Sys.sleep(4)
+  Sys.sleep(2)
   mapper$runPipeline()
 }
 

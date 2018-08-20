@@ -12,7 +12,7 @@
 \alias{SNP.HapPart}
 \alias{PRT.HapPart}
 \alias{HTR.HapPart}
-\title{HapPart (Haplotype Partition) stores the haplotype information from 
+\title{HapPart (Haplotype Partition) stores the haplotype information from
 longread clustering.}
 \usage{
 HapPart(readNames, snpPos)
@@ -48,7 +48,7 @@ HapPart(readNames, snpPos)
 HapPart object.
 }
 \description{
-HapPart (Haplotype Partition) stores the haplotype information from 
+HapPart (Haplotype Partition) stores the haplotype information from
 longread clustering.
 }
 \section{Methods (by generic)}{
@@ -69,8 +69,8 @@ longread clustering.
 
 \item \code{SNP}: Get the SNP positions.
 
-\item \code{PRT}: Get the haplotype partition as a 
-\code{\link[base]{data.frame}} containing 
+\item \code{PRT}: Get the haplotype partition as a
+\code{\link[base]{data.frame}} containing
 columns of \code{read}, \code{haplotype} and \code{mcoef} for each read.
 
 \item \code{HTR}: Get the resulting tree from \code{\link[stats]{hclust}}.
@@ -83,8 +83,8 @@ columns of \code{read}, \code{haplotype} and \code{mcoef} for each read.
 
 \item{\code{snpPos}}{SNP positions used for clustering.}
 
-\item{\code{mcoef}}{membership coefficient. Score for each read for belonging 
-to its cluster. Based on the sum of probabilities of a PWM of the haplotype 
+\item{\code{mcoef}}{membership coefficient. Score for each read for belonging
+to its cluster. Based on the sum of probabilities of a PWM of the haplotype
 sequences.}
 
 \item{\code{tree}}{The resulting tree from \code{\link[stats]{hclust}}.}

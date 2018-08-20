@@ -5,15 +5,15 @@
 \title{Cluster a SNP matrix into haplotype groups}
 \usage{
 partitionReads(x, distAlleles = 2, sortBy = "count", threshold = 0.2,
-  clMethod = "ward.D", minLen = 0.5, skipGapFreq = 2/3, deepSplit = 1,
-  minClusterSize = 15)
+  clMethod = "ward.D", minLen = 0.5, skipGapFreq = 2/3,
+  deepSplit = 1, minClusterSize = 15)
 }
 \arguments{
 \item{x}{A \code{[read x position]} SNP matrix.}
 
 \item{distAlleles}{Number of distinct alleles in the sample.}
 
-\item{sortBy}{sort by "distance" or "count". See 
+\item{sortBy}{sort by "distance" or "count". See
 \code{\link{partitionLongReads}} for details}
 
 \item{threshold}{Only gaps above threshold will be treated as gaps.
