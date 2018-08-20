@@ -5,7 +5,7 @@ mapReads <- function(
   optsname = "", force, outdir, minMapq = 0, clean,  threshold, maxDepth = 1e4, 
   minBaseQuality = 3,  minNucleotideDepth = 3, refseq = NULL, includeInsertions,
   mapFun,   clip = FALSE, distributeGaps = FALSE, includeDeletions, 
-  removeError = TRUE) {
+  callInsertions = FALSE, removeError = TRUE) {
   
   ## Run mapper
   flog.info("  Mapping ...", name = "info")
@@ -61,7 +61,7 @@ mapReads <- function(
                                       removeError = removeError)
   }
 
-  if (includeInsertions && is.null(ins(pileup$consmat))) {
+  if (callInsertions && is.null(ins(pileup$consmat))) {
     ## TODO check threshold
     pileup <- .pileupIncludeInsertions(x = pileup, threshold = 0.1)
   }

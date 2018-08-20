@@ -93,8 +93,6 @@ partitionReads <- function(x, distAlleles = 2, sortBy = "count", threshold = 0.2
     if (sortBy == "count") {
       rC <- names(sort(table(subclades),
                        decreasing = TRUE)[seq_len(distAlleles)])
-      # ## !!!!! HACK!!! rm following line; uncomment previous one; removed
-      # rC <- c("A", "C")
     } else if (sortBy == "distance") {
       rC <- sort(.findChimeric(seqs = hpseqs, distAlleles = distAlleles))
     }
@@ -657,7 +655,7 @@ plotRadarPartition <- function(x){
 #' @examples
 #' ###
 plotPartitionTree <- function(x){
-  stopifnot(
+  assert_that(
     is(x, "HapPart"),
     requireNamespace("ggdendro", quietly = TRUE)
   )
@@ -687,10 +685,9 @@ plotPartitionTree <- function(x){
     dendr$segments <- dendr$segments %>%
       dplyr::mutate(cluster = dplyr::if_else(.data$line == 1, 1, ifelse(
         .data$cluster == 0, NA, .data$cluster)))
-    dendr$segments$cluster <- sapply(seq_len(NROW(dendr$segments$cluster)), 
+    dendr$segments$cluster <- vapply(seq_len(NROW(dendr$segments$cluster)), 
                                      function(x) {
-      getCl(x, dendr$segments$cluster, change)})
-
+      getCl(x, dendr$segments$cluster, change)}, FUN.VALUE = numeric(1))
     # Correct order
     labs <- c("N", oc(x))
     dendr$segments$cluster <- factor(labs[dendr$segments$cluster])
@@ -744,8 +741,11 @@ getCl <- function(n, cluster, change) {
 
 .optimalPartitionLimits <- function(scores, f = 0.8) {
   coeffCuts <- seq(0, max(unlist(scores)), length.out = 100)
-  rHap <- lapply(scores, function(x) {
-    sapply(coeffCuts, function(cutoff) sum(x >= cutoff))})
+  rHap <- lapply(scores, function(x, coeffCuts) {
+      vapply(coeffCuts, function(cutoff) sum(x >= cutoff), 
+             FUN.VALUE = double(1))
+    }, 
+    coeffCuts = coeffCuts)
   df <- data.frame()
   for(hapType in names(rHap)) {
     l <- f * length(unlist(

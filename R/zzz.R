@@ -3,3 +3,4 @@
 globalVariables(c("lrd", "dst", "ref", "h", "hp", "i", "pos", "sampleId",
                   "nucleotide", "freq", "count", "npoly", "clade", "prob",
                   "haplotype", "read"))
+

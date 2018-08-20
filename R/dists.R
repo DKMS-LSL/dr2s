@@ -19,11 +19,11 @@
 #' @examples
 #' ###
 hammingDist <- function(x){
-  stopifnot(is(x, "DNAStringSet"))
+  assert_that(is(x, "DNAStringSet"))
   xTmp <- as.matrix(x)
   dnaBaseMapping <- c("G" = 1, "A" = 2, "T" = 3, "C" = 4, "-" = 5, "+" = 6)
   xMat<- plyr::revalue(xTmp, dnaBaseMapping, warn_missing = FALSE)
-  xMat<- sapply(xMat, as.numeric)
+  xMat<- vapply(xMat, as.numeric, FUN.VALUE = double(1))
   dim(xMat) <- dim(xTmp)
   rm(xTmp)
   dist <- cpp_hamming(xMat)

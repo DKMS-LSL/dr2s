@@ -101,7 +101,8 @@ subSampleBam <- function(bamfile, windowSize = NULL, sampleSize = 100,
   if (0.5*geneLength > windowSize) {
     windows <- seq(from = windowSize, to = geneLength, by = windowSize)
     
-    sampledAlignmentBam <- do.call(c, sapply(windows, function(i, m, maxCov, 
+    sampledAlignmentBam <- do.call(c, 
+                                   lapply(windows, function(i, m, maxCov, 
                                                                windowSize) {
       readMid <- start(m)+floor(windowSize/2)
       m <- m[readMid > i - windowSize & readMid < i]
@@ -137,7 +138,7 @@ subSampleBam <- function(bamfile, windowSize = NULL, sampleSize = 100,
       readWidth <- GenomicAlignments::qwidth(a)
       windowLen <- ceiling(readWidth/fragmentLength)
       wi <- floor(seq(from = 1, readWidth, length.out = windowLen))[2:windowLen]
-      b <- do.call(c, sapply(seq_along(wi), function(w, a) {
+      b <- do.call(c, lapply(seq_along(wi), function(w, a) {
         start <- ifelse(w == 1, 1, wi[w-1]+1)
         b <- GenomicAlignments::qnarrow(a, start = start, end = wi[w])
         seq <- b@elementMetadata$seq

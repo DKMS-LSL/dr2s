@@ -1,0 +1,2 @@
+<?xml version="1.0"?>
+ <Global genome="../mapInit/B/consensus.mapIter1.pacbio.minimap.mapIter0.B.sorted.fa" locus="consensus.mapIter1.pacbio.minimap.mapIter0.B.sorted:0-100">   <Resources>     <Resource path="../mapInit/B/mapIter2.pacbio.minimap.consensus.mapIter1.pacbio.minimap.mapIter0.B.sorted.B.sorted.bam"/>   </Resources> </Global>

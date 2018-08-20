@@ -125,9 +125,9 @@ generateReferenceSequence <- function(allele, locus, outdir, dirtag=NULL,
   }
   locus <- .normaliseLocus(locus)
   if (startsWith(locus, "HLA")) {
-    ipd <- loadHlaData()
+    ipd <- ipdHla()
   } else {
-    ipd <- loadKirData()
+    ipd <- ipdKir()
   }
   if (!allele %in% ipd$getAlleles(locus)) 
     stop(sprintf("Allele %s not found in database", allele))
@@ -284,12 +284,13 @@ generateReferenceSequence <- function(allele, locus, outdir, dirtag=NULL,
 #' @export
 checkHomoPolymerCount <- function(x, count = 10, map = "mapFinal") {
   map <- match.arg(map, c("mapFinal", "refine"))
-  stopifnot(is(x, "DR2S"))
+  assert_that(is(x, "DR2S"))
   hptypes <- x$getHapTypes()
   if (map == "mapFinal") {
     if (length(hptypes) > 1) {
       lastIter <- x$mapIter[[max(names(x$mapIter))]]
-      refseqs <- sapply(hptypes, function(x) lastIter[[x]]$conseq)
+      refseqs <- set_names(lapply(hptypes, function(x) lastIter[[x]]$conseq),
+                           hptypes)
       bambase <- x$mapFinal$bamfile
     } else {
       refseqs <- list(A = x$mapInit$SR1$conseq)
@@ -298,7 +299,7 @@ checkHomoPolymerCount <- function(x, count = 10, map = "mapFinal") {
     x$mapFinal$homopolymers <- list()
     plotname <- "plot.homopolymers.pdf"
   } else if ( map == "refine" ) {
-    refseqs <- sapply(x$consensus$refine$ref, function(hp) {
+    refseqs <- lapply(x$consensus$refine$ref, function(hp) {
       seq <- Biostrings::readDNAStringSet(file.path(x$getOutdir(), hp))
       names(seq) <- strsplit1(names(seq), " ")[1]
       seq
@@ -327,26 +328,27 @@ checkHomoPolymerCount <- function(x, count = 10, map = "mapFinal") {
                                            positionHP + lenHP + 10))
 
 
-      covering <- sapply(msa, function(a) 
-        nchar(gsub(pattern = "\\+", "", toString(a))) == lenHP + 21)
+      covering <- vapply(msa, function(a, lenHP) {
+        nchar(gsub(pattern = "\\+", "", toString(a))) == lenHP + 21
+        }, lenHP = lenHP, FUN.VALUE = logical(1), USE.NAMES = TRUE)
       msa <- msa[covering]
       readsOI <- names(msa)
       ins <- .getInsertions(bamfile, inpos = positionHP-1, reads = readsOI)[[1]]
-      msa <- unlist(
-        Biostrings::DNAStringSetList(sapply(names(msa), function(a) {
-          if (a %in% names(ins)) {
-            firstSeq <- unlist(Biostrings::subseq(msa[a], start = 1, 
-                                                  width = 10))
-            insert <- unlist(ins[a])
-            lastSeq <- unlist(Biostrings::subseq(msa[a], start = 11, 
-                                                 width = lenHP + 10))
-            Biostrings::DNAStringSet(c(firstSeq, insert, lastSeq))
-          } else {
-            msa[a]
-          }
-      })))
+      msa <- unlist( Biostrings::DNAStringSetList(
+        set_names(lapply(names(msa), function(a) {
+            if (a %in% names(ins)) {
+              firstSeq <- unlist(Biostrings::subseq(msa[a], start = 1, 
+                                                    width = 10))
+              insert <- unlist(ins[a])
+              lastSeq <- unlist(Biostrings::subseq(msa[a], start = 11, 
+                                                   width = lenHP + 10))
+              Biostrings::DNAStringSet(c(firstSeq, insert, lastSeq))
+            } else {
+              msa[a]
+            }
+        }), readsOI)))
       msarle <- lapply(msa, .seq2rle)
-      lens <- sapply(msarle, function(a) max(a$lengths))
+      lens <- vapply(msarle, function(a) max(a$lengths), integer(1))
       dplyr::data_frame(haptype = hp, position = positionHP, length = lens)
     }
 
@@ -375,8 +377,9 @@ checkHomoPolymerCount <- function(x, count = 10, map = "mapFinal") {
     list(n = n, plot = plots)
   }
   if (!all(is.null(unlist(p)))) {
+    
     plots <- lapply(p, function(x) x$plot)
-    n <- max(sapply(p, function(x) length(x$n)))
+    n <- max(vapply(p, function(x) length(x$n), FUN.VALUE = integer(1)))
     p1 <- cowplot::plot_grid(plotlist = plots, nrow = length(n))
     cowplot::save_plot(p1, filename = x$absPath("plot.Homopolymers.pdf"),
                 base_width = 7*length(hptypes),

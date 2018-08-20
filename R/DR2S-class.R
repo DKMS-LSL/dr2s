@@ -276,13 +276,12 @@ DR2S_ <- R6::R6Class(
     },
     ##
     getSampleDetails = function() {
-      ## TODO sapply
       details <- semicolon(
-        sapply(seq_along(self$getDetails()), 
+        vapply(seq_along(self$getDetails()), 
                function(item) paste(names(
                  self$getDetails()[item]), 
                  underscore(litQuote(self$getDetails()[item])), 
-                 sep = "=")))
+                 sep = "="), FUN.VALUE = character(1)))
       sr <- !is(try(self$getShortreads(), silent = TRUE), "try-error")
       lr <- !is(try(self$getShortreads(), silent = TRUE), "try-error")
       paste("locus=" %<<% litQuote(self$getLocus()),
@@ -391,10 +390,6 @@ DR2S_ <- R6::R6Class(
       }
     },
     ##
-    getReftype = function() {
-      self$getConfig("reftype")
-    },
-    ##
     getReference = function() {
       self$getConfig("reference")
     },
@@ -415,10 +410,13 @@ DR2S_ <- R6::R6Class(
       if (!is.null(self$getRefPath())) {
         Biostrings::readDNAStringSet(self$getRefPath())
       } else  {
-        # ipd.Hsapiens.db::getClosestComplete(self$getReference(),
-        #                                     self$getLocus())
-        ipdDb::loadHlaData()$getClosestComplete(self$getReference(),
-                                         self$getLocus()) 
+        if (startsWith(self$getLocus, "KIR")) {
+          ipdKir()$getClosestComplete(self$getReference(),
+                                         self$getLocus())
+        } else {
+          ipdHla()$getClosestComplete(self$getReference(),
+                                         self$getLocus())
+        }
       }
     },
     ##
@@ -460,9 +458,10 @@ DR2S_ <- R6::R6Class(
       if (length(self$mapFinal) > 0) {
         return(self$absPath(self$mapFinal$seq))
       } else if (length(self$mapIter) > 0) {
-        latest <-  self$mapIter[max(names(self$mapIter))][self$getHapTypes()]
-        ## TODO sapply
-        return(sapply(latest, function(x) self$absPath(x$seqpath)))
+        latest <-  self$mapIter[[
+          toString(max(names(self$mapIter)))]][self$getHapTypes()]
+        return(vapply(latest, function(x) self$absPath(x$seqpath), 
+               character(1)))
       } else {
         return(self$getRefPath())
       }
@@ -474,9 +473,9 @@ DR2S_ <- R6::R6Class(
       }else if (length(self$mapFinal) > 0) {
         return(self$mapFinal$seq)
       } else if (length(self$mapIter) > 0) {
-        latest <- self$mapIter[max(names(self$mapIter))][self$getHapTypes()]
-        ## TODO sapply
-        return(sapply(latest, function(x) x$conseq))
+        latest <-  self$mapIter[[
+          toString(max(names(self$mapIter)))]][self$getHapTypes()]
+        return(lapply(latest, function(x) x$conseq))
       }  else {
         return(self$getRefSeq())
       }

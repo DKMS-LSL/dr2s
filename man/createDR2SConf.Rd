@@ -51,12 +51,12 @@ positions and a first reference.}
 shortreads, i.e. when the distribution of coverage is bad. Aborts the program
 if maximum coverage > 75 \% quantile * 5.}
 
-\item{fullname}{Truncate allele names.}
-
 \item{details}{Metadata of a sample. Will be written to the fasta header of 
 the final sequences and stored in the config dump.}
 
 \item{...}{Additional arguments.}
+
+\item{fullname}{Truncate allele names.}
 }
 \value{
 A \code{\link[DR2S]{DR2S}} config object

@@ -97,10 +97,10 @@ polish.DR2S <- function(x,
 
 .getVariants <- function(x) {
   hptypes <- x$getHapTypes()
-  hvars <- lapply(hptypes, function(t) x$consensus[[t]]$variants)
-  names(hvars) <- hptypes
+  hvars <- set_names(lapply(hptypes, function(t) x$consensus[[t]]$variants), 
+                     hptypes)
 
-  if (all(sapply(hvars, function(x) length(x) == 0))) {
+  if (all(vapply(hvars, function(x) length(x) == 0, logical(1)))) {
     return(
       dplyr::data_frame(
         haplotype = character(0), pos = integer(0), ref = character(0),

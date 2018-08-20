@@ -76,23 +76,29 @@ CODE_PATTERN <- function() {
 COL_PATTERN <- function() {
   c("#CC007A", "#CC2900", "#CCCC00", "#29CC00", "#00CC7A", "#007ACC", "#2900CC")
 }
-
-VALID_LOCI <- function() {
-  hlaLoci <- ipdDb::loadHlaData()$getLoci()
-  kirLoci <- ipdDb::loadKirData()$getLoci()
-  c(hlaLoci, kirLoci)
+ipdHla <- function() {
+  if (!exists("ipdHlaDb", envir = globalenv()))
+    assign("ipdHlaDb", suppressMessages(ipdDb::loadHlaData()), 
+           envir = globalenv())
+  get("ipdHlaDb", envir = globalenv())
 }
 
 HLA_LOCI <- function() {
-  loci <- VALID_LOCI()
-  hlaLoci <- loci[startsWith(loci, "HLA")]
-  unname(sapply(hlaLoci, function(x) strsplit1(x, "-")[2]))
+  loci <- ipdHla()$getLoci()
+  unname(vapply(loci, function(x) strsplit1(x, "-")[2], 
+                FUN.VALUE = character(1)))
 }
 
-KIR_LOCI <- function() {
-  loci <- VALID_LOCI()
-  kirLoci <- loci[startsWith(loci, "KIR")]
-  gsub(pattern = "KIR", "", kirLoci)
+ipdKir <- function() {
+  if (!exists("ipdKirDb", envir = globalenv()))
+    assign("ipdKirDb", suppressMessages(ipdDb::loadKirData()), 
+           envir = globalenv())
+  get("ipdKirDb", envir = globalenv())
+}
+
+KIR_LOCI <- function(ipd = NULL) {
+  loci <- ipdKir()$getLoci()
+  gsub(pattern = "KIR", "", loci)
 }
 
 # Helpers -----------------------------------------------------------------
@@ -369,12 +375,13 @@ editor <- function(x, pos = NULL, useEditor = "xdg-open") {
 #' ###
 #' @export
 plotDiagnosticAlignment <- function(x, onlyFinal = FALSE) {
-
+  assert_that(is(dr2s, "DR2S"))
   # Given Ref
   seqs1 <- x$getRefSeq()
   names(seqs1) <- paste0("0 ", names(seqs1))
+  
   seqs2 <- Biostrings::DNAStringSet(unlist(lapply(x$mapIter, function(y) 
-    sapply(y, function(a) unlist(a$conseq)))))
+    lapply(y, function(a) unlist(a$conseq)))))
   names(seqs2) <- unlist(lapply(names(x$mapIter), function(y) 
     paste(x$getHapTypes(), "map", y)))
 

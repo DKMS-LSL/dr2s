@@ -52,10 +52,15 @@ Pileup <- function(bamfile,
   )
   pileup <- pileup(file = bfl, scanBamParam = sParam, 
                                 pileupParam = pParam)
-  pileup <-
-    dplyr::mutate(dplyr::tbl_df(pileup),
-                  seqnames = strsplitN(as.character(.data$seqnames), "~", 1, 
-                                       fixed = TRUE))
+  tryCatch({
+    pileup <-
+      dplyr::mutate(dplyr::tbl_df(pileup),
+                    seqnames = strsplitN(as.character(.data$seqnames), "~", 1, 
+                                         fixed = TRUE))
+  }, error = function(e) {
+    flog.info("No longread maps to the reference", name = "info")
+    error("no longread maps to the reference")
+  })
   structure(
     list(
       bamfile   = bamfile,
@@ -358,6 +363,8 @@ plotPileupBasecallFrequency <- function(x, threshold = 0.20, label = "",
       .extractInsertion(read, inpos)
   }, bamI = bamI, inpos = inpos)))
   
+  names(insSeq)
+   
   ## Extract per positions
   insSeqs <- foreach(i = inpos) %do% {
     message("Position: ", i)
@@ -366,6 +373,8 @@ plotPileupBasecallFrequency <- function(x, threshold = 0.20, label = "",
   ## decrement to last matching position again to work as expected with 
   ## downstream
   names(insSeqs) <- inpos - 1
+  insSeqs <- insSeqs[vapply(insSeqs, function(x) 
+    length(unlist(x)) > 0, FUN.VALUE = logical(1))]
   insSeqs
 }
 

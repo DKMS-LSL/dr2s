@@ -22,5 +22,4 @@
 #' @importFrom rlang .data set_names
 #' @importFrom BiocParallel bplapply
 
-
 NULL

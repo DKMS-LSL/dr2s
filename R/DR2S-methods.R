@@ -13,7 +13,7 @@ mapInit.DR2S <- function(x,
                          includeInsertions = TRUE,
                          microsatellite = FALSE,
                          force = FALSE,
-                         fullname = TRUE,
+                         fullname = FALSE,
                          filterScores = TRUE,
                          forceMapping = FALSE,
                          plot = TRUE) {
@@ -48,7 +48,7 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
                                            includeInsertions = TRUE,
                                            microsatellite = FALSE,
                                            force = FALSE,
-                                           fullname = TRUE,
+                                           fullname = FALSE,
                                            filterScores = TRUE,
                                            forceMapping = FALSE,
                                            plot = TRUE) {
@@ -94,6 +94,7 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
   microsatellite  <- self$getMicrosatellite()
   partSR          <- self$getPartSR()
   forceMapping    <- self$getForceMapping()
+  # forceMapping    <- TRUE
   filterScores    <- self$getFilterScores()
   outdir          <- .dirCreateIfNotExists(self$absPath("mapInit"))
   .dirCreateIfNotExists(path = file.path(self$absPath(".plots")))
@@ -121,7 +122,7 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
                        minNucleotideDepth = minNucleotideDepth, force = force,
                        includeDeletions = includeDeletions, clean = clean,
                        includeInsertions = includeInsertions, 
-                       mapFun = self$getSrMapFun())
+                       callInsertions = TRUE, mapFun = self$getSrMapFun())
     # ## TODO: maybe bum this?
     # if (filterScores) {
     #   flog.info(" Filter reads with low alignment scores", name = "info")
@@ -205,7 +206,8 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
                          minNucleotideDepth = minNucleotideDepth, clean = clean,
                          mapFun = self$getSrMapFun(), maxDepth = maxDepth,
                          includeDeletions = includeDeletions, 
-                         includeInsertions = includeInsertions) 
+                         includeInsertions = includeInsertions, 
+                         callInsertions = TRUE) 
 
 
       # Infer initial consensus
@@ -251,7 +253,7 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
                        minNucleotideDepth = minNucleotideDepth, force = force,
                        includeDeletions = includeDeletions, clean = clean,
                        includeInsertions = includeInsertions, 
-                       mapFun = self$getSrMapFun())
+                       callInsertions = FALSE, mapFun = self$getSrMapFun())
 
     ### TODO wrap this command up
     igv[["SR"]] <- createIgvJsFiles(reffile, pileup$bamfile, 
@@ -302,7 +304,8 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
                      minBaseQuality = minBaseQuality, clean = clean,
                      minNucleotideDepth = minNucleotideDepth, 
                      includeDeletions = TRUE, includeInsertions = FALSE,
-                     mapFun = mapFun, distributeGaps = TRUE, refseq = refseq)
+                     callInsertions = FALSE, mapFun = mapFun,
+                     distributeGaps = TRUE, refseq = refseq)
 
   igv[["LR"]] <- createIgvJsFiles(reffile, pileup$bamfile, outdir,
                                   sampleSize = 100, fragmentReads = TRUE)
@@ -408,7 +411,7 @@ DR2S_$set("public",
   flog.info(" Partition longreads into haplotypes", name = "info")
 
   ## Overide default arguments
-  args <- self$getOpts("partition")
+  args <- self$getOpts("partitionLongReads")
   if (!is.null(args)) {
     env  <- environment()
     list2env(args, envir = env)
@@ -520,7 +523,7 @@ DR2S_$set("public", "runSplitLongReadsByHaplotype", function(plot = TRUE) {
   assert_that(self$hasPartition())
 
   ## Overide default arguments
-  args <- self$getOpts("split")
+  args <- self$getOpts("partitionLongReads")
   if (!is.null(args)) {
     env  <- environment()
     list2env(args, envir = env)
@@ -626,7 +629,7 @@ DR2S_$set("public", "runExtractLongReads", function() {
   assert_that(self$hasHapList())
 
   ## Overide default arguments
-  args <- self$getOpts("extract")
+  args <- self$getOpts("partitionLongReads")
   if (!is.null(args)) {
     env  <- environment()
     list2env(args, envir = env)
@@ -729,7 +732,7 @@ mapIter.DR2S <- function(x,
                          includeInsertions = TRUE,
                          gapSuppressionRatio = 2/5,
                          force = FALSE,
-                         fullname = TRUE,
+                         fullname = FALSE,
                          plot = TRUE) {
   x$runMapIter(opts = opts,
                iterations = iterations,
@@ -759,7 +762,7 @@ DR2S_$set(
     includeInsertions = TRUE,
     gapSuppressionRatio = 2/5,
     force = FALSE,
-    fullname = TRUE,
+    fullname = FALSE,
     plot = TRUE) {
             
   # # debug
@@ -832,7 +835,8 @@ DR2S_$set(
           minBaseQuality = minBaseQuality, clean = clean,
           minNucleotideDepth = minNucleotideDepth, 
           includeDeletions = TRUE, includeInsertions = FALSE,
-          mapFun = mapFun, distributeGaps = TRUE, refseq = refseq)
+          callInsertions = FALSE, mapFun = mapFun, distributeGaps = TRUE,
+          refseq = refseq)
         
         # ## Construct consensus sequence
         flog.info("   Constructing consensus ...", name = "info")
@@ -1041,7 +1045,7 @@ mapFinal.DR2S <- function(x,
                           includeDeletions = TRUE,
                           includeInsertions = TRUE,
                           force = FALSE,
-                          fullname = TRUE,
+                          fullname = FALSE,
                           plot = TRUE,
                           clip = FALSE) {
   x$runMapFinal(opts = opts,
@@ -1065,7 +1069,7 @@ DR2S_$set("public", "runMapFinal", function(opts = list(),
                                             includeDeletions = TRUE,
                                             includeInsertions = TRUE,
                                             force = FALSE,
-                                            fullname = TRUE,
+                                            fullname = FALSE,
                                             plot = TRUE,
                                             clip = FALSE) {
 
@@ -1156,7 +1160,7 @@ DR2S_$set("public", "runMapFinal", function(opts = list(),
       maxDepth = maxDepth, minNucleotideDepth = minNucleotideDepth, 
       force = force, includeDeletions = includeDeletions, clean = TRUE, 
       includeInsertions = includeInsertions,  mapFun = self$getLrMapFun(),
-      distributeGaps = TRUE, refseq = refseq) 
+      callInsertions = FALSE, distributeGaps = TRUE, refseq = refseq) 
 
     self$mapFinal$bamfile[[mapgroupLR]] = pileup$bamfile
     self$mapFinal$igv[[mapgroupLR]] <- createIgvJsFiles(
@@ -1182,13 +1186,13 @@ DR2S_$set("public", "runMapFinal", function(opts = list(),
       
       pileup <- mapReads(
         maptag = maptagSR, reffile = reffile,  readfile = readfiles, 
-        threshold = threshold, allele = mapgroupSR, readtype = readtype, opts = opts,  
+        threshold = threshold, allele = mapgroupSR, readtype = readtype, 
         outdir = outdir, minMapq = minMapq, optsname = optstring(opts), 
-        minBaseQuality = minBaseQuality + 10, maxDepth = maxDepth, 
+        minBaseQuality = minBaseQuality + 10, maxDepth = maxDepth, opts = opts,
         minNucleotideDepth = minNucleotideDepth, force = force, 
         includeDeletions = includeDeletions, clean = TRUE, 
         includeInsertions = includeInsertions,  mapFun = self$getSrMapFun(),
-        distributeGaps = TRUE, refseq = refseq) 
+        callInsertions = TRUE, distributeGaps = TRUE, refseq = refseq) 
       # calc new consensus
       cseq <- conseq(pileup$consmat, name = "mapFinal" %<<% hptype,
                      type = "ambig", threshold = 0.2, excludeGaps = TRUE)

@@ -163,7 +163,7 @@ reportCheckedConsensus <- function(x, which = "mapFinal") {
   outdir <- .dirCreateIfNotExists(x$absPath("checked"))
   rs <- readPairFile(pairfileChecked)
   seqs <- Biostrings::DNAStringSet(
-    sapply(rs, function(s) Biostrings::DNAString(gsub("-", "", s))))
+    lapply(rs, function(s) Biostrings::DNAString(gsub("-", "", s))))
 
   ## Alignment
   ref <- x$getRefSeq()
@@ -174,7 +174,7 @@ reportCheckedConsensus <- function(x, which = "mapFinal") {
   .browseAlign(seqsAll, file = file.path(outdir,alnFile), openURL = FALSE)
 
   ## Export FASTA
-  files <- sapply(seq_along(seqs), function(sq) {
+  files <- vapply(seq_along(seqs), function(sq, seqs, x) {
     file <- paste(names(seqs[sq]), x$getLrdType(), x$getLrMapper(), "fa", 
                   sep = ".")
     seq <- seqs[sq]
@@ -194,7 +194,7 @@ reportCheckedConsensus <- function(x, which = "mapFinal") {
       format = "fasta"
     )
     file
-    }
+    }, seqs = seqs, x = x, FUN.VALUE = character(1)
   )
   # flog.info(x$getSampleDetails(), name = "info")
 }
@@ -391,7 +391,7 @@ refineAlignment <- function(x, hptype, report = FALSE){
                                       mustWork = FALSE)
   rs <- readPairFile(pairfileChecked)
   seqs <- Biostrings::DNAStringSet(
-    sapply(rs, function(s) Biostrings::DNAString(gsub("-", "", s))))
+    lapply(rs, function(s) Biostrings::DNAString(gsub("-", "", s))))
 
   ## Export FASTA
   seq <- seqs["hap" %<<% hptype]
@@ -436,10 +436,11 @@ readPairFile <- function(pairfile) {
   seqLetters <- Biostrings::uniqueLetters(hap)
   ambigLetters <- seqLetters[which(!seqLetters %in% VALID_DNA(include = "del"))]
   if (!length(ambigLetters) == 0){
-    ambigPositions <- sapply(ambigLetters, function(x)
-      unlist(Biostrings::vmatchPattern(x, hap)))
-    msg <- sapply(seq_along(ambigPositions), function(x)
-      extractAmbigLetters(ambigPositions, names(ambigPositions)[x]))
+    ambigPositions <- set_names(lapply(ambigLetters, function(x, hap)
+      unlist(Biostrings::vmatchPattern(x, hap)), hap = hap), ambigLetters)
+    msg <- vapply(seq_along(ambigPositions), function(x, ambigPositions)
+      extractAmbigLetters(ambigPositions, names(ambigPositions)[x]),
+      ambigPositions = ambigPositions, FUN.VALUE = character(1))
     flog.info(msg, name = "info")
     stop(paste("Check reported reference! Ambiguous positions were found",
                msg, sep = "\n"))
@@ -483,12 +484,12 @@ extractAmbigLetters <- function(irange, ambigLetter){
   msg <- sprintf("Found %s; decide for %s at positions: \n", ambigLetter,
                  paste(strsplit1(CODE_MAP()[ambigLetter], ""),
                        collapse = " or "))
-  ambigPositionLetter <- unlist(irange[[ambigLetter]])
+  ambigPositionLetter <- irange[[ambigLetter]]
 
-  msg %<<% paste0(sapply(seq_along(ambigPositionLetter), function(x)
+  msg %<<% paste0( vapply(seq_along(ambigPositionLetter), function(x)
     sprintf("%s: %s",
             names(ambigPositionLetter[x]),
-            ambigPositionLetter[x])), collapse = "\n") %<<% "\n"
+            ambigPositionLetter[x]), character(1)), collapse = "\n") %<<% "\n"
 }
 
 #' Write a multiple sequence alignment in a phylip like format. 
@@ -529,9 +530,12 @@ writeMSA <- function(aln, file="", block.width = 50){
   cat("#=======================================\n", file=file)
   cat("#\n", file=file, append = TRUE)
   cat("# Aligned_sequences: ", length(aln)," \n", file=file, append = TRUE)
-  sapply(seq_along(aln), function(x) cat(sprintf("# %s: %s\n", 
-                                                 x, names(aln[x])),
-                                        file=file, append = TRUE))
+  vapply(seq_along(aln), function(x, file) {
+    cat(sprintf("# %s: %s\n", 
+                x, names(aln[x])),
+                file=file, append = TRUE)
+    TRUE
+  }, file = file, FUN.VALUE = logical(1) )
   cat("#\n#\n", file=file, append = TRUE)
   cat("#=======================================\n", file=file,append = TRUE)
 
@@ -541,9 +545,7 @@ writeMSA <- function(aln, file="", block.width = 50){
   alignmentLength <- Biostrings::width(alignment[1])
   startWidth <- nchar(as.character(1 + alignmentLength))
   nameWidth <- max(20L, nchar(names(alignment)))
-  nblock <- alignmentLength %/% block.width
-  if (alignmentLength %% block.width != 0L)
-    nblock <- nblock + 1L
+  nblock <- ceiling(alignmentLength / block.width)
   for (i in seq_len(nblock)) {
     to <- i * block.width
     from <- to - block.width + 1L
@@ -555,13 +557,17 @@ writeMSA <- function(aln, file="", block.width = 50){
     ## Split the seq every 10 chars
     sp <- "(.{10})"
     addSp <- "\\1 "
-    a <- sapply(seq_len(length(alignment)-1), function(x) {
+    a <- vapply(seq_len(length(alignment)-1), function(x, nameWidth, lstart,
+                                                       startWidth, sp, addSp,
+                                                       lend, file) {
       cat(format(names[x], width = nameWidth), " ",
           format(lstart, justify = "right", width = startWidth), " ",
           gsub(sp, addSp, Biostrings::toString(strings[x])), " ",
           format(lend, justify = "right"), "\n",
           sep = "", file = file, append = TRUE)
-    })
+      TRUE
+    }, nameWidth = nameWidth, lstart = lstart, startWidth = startWidth, sp = sp,
+    addSp = addSp, lend = lend, file = file, FUN.VALUE = logical(1))
     cat(format(" ", width = nameWidth), " ",
           format(" ", justify = "right", width = startWidth), " ",
           gsub(sp, addSp, Biostrings::toString(strings[length(alignment)])),

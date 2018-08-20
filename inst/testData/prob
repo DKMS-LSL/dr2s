@@ -1,0 +1,16 @@
+2DS4
+16A002744/A 1400 -> A
+1526955/A 1050 INS
+
+2DL4
+DEDKM9605746/B 34 bp deletion ~700
+DEDKM9610881/A 34 bp deletion ~700
+DEDKM9918920/A 34 bp insertion ~660; insgesamt nicht so schön. einige Stellen nicht klar. noGapPartitioning?
+DEDKM9981751/AB 34 bp deletion ~700?? wenigstens in einem Allel, allerdings nur in den longreads sichtbar; clustern hat nicht so gut funktioniert. Vielleicht noGapPartitioning? insgesamt nicht so schön. einige Stellen nicht klar.
+PLDKM1942817/B ca 20 bp deletion ~760; sehr wenige gemappte shortreads an der Stelle. Vielleicht nach löschen der Baser und remap mehr
+PLDKM1957092/B 34 bp insertion ~660
+
+
+
+
+DP4

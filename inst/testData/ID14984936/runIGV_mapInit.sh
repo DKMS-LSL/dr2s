@@ -1,0 +1,1 @@
+igv .pplib/igvInitmapInit.xml &

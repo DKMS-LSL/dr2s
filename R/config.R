@@ -3,8 +3,7 @@ createDR2SConf <- function(sample,
                              locus,
                              longreads       = list(type = "pacbio", 
                                                     dir = "pacbio"),
-                             shortreads      = list(type = "illumina", 
-                                                    dir = "illumina"),
+                             shortreads      = NULL,
                              datadir         = ".",
                              outdir          = "./output",
                              reference       = NULL,
@@ -12,12 +11,10 @@ createDR2SConf <- function(sample,
                              iterations      = 1,
                              microsatellite  = FALSE,
                              distAlleles     = 2,
-                             filterScores    = TRUE,
+                             filterScores    = FALSE,
                              partSR          = TRUE,
                              forceMapping    = FALSE,
-                             fullname        = TRUE,
                              details         = NULL,
-
                              ...) {
   conf0 <- list(...)
   conf1 <- list(
@@ -80,8 +77,7 @@ readDR2SConf <- function(configFile) {
                                                      "polish", "report")
   conf$longreads       <- conf$longreads     %||% list(type = "pacbio", 
                                                         dir = "pacbio")
-  conf$shortreads      <- conf$shortreads    %||% list(type = "illumina", 
-                                                       dir = "illumina")
+  conf$shortreads      <- conf$shortreads    %||% NULL
   conf$details         <- gsub(";", ",", conf$details)       %||% list(NULL)
   
   if (length(conf$shortreads) == 1 && is.list(conf$shortreads[[1]]))
@@ -145,109 +141,88 @@ validateDR2SConf <- function(conf) {
               "lrmapper", "srmapper", "limits", "haptypes", "pipeline", 
               "longreads", "shortreads", "opts", "sampleId", "locus", 
               "reference", "details")
-  if (!all(fields %in% names(conf))) {
-    stop("Missing fields <", comma(fields[!fields %in% names(conf)]), 
-         "> in config", call. = FALSE)
-  }
+  assert_that(all(fields %in% names(conf)),
+              msg = paste("Missing fields <", 
+                          comma(fields[!fields %in% names(conf)]), 
+         "> in config"))
   conf <- structure(conf[fields], class = c("DR2Sconf", "list"))
   conf$datadir <- normalizePath(conf$datadir, mustWork = TRUE)
   conf$outdir  <- normalizePath(conf$outdir, mustWork = FALSE)
-  if (!is.numeric(conf$threshold) || 
-      (conf$threshold <= 0 || 
-       conf$threshold >= 1)) {
-    stop("The polymorphism threshold must be a number between 0 ans 1", 
-         call. = FALSE)
-  }
+  assert_that(
+    is.numeric(conf$threshold),
+    conf$threshold >= 0,  
+    conf$threshold <= 1,
+    msg = "The polymorphism threshold must be a number between 0 ans 1")
+               
   # check iterations
-  if (!is.numeric(conf$iterations) || 
-      !conf$iterations&&1 ==  0 || 
-      conf$iterations > 10) {
-    stop("The number of iterations must be integers between 1 and 10", 
-         call. = FALSE)
-  }
-  # check partSR
-  if (!is.logical(conf$partSR)){
-    stop("partSR must be logical", call. = FALSE)
-  }
-  # check filterScores
-  if (!is.logical(conf$filterScores)){
-    stop("filterScores must be logical", call. = FALSE)
-  }
-  # check microsatellite
-  if (!is.logical(conf$microsatellite)){
-    stop("microsatellite must be logical", call. = FALSE)
-  }
+  assert_that(
+    is.count(conf$iterations),
+    conf$iterations > 0,
+    conf$iterations < 10,
+    msg = "The number of iterations must be integers between 1 and 10"
+  )
+  # check all logicals
+  assert_that(is.logical(conf$partSR),
+              is.logical(conf$filterScores),
+              is.logical(conf$microsatellite),
+              is.logical(conf$forceMapping)
+              )
   # check number of distinct alleles
-  if (!is.numeric(conf$distAlleles)){
-    stop("Number of distinct alleles (distAlleles) must be numeric", 
-         call. = FALSE)
-  }
-  # check forceMapping
-  if (!is.logical(conf$forceMapping)){
-    stop("forceMapping must be logical", call. = FALSE)
-  }
+  assert_that(is.count(conf$distAlleles),
+              msg = "Number of distinct alleles (distAlleles) must be numeric")
+  
   ## Check mapper
-  conf$lrmapper <- match.arg(conf$lrmapper, c("bwamem", "graphmap", "minimap"))
-  conf$srmapper <- match.arg(conf$srmapper, c("bwamem", "graphmap", "minimap"))
+  conf$lrmapper <- match.arg(conf$lrmapper, c("bwamem", "minimap"))
+  conf$srmapper <- match.arg(conf$srmapper, c("bwamem", "minimap"))
+  
   ## Check pipeline
   pipesteps <- c("clear", "cache", "mapInit", "mapIter", "mapFinal",
                  "partitionLongReads", "partitionShortReads", "polish", 
                  "report")
-  if (!all(conf$pipeline %in% pipesteps)) {
-    stop("Invalid pipeline step <", 
-         comma(conf$pipeline[!conf$pipeline %in% pipesteps]), ">", 
-         call. = FALSE)
-  }
+  assert_that(all(conf$pipeline %in% pipesteps),
+              msg = paste(
+                "Invalid pipeline step <",
+                comma(conf$pipeline[!conf$pipeline %in% pipesteps]), ">") )
+  
+  ## Check long reads
   ## Long reads must have a "type" and a "dir" field. 
-  lrdfields <- c("type", "dir")
-  if (!all(lrdfields %in% names(conf$longreads))) {
-    stop("Missing fields <", 
-         comma(lrdfields[!lrdfields %in% names(conf$longreads)]), 
-         "> in longreads config", call. = FALSE)
-  }
+  readfields <- c("type", "dir")
+  assert_that(
+    all(readfields %in% names(conf$longreads)),
+    msg= paste("Missing fields <", 
+         comma(readfields[!readfields %in% names(conf$longreads)]), 
+         "> in longreads config"))
   ## Type must be one of "pacbio" or "nanopore"
-  if (!conf$longreads$type %in% c("pacbio", "nanopore")) {
-    stop("Unsupported longread type <", conf$longreads$type, ">", call. = FALSE)
-  }
+  assert_that(
+    conf$longreads$type %in% c("pacbio", "nanopore"),
+    msg = paste("Unsupported longread type", conf$longreads$type)
+  )
   longreaddir <- file.path(conf$datadir, conf$longreads$dir)
-  if (!file.exists(longreaddir)) {
-    stop("No long read directory <", longreaddir, ">", call. = FALSE)
-  }
-  if (length(dir(longreaddir, pattern = ".+fast(q|a)(.gz)?")) == 0) {
-    stop("No FASTQ files in long read directory <", longreaddir, ">", 
-         call. = FALSE)
-  }
+  assert_that(is.dir(longreaddir))
+  assert_that(length(dir(longreaddir, pattern = ".+fast(q|a)(.gz)?")) > 0,
+              msg = "No fasta or fastq file in the longread directory"
+  )
+      
   ## Check short reads (short reads are optional i.e. the field can be NULL)
   if (!is.null(conf$shortreads)) {
-    srdfields <- c("type", "dir")
-    if (!all(srdfields %in% names(conf$shortreads))) {
-      stop("Missing fields <", 
-           comma(srdfields[!srdfields %in% names(conf$shortreads)]), 
-           "> in shortreads config", call. = FALSE)
-    }
-    if (!conf$shortreads$type %in% c("illumina")) {
-      stop("Unsupported shortread type <", conf$shortreads$type, ">", 
-           call. = FALSE)
-    }
+    assert_that(
+      all(readfields %in% names(conf$shortreads)),
+      msg= paste("Missing fields <", 
+           comma(readfields[!readfields %in% names(conf$shortreads)]), 
+           "> in shortreads config"))
+    ## Type must be "illumina"
+    assert_that(
+      conf$shortreads$type == "illumina",
+      msg = paste("Unsupported shortread type", conf$shortreads$type)
+    )
     shortreaddir <- file.path(conf$datadir, conf$shortreads$dir)
-    if (!file.exists(longreaddir)) {
-      warning("No short read directory <", shortreaddir, ">", call. = FALSE, 
-              immediate. = TRUE)
-    }
-    if (length(dir(shortreaddir, pattern = ".+fastq(.gz)?")) == 0) {
-      warning("No FASTQ files in short read directory <", 
-              shortreaddir, ">", call. = FALSE, immediate. = TRUE)
-    }
+    assert_that(is.dir(shortreaddir))
+    assert_that(length(dir(shortreaddir, pattern = ".+fast(q|a)(.gz)?")) > 0,
+                msg = "No fasta or fastq file in the shortread directory"
+    )
   }
   ## Normalise locus
-  ##conf$locus   <- sub("^(HLA-|KIR)", "", .normaliseLocus(conf$locus))
   conf$locus   <- sub("^HLA-", "", .normaliseLocus(conf$locus))
-  ## Reference type
-  conf$reftype <- if (is.null(conf$reference)) {
-    stop("Need to provide a reference, either as fasta or as ipd identifier")
-  } else {
-    "ref"
-  }
   conf
 }
 #' @export
