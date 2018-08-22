@@ -251,9 +251,9 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
                        outdir = outdir, minMapq = minMapq, optsname = optsname,
                        minBaseQuality = minBaseQuality, maxDepth = maxDepth,
                        minNucleotideDepth = minNucleotideDepth, force = force,
-                       includeDeletions = includeDeletions, clean = clean,
-                       includeInsertions = includeInsertions, 
-                       callInsertions = FALSE, mapFun = self$getSrMapFun())
+                       includeDeletions = TRUE, clean = clean,
+                       includeInsertions = FALSE,  callInsertions = FALSE, 
+                       mapFun = self$getSrMapFun())
 
     ### TODO wrap this command up
     igv[["SR"]] <- createIgvJsFiles(reffile, pileup$bamfile,
@@ -400,7 +400,7 @@ DR2S_$set("public",
     # threshold = NULL
     # skipGapFreq = 2/3
     # distAlleles = NULL
-    # noGapPartitioning = FALSE
+    # noGapPartitioning = TRUE
     # selectAllelesBy = "distance"
     # minClusterSize = 15
     # plot = TRUE
@@ -431,7 +431,6 @@ DR2S_$set("public",
       is.logical(plot)
     )
 
-    tag  <- self$getMapTag("init", "LR")
 
     ## Get the reference sequence
     if (!is.null(self$mapInit$SR1)) {
@@ -532,6 +531,7 @@ DR2S_$set("public", "runSplitLongReadsByHaplotype", function(plot = TRUE) {
 
   prt  <- partition(self$getPartition())
   haplotypes <- levels(prt$haplotype)
+  tag  <- self$getMapTag("init", "LR")
 
   # Set all limits to NULL
   self$setLimits(rep(NA, length(haplotypes)))

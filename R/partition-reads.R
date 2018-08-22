@@ -544,9 +544,9 @@ plotPartitionHistogramMulti <- function(x, limits, label = "") {
     dplyr::mutate(limit = unlist(limits)[.data$haplotype])
 
   ggplot(data) +
-    geom_histogram(aes(x =~ mcoef, fill =~ haplotype), bins = 100) +
+    geom_histogram(aes(x = mcoef, fill = haplotype), bins = 100) +
     facet_grid(~ haplotype) +
-    geom_vline(aes(xintercept =~ limit), colour = "grey40",
+    geom_vline(aes(xintercept = limit), colour = "grey40",
                 linetype = "dashed", size = 1) +
     scale_fill_manual(values = PARTCOL()) +
     xlab("Haplotype membership coefficient") +

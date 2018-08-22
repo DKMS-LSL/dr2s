@@ -685,7 +685,7 @@ DR2S_ <- R6::R6Class(
                                  limits = limits)
       }else {
         plotPartitionHistogramMulti(x = self$getPartition(),
-                                       limits = self$getLimits(),
+                                       limits = limits,
                                        label %|ch|% tag)
       }
     },
