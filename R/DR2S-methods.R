@@ -879,13 +879,13 @@ DR2S_$set(
     }
     p <- cowplot::plot_grid(plotlist = plotlist, nrow = self$getIterations())
     cowplot::save_plot(p, filename = self$absPath("plot.MapIter.pdf"),
-                       base_width = 24*length(hptypes),
+                       base_width = 12*length(hptypes),
                        title = paste(self$getLocus(),
                                      self$getSampleId(), sep = "." ),
-                       base_height = 6*self$getIterations())
+                       base_height = 3*self$getIterations())
     cowplot::save_plot(p, filename = self$absPath(".plots/plot.MapIter.svg"),
-                       base_width = 24*length(hptypes),
-                       base_height = 6*self$getIterations())
+                       base_width = 12*length(hptypes),
+                       base_height = 3*self$getIterations())
 
   }
   createIgvConfigs(self,map = "mapIter", open = "FALSE")
@@ -1222,13 +1222,13 @@ DR2S_$set("public", "runMapFinal", function(opts = list(),
     }
     p <- cowplot::plot_grid(plotlist = plotlist, nrow = 2, labels = readtypes)
     cowplot::save_plot(p, filename = self$absPath("plot.MapFinal.pdf"),
-                       base_width = 24*length(hptypes),
+                       base_width = 12*length(hptypes),
                        title     = paste(self$getLocus(), self$getSampleId(),
                                          sep = "." ),
-                       base_height = 6*length(readtypes))
+                       base_height = 3*length(readtypes))
     cowplot::save_plot(p, filename = self$absPath(".plots/plot.MapFinal.svg"),
-                       base_width = 24*length(hptypes),
-                       base_height = 6*length(readtypes))
+                       base_width = 12*length(hptypes),
+                       base_height = 3*length(readtypes))
   }
 
   return(invisible(self))
