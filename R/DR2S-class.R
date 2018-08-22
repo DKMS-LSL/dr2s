@@ -86,7 +86,10 @@ DR2S_ <- R6::R6Class(
 
       if (file.exists(refPath <- private$conf$reference)) {
         private$conf$reference = basename(refPath)
-        private$conf$refPath  = basename(refPath)
+        private$conf$refPath  = file.path("mapInit", basename(refPath))
+        cPath <- .dirCreateIfNotExists(normalizePath(
+          file.path(private$conf$outdir, "mapInit"), mustWork=FALSE))
+        file.copy(refPath, file.path(cPath,  basename(refPath)))
       } else {
         private$conf$reference = .expandAllele(conf$reference, conf$locus)
         private$conf$refPath  = generateReferenceSequence(
@@ -113,7 +116,6 @@ DR2S_ <- R6::R6Class(
     clear = function() {
       unlink(self$getOutdir(), recursive = TRUE)
       .dirCreateIfNotExists(file.path(self$getOutdir()))
-
       if (file.exists(refPath <- private$conf$reference)) {
         private$conf$reference = basename(refPath)
         private$conf$refPath  = basename(refPath)

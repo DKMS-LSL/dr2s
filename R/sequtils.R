@@ -309,6 +309,7 @@ checkHomoPolymerCount <- function(x, count = 10, map = "mapFinal") {
     plotname <- "plot.homopolymers.refine.pdf"
   }
   p <- foreach(hp = hptypes) %do% {
+    #hp <- "B"
     seq <- refseqs[[hp]]
     seqrle <- .seq2rle(seq)
     n <- which(seqrle$lengths > count)
@@ -318,7 +319,7 @@ checkHomoPolymerCount <- function(x, count = 10, map = "mapFinal") {
     bamfile <- ifelse(length(hptypes) == 1, bambase, bambase["SR" %<<% hp])
     bamfile <- file.path(x$getOutdir(), bamfile)
     homopolymersHP <- foreach(pos = n, .combine = rbind) %do% {
-      positionHP <- sum(seqrle$length[seq_len(pos-1)])+1
+      positionHP <- sum(seqrle$length[seq_len(pos-1)])#+1
       lenHP <- seqrle$lengths[pos]
       msa <- .msaFromBam(bamfile,
                           refseq = seq,
@@ -326,7 +327,6 @@ checkHomoPolymerCount <- function(x, count = 10, map = "mapFinal") {
                                            names(seq),
                                            positionHP-10,
                                            positionHP + lenHP + 10))
-
 
       covering <- vapply(msa, function(a, lenHP) {
         nchar(gsub(pattern = "\\+", "", toString(a))) == lenHP + 21
