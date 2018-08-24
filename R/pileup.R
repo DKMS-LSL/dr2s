@@ -58,8 +58,8 @@ Pileup <- function(bamfile,
                     seqnames = strsplitN(as.character(.data$seqnames), "~", 1, 
                                          fixed = TRUE))
   }, error = function(e) {
-    flog.info("No longread maps to the reference", name = "info")
-    error("no longread maps to the reference")
+    flog.info("No reads maps to the reference", name = "info")
+    stop("no reads maps to the reference")
   })
   structure(
     list(

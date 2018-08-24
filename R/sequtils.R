@@ -333,7 +333,9 @@ checkHomoPolymerCount <- function(x, count = 10, map = "mapFinal") {
         }, lenHP = lenHP, FUN.VALUE = logical(1), USE.NAMES = TRUE)
       msa <- msa[covering]
       readsOI <- names(msa)
-      ins <- .getInsertions(bamfile, inpos = positionHP-1, reads = readsOI)[[1]]
+      ins <- .getInsertions(bamfile, 
+                            inpos = c(positionHP-1, positionHP, positionHP - 2),
+                            reads = readsOI)[[1]]
       msa <- unlist( Biostrings::DNAStringSetList(
         set_names(lapply(names(msa), function(a) {
             if (a %in% names(ins)) {

@@ -70,6 +70,7 @@ conseq.matrix <- function(x,
   }
   x <- consmat(x, freq = FALSE)
   conseq <- switch(type,
+                   
     prob  = .makeProbConsensus_(x, excludeGaps = excludeGaps,
                                  forceExcludeGaps = forceExcludeGaps,
                                  gapSuppressionRatio = gapSuppressionRatio),
@@ -92,6 +93,12 @@ conseq.matrix <- function(x,
                                  forceExcludeGaps = FALSE,
                                  gapSuppressionRatio = 2/5,
                                  asString = FALSE) {
+                                 
+  
+  
+  
+  #cseq <- conseq(reads, "hap" %<<% hptype, "prob", excludeGaps = TRUE)
+  
   xOri <- x
   if (excludeGaps && length(ins_ <- as.character(ins(x))) > 0) {
     x <- .suppressGaps_(x, ins = ins_, 
@@ -99,12 +106,16 @@ conseq.matrix <- function(x,
   }
   if (forceExcludeGaps) {
     x[, "-"] <- 0
+    
   }
   # don't allow gaps at beginning and end
   maxbases <- names(unlist(unname(apply(x, 1, function(a) 
     list(which(a == max(a))[1])))))
   maxbase  <- which(maxbases != "-")
   maxgap   <- which(maxbases == "-")
+  # remove insertions for the consensus
+  x[, "+"] <- 0
+  
   if (!length(maxgap) == 0) {
     if (min(maxgap) < min(maxbase)) {
       excludeFromStart <- min(
