@@ -1,7 +1,7 @@
 #' Read a cached DR2S object
-#' @param path the path to the folder storing the DR2S object. Usually the 
+#' @param path the path to the folder storing the DR2S object. Usually the
 #' \code{outdir} of a previous run.
-#' 
+#'
 #' @examples
 #' \dontrun{
 #' library(DR2S)
@@ -61,19 +61,19 @@ readDR2S <- function(path) {
   flog.info("Get latest consensus from last mapping ...", name = "info")
 
   if (!is.null(x$mapInit$SR1)) {
-    cseq <- conseq(x$mapInit$SR2$pileup$consmat, "mapFinalA", "ambig", 
+    cseq <- conseq(x$mapInit$SR2$pileup$consmat, "mapFinalA", "ambig",
                    excludeGaps = TRUE, threshold = x$getThreshold())
   } else {
-    cseq <- conseq(x$mapInit$pileup$consmat, "mapFinalA", "ambig", 
+    cseq <- conseq(x$mapInit$pileup$consmat, "mapFinalA", "ambig",
                    excludeGaps = TRUE, threshold = x$getThreshold())
   }
   x$mapFinal$seq$A <- cseq
 
   flog.info(
-    "Polish and look for inconsistencies between shortreads and longreads ...", 
+    "Polish and look for inconsistencies between shortreads and longreads ...",
     name = "info")
   polish(x)
-  flog.info("Report consensus sequence and potential problematic variants", 
+  flog.info("Report consensus sequence and potential problematic variants",
             name = "info")
   report(x)
 
@@ -81,11 +81,11 @@ readDR2S <- function(path) {
 }
 
 #' Create IGV xml config files for directly open the longread and shortread
-#' mapping in an IGV session. It creates also ".sh" and ".bat" scripts for 
+#' mapping in an IGV session. It creates also ".sh" and ".bat" scripts for
 #' easy opening the IGV instance.
 #' @param x A \code{\link{DR2S_}} object.
 #' @param position The position where IGV focuses on startup.
-#' @param map Which mapping should be opened. One of "mapInit", "mapIter", 
+#' @param map Which mapping should be opened. One of "mapInit", "mapIter",
 #' "mapFinal" or "refine".
 #' @param open whether to open an IGV instance now.
 #' @export
@@ -123,10 +123,10 @@ createIgvConfigs <- function(x, position, map = "mapFinal", open = TRUE) {
     igv <- file.path(igvdir, "igv" %<<% hp %<<% map %<<% ".xml")
     if (map == "mapFinal") {
       ref   <- x$mapIter[[as.character(x$getIterations())]][[hp]]$seqpath
-      bamLR <- file.path("mapFinal", 
+      bamLR <- file.path("mapFinal",
                          basename(x$mapFinal$bamfile[["LR" %<<% hp]]))
       if (!is.null(x$mapFinal$sreads[[hp]]))
-        bamSR <- file.path("mapFinal", 
+        bamSR <- file.path("mapFinal",
                            basename(x$mapFinal$bamfile[["SR" %<<% hp]]))
     } else if (map == "refine") {
       if (!is.null(x$consensus$refine$ref[[hp]])) {
@@ -136,10 +136,10 @@ createIgvConfigs <- function(x, position, map = "mapFinal", open = TRUE) {
           bamSR <- x$consensus$refine$bamfile[["SR" %<<% hp]]
       } else {
         ref   <- x$mapIter[[as.character(x$getIterations())]][[hp]]$seqpath
-        bamLR <- file.path("mapFinal", 
+        bamLR <- file.path("mapFinal",
                            basename(x$mapFinal$bamfile[["LR" %<<% hp]]))
         if (!is.null(x$mapFinal$sreads[[hp]]))
-          bamSR <- file.path("mapFinal", 
+          bamSR <- file.path("mapFinal",
                              basename(x$mapFinal$bamfile[["SR" %<<% hp]]))
       }
     } else if (map == "mapInit") {
@@ -152,13 +152,16 @@ createIgvConfigs <- function(x, position, map = "mapFinal", open = TRUE) {
       bamLR <- x$mapInit$bamfile
 
     } else if (map == "mapIter") {
-      ref <- x$mapIter[[as.character(x$getIterations()-1)]][[hp]]$seqpath
+      ref <- x$mapIter[[as.character(x$getIterations() - 1)]][[hp]]$seqpath
       bamLR <- x$mapIter[[as.character(x$getIterations())]][[hp]]$bamfile
     }
-    chr <- strsplit1(sub(">", "", 
-                         readLines(file.path(basedir, ref), 1)), "\\s+")[1]
-    locus <-paste0(chr, ":", min(c((abs(position - 50)),0)), "-", position + 50)
-
+    if (!is(ref, "DNAStringSet")) {
+      chr <- strsplit1(sub(">", "",
+                           readLines(file.path(basedir, ref), 1)), "\\s+")[1]
+    } else {
+      chr <- names(ref)
+    }
+    locus <- paste0(chr, ":", min(c((abs(position - 50)),0)), "-", position + 50)
     xml <- XML::xmlTree()
     suppressWarnings(xml$addTag("Global",
                                 attrs = c(genome = file.path("..", ref),
@@ -171,27 +174,27 @@ createIgvConfigs <- function(x, position, map = "mapFinal", open = TRUE) {
     xml$closeTag()
     xml$closeTag()
     XML::saveXML(xml, file = igv)
-    
-    
+
+
     xml <- XML::xmlTree()
     suppressWarnings(xml$addTag("Global",
-                                c(genome = file.path("..", 
-                                                     gsub("/", "\\\\", ref), 
+                                c(genome = file.path("..",
+                                                     gsub("/", "\\\\", ref),
                                                      fsep = "\\"),
                                   locus = locus),
                                 close = FALSE))
     xml$addTag("Resources", close = FALSE)
-    xml$addTag("Resource", c(path = file.path("..", 
-                                              gsub("/", "\\\\", bamLR), 
+    xml$addTag("Resource", c(path = file.path("..",
+                                              gsub("/", "\\\\", bamLR),
                                               fsep = "\\")))
     if (exists("bamSR"))
-      xml$addTag("Resource", c(path = file.path("..", 
-                                                gsub("/", "\\\\", bamSR), 
+      xml$addTag("Resource", c(path = file.path("..",
+                                                gsub("/", "\\\\", bamSR),
                                                 fsep = "\\")))
     xml$closeTag()
     xml$closeTag()
     XML::saveXML(xml, file = gsub(".xml", ".win.xml", igv))
-    
+
 
     igvConfigs[[hp]] <- x$relPath(igv)
   }
@@ -221,7 +224,7 @@ createIgvConfigs <- function(x, position, map = "mapFinal", open = TRUE) {
 
 
 #' Create subsampled bam files and fasta index files for igv.js instances.
-#' 
+#'
 #' @param reference The reference fasta file used for mapping
 #' @param bamfile The bamfile which should be viewed in IGV.js
 #' @param ... Additional parameters passed to \code{\link{subSampleBam}}.
@@ -240,7 +243,7 @@ createIgvJsFiles <- function(reference, bamfile, outdir, ...) {
   resultList$original <- .cropPath(outdir, resultList$original)
   resultList$sampled <- .cropPath(outdir, resultList$sampled)
   structure(
-    resultList, 
+    resultList,
    class = c("igvjs", "list")
   )
 }
