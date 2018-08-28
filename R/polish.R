@@ -58,7 +58,7 @@ polish.DR2S <- function(x,
       if (hptype %in% names(rs$mapFinal$homopolymers)) {
         seq <- rs$consensus$seq[[hptype]]
         seqrle <- .seq2rle(seq)
-        n <- seqrle$length[seqrle$length > 10]
+        n <- seqrle$length[seqrle$length > 10] %||% 0
         modeN <- sort(rs$mapFinal$homopolymers[[hptype]])
         names(n) <- names(modeN)
         if (!all(modeN == n)) {
@@ -68,9 +68,9 @@ polish.DR2S <- function(x,
                                    ref       = "",
                                    alt       = "",
                                    warning   = sprintf(paste(
-                                     "Homopolymer at position %s should be of", 
+                                     "Homopolymer at position %s should be of",
                                      "length %s, but is %s"),
-                                     names(missingN), missingN, 
+                                     names(missingN), missingN,
                                      n[names(missingN)]),
                                    refSR     = "",
                                    altSR     = "",
@@ -97,7 +97,7 @@ polish.DR2S <- function(x,
 
 .getVariants <- function(x) {
   hptypes <- x$getHapTypes()
-  hvars <- set_names(lapply(hptypes, function(t) x$consensus[[t]]$variants), 
+  hvars <- set_names(lapply(hptypes, function(t) x$consensus[[t]]$variants),
                      hptypes)
 
   if (all(vapply(hvars, function(x) length(x) == 0, logical(1)))) {
