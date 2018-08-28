@@ -164,6 +164,7 @@ DR2S_ <- R6::R6Class(
           self$runPartitionLongReads()
           self$runSplitLongReadsByHaplotype()
           self$runExtractLongReads()
+          self$runGetPartitionedConsensus()
         },
         partitionShortReads = self$runPartitionShortReads(),
         mapInit        = self$runMapInit(),
