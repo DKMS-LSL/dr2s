@@ -280,10 +280,10 @@ DR2S_ <- R6::R6Class(
     ##
     getSampleDetails = function() {
       details <- semicolon(
-        vapply(seq_along(self$getDetails()), 
+        vapply(seq_along(self$getDetails()),
                function(item) paste(names(
-                 self$getDetails()[item]), 
-                 underscore(litQuote(self$getDetails()[item])), 
+                 self$getDetails()[item]),
+                 underscore(litQuote(self$getDetails()[item])),
                  sep = "="), FUN.VALUE = character(1)))
       sr <- !is(try(self$getShortreads(), silent = TRUE), "try-error")
       lr <- !is(try(self$getShortreads(), silent = TRUE), "try-error")
@@ -463,7 +463,7 @@ DR2S_ <- R6::R6Class(
       } else if (length(self$mapIter) > 0) {
         latest <-  self$mapIter[[
           toString(max(names(self$mapIter)))]][self$getHapTypes()]
-        return(vapply(latest, function(x) self$absPath(x$seqpath), 
+        return(vapply(latest, function(x) self$absPath(x$seqpath),
                character(1)))
       } else {
         return(self$getRefPath())

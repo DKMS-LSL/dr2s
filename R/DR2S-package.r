@@ -16,7 +16,7 @@
 #' @import ipdDb
 #' @import rtracklayer
 #' @import Rsamtools
-#' @import cowplot
+#' @importFrom cowplot save_plot plot_grid
 #' @importFrom iterators iter nextElem
 #' @importFrom Rcpp compileAttributes
 #' @importFrom ggseqlogo geom_logo theme_logo

@@ -7,7 +7,7 @@
 readDR2S(path)
 }
 \arguments{
-\item{path}{the path to the folder storing the DR2S object. Usually the 
+\item{path}{the path to the folder storing the DR2S object. Usually the
 \code{outdir} of a previous run.}
 }
 \description{

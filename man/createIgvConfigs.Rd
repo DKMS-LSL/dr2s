@@ -3,7 +3,7 @@
 \name{createIgvConfigs}
 \alias{createIgvConfigs}
 \title{Create IGV xml config files for directly open the longread and shortread
-mapping in an IGV session. It creates also ".sh" and ".bat" scripts for 
+mapping in an IGV session. It creates also ".sh" and ".bat" scripts for
 easy opening the IGV instance.}
 \usage{
 createIgvConfigs(x, position, map = "mapFinal", open = TRUE)
@@ -13,13 +13,13 @@ createIgvConfigs(x, position, map = "mapFinal", open = TRUE)
 
 \item{position}{The position where IGV focuses on startup.}
 
-\item{map}{Which mapping should be opened. One of "mapInit", "mapIter", 
+\item{map}{Which mapping should be opened. One of "mapInit", "mapIter",
 "mapFinal" or "refine".}
 
 \item{open}{whether to open an IGV instance now.}
 }
 \description{
 Create IGV xml config files for directly open the longread and shortread
-mapping in an IGV session. It creates also ".sh" and ".bat" scripts for 
+mapping in an IGV session. It creates also ".sh" and ".bat" scripts for
 easy opening the IGV instance.
 }
