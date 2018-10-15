@@ -5,7 +5,7 @@ mapReads <- function(
   optsname = "", force, outdir, minMapq = 0, clean,  threshold, maxDepth = 1e4,
   minBaseQuality = 3,  minNucleotideDepth = 3, refseq = NULL, includeInsertions,
   mapFun,   clip = FALSE, distributeGaps = FALSE, includeDeletions, 
-  callInsertions = FALSE, removeError = TRUE) {
+  callInsertions = FALSE, removeError = TRUE, topx = 0) {
   
   ## Run mapper
   flog.info("  Mapping ...", name = "info")
@@ -47,6 +47,15 @@ mapReads <- function(
   bamfile <- .bamSortIndex(samfile = samfile, reffile = reffile,
                            minMapq = minMapq, force = force)
 
+  if (topx > 0) {
+    reads <- .topXReads(bamfile, refseq, n = topx)
+    bam <- BamFile(bamfile)
+    alignmentBam <-  GenomicAlignments::readGAlignments(bam,
+                                                        param = ScanBamParam(
+                                                          what=scanBamWhat()), 
+                                                        use.names = TRUE)
+    export(alignmentBam[reads], bamfile)
+  }
   ## Calculate pileup from graphmap produced SAM file
   flog.info("  Piling up ...", name = "info")
   pileup <- Pileup(bamfile, threshold, max_depth = maxDepth,
@@ -54,6 +63,7 @@ mapReads <- function(
     min_nucleotide_depth = minNucleotideDepth,
     include_deletions = includeDeletions,
     include_insertions = includeInsertions)
+  
 
   if (distributeGaps) {
     pileup$consmat <- .distributeGaps(mat = pileup$consmat,
@@ -66,5 +76,7 @@ mapReads <- function(
     ## TODO check threshold
     pileup <- .pileupIncludeInsertions(x = pileup, threshold = 0.15)
   }
+  if (topx > 0) 
+    pileup$reads <- reads
   pileup
 }

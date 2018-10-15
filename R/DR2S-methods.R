@@ -16,6 +16,7 @@ mapInit.DR2S <- function(x,
                          fullname = FALSE,
                          filterScores = TRUE,
                          forceMapping = FALSE,
+                         topx = 0,
                          plot = TRUE) {
   x$runMapInit(opts = opts,
                optsname = optsname,
@@ -32,6 +33,7 @@ mapInit.DR2S <- function(x,
                fullname = fullname,
                filterScores = filterScores,
                forceMapping = forceMapping,
+               topx = topx,
                plot = plot)
   invisible(x)
 }
@@ -51,6 +53,7 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
                                            fullname = FALSE,
                                            filterScores = TRUE,
                                            forceMapping = FALSE,
+                                           topx = 0,
                                            plot = TRUE) {
 
   flog.info("Step 0: mapInit ...", name = "info")
@@ -310,7 +313,17 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
                        minNucleotideDepth = minNucleotideDepth,
                        includeDeletions = TRUE, includeInsertions = TRUE,
                        callInsertions = TRUE, mapFun = mapFun,
-                       distributeGaps = TRUE, refseq = refseq)
+                       distributeGaps = TRUE, refseq = refseq, topx = topx)
+    if (!is.null(pileup$reads)) {
+      file <- paste(
+        self$getSampleId(), self$getLrdType(), paste0("n", topx),
+        "fastq", "gz", sep = ".")
+      fqout <- .fileDeleteIfExists(file.path(outdir, file))
+      fq  <- .extractFastq(pileup$bamfile, pileup$reads)
+      ShortRead::writeFastq(fq, fqout, compress = TRUE)
+      readfile <- fqout
+    }
+      
     conseqName <- "Init.LRconsensus." %<<%
       sub(".bam", "", basename(pileup$bamfile))
     maptag   <- paste(mapLabel, paste0(litArrows(c(conseqName, readtype,
@@ -340,7 +353,7 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
 
   self$mapInit = structure(
     list(
-      reads   = self$relPath(self$getLongreads()),
+      reads   = self$relPath(readfile),
       bamfile = self$relPath(pileup$bamfile),
       pileup  = pileup,
       tag     = maptag,
@@ -768,8 +781,6 @@ mapIter.DR2S <- function(x,
                minMapq = minMapq,
                maxDepth = maxDepth,
                minNucleotideDepth = minNucleotideDepth,
-               includeDeletions = includeDeletions,
-               includeInsertions = includeInsertions,
                gapSuppressionRatio = gapSuppressionRatio,
                force = force,
                fullname = fullname,
@@ -786,9 +797,7 @@ DR2S_$set(
            minMapq = 0,
            maxDepth = 1e4,
            minNucleotideDepth = 3,
-           includeDeletions = TRUE,
-           includeInsertions = TRUE,
-           gapSuppressionRatio = 2/5,
+           gapSuppressionRatio = 1/4,
            force = FALSE,
            fullname = FALSE,
            plot = TRUE) {
@@ -828,6 +837,9 @@ DR2S_$set(
     hptypes <- self$getHapTypes()
     iterations <- self$getIterations()
     baseoutdir   <- self$absPath("mapInit")
+    
+    includeInsertions = ifelse(self$getPartSR(), FALSE, TRUE)
+    callInsertions = ifelse(self$getPartSR(), FALSE, TRUE)
 
     ## Mapper
     mapFun <- self$getLrMapFun()
@@ -862,9 +874,9 @@ DR2S_$set(
           outdir = outdir, minMapq = minMapq, threshold = threshold,
           minBaseQuality = minBaseQuality, clean = clean,
           minNucleotideDepth = minNucleotideDepth,
-          includeDeletions = TRUE, includeInsertions = FALSE,
-          callInsertions = FALSE, mapFun = mapFun, distributeGaps = TRUE,
-          refseq = refseq)
+          includeDeletions = TRUE, includeInsertions = includeInsertions,
+          callInsertions = callInsertions, mapFun = mapFun, 
+          distributeGaps = TRUE, refseq = refseq)
 
         # ## Construct consensus sequence
         flog.info("   Constructing consensus ...", name = "info")

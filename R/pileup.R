@@ -27,6 +27,7 @@
 #'     }
 #'   }
 #'   \item{consmat}{Consensus matrix}
+#'   \item{reads}{best scoring reads}
 #' }
 #'
 #' @return A \code{pileup} object. See \code{Details}.
@@ -67,6 +68,7 @@ Pileup <- function(bamfile,
       threshold = threshold,
       param     = pParam,
       pileup    = pileup,
+      reads     = NULL,
       consmat   = consmat(pileup, freq = FALSE)
     ),
     class = c("pileup", "list")
@@ -214,6 +216,24 @@ print.pileup <- function(x, asString = FALSE, ...) {
     Lpadding.letter = paddingLetter,
     Rpadding.letter = paddingLetter,
     use.names = TRUE)
+}
+
+.topXReads <- function(bamfile, refseq, n = 2000) {
+  msa <- .msaFromBam(bamfile, refseq)
+  mat <- createPWM(msa)
+  mat["+",] <- 0 
+  res <- do.call(dplyr::bind_rows, bplapply(seq_along(msa), function(s, aln, mat) {
+    seq <- as.character(aln[[s]])
+    seq <- unlist(strsplit(seq, split = ""))
+    read <- names(aln[s])
+    ## Make this CPP
+    b <- sum(vapply(seq_along(seq), function(x, mat, seq) mat[seq[x],x],
+                     mat = mat, seq = seq, FUN.VALUE = numeric(1)))
+    t <- tibble::tibble(read, b/length(seq))
+    names(t) <- c("read", "score")
+    t
+  }, aln = msa, mat = mat))
+  (res %>% dplyr::arrange(desc(score)))[1:n,]$read
 }
 
 
