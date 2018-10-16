@@ -146,6 +146,7 @@ InitDR2S <- function(config,
 #' quality and removes all softclipping reads. Usually not necessary.
 #' @param forceMapping if \code{FALSE} the program throws an error in case the
 #' coverage of shortreads is too different at different parts of the sequence. 
+#' @param topx the best x reads. 
 #' @param plot Produce diagnostic plots.
 #' @param ... Further arguments passed to methods.
 #'
@@ -187,6 +188,7 @@ mapInit <- function(x,
                     fullname = TRUE,
                     filterScores = TRUE,
                     forceMapping = FALSE,
+                    topx = 0,
                     plot = TRUE) {
   UseMethod("mapInit")
 }
