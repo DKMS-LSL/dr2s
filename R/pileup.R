@@ -106,7 +106,7 @@ print.pileup <- function(x, asString = FALSE, ...) {
   pos[cm[pos, "+"] > threshold]
 }
 
-.pileupGetInsertions_ <- function(x, threshold) {
+.pileupGetInsertions_ <- function(x, threshold, readtype) {
   res <- list()
   colnm <- colnames(x$consmat)
   inpos <- .pileupFindInsertionPositions_(x, threshold)
@@ -114,7 +114,7 @@ print.pileup <- function(x, asString = FALSE, ...) {
   inpos <- inpos[!inpos %in% (NROW(x$consmat) - 5):NROW(x$consmat)]
   bamfile <- x$bamfile
   if (length(inpos) > 0) {
-    inseqs <- .getInsertions(bamfile, inpos)
+    inseqs <- .getInsertions(bamfile, inpos, readtype)
     inseqs <- inseqs[order(as.integer(names(inseqs)))]
     for (inseq in inseqs) {
       if (length(inseq) < 100) {
@@ -162,7 +162,7 @@ print.pileup <- function(x, asString = FALSE, ...) {
   res
 }
 
-.pileupIncludeInsertions <- function(x, threshold = NULL) {
+.pileupIncludeInsertions <- function(x, threshold = NULL, readtype = "illumina") {
   stopifnot(is(x, "pileup"))
   if (!"+" %in% colnames(x$consmat)) {
     flog.warn("No insertions to call!", name = "info")
@@ -171,7 +171,7 @@ print.pileup <- function(x, asString = FALSE, ...) {
   if (is.null(threshold)) {
     threshold <- x$threshold
   }
-  ins_ <- .pileupGetInsertions_(x, threshold)
+  ins_ <- .pileupGetInsertions_(x, threshold, readtype)
   if (length(ins_) == 0) {
     return(x)
   }
@@ -362,12 +362,17 @@ plotPileupBasecallFrequency <- function(x, threshold = 0.20, label = "",
 
   ## Get the reference
   reference   <- seqinfo(BamFile(bamfile))@seqnames[1]
-  inposRanges <- GenomicRanges::GRanges(reference, 
-                                        IRanges::IRanges(start = inpos, 
-                                                         end = inpos))
-  bamParam    <- ScanBamParam(what = "seq", which = inposRanges)
+  if (reatype == "illumina") {
+    inposRanges <- GenomicRanges::GRanges(reference, 
+                                          IRanges::IRanges(start = inpos, 
+                                                           end = inpos))
+    bamParam    <- ScanBamParam(what = "seq", which = inposRanges)
+  } else {
+    bamParam    <- ScanBamParam(what = "seq")
+  }
   bam <- GenomicAlignments::readGAlignments(bamfile, param = bamParam, 
                                             use.names = TRUE)
+  
   ## Use only reads of interest if specified
   if (!is.null(reads))
     bam <- bam[names(bam) %in% reads]
