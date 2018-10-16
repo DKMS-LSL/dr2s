@@ -87,6 +87,7 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
   # library(futile.logger)
   # library(cowplot)
   # self <-dr2s
+  # self <- mapper
 
   ## Overide default arguments
   args <- self$getOpts("mapInit")
@@ -329,7 +330,7 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
       ShortRead::writeFastq(fq, fqout, compress = TRUE)
       readfile <- fqout
     }
-      
+
     conseqName <- "Init.LRconsensus." %<<%
       sub(".bam", "", basename(pileup$bamfile))
     maptag   <- paste(mapLabel, paste0(litArrows(c(conseqName, readtype,
@@ -357,7 +358,7 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
   if (createIgv)
     igv[["LR"]] <- createIgvJsFiles(reffile, pileup$bamfile, outdir,
                                     sampleSize = 100, fragmentReads = TRUE)
-  
+
   self$mapInit = structure(
     list(
       reads   = self$relPath(readfile),
@@ -376,7 +377,7 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
     self$mapInit$SR2 <- mapInitSR2
   }
   createIgvConfigs(x = self, map = "mapInit", open = "FALSE")
-  
+
   if (plot) {
     flog.info(" Plot MapInit summary ", name = "info")
     ## Coverage and frequency of minor alleles
@@ -844,7 +845,7 @@ DR2S_$set(
     hptypes <- self$getHapTypes()
     iterations <- self$getIterations()
     baseoutdir   <- self$absPath("mapInit")
-    
+
     includeInsertions = ifelse(self$getPartSR(), FALSE, TRUE)
     callInsertions = ifelse(self$getPartSR(), FALSE, TRUE)
 
@@ -882,7 +883,7 @@ DR2S_$set(
           minBaseQuality = minBaseQuality, clean = clean,
           minNucleotideDepth = minNucleotideDepth,
           includeDeletions = TRUE, includeInsertions = includeInsertions,
-          callInsertions = callInsertions, mapFun = mapFun, 
+          callInsertions = callInsertions, mapFun = mapFun,
           distributeGaps = TRUE, refseq = refseq)
 
         # ## Construct consensus sequence
