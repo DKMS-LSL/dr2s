@@ -77,7 +77,7 @@ mapReads <- function(
   if (callInsertions && is.null(ins(pileup$consmat))) {
     flog.info("  Calling insertions ...", name = "info")
     ## TODO check threshold
-    pileup <- .pileupIncludeInsertions(x = pileup, threshold = threshold, readtype = readtype)
+    pileup <- .pileupIncludeInsertions(x = pileup, threshold = 0.15, readtype = readtype)
   }
   if (topx > 0) 
     pileup$reads <- reads
