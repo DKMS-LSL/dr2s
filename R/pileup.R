@@ -362,7 +362,7 @@ plotPileupBasecallFrequency <- function(x, threshold = 0.20, label = "",
 
   ## Get the reference
   reference   <- seqinfo(BamFile(bamfile))@seqnames[1]
-  if (reatype == "illumina") {
+  if (readtype == "illumina") {
     inposRanges <- GenomicRanges::GRanges(reference, 
                                           IRanges::IRanges(start = inpos, 
                                                            end = inpos))
