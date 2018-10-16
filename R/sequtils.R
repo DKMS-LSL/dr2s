@@ -129,7 +129,7 @@ generateReferenceSequence <- function(allele, locus, outdir, dirtag = NULL,
   } else {
     ipd <- ipdKir()
   }
-  if (!allele %in% ipd$getAlleles(locus)) 
+  if (!allele %in% ipd$getAlleles(locus))
     stop(sprintf("Allele %s not found in database", allele))
 
   .dirCreateIfNotExists(normalizePath(
@@ -309,7 +309,7 @@ checkHomoPolymerCount <- function(x, count = 10, map = "mapFinal") {
     plotname <- "plot.homopolymers.refine.pdf"
   }
   p <- foreach(hp = hptypes) %do% {
-    #hp <- "B"
+    #hp <- "A"
     seq <- refseqs[[hp]]
     seqrle <- .seq2rle(seq)
     n <- which(seqrle$lengths > count)
@@ -333,22 +333,25 @@ checkHomoPolymerCount <- function(x, count = 10, map = "mapFinal") {
         }, lenHP = lenHP, FUN.VALUE = logical(1), USE.NAMES = TRUE)
       msa <- msa[covering]
       readsOI <- names(msa)
-      ins <- .getInsertions(bamfile, 
+      ins <- .getInsertions(bamfile,
                             inpos = c(positionHP-1, positionHP, positionHP - 2),
-                            reads = readsOI)[[1]]
-      msa <- unlist( Biostrings::DNAStringSetList(
-        set_names(lapply(names(msa), function(a) {
-            if (a %in% names(ins)) {
-              firstSeq <- unlist(Biostrings::subseq(msa[a], start = 1, 
-                                                    width = 10))
-              insert <- unlist(ins[a])
-              lastSeq <- unlist(Biostrings::subseq(msa[a], start = 11, 
-                                                   width = lenHP + 10))
-              Biostrings::DNAStringSet(c(firstSeq, insert, lastSeq))
-            } else {
-              msa[a]
-            }
-        }), readsOI)))
+                            reads = readsOI)
+      if (length(ins) > 0) {
+        ins <- ins[[1]]
+        msa <- unlist( Biostrings::DNAStringSetList(
+          set_names(lapply(names(msa), function(a) {
+              if (a %in% names(ins)) {
+                firstSeq <- unlist(Biostrings::subseq(msa[a], start = 1,
+                                                      width = 10))
+                insert <- unlist(ins[a])
+                lastSeq <- unlist(Biostrings::subseq(msa[a], start = 11,
+                                                     width = lenHP + 10))
+                Biostrings::DNAStringSet(c(firstSeq, insert, lastSeq))
+              } else {
+                msa[a]
+              }
+          }), readsOI)))
+      }
       msarle <- lapply(msa, .seq2rle)
       lens <- vapply(msarle, function(a) max(a$lengths), integer(1))
       dplyr::data_frame(haptype = hp, position = positionHP, length = lens)
