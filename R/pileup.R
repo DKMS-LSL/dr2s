@@ -221,7 +221,7 @@ print.pileup <- function(x, asString = FALSE, ...) {
 .topXReads <- function(bamfile, refseq, n = 2000) {
   msa <- .msaFromBam(bamfile, refseq)
   mat <- createPWM(msa)
-  mat["+",] <- 0 
+  mat["+",] <- 0
   res <- do.call(dplyr::bind_rows, bplapply(seq_along(msa), function(s, aln, mat) {
     seq <- as.character(aln[[s]])
     seq <- unlist(strsplit(seq, split = ""))
@@ -350,7 +350,7 @@ plotPileupBasecallFrequency <- function(x, threshold = 0.20, label = "",
     )
 }
 
-.getInsertions <- function(bamfile, inpos, reads = NULL, readtype) {
+.getInsertions <- function(bamfile, inpos, reads = NULL, readtype = "illumina") {
   assert_that(is.numeric(inpos))
   inpos <- sort(inpos)
   flog.info("  Extracting insertions at position %s ...", comma(inpos),
@@ -363,16 +363,16 @@ plotPileupBasecallFrequency <- function(x, threshold = 0.20, label = "",
   ## Get the reference
   reference   <- seqinfo(BamFile(bamfile))@seqnames[1]
   if (readtype == "illumina") {
-    inposRanges <- GenomicRanges::GRanges(reference, 
-                                          IRanges::IRanges(start = inpos, 
+    inposRanges <- GenomicRanges::GRanges(reference,
+                                          IRanges::IRanges(start = inpos,
                                                            end = inpos))
     bamParam    <- ScanBamParam(what = "seq", which = inposRanges)
   } else {
     bamParam    <- ScanBamParam(what = "seq")
   }
-  bam <- GenomicAlignments::readGAlignments(bamfile, param = bamParam, 
+  bam <- GenomicAlignments::readGAlignments(bamfile, param = bamParam,
                                             use.names = TRUE)
-  
+
   ## Use only reads of interest if specified
   if (!is.null(reads))
     bam <- bam[names(bam) %in% reads]
