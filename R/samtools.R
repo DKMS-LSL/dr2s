@@ -5,7 +5,7 @@
                           threadmem = "1G",
                           clean = TRUE,
                           force = FALSE) {
-  
+
   samfile <- normalizePath(samfile, mustWork = TRUE)
   reffile <- normalizePath(reffile, mustWork = TRUE)
   ext <- sprintf("%s.sorted",
@@ -13,10 +13,10 @@
                    minMapq %<<% "MAPQ"
                  else
                    "")
-  
+
   samtoolsPath <- Sys.which("samtools")
   sorted <- sub("\\.sam(\\.gz)?", paste(ext, "bam", sep = "."), samfile)
-  
+
   if (nzchar(samtoolsPath)) {
     ## -F260 exclude 'read unmapped', 'not primary alignment'
     ## Better use -F2308 to also exclude chimeric reads!
@@ -35,7 +35,7 @@
   } else {
     ## Sam to bam
     bamfile <- asBam(samfile, tempfile(), indexDestination = TRUE, overwrite = TRUE)
-    
+
     ## Filter the bam by flag
     flag <- scanBamFlag(isUnmappedQuery = FALSE,
                          isSecondaryAlignment = FALSE)
@@ -57,52 +57,48 @@
 }
 
 #' Subsample a bam file according to coverage
-#' 
+#'
 #' @param bamfile The bamfile that will be subsampled
-#' @param windowSize The window size for subsampling. The number of reads 
+#' @param windowSize The window size for subsampling. The number of reads
 #'   precised by sampleSize argument will be sampled in this window.
-#' @param sampleSize The desired new coverage of the bamfile. 
+#' @param sampleSize The desired new coverage of the bamfile.
 #' @param what What to extract from the bam file to write to the new one.
-#'   If NULL defaults to the complete output of 
+#'   If NULL defaults to the complete output of
 #'   \code{\link[Rsamtools]{scanBamWhat}}.
-#' @return A list containing the filename of the original bamfile, the name of 
+#' @return A list containing the filename of the original bamfile, the name of
 #' the new bamfile, the reference length and the sampleSize
-#' 
+#'
 #' @export
-subSampleBam <- function(bamfile, windowSize = NULL, sampleSize = 100, 
-                         fragmentReads = FALSE, fragmentWidth = 1000, 
+subSampleBam <- function(bamfile, windowSize = NULL, sampleSize = 100,
+                         fragmentReads = FALSE, fragmentWidth = 1000,
                          what = NULL) {
   assert_that(
     file.exists(bamfile),
     endsWith(bamfile, ".bam"),
     is.numeric(sampleSize))
   bam <- BamFile(bamfile)
-  
+
   ## Get everything from the bamfile if nothing else is specified
   if(is.null(what))
     what <- scanBamWhat()
   assert_that(is.character(what))
-  
+
   alignmentBam <-  GenomicAlignments::readGAlignments(bam,
                                                       param = ScanBamParam(
-                                                        what=scanBamWhat()), 
+                                                        what=scanBamWhat()),
                                                       use.names = TRUE)
-  ## Split the reads if specified. For longreads.
-  if (fragmentReads) {
-    alignmentBam <- .fragmentReads(alignmentBam, fragmentLength = fragmentWidth)
-  }
   ## Use the median read length if no window size is given
   if (is.null(windowSize))
     windowSize <- IRanges::median(GenomicAlignments::qwidth(alignmentBam))
   assert_that(is.numeric(windowSize))
   geneLength <- GenomeInfoDb::seqlengths(GenomeInfoDb::seqinfo(bam))
-  
-  ## Sample only for reads < 0.5 * geneLength 
+
+  ## Sample only for reads < 0.5 * geneLength
   if (0.5*geneLength > windowSize) {
     windows <- seq(from = windowSize, to = geneLength, by = windowSize)
-    
-    sampledAlignmentBam <- do.call(c, 
-                                   lapply(windows, function(i, m, maxCov, 
+
+    sampledAlignmentBam <- do.call(c,
+                                   lapply(windows, function(i, m, maxCov,
                                                                windowSize) {
       readMid <- start(m)+floor(windowSize/2)
       m <- m[readMid > i - windowSize & readMid < i]
@@ -114,12 +110,19 @@ subSampleBam <- function(bamfile, windowSize = NULL, sampleSize = 100,
     }, m = alignmentBam, maxCov = sampleSize, windowSize = windowSize))
   } else {
     if (sampleSize <= length(alignmentBam)) {
+      ## Use only longreads of desired lengths, i.e. between .9 and 1.1 of reference length
+      lens <- GenomicAlignments::qwidth(alignmentBam)
+      alignmentBam <- alignmentBam[lens > 0.9 * geneLength  & lens < 1.1 * geneLength]
       sampledAlignmentBam <- sample(alignmentBam, sampleSize)
+      ## Split the reads if specified.
+      if (fragmentReads) {
+        sampledAlignmentBam <- .fragmentReads(sampledAlignmentBam, fragmentLength = fragmentWidth)
+      }
     } else {
       sampledAlignmentBam <- alignmentBam
     }
   }
-  
+
   newBamfile <- gsub(".bam", ".sampled.bam", bamfile)
   export(sampledAlignmentBam, newBamfile)
   list(
@@ -138,20 +141,15 @@ subSampleBam <- function(bamfile, windowSize = NULL, sampleSize = 100,
       a <- alignment[ii]
       readWidth <- GenomicAlignments::qwidth(a)
       windowLen <- ceiling(readWidth/fragmentLength)
-      wi <- floor(seq(from = 1, readWidth, length.out = windowLen))[2:windowLen]
-      b <- do.call(c, lapply(seq_along(wi), function(w, a) {
-        start <- ifelse(w == 1, 1, wi[w-1]+1)
-        b <- GenomicAlignments::qnarrow(a, start = start, end = wi[w])
-        seq <- b@elementMetadata$seq
-        seq <- Biostrings::subseq(seq, start = start, end = wi[w])
-        b@elementMetadata$seq <- seq
-        qual <- b@elementMetadata$qual
-        qual <- Biostrings::subseq(qual, start = start, end = wi[w])
-        b@elementMetadata$qual <- qual
-        b
-      }, a = a))
+      wi <- floor(seq(from = 1, readWidth, length.out = windowLen))
+      wRanges <- IRanges::IRanges(start = c(1, wi[2:(windowLen-1)]+1), end = wi[2:windowLen])
+      aa <- rep(a, windowLen-1)
+      b <- GenomicAlignments::qnarrow(aa, wRanges)
+      S4Vectors::mcols(b)$seq <- GenomicAlignments::narrow(S4Vectors::mcols(b)$seq, wRanges)
+      S4Vectors::mcols(b)$qual <- GenomicAlignments::narrow(S4Vectors::mcols(b)$qual, wRanges)
+      b
     }, fragmentLength = fragmentLength))
-  fragmentAlignment <-unlist(fragmentAlignment, recursive = TRUE, 
+  fragmentAlignment <-unlist(fragmentAlignment, recursive = TRUE,
                              use.names = TRUE)
   fragmentAlignment[order(GenomicAlignments::start(fragmentAlignment))]
 }
