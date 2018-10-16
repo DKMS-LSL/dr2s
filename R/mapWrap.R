@@ -48,6 +48,7 @@ mapReads <- function(
                            minMapq = minMapq, force = force)
 
   if (topx > 0) {
+    flog.info("  Extracting the top %s reads ...", topx, name = "info")
     reads <- .topXReads(bamfile, refseq, n = topx)
     bam <- BamFile(bamfile)
     alignmentBam <-  GenomicAlignments::readGAlignments(bam,
@@ -66,6 +67,7 @@ mapReads <- function(
   
 
   if (distributeGaps) {
+    flog.info("  Distributing gaps ...", name = "info")
     pileup$consmat <- .distributeGaps(mat = pileup$consmat,
                                       bamfile = bamfile,
                                       reference = refseq,
@@ -73,8 +75,9 @@ mapReads <- function(
   }
 
   if (callInsertions && is.null(ins(pileup$consmat))) {
+    flog.info("  Calling insertions ...", name = "info")
     ## TODO check threshold
-    pileup <- .pileupIncludeInsertions(x = pileup, threshold = 0.15, readtype)
+    pileup <- .pileupIncludeInsertions(x = pileup, threshold = 0.15, readtype = readtype)
   }
   if (topx > 0) 
     pileup$reads <- reads

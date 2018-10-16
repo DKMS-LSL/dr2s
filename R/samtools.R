@@ -134,6 +134,7 @@ subSampleBam <- function(bamfile, windowSize = NULL, sampleSize = 100,
   assert_that(is(alignment, "GAlignments"), is.count(fragmentLength))
   fragmentAlignment <- GenomicAlignments::GAlignmentsList(
     lapply(seq_along(alignment),  function(ii, fragmentLength) {
+      ## ii <- 1
       a <- alignment[ii]
       readWidth <- GenomicAlignments::qwidth(a)
       windowLen <- ceiling(readWidth/fragmentLength)

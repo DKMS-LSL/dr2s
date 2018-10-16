@@ -148,6 +148,7 @@ InitDR2S <- function(config,
 #' coverage of shortreads is too different at different parts of the sequence. 
 #' @param topx the best x reads. 
 #' @param plot Produce diagnostic plots.
+#' @param createIgv Subsample for looking with IgvJs in the shiny app.
 #' @param ... Further arguments passed to methods.
 #'
 #' @return A \code{\link[=DR2S_]{DR2S}} object.
@@ -189,6 +190,7 @@ mapInit <- function(x,
                     filterScores = TRUE,
                     forceMapping = FALSE,
                     topx = 0,
+                    createIgv = TRUE,
                     plot = TRUE) {
   UseMethod("mapInit")
 }

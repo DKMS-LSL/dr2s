@@ -114,7 +114,7 @@ print.pileup <- function(x, asString = FALSE, ...) {
   inpos <- inpos[!inpos %in% (NROW(x$consmat) - 5):NROW(x$consmat)]
   bamfile <- x$bamfile
   if (length(inpos) > 0) {
-    inseqs <- .getInsertions(bamfile, inpos, readtype)
+    inseqs <- .getInsertions(bamfile, inpos, readtype = readtype)
     inseqs <- inseqs[order(as.integer(names(inseqs)))]
     for (inseq in inseqs) {
       if (length(inseq) < 100) {
@@ -171,7 +171,7 @@ print.pileup <- function(x, asString = FALSE, ...) {
   if (is.null(threshold)) {
     threshold <- x$threshold
   }
-  ins_ <- .pileupGetInsertions_(x, threshold, readtype)
+  ins_ <- .pileupGetInsertions_(x, threshold, readtype = readtype)
   if (length(ins_) == 0) {
     return(x)
   }
@@ -350,7 +350,7 @@ plotPileupBasecallFrequency <- function(x, threshold = 0.20, label = "",
     )
 }
 
-.getInsertions <- function(bamfile, inpos, reads = NULL) {
+.getInsertions <- function(bamfile, inpos, reads = NULL, readtype) {
   assert_that(is.numeric(inpos))
   inpos <- sort(inpos)
   flog.info("  Extracting insertions at position %s ...", comma(inpos),

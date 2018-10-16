@@ -17,6 +17,7 @@ mapInit.DR2S <- function(x,
                          filterScores = TRUE,
                          forceMapping = FALSE,
                          topx = 0,
+                         createIgv = TRUE,
                          plot = TRUE) {
   x$runMapInit(opts = opts,
                optsname = optsname,
@@ -34,6 +35,7 @@ mapInit.DR2S <- function(x,
                filterScores = filterScores,
                forceMapping = forceMapping,
                topx = topx,
+               createIgv = createIgv,
                plot = plot)
   invisible(x)
 }
@@ -54,6 +56,7 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
                                            filterScores = TRUE,
                                            forceMapping = FALSE,
                                            topx = 0,
+                                           createIgv = TRUE,
                                            plot = TRUE) {
 
   flog.info("Step 0: mapInit ...", name = "info")
@@ -75,6 +78,8 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
   # filterScores = FALSE
   # forceMapping = TRUE
   # plot = TRUE
+  # topx <- 0
+  # createIgv = TRUE
   # library(ggplot2)
   # library(S4Vectors)
   # library(Rsamtools)
@@ -259,9 +264,10 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
                        mapFun = self$getSrMapFun())
 
     ### TODO wrap this command up
-    igv[["SR"]] <- createIgvJsFiles(reffile, pileup$bamfile,
-                                    self$getOutdir(),
-                                    sampleSize = 100)
+    if (createIgv)
+      igv[["SR"]] <- createIgvJsFiles(reffile, pileup$bamfile,
+                                      self$getOutdir(),
+                                      sampleSize = 100)
 
     mapInitSR2 = structure(
       list(
@@ -348,9 +354,10 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
                      callInsertions = FALSE, mapFun = mapFun,
                      distributeGaps = TRUE, refseq = refseq)
 
-  igv[["LR"]] <- createIgvJsFiles(reffile, pileup$bamfile, outdir,
-                                  sampleSize = 100, fragmentReads = TRUE)
-
+  if (createIgv)
+    igv[["LR"]] <- createIgvJsFiles(reffile, pileup$bamfile, outdir,
+                                    sampleSize = 100, fragmentReads = TRUE)
+  
   self$mapInit = structure(
     list(
       reads   = self$relPath(readfile),
@@ -369,7 +376,7 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
     self$mapInit$SR2 <- mapInitSR2
   }
   createIgvConfigs(x = self, map = "mapInit", open = "FALSE")
-
+  
   if (plot) {
     flog.info(" Plot MapInit summary ", name = "info")
     ## Coverage and frequency of minor alleles
@@ -1204,8 +1211,9 @@ DR2S_$set("public", "runMapFinal", function(opts = list(),
       callInsertions = FALSE, distributeGaps = TRUE, refseq = refseq)
 
     self$mapFinal$bamfile[[mapgroupLR]] = pileup$bamfile
-    self$mapFinal$igv[[mapgroupLR]] <- createIgvJsFiles(
-      reffile, pileup$bamfile, self$getOutdir(), sampleSize = 100,
+    if (createIgv)
+      self$mapFinal$igv[[mapgroupLR]] <- createIgvJsFiles(
+        reffile, pileup$bamfile, self$getOutdir(), sampleSize = 100,
       fragmentReads = TRUE)
     self$mapFinal$pileup[[mapgroupLR]] = pileup
     self$mapFinal$tag[[mapgroupLR]] = maptagLR
@@ -1240,8 +1248,9 @@ DR2S_$set("public", "runMapFinal", function(opts = list(),
                      type = "ambig", threshold = 0.2, excludeGaps = TRUE)
 
       self$mapFinal$bamfile[[mapgroupSR]] <- self$relPath(pileup$bamfile)
-      self$mapFinal$igv[[mapgroupSR]] <- createIgvJsFiles(
-        reffile, pileup$bamfile, self$getOutdir(), sampleSize = 100)
+      if (createIgv)
+        self$mapFinal$igv[[mapgroupSR]] <- createIgvJsFiles(
+          reffile, pileup$bamfile, self$getOutdir(), sampleSize = 100)
       self$mapFinal$pileup[[mapgroupSR]] = pileup
       self$mapFinal$tag[[mapgroupSR]] = maptagSR
       self$mapFinal$seq[[hptype]] <- cseq
