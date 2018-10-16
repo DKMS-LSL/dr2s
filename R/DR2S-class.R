@@ -285,19 +285,20 @@ DR2S_ <- R6::R6Class(
                  self$getDetails()[item]),
                  underscore(litQuote(self$getDetails()[item])),
                  sep = "="), FUN.VALUE = character(1)))
-      sr <- !is(try(self$getShortreads(), silent = TRUE), "try-error")
-      lr <- !is(try(self$getShortreads(), silent = TRUE), "try-error")
+
+      sr <- try(self$getShortreads(), silent = TRUE)
+      sr <- !(is(sr, "try-error") || is.null(sr))
+
+      lr <- try(self$getLongreads(), silent = TRUE)
+      lr <- !(is(lr, "try-error") || is.null(lr))
+
       paste("locus=" %<<% litQuote(self$getLocus()),
             "ref=" %<<% litQuote(self$getReference()),
             details,
             "short_read_data=" %<<% litQuote(ifelse(sr, "yes", "no")),
-            "short_read_type=" %<<% litQuote(ifelse(sr,
-                                                       self$getSrdType(),
-                                                       "")),
-            "long_read_data=" %<<% litQuote(ifelse(sr, "yes", "no")),
-            "long_read_type=" %<<% litQuote(ifelse(lr,
-                                                       self$getLrdType(),
-                                                       "")),
+            "short_read_type=" %<<% litQuote(ifelse(sr, self$getSrdType(), "")),
+            "long_read_data=" %<<% litQuote(ifelse(lr, "yes", "no")),
+            "long_read_type=" %<<% litQuote(ifelse(lr, self$getLrdType(), "")),
             "software=\"DR2S\"",
             "version=" %<<% litQuote(packageVersion("DR2S")),
             sep = ";")
