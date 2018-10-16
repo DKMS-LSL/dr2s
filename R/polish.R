@@ -3,6 +3,7 @@
 #x <- readDR2S("~/bioinf/DR2S/KIR/20171130/3DL3/out/7203477/")
 # x <- dr2s
 # threshold <- x$getThreshold()
+# x <- mapper
 # cache = TRUE
 # library(foreach)
 # library(futile.logger)
@@ -58,11 +59,14 @@ polish.DR2S <- function(x,
       if (hptype %in% names(rs$mapFinal$homopolymers)) {
         seq <- rs$consensus$seq[[hptype]]
         seqrle <- .seq2rle(seq)
-        n <- seqrle$length[seqrle$length > 10] %||% 0
+        # n <- seqrle$length[seqrle$length >= 10] %||% 0
+        n <- which(seqrle$length > 8)
+        nCount <- seqrle$length[n]
+        origPosition <- vapply(n, function(ni) sum(seqrle$lengths[1:((ni)-1)]), FUN.VALUE = integer(1))
         modeN <- sort(rs$mapFinal$homopolymers[[hptype]])
-        names(n) <- names(modeN)
-        if (!all(modeN == n)) {
-          missingN <- modeN[which(!n == modeN)]
+        #names(n) <- names(modeN)
+        if (!all(names(modeN) %in% vapply(origPosition, function(ni) (ni-5):(ni+5), FUN.VALUE = integer(11)))) {
+          missingN <- modeN[which(!n %in% modeN)]
           varsHP <- tibble::tibble(haplotype = hptype,
                                    pos       = names(missingN),
                                    ref       = "",
@@ -76,9 +80,18 @@ polish.DR2S <- function(x,
                                    altSR     = "",
                                    refLR     = "",
                                    altLR     = "")
-          varsHP
+          return(varsHP)
         }
       }
+      tibble::tibble(haplotype = "",
+                               pos       = "",
+                               ref       = "",
+                               alt       = "",
+                               warning   = "",
+                               refSR     = "",
+                               altSR     = "",
+                               refLR     = "",
+                               altLR     = "")
     })
   }
 
