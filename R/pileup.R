@@ -361,7 +361,7 @@ plotPileupBasecallFrequency <- function(x, threshold = 0.20, label = "",
     )
 }
 
-.getInsertions <- function(bamfile, inpos, reads = NULL, readtype) {
+.getInsertions <- function(bamfile, inpos, reads = NULL, readtype = "illumina") {
   assert_that(is.numeric(inpos))
   inpos <- sort(inpos)
   flog.info("  Extracting insertions at positions %s", comma(inpos),

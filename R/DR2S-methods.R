@@ -890,6 +890,7 @@ mapFinal.DR2S <- function(x,
                           force = FALSE,
                           createIgv = TRUE,
                           plot = TRUE,
+                          createIgv = TRUE,
                           clip = FALSE) {
   x$runMapFinal(opts = opts,
                 minBaseQuality = minBaseQuality,
@@ -901,6 +902,7 @@ mapFinal.DR2S <- function(x,
                 force = force,
                 createIgv = createIgv,
                 plot = plot,
+                createIgv = createIgv,
                 clip = clip)
   invisible(x)
 }
@@ -915,6 +917,7 @@ DR2S_$set("public", "runMapFinal", function(opts = list(),
                                             force = FALSE,
                                             createIgv = TRUE,
                                             plot = TRUE,
+                                            createIgv = TRUE,
                                             clip = FALSE) {
 
   ## debug
