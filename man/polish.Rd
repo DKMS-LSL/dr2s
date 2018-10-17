@@ -15,7 +15,7 @@ polish(x, threshold = x$getThreshold(), checkHpCount = TRUE,
 \item{checkHpCount}{Check the number of homopolymer counts in shortreads.
 Compare the resulting sequence with the mode value and report differences.}
 
-\item{cache}{Cache the updated \code{DR2S} object after assembling the 
+\item{cache}{Cache the updated \code{DR2S} object after assembling the
 haplotypes.}
 
 \item{...}{Additional arguments passed to methods.}
@@ -34,10 +34,8 @@ x <- DR2Smap(
   locus = "DPB1",
   datadir = "/path/to/data",
   outdir = "/path/to/output",
-  reference = "04:01:01:01",
-  consensus = "mapping"
+  reference = "04:01:01:01"
   ) \%>\%
-  clear() \%>\%
   mapInit() \%>\%
   partitionLongReads() \%>\%
   mapIter() \%>\%

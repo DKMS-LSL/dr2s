@@ -11,7 +11,7 @@ Pileup(bamfile, threshold = 0.2, ...)
 
 \item{threshold}{Threshold used for SNP calling.}
 
-\item{...}{Additional parameters passed to 
+\item{...}{Additional parameters passed to
 \code{\link[Rsamtools]{PileupParam}}.}
 }
 \value{
@@ -24,7 +24,7 @@ Calculate pile-up for a BAM file.
 Returns a \code{pileup} object:
 A \code{list} with slots:
 \describe{
-  \item{bamfile}{<character>; Path to the bam file used to construct the 
+  \item{bamfile}{<character>; Path to the bam file used to construct the
   pileup}
   \item{threshold}{<numeric>; Threshold used for calling SNPs}
   \item{param}{A \code{\link[Rsamtools]{PileupParam}} object}
@@ -37,6 +37,7 @@ A \code{list} with slots:
     }
   }
   \item{consmat}{Consensus matrix}
+  \item{reads}{best scoring reads}
 }
 }
 \examples{

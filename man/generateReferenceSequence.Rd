@@ -4,15 +4,14 @@
 \alias{generateReferenceSequence}
 \title{Generate reference sequences in a FASTA file}
 \usage{
-generateReferenceSequence(allele, locus, outdir, dirtag = NULL,
-  fullname = TRUE)
+generateReferenceSequence(allele, locus, outdir, dirtag = NULL)
 }
 \arguments{
 \item{allele}{Allele name.}
 
 \item{outdir}{Output directory}
 
-\item{fullname}{Truncate allele names}
+\item{dirtag}{TODO}
 
 \item{HLA}{A \code{HLAGene} object}
 }

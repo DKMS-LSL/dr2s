@@ -2,14 +2,14 @@
 % Please edit documentation in R/all-generics.R
 \name{mapInit}
 \alias{mapInit}
-\title{Initial mapping step (long reads).}
+\title{Initial mapping.}
 \usage{
-mapInit(x, opts = list(), optsname = "", partSR = TRUE,
-  threshold = NULL, minBaseQuality = 3, minMapq = 50,
-  maxDepth = 10000, minNucleotideDepth = 3, includeDeletions = TRUE,
-  includeInsertions = TRUE, microsatellite = FALSE, force = FALSE,
-  fullname = TRUE, filterScores = TRUE, forceMapping = FALSE,
-  plot = TRUE)
+mapInit(x, opts = list(), optsname = "", threshold = NULL,
+  minBaseQuality = 3, minMapq = 50, maxDepth = 10000,
+  minNucleotideDepth = 3, includeDeletions = TRUE,
+  includeInsertions = TRUE, microsatellite = FALSE,
+  filterScores = TRUE, forceMapping = FALSE, topx = 0,
+  createIgv = TRUE, force = FALSE, plot = TRUE)
 }
 \arguments{
 \item{x}{A \code{\link[=DR2S_]{DR2S}} object.}
@@ -17,9 +17,6 @@ mapInit(x, opts = list(), optsname = "", partSR = TRUE,
 \item{opts}{Mapper options.}
 
 \item{optsname}{Additional text to describe the options used.}
-
-\item{partSR}{If \code{TRUE} use shortreads to infer the polymorphic 
-positions for clustering.}
 
 \item{threshold}{Threshold to call a variant.}
 
@@ -43,15 +40,17 @@ position required for that nucleotide to appear in the result.}
 the reference to a maximum length. Works better for larger insertions and
 repeats like microsatellites.}
 
-\item{force}{If \code{TRUE}, overwrite existing bam file.}
-
-\item{fullname}{If \code{TRUE}, use the full name in reference fasta.}
-
 \item{filterScores}{Apply a harsh filtering on the reads. Filters for mapping
 quality and removes all softclipping reads. Usually not necessary.}
 
 \item{forceMapping}{if \code{FALSE} the program throws an error in case the
 coverage of shortreads is too different at different parts of the sequence.}
+
+\item{topx}{Select the best x reads.}
+
+\item{createIgv}{Subsample for looking with IgvJs in the shiny app.}
+
+\item{force}{If \code{TRUE}, overwrite existing bam files.}
 
 \item{plot}{Produce diagnostic plots.}
 
@@ -61,8 +60,8 @@ coverage of shortreads is too different at different parts of the sequence.}
 A \code{\link[=DR2S_]{DR2S}} object.
 }
 \description{
-Long reads (PacBio or Nanopore) of a heterozygous sample are mapped to a
-single reference sequence.
+Short reads (Illumina) and long reads (PacBio or Nanopore) or long reads alone
+are mapped to a single reference sequence.
 }
 \examples{
 \dontrun{
@@ -71,10 +70,8 @@ x <- DR2Smap(
   locus = "DPB1",
   datadir = "/path/to/data",
   outdir = "/path/to/output",
-  reference = "04:01:01:01",
-  consensus = "mapping"
+  reference = "04:01:01:01"
   ) \%>\%
-  clear() \%>\%
   mapInit() \%>\%
   partitionLongReads() \%>\%
   mapIter() \%>\%

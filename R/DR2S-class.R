@@ -43,9 +43,9 @@ clear.DR2S <- function(x, ...) {
 #' \describe{
 #' \item{\code{x$runMapInit(opts = list(), optsname = "",  threshold = 0.20,
 #' iterations = 1, microsatellite = FALSE, distAlleles = 2, filterScores = TRUE,
-#' partSR = TRUE, minBaseQuality = 3, minMapq = 0, maxDepth = 1e4,
-#' minNucleotideDepth = 3, includeDeletions = FALSE, includeInsertions = FALSE,
-#' force = FALSE, fullname = TRUE, plot = TRUE)}}{Run the inital mapping step
+#' minBaseQuality = 3, minMapq = 0, maxDepth = 1e4, minNucleotideDepth = 3,
+#' includeDeletions = FALSE, includeInsertions = FALSE,
+#' force = FALSE, plot = TRUE)}}{Run the inital mapping step
 #' (long reads against the reference allele)}
 #' \item{\code{x$runHaplotypePartitioning(maxDepth = 1e4, shuffle = TRUE,
 #' skipGapFreq = 2/3, plot = TRUE)}}{
@@ -96,8 +96,7 @@ DR2S_ <- R6::R6Class(
           private$conf$reference,
           private$conf$locus,
           private$conf$outdir,
-          "mapInit",
-          fullname = FALSE)
+          "mapInit")
       }
       .confLog(outdir = private$conf$outdir, logName = "info")
       writeDR2SConf(self)
@@ -128,8 +127,7 @@ DR2S_ <- R6::R6Class(
           self$getReference(),
           self$getLocus(),
           private$conf$outdir,
-          "mapInit",
-          fullname = FALSE)
+          "mapInit")
       }
       invisible(self)
     },
@@ -215,16 +213,6 @@ DR2S_ <- R6::R6Class(
     setIterations = function(iterations) {
       stopifnot(iterations < 10 && iterations > 0 && iterations %% 1 == 0)
       self$setConfig("iterations", iterations)
-      invisible(self)
-    },
-    ##
-    getPartSR = function() {
-      self$getConfig("partSR")
-    },
-    ##
-    setPartSR = function(partSR) {
-      stopifnot(is.logical(partSR))
-      self$setConfig("partSR", partSR)
       invisible(self)
     },
     ##
@@ -579,6 +567,16 @@ DR2S_ <- R6::R6Class(
           FALSE
       )
     },
+    ##
+    hasShortreads = function() {
+      sr <- try(self$getShortreads(), silent = TRUE)
+      !(is(sr, "try-error") || is.null(sr))
+    },
+    ##
+    hasLongreads = function() {
+      lr <- try(self$getLongreads(), silent = TRUE)
+      !(is(lr, "try-error") || is.null(lr))
+    },
     ## Get the absolut path
     absPath = function(filename) {
       assert_that(is.character(filename))
@@ -722,7 +720,7 @@ DR2S_ <- R6::R6Class(
     },
     ##
     plotmapInitSummary = function(thin = 0.2, width = 4, label = "") {
-      readtypes <- if (self$getPartSR()) {
+      readtypes <- if (self$hasShortreads()) {
         c("SR", "LR")
       } else {
         c("LR")

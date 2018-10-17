@@ -8,15 +8,14 @@
 
   samfile <- normalizePath(samfile, mustWork = TRUE)
   reffile <- normalizePath(reffile, mustWork = TRUE)
-  ext <- sprintf("%s.sorted",
-                 if (minMapq > 0)
-                   minMapq %<<% "MAPQ"
-                 else
-                   "")
-
+  # ext <- sprintf("%s.sorted",
+  #                if (minMapq > 0)
+  #                  minMapq %<<% "MAPQ"
+  #                else
+  #                  "")
+  ext <- ".sorted"
   samtoolsPath <- Sys.which("samtools")
   sorted <- sub("\\.sam(\\.gz)?", paste(ext, "bam", sep = "."), samfile)
-
   if (nzchar(samtoolsPath)) {
     ## -F260 exclude 'read unmapped', 'not primary alignment'
     ## Better use -F2308 to also exclude chimeric reads!
@@ -37,8 +36,7 @@
     bamfile <- asBam(samfile, tempfile(), indexDestination = TRUE, overwrite = TRUE)
 
     ## Filter the bam by flag
-    flag <- scanBamFlag(isUnmappedQuery = FALSE,
-                         isSecondaryAlignment = FALSE)
+    flag <- scanBamFlag(isUnmappedQuery = FALSE, isSecondaryAlignment = FALSE)
     ## remove also the in Rsamtools unsupported supplmentary alignment flags
     filter <- S4Vectors::FilterRules(list(flag = function(x) x$flag <= flag[2]))
     param <- ScanBamParam(
@@ -100,7 +98,7 @@ subSampleBam <- function(bamfile, windowSize = NULL, sampleSize = 100,
     sampledAlignmentBam <- do.call(c,
                                    lapply(windows, function(i, m, maxCov,
                                                                windowSize) {
-      readMid <- start(m)+floor(windowSize/2)
+      readMid <- start(m) + floor(windowSize/2)
       m <- m[readMid > i - windowSize & readMid < i]
       if (maxCov <= length(m)) {
         return(sample(m, maxCov))
@@ -112,8 +110,14 @@ subSampleBam <- function(bamfile, windowSize = NULL, sampleSize = 100,
     if (sampleSize <= length(alignmentBam)) {
       ## Use only longreads of desired lengths, i.e. between .9 and 1.1 of reference length
       lens <- GenomicAlignments::qwidth(alignmentBam)
-      alignmentBam <- alignmentBam[lens > 0.9 * geneLength  & lens < 1.1 * geneLength]
-      sampledAlignmentBam <- sample(alignmentBam, sampleSize)
+      i <- numeric()
+      incr <- 0
+      ## but make sure that there are sufficient reads to sample within that range
+      while (length(i) < sampleSize) {
+        i <- which(lens > (0.9 - incr) * geneLength  & lens < (1.1 + incr) * geneLength)
+        incr <- incr + 0.025
+      }
+      sampledAlignmentBam <- sample(alignmentBam[i], sampleSize)
       ## Split the reads if specified.
       if (fragmentReads) {
         sampledAlignmentBam <- .fragmentReads(sampledAlignmentBam, fragmentLength = fragmentWidth)

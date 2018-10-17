@@ -56,6 +56,7 @@ Imports:
     IRanges,
     rlang,
     BiocParallel,
+    stats,
 SystemRequirements: bwa (>= 0.7.11) and/or minimap2; optional: samtools (faster, 
   but RSamtools do also work)
 VignetteBuilder: knitr
@@ -63,7 +64,7 @@ RoxygenNote: 6.1.0
 Collate: 
     'DR2S-class.R'
     'DR2S-methods.R'
-    'DR2S-package.r'
+    'DR2S-package.R'
     'DR2S-utils.R'
     'MergeEnv-methods.R'
     'MergeEnv-class.R'
@@ -74,6 +75,7 @@ Collate:
     'consmat.R'
     'dists.R'
     'log-config.R'
+    'mapInitSR.R'
     'mapWrap.R'
     'mapper.R'
     'partition-reads.R'

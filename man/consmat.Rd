@@ -28,12 +28,12 @@ offsetBases(consmat) <- value
 is.freq(consmat)
 }
 \arguments{
-\item{x}{A \code{pileup} object. Additional inputs can be a \code{matrix}, 
+\item{x}{A \code{pileup} object. Additional inputs can be a \code{matrix},
 \code{tbl_df} or \code{consmat} objects.}
 
 \item{freq}{If \code{TRUE} then frequencies are reported, otherwise counts.}
 
-\item{...}{Additional arguments such as \code{n}, \code{offsetBases}, 
+\item{...}{Additional arguments such as \code{n}, \code{offsetBases},
 \code{insertions}}
 
 \item{consmat}{The \code{\link{consmat}} object that is changed.}

@@ -7,8 +7,8 @@
 InitDR2S(config, createOutdir = TRUE)
 }
 \arguments{
-\item{config}{A DR2S configuration object. Either created by 
-\code{\link[=DR2S_]{createDR2SConfig}} or loaded by 
+\item{config}{A DR2S configuration object. Either created by
+\code{\link[=DR2S_]{createDR2SConfig}} or loaded by
 \code{\link[=DR2S_]{readDR2SConf}}.}
 
 \item{createOutdir}{Create the outdir if not exists.}

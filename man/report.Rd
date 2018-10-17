@@ -12,7 +12,7 @@ report(x, which, blockWidth = 80, ...)
 \item{which}{Which mapping do we want to report. Will choose \code{mapFinal},
 \code{mapIter} in this order if available.}
 
-\item{blockWidth}{Maximum number of sequence letters per line in pairwise 
+\item{blockWidth}{Maximum number of sequence letters per line in pairwise
 alignment.}
 
 \item{...}{Additional arguments passed to methods.}
@@ -26,17 +26,17 @@ Report the final haplotype sequences.
 \details{
 \code{report} will create a \code{report} directory containing the consensus
 sequences \code{map\{1,2,3\}.\{A,B\}.\{readtype\}.\{mapper\}.unchecked.fa},
-an html alignment file 
+an html alignment file
 \code{map\{1,2,3\}.aln.\{readtype\}.\{mapper\}.unchecked.html},
-a pairwise alignment file 
+a pairwise alignment file
 \code{map\{1,2,3\}.\{A,B\}.\{readtype\}.\{mapper\}.unchecked.pair},
-and a tab-separated file 
+and a tab-separated file
 \code{problems.\{readtype\}.\{mapper\}.tsv} reporting
 positions with potentially problematic results.
 
 To finalise the consensus sequences open the pairwise alignment file and save
 it replacing \strong{unchecked} with \strong{checked} in the file name.
-In the \strong{checked} file manual edits can be performed. After the 
+In the \strong{checked} file manual edits can be performed. After the
 pairwise alignment is verified call \code{\link{reportCheckedConsensus}}.
 }
 \examples{
@@ -46,10 +46,8 @@ x <- DR2Smap(
   locus = "DPB1",
   datadir = "/path/to/data",
   outdir = "/path/to/output",
-  reference = "04:01:01:01",
-  consensus = "mapping"
+  reference = "04:01:01:01"
   ) \%>\%
-  clear() \%>\%
   mapInit() \%>\%
   partitionLongReads() \%>\%
   mapIter() \%>\%

@@ -4,12 +4,11 @@
 \alias{createDR2SConf}
 \title{Constructor for configuration to create a \code{\link[=DR2S_]{DR2S}} object.}
 \usage{
-createDR2SConf(sample, locus, longreads = list(type = "pacbio", 
-dir = "pacbio"), shortreads = list(type = "illumina", dir = "illumina"), 
+createDR2SConf(sample, locus, longreads = list(type = "pacbio",
+dir = "pacbio"), shortreads = list(type = "illumina", dir = "illumina"),
 datadir = ".", outdir = "./output", reference = NULL,
-threshold = 0.20, iterations = 1, microsatellite = FALSE, distAlleles = 2, 
-filterScores = TRUE, partSR = TRUE, forceMapping = FALSE, fullname = TRUE, 
-details = NULL, ...)
+threshold = 0.20, iterations = 1, microsatellite = FALSE, distAlleles = 2,
+filterScores = TRUE, forceMapping = FALSE, details = NULL, ...)
 }
 \arguments{
 \item{sample}{A unique sample identifier used to locate the long and short
@@ -21,8 +20,8 @@ read FASTQ files.}
 with the fields \code{type} ("pacbio" or "nanopore") and \code{dir}.
 Additional optional fields: \code{name} and \code{opts}.}
 
-\item{shortreads}{The type and location of the short reads as a named list
-with the fields \code{type} ("illumina") and \code{dir} (optional).}
+\item{shortreads}{(optional) The type and location of the short reads as a named list
+with the fields \code{type} ("illumina") and \code{dir}.}
 
 \item{datadir}{The data directory (See Note).}
 
@@ -34,9 +33,9 @@ with the fields \code{type} ("illumina") and \code{dir} (optional).}
 
 \item{iterations}{Number of iterations of the mapIter step.}
 
-\item{microsatellite}{FALSE Perform a second mapping of shortreads to the 
-inferred reference in mapInit. Set to TRUE if you know you have repeats like 
-in microsatellites. Usually extends the reference to a maximum length and 
+\item{microsatellite}{FALSE Perform a second mapping of shortreads to the
+inferred reference in mapInit. Set to TRUE if you know you have repeats like
+in microsatellites. Usually extends the reference to a maximum length and
 enables a better mapping.}
 
 \item{distAlleles}{Number of different alleles in the sample. Should be 2
@@ -44,19 +43,14 @@ for heterozygous samples, 1 for homozygous samples and > 2 for some KIR loci.}
 
 \item{filterScores}{use only reads passing a strict filtering step. TODO}
 
-\item{partSR}{Use shortreads in the mapInit step for getting polymorphic 
-positions and a first reference.}
-
 \item{forceMapping}{FALSE set to TRUE if you want to force processing of bad
 shortreads, i.e. when the distribution of coverage is bad. Aborts the program
 if maximum coverage > 75 \% quantile * 5.}
 
-\item{details}{Metadata of a sample. Will be written to the fasta header of 
+\item{details}{Metadata of a sample. Will be written to the fasta header of
 the final sequences and stored in the config dump.}
 
 \item{...}{Additional arguments.}
-
-\item{fullname}{Truncate allele names.}
 }
 \value{
 A \code{\link[DR2S]{DR2S}} config object
@@ -94,14 +88,10 @@ x <- InitDR2S(createDR2SConf(
   locus = "DPB1",
   datadir = "/path/to/data",
   outdir = "/path/to/output",
-  reference = "04:01:01:01",
-  consensus = "mapping"
+  reference = "04:01:01:01"
   )) \%>\%
-  clear() \%>\%
   mapInit() \%>\%
   partitionLongReads() \%>\%
-  splitLongReads() \%>\%
-  extractFastq() \%>\%
   mapIter() \%>\%
   partitionShortReads() \%>\%
   mapFinal() \%>\%

@@ -29,9 +29,9 @@ readDR2S <- function(path) {
 }
 
 
-.finishCn1 <- function(x){
+.finishCn1 <- function(x) {
   flog.info("Set only allele to A", name = "info")
-  x$setHapTypes(c("A"))
+  x$setHapTypes("A")
 
   flog.info("Write mapInit data to mapFinal", name = "info")
   x$mapFinal = structure(
@@ -46,6 +46,7 @@ readDR2S <- function(path) {
       seqpath = list()
     ), class = c("mapFinal", "list")
   )
+
   if (!is.null(x$mapInit$SR1)) {
     # Write shortread data to mapFinal
     mapgroupSR <- "SRA"
@@ -58,7 +59,7 @@ readDR2S <- function(path) {
   x$mapFinal$pileup[[mapgroupLR]] = x$mapInit$pileup
   x$mapFinal$tag[[mapgroupLR]] = x$mapInit$tag
 
-  flog.info("Get latest consensus from last mapping ...", name = "info")
+  flog.info("Get consensus from final mapping ...", name = "info")
 
   if (!is.null(x$mapInit$SR1)) {
     cseq <- conseq(x$mapInit$SR2$pileup$consmat, "mapFinalA", "ambig",
@@ -76,7 +77,6 @@ readDR2S <- function(path) {
   flog.info("Report consensus sequence and potential problematic variants",
             name = "info")
   report(x)
-
   return(x)
 }
 
@@ -143,7 +143,7 @@ createIgvConfigs <- function(x, position, map = "mapFinal", open = TRUE) {
                              basename(x$mapFinal$bamfile[["SR" %<<% hp]]))
       }
     } else if (map == "mapInit") {
-      if (x$getPartSR()) {
+      if (x$hasShortreads()) {
         ref <- unname(x$mapInit$SR2$seqpath)
         bamSR <- x$mapInit$SR2$bamfile
       } else {

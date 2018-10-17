@@ -24,8 +24,7 @@ x <- DR2Smap(
   locus = "DPB1",
   datadir = "/path/to/data",
   outdir = "/path/to/output",
-  reference = "04:01:01:01",
-  consensus = "mapping"
+  reference = "04:01:01:01"
   ) \%>\%
   clear() \%>\%
   mapInit() \%>\%

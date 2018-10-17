@@ -2,20 +2,19 @@
 % Please edit documentation in R/all-generics.R
 \name{mapIter}
 \alias{mapIter}
-\title{Iterative mapping step (long reads).}
+\title{Iterative mapping.}
 \usage{
 mapIter(x, opts = list(), iterations = 1, minBaseQuality = 3,
   minMapq = 0, maxDepth = 10000, minNucleotideDepth = 3,
   includeDeletions = TRUE, includeInsertions = TRUE,
-  gapSuppressionRatio = 2/5, force = FALSE, fullname = TRUE,
-  plot = TRUE)
+  gapSuppressionRatio = 2/5, force = FALSE, plot = TRUE)
 }
 \arguments{
 \item{x}{A \code{\link[=DR2S_]{DR2S}} object.}
 
 \item{opts}{Mapper options.}
 
-\item{iterations}{Number of iterations. How often are the clustered reads 
+\item{iterations}{Number of iterations. How often are the clustered reads
 remapped to the updated reference.}
 
 \item{minBaseQuality}{Minimum \sQuote{QUAL} value for each nucleotide in an
@@ -39,8 +38,6 @@ insertion position are excluded from from consensus calling.}
 
 \item{force}{If \code{TRUE}, overwrite existing bam file.}
 
-\item{fullname}{If \code{TRUE}, use the full name in reference fasta.}
-
 \item{plot}{Plot diagnostics.}
 
 \item{...}{Further arguments passed to methods.}
@@ -49,8 +46,8 @@ insertion position are excluded from from consensus calling.}
 A \code{\link[=DR2S_]{DR2S}} object.
 }
 \description{
-Partitioned long reads are mapped against the consensus sequence from MSA of
-the best 40 sequences for each haplotype. Indels are \strong{excluded} from 
+Partitioned long reads are mapped against the MSA consensus sequence of
+the best 40 sequences for each haplotype. Indels are \strong{excluded} from
 pileup. New consensus sequences for both alleles are inferred.
 }
 \examples{
@@ -60,10 +57,8 @@ x <- DR2Smap(
   locus = "DPB1",
   datadir = "/path/to/data",
   outdir = "/path/to/output",
-  reference = "04:01:01:01",
-  consensus = "mapping"
+  reference = "04:01:01:01"
   ) \%>\%
-  clear() \%>\%
   mapInit() \%>\%
   partitionLongReads() \%>\%
   mapIter() \%>\%

@@ -12,7 +12,6 @@ createDR2SConf <- function(sample,
                              microsatellite  = FALSE,
                              distAlleles     = 2,
                              filterScores    = FALSE,
-                             partSR          = TRUE,
                              forceMapping    = FALSE,
                              details         = NULL,
                              ...) {
@@ -25,7 +24,6 @@ createDR2SConf <- function(sample,
     microsatellite = microsatellite,
     distAlleles    = distAlleles,
     filterScores   = filterScores,
-    partSR         = partSR,
     forceMapping   = forceMapping,
     lrmapper       = conf0$lrmapper %||% "minimap",
     srmapper       = conf0$srmapper %||% "bwamem",
@@ -64,7 +62,6 @@ readDR2SConf <- function(configFile) {
   conf$iterations     <- conf$iterations     %||% 2
   conf$microsatellite <- conf$microsatellite %||% FALSE
   conf$filterScores   <- conf$filterScores   %||% TRUE
-  conf$partSR         <- conf$partSR         %||% TRUE
   conf$forceMapping   <- conf$forceMapping   %||% FALSE
   conf$lrmapper       <- conf$lrmapper       %||% "minimap"
   conf$srmapper       <- conf$srmapper       %||% "bwamem"
@@ -140,7 +137,7 @@ initialiseDR2S <- function(conf, createOutdir = TRUE) {
 
 validateDR2SConf <- function(conf) {
   fields <- c("datadir", "outdir", "threshold", "iterations", "microsatellite",
-              "distAlleles", "filterScores", "partSR", "forceMapping",
+              "distAlleles", "filterScores", "forceMapping",
               "lrmapper", "srmapper", "limits", "haptypes", "pipeline",
               "longreads", "shortreads", "opts", "sampleId", "locus",
               "reference", "details")
@@ -165,11 +162,11 @@ validateDR2SConf <- function(conf) {
     msg = "The number of iterations must be integers between 1 and 10"
   )
   # check all logicals
-  assert_that(is.logical(conf$partSR),
-              is.logical(conf$filterScores),
-              is.logical(conf$microsatellite),
-              is.logical(conf$forceMapping)
-              )
+  assert_that(
+    is.logical(conf$filterScores),
+    is.logical(conf$microsatellite),
+    is.logical(conf$forceMapping)
+  )
   # check number of distinct alleles
   assert_that(is.count(conf$distAlleles),
               msg = "Number of distinct alleles (distAlleles) must be numeric")
@@ -256,7 +253,6 @@ writeDR2SConf <- function(x, outFile = NULL) {
     microsatellites = x$getMicrosatellite(),
     srmapper        = x$getSrMapper(),
     lrmapper        = x$getLrMapper(),
-    partSR          = x$getPartSR(),
     filterScores    = x$getFilterScores(),
     pipeline        = x$getPipeline(),
     opts            = x$getConfig("opts"),

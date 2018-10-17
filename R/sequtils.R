@@ -112,14 +112,13 @@
 #' @param HLA A \code{HLAGene} object
 #' @param allele Allele name.
 #' @param outdir Output directory
-#' @param fullname Truncate allele names
+#' @param dirtag TODO
 #'
 #' @return Path to refseq fasta file.
 #' @keywords internal
 #' @examples
 #' ###
-generateReferenceSequence <- function(allele, locus, outdir, dirtag = NULL,
-                                      fullname = TRUE) {
+generateReferenceSequence <- function(allele, locus, outdir, dirtag = NULL) {
   if (is.null(allele)) {
     return(NULL)
   }
@@ -133,7 +132,7 @@ generateReferenceSequence <- function(allele, locus, outdir, dirtag = NULL,
     stop(sprintf("Allele %s not found in database", allele))
 
   .dirCreateIfNotExists(normalizePath(
-    file.path(outdir, dirtag), mustWork=FALSE))
+    file.path(outdir, dirtag), mustWork = FALSE))
   assert_that(
     file.exists(outdir),
     is.dir(outdir),
@@ -141,19 +140,15 @@ generateReferenceSequence <- function(allele, locus, outdir, dirtag = NULL,
   )
   sref <- foreach(i = allele, .combine = "c") %do% {
     sref <- ipd$getClosestComplete(i, locus)
-    if (fullname) {
-      names(sref) <- gsub(" +", "_", names(sref))
-    } else {
-      names(sref) <- gsub("[*:]", "", i)
-    }
+    names(sref) <- gsub(" +", "_", names(sref))
     sref
   }
   assert_that(is(sref, "DNAStringSet"))
   # workaround for these damn windows filename conventions
-  alleleNm <- gsub("[*]", "_", gsub("[:]", "_", paste0(allele, collapse="~")))
+  alleleNm <- gsub("[*]", "_", gsub("[:]", "_", paste0(allele, collapse = "~")))
   filename <- ifelse(is.null(dirtag), alleleNm %<<% ".ref.fa",
                      file.path(dirtag, alleleNm %<<% ".ref.fa"))
-  outpath <- normalizePath(file.path(outdir, filename), mustWork=FALSE)
+  outpath <- normalizePath(file.path(outdir, filename), mustWork = FALSE)
 
   Biostrings::writeXStringSet(sref, outpath)
   filename
@@ -335,7 +330,8 @@ checkHomoPolymerCount <- function(x, count = 10, map = "mapFinal") {
       readsOI <- names(msa)
       ins <- .getInsertions(bamfile,
                             inpos = c(positionHP-1, positionHP, positionHP - 2),
-                            reads = readsOI)
+                            reads = readsOI,
+                            readtype = "illumina")
       if (length(ins) > 0) {
         ins <- ins[[1]]
         msa <- unlist( Biostrings::DNAStringSetList(
@@ -385,11 +381,11 @@ checkHomoPolymerCount <- function(x, count = 10, map = "mapFinal") {
     plots <- lapply(p, function(x) x$plot)
     n <- max(vapply(p, function(x) length(x$n), FUN.VALUE = integer(1)))
     p1 <- cowplot::plot_grid(plotlist = plots, nrow = length(n))
-    cowplot::save_plot(p1, filename = x$absPath("plot.Homopolymers.pdf"),
+    cowplot::save_plot(p1, filename = x$absPath("plot.homopolymers.pdf"),
                 base_width = 7*length(hptypes),
                 title     = paste(x$getLocus(), x$getSampleId(), sep = "." ),
                 base_height = 7*length(n))
-    cowplot::save_plot(p1, filename = x$absPath(".plots/plot.Homopolymers.svg"),
+    cowplot::save_plot(p1, filename = x$absPath(".plots/plot.homopolymers.svg"),
               base_width = 7*length(hptypes),
               base_height = 7*length(n))
   }

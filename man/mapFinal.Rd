@@ -2,12 +2,12 @@
 % Please edit documentation in R/all-generics.R
 \name{mapFinal}
 \alias{mapFinal}
-\title{Final mapping step (long reads and short reads).}
+\title{Final mapping (long reads and short reads).}
 \usage{
 mapFinal(x, opts = list(), minBaseQuality = 7, minMapq = 0,
   maxDepth = 100000, minNucleotideDepth = 3, includeDeletions = TRUE,
-  includeInsertions = TRUE, force = FALSE, fullname = TRUE,
-  plot = TRUE, clip = TRUE)
+  includeInsertions = TRUE, clip = TRUE, force = FALSE,
+  createIgv = TRUE, plot = TRUE)
 }
 \arguments{
 \item{x}{A \code{\link[=DR2S_]{DR2S}} object.}
@@ -29,15 +29,16 @@ position required for that nucleotide to appear in the result.}
 \item{includeDeletions}{If \code{TRUE}, include deletions in pileup.}
 
 \item{includeInsertions}{If \code{TRUE}, include insertions in pileup.
-from bam files for variants ar polymorphic positions.}
+from bam files for
+ variants ar polymorphic positions.}
+
+\item{clip}{Clip homopolymeric read ends from shortreads.}
 
 \item{force}{If \code{TRUE}, overwrite existing bam file.}
 
-\item{fullname}{If \code{TRUE}, use the full name in reference fasta.}
+\item{createIgv}{Subsample for looking with IgvJs in the shiny app.}
 
 \item{plot}{Plot diagnostics.}
-
-\item{clip}{Clip homopolymeric read ends from shortreads.}
 
 \item{...}{Further arguments passed to methods.}
 }
@@ -45,8 +46,8 @@ from bam files for variants ar polymorphic positions.}
 A \code{\link[=DR2S_]{DR2S}} object.
 }
 \description{
-Partitioned long reads and partitioned or unpartitioned short reads are 
-mapped against the consensus sequences inferred at \code{mapIter}. Indels 
+Partitioned long reads and partitioned or unpartitioned short reads are
+mapped against the consensus sequences inferred at \code{mapIter}. Indels
 are \strong{included} in pileup.
 }
 \examples{
@@ -56,10 +57,8 @@ x <- DR2Smap(
   locus = "DPB1",
   datadir = "/path/to/data",
   outdir = "/path/to/output",
-  reference = "04:01:01:01",
-  consensus = "mapping"
+  reference = "04:01:01:01"
   ) \%>\%
-  clear() \%>\%
   mapInit() \%>\%
   partitionLongReads() \%>\%
   mapIter() \%>\%

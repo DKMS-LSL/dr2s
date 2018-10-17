@@ -10,17 +10,17 @@ subSampleBam(bamfile, windowSize = NULL, sampleSize = 100,
 \arguments{
 \item{bamfile}{The bamfile that will be subsampled}
 
-\item{windowSize}{The window size for subsampling. The number of reads 
+\item{windowSize}{The window size for subsampling. The number of reads
 precised by sampleSize argument will be sampled in this window.}
 
 \item{sampleSize}{The desired new coverage of the bamfile.}
 
 \item{what}{What to extract from the bam file to write to the new one.
-If NULL defaults to the complete output of 
+If NULL defaults to the complete output of
 \code{\link[Rsamtools]{scanBamWhat}}.}
 }
 \value{
-A list containing the filename of the original bamfile, the name of 
+A list containing the filename of the original bamfile, the name of
 the new bamfile, the reference length and the sampleSize
 }
 \description{

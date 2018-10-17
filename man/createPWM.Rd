@@ -18,9 +18,9 @@ Create position weight matrix from multiple sequence alignment
 \details{
 \code{PWM}: a \code{matrix} with position as row names and nucleotides as
 column manes. Values are nucleotide weights at a position
-A ConsensusMatrix is calculated from the MSA using 
+A ConsensusMatrix is calculated from the MSA using
 \code{Biostrings::consensusMatrix} and values are converted to probabilities.
-Pseudocounts are added and values are divided by DNA probabilities and log2 
+Pseudocounts are added and values are divided by DNA probabilities and log2
 score is reported
 }
 \examples{

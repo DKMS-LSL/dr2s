@@ -2,7 +2,8 @@
 % Please edit documentation in R/all-generics.R
 \name{partitionLongReads}
 \alias{partitionLongReads}
-\title{Partition mapped long reads into haplotypes}
+\title{Partition mapped long reads into haplotypes
+,}
 \usage{
 partitionLongReads(x, threshold = NULL, skipGapFreq = 2/3,
   distAlleles = NULL, noGapPartitioning = FALSE,
@@ -17,14 +18,14 @@ partitionLongReads(x, threshold = NULL, skipGapFreq = 2/3,
 
 \item{distAlleles}{The number of distinct alleles in the sample.}
 
-\item{noGapPartitioning}{Don't partition based on gaps. Useful for samples 
+\item{noGapPartitioning}{Don't partition based on gaps. Useful for samples
 with only few SNPs but with homopolymers. The falsely called gaps could
 mask the real variation.}
 
-\item{selectAllelesBy}{If more than \code{distAlleles} clusters are found 
-select clusters based on: (1) "distance": The hamming distance of the 
-resulting variant consensus sequences or (2) "count": Take the clusters 
-with the most reads as the alleles.}
+\item{selectAllelesBy}{If more than \code{distAlleles} clusters are found
+select clusters based on: (1) "distance": The hamming distance of the
+resulting variant consensus sequences or (2) "count": Take the clusters
+with the most reads as the true alleles.}
 
 \item{plot}{Plot}
 
@@ -35,6 +36,7 @@ A \code{\link[=DR2S_]{DR2S}} object.
 }
 \description{
 Partition mapped long reads into haplotypes
+,
 }
 \examples{
 \dontrun{
@@ -43,10 +45,8 @@ x <- DR2Smap(
   locus = "DPB1",
   datadir = "/path/to/data",
   outdir = "/path/to/output",
-  reference = "04:01:01:01",
-  consensus = "mapping"
+  reference = "04:01:01:01"
   ) \%>\%
-  clear() \%>\%
   mapInit() \%>\%
   partitionLongReads() \%>\%
   mapIter() \%>\%
