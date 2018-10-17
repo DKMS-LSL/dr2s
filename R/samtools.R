@@ -112,7 +112,7 @@ subSampleBam <- function(bamfile, windowSize = NULL, sampleSize = 100,
     ## Use only longreads of desired lengths, i.e. between .9 and 1.1 of reference length if there are enough
     lens <- GenomicAlignments::qwidth(alignmentBam)
     sampledAlignmentBam <- alignmentBam[lens > 0.9 * geneLength  & lens < 1.1 * geneLength]
-    missingReads <- sampleSize - length(sampledAlignmentBam)
+    missingReads <- max(c(sampleSize - length(sampledAlignmentBam), 0))
     sampledAlignmentBam <- c(sampledAlignmentBam,
                              sample(alignmentBam[!names(alignmentBam) %in% names(sampledAlignmentBam)], missingReads))
   } else {
