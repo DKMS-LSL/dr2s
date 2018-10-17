@@ -85,7 +85,7 @@ subSampleBam <- function(bamfile, windowSize = NULL, sampleSize = 100,
 
   alignmentBam <-  GenomicAlignments::readGAlignments(bam,
                                                       param = ScanBamParam(
-                                                        what=scanBamWhat()),
+                                                      what=what),
                                                       use.names = TRUE)
   ## Use the median read length if no window size is given
   if (is.null(windowSize))
@@ -108,23 +108,23 @@ subSampleBam <- function(bamfile, windowSize = NULL, sampleSize = 100,
         return(m)
       }
     }, m = alignmentBam, maxCov = sampleSize, windowSize = windowSize))
+  } else if (length(names(alignmentBam)) > sampleSize) {
+    ## Use only longreads of desired lengths, i.e. between .9 and 1.1 of reference length if there are enough
+    lens <- GenomicAlignments::qwidth(alignmentBam)
+    sampledAlignmentBam <- alignmentBam[lens > 0.9 * geneLength  & lens < 1.1 * geneLength]
+    missingReads <- sampleSize - length(sampledAlignmentBam)
+    sampledAlignmentBam <- c(sampledAlignmentBam,
+                             sample(alignmentBam[!names(alignmentBam) %in% names(sampledAlignmentBam)], missingReads))
   } else {
-    if (sampleSize <= length(alignmentBam)) {
-      ## Use only longreads of desired lengths, i.e. between .9 and 1.1 of reference length
-      lens <- GenomicAlignments::qwidth(alignmentBam)
-      alignmentBam <- alignmentBam[lens > 0.9 * geneLength  & lens < 1.1 * geneLength]
-      sampledAlignmentBam <- sample(alignmentBam, sampleSize)
-      ## Split the reads if specified.
-      if (fragmentReads) {
-        sampledAlignmentBam <- .fragmentReads(sampledAlignmentBam, fragmentLength = fragmentWidth)
-      }
-    } else {
-      sampledAlignmentBam <- alignmentBam
-    }
+    sampledAlignmentBam <- alignmentBam
+  }
+  ## Split the reads if specified.
+  if (fragmentReads) {
+    sampledAlignmentBam <- .fragmentReads(sampledAlignmentBam, fragmentLength = fragmentWidth)
   }
 
   newBamfile <- gsub(".bam", ".sampled.bam", bamfile)
-  export(sampledAlignmentBam, newBamfile)
+  rtracklayer::export(sampledAlignmentBam, newBamfile)
   list(
      original        = bamfile,
      sampled         = newBamfile,
@@ -137,17 +137,19 @@ subSampleBam <- function(bamfile, windowSize = NULL, sampleSize = 100,
   assert_that(is(alignment, "GAlignments"), is.count(fragmentLength))
   fragmentAlignment <- GenomicAlignments::GAlignmentsList(
     lapply(seq_along(alignment),  function(ii, fragmentLength) {
-      ## ii <- 1
+      # ii <- 1
       a <- alignment[ii]
       readWidth <- GenomicAlignments::qwidth(a)
       windowLen <- ceiling(readWidth/fragmentLength)
       wi <- floor(seq(from = 1, readWidth, length.out = windowLen))
-      wRanges <- IRanges::IRanges(start = c(1, wi[2:(windowLen-1)]+1), end = wi[2:windowLen])
-      aa <- rep(a, windowLen-1)
-      b <- GenomicAlignments::qnarrow(aa, wRanges)
-      S4Vectors::mcols(b)$seq <- GenomicAlignments::narrow(S4Vectors::mcols(b)$seq, wRanges)
-      S4Vectors::mcols(b)$qual <- GenomicAlignments::narrow(S4Vectors::mcols(b)$qual, wRanges)
-      b
+      if (length(wi) > 1) {
+        wRanges <- IRanges::IRanges(start = c(1, wi[2:(windowLen-1)]+1), end = wi[2:windowLen])
+        aa <- rep(a, windowLen-1)
+        a <- GenomicAlignments::qnarrow(aa, wRanges)
+        S4Vectors::mcols(a)$seq <- GenomicAlignments::narrow(S4Vectors::mcols(a)$seq, wRanges)
+        S4Vectors::mcols(a)$qual <- GenomicAlignments::narrow(S4Vectors::mcols(a)$qual, wRanges)
+      }
+      a
     }, fragmentLength = fragmentLength))
   fragmentAlignment <-unlist(fragmentAlignment, recursive = TRUE,
                              use.names = TRUE)

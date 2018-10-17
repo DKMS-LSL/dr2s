@@ -236,7 +236,7 @@ createIgvJsFiles <- function(reference, bamfile, outdir, ...) {
     file.exists(reference),
     endsWith(reference, ".fa"))
   ## Subsample the bam file
-  resultList <- subSampleBam(bamfile = bamfile, ...)
+  resultList <- subSampleBam(bamfile = bamfile, ...)#fragmentReads = TRUE, sampleSize = 100)#, ...)
   ## Index the reference
   indexFa(reference)
   resultList$referenceFile <- .cropPath(outdir, reference)
