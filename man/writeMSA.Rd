@@ -2,7 +2,7 @@
 % Please edit documentation in R/report.R
 \name{writeMSA}
 \alias{writeMSA}
-\title{Write a multiple sequence alignment in a phylip like format. 
+\title{Write a multiple sequence alignment in a phylip like format.
 Formatted for easily accessing positions and differences}
 \usage{
 writeMSA(aln, file = "", block.width = 50)
@@ -15,7 +15,7 @@ writeMSA(aln, file = "", block.width = 50)
 \item{block.width}{The block width of the resulting alignment.}
 }
 \description{
-Write a multiple sequence alignment in a phylip like format. 
+Write a multiple sequence alignment in a phylip like format.
 Formatted for easily accessing positions and differences
 }
 \examples{

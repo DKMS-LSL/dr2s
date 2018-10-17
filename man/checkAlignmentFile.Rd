@@ -21,7 +21,7 @@ system editor, "subl" for sublime, "gvim" or "gedit"}
 \item{openEditor}{should the editor be opened or just create the files?}
 }
 \value{
-The path to the newliy created alignment file to check the polished 
+The path to the newliy created alignment file to check the polished
   consensus sequences.
 }
 \description{

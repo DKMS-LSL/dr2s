@@ -13,6 +13,6 @@ readMSA(file)
 Read a multiple sequence alignment from file.
 }
 \details{
-The format  a \code{phylip} like format written by 
+The format  a \code{phylip} like format written by
 \code{\link{writeMSA}}.
 }
