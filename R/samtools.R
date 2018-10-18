@@ -1,11 +1,14 @@
 .bamSortIndex <- function(samfile,
                           reffile,
                           minMapq = 0,
-                          threads = 12,
+                          threads = "auto",
                           threadmem = "1G",
                           clean = TRUE,
                           force = FALSE) {
-
+  if (threads == "auto") {
+    threads <- .getIdleCores()
+  }
+  assert_that(is.numeric(threads))
   samfile <- normalizePath(samfile, mustWork = TRUE)
   reffile <- normalizePath(reffile, mustWork = TRUE)
   # ext <- sprintf("%s.sorted",

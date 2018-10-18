@@ -13,7 +13,7 @@
 #' Returns a \code{srpartition} object:
 #' A \code{list} with slots:
 #' \describe{
-#'   \item{bamfile}{<character>; Path to the bam file used to construct the 
+#'   \item{bamfile}{<character>; Path to the bam file used to construct the
 #'   pileup}
 #'   \item{ppos}{<numeric>; Positions used for scoring}
 #'   \item{srpartition}{A \code{data.frame} with colums:
@@ -31,8 +31,7 @@
 #' @export
 #' @examples
 #' ###
-getSRPartitionScores <- function(refname, bamfile, mats,
-                                    cores = "auto"){
+getSRPartitionScores <- function(refname, bamfile, mats, cores = "auto") {
   stopifnot(
     requireNamespace("parallel", quietly = TRUE),
     requireNamespace("doParallel", quietly = TRUE),
@@ -41,10 +40,9 @@ getSRPartitionScores <- function(refname, bamfile, mats,
 
   # Register parallel worker
   if (cores == "auto") {
-    cores <- parallel::detectCores()
-    cores <- ifelse(is.na(cores), 1, cores/2)
+    cores <- .getIdleCores()
   }
-  stopifnot(is.numeric(cores))
+  assert_that(is.numeric(cores))
   doParallel::registerDoParallel(cores = cores)
 
   ## Get polymorphic positions
@@ -59,9 +57,9 @@ getSRPartitionScores <- function(refname, bamfile, mats,
     dplyr::bind_cols(read = rep(names(stack), each = length(mats)),
                      dplyr::bind_rows(lapply(stack, function(x)
                        .partRead(x, mats, pos))))
-    
+
   }, refname = refname, bamfile = bamfile, mats = mats))
-  
+
   structure(
     list(
       bamfile     = bamfile,
@@ -94,11 +92,11 @@ getSRPartitionScores <- function(refname, bamfile, mats,
 scoreHighestSR <- function(srpartition, diffThreshold = 0.001) {
   sr <- unique(data.table::as.data.table(srpartition)
                # Get the sum of each read and hptype
-               [, clade := sum(prob), by = list(read, haplotype)] 
+               [, clade := sum(prob), by = list(read, haplotype)]
                # get the max of the sums of each
-               [,max := max(clade), by = read] 
+               [,max := max(clade), by = read]
                # dismiss the prob and pos which we dont need anymore
-               [, !c("prob")]) 
+               [, !c("prob")])
 
   srtmp <- NULL
   sr2 <- NULL
@@ -111,10 +109,10 @@ scoreHighestSR <- function(srpartition, diffThreshold = 0.001) {
     } else {
       srtmp <- sr[abs(1 - (clade/max)) < diffThreshold]
     }
-    correctScoring <- vapply(unique(srtmp$pos), 
+    correctScoring <- vapply(unique(srtmp$pos),
                              function(position, srtmp)
-                               .checkSRScoring(position, 
-                                               srtmp[pos == position]), 
+                               .checkSRScoring(position,
+                                               srtmp[pos == position]),
                              srtmp = srtmp, FUN.VALUE = logical(1))
     if (all(correctScoring)) {
       if (NROW(sr2) == 0)
@@ -141,7 +139,7 @@ scoreHighestSR <- function(srpartition, diffThreshold = 0.001) {
       # useReads = qnames
       useReads <- which(!fqnames %in% dontUseReads)
     }
-    flog.info("  Using %s of %s reads", length(useReads), length(fqnames), 
+    flog.info("  Using %s of %s reads", length(useReads), length(fqnames),
               name = "info")
     sr <- sr[useReads]
     ShortRead::writeFastq(sr, srFastqHap, mode = "a", compress = TRUE)

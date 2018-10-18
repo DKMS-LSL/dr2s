@@ -56,7 +56,7 @@ partitionReads <- function(x, distAlleles = 2, sortBy = "count", threshold = 0.2
 
   ## Get only the fraction of reads that contain at least minLen of total SNPs
   clustres <- .getClusts(xseqs, clMethod = clMethod, minLen = minLen,
-                         deepSplit = deepSplit, threshold = threshold, 
+                         deepSplit = deepSplit, threshold = threshold,
                          minClusterSize = minClusterSize)
   subclades <- factor(clustres$clades[!clustres$clades == "@"])
   tree <- clustres$tree
@@ -218,7 +218,7 @@ partitionReads <- function(x, distAlleles = 2, sortBy = "count", threshold = 0.2
     lenCounts[which(lenCounts > adjustedMinReadsFrac)][1])), minLen)
 }
 
-.getScores <- function(s, xseqs, mats){
+.getScores <- function(s, xseqs, mats) {
   seq <- as.character(xseqs[[s]])
   seq <- unlist(strsplit(seq, split = ""))
   read <- names(xseqs[s])
@@ -285,7 +285,7 @@ HapPart <- function(readNames, snpPos) {
     snpPos = snpPos,
     k       = 0L,            # total number of polymorphic positions
     # add mcoef and tree
-    mcoef   = rep(0, n),     
+    mcoef   = rep(0, n),
     tree    = NULL,          # Add tree from hclust
     scores   = NULL,
     mats    = NULL,
@@ -743,9 +743,9 @@ getCl <- function(n, cluster, change) {
 .optimalPartitionLimits <- function(scores, f = 0.8) {
   coeffCuts <- seq(0, max(unlist(scores)), length.out = 100)
   rHap <- lapply(scores, function(x, coeffCuts) {
-      vapply(coeffCuts, function(cutoff) sum(x >= cutoff), 
+      vapply(coeffCuts, function(cutoff) sum(x >= cutoff),
              FUN.VALUE = double(1))
-    }, 
+    },
     coeffCuts = coeffCuts)
   df <- data.frame()
   for(hapType in names(rHap)) {

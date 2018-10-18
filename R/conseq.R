@@ -36,7 +36,7 @@ conseq <- function(x,
                    threshold           = NULL,
                    excludeGaps         = TRUE,
                    gapSuppressionRatio = 2/5,
-                   forceExcludeGaps    = FALSE, 
+                   forceExcludeGaps    = FALSE,
                    ...)
   UseMethod("conseq")
 #' @export
@@ -70,10 +70,9 @@ conseq.matrix <- function(x,
   }
   x <- consmat(x, freq = FALSE)
   conseq <- switch(type,
-                   
     prob  = .makeProbConsensus_(x, excludeGaps = excludeGaps,
-                                 forceExcludeGaps = forceExcludeGaps,
-                                 gapSuppressionRatio = gapSuppressionRatio),
+                                forceExcludeGaps = forceExcludeGaps,
+                                gapSuppressionRatio = gapSuppressionRatio),
     ambig = .makeAmbigConsensus_(x, threshold, excludeGaps = excludeGaps),
     simple = .makeSimpleConsensus_(x)
 
@@ -89,33 +88,33 @@ conseq.matrix <- function(x,
 ## the alternate base even if at lower frequency than the gap.
 ## if <forceExcludeGaps> all gap counts will be set to zero.
 .makeProbConsensus_ <- function(x,
-                                 excludeGaps = TRUE,
-                                 forceExcludeGaps = FALSE,
-                                 gapSuppressionRatio = 2/5,
-                                 asString = FALSE) {
-                                 
-  
-  
-  
+                                excludeGaps = TRUE,
+                                forceExcludeGaps = FALSE,
+                                gapSuppressionRatio = 2/5,
+                                asString = FALSE) {
+
+
+
+
   #cseq <- conseq(reads, "hap" %<<% hptype, "prob", excludeGaps = TRUE)
-  
+
   xOri <- x
   if (excludeGaps && length(ins_ <- as.character(ins(x))) > 0) {
-    x <- .suppressGaps_(x, ins = ins_, 
+    x <- .suppressGaps_(x, ins = ins_,
                         gapSuppressionRatio = gapSuppressionRatio)
   }
   if (forceExcludeGaps) {
     x[, "-"] <- 0
-    
+
   }
   # don't allow gaps at beginning and end
-  maxbases <- names(unlist(unname(apply(x, 1, function(a) 
+  maxbases <- names(unlist(unname(apply(x, 1, function(a)
     list(which(a == max(a))[1])))))
   maxbase  <- which(maxbases != "-")
   maxgap   <- which(maxbases == "-")
   # remove insertions for the consensus
   x[, "+"] <- 0
-  
+
   if (!length(maxgap) == 0) {
     if (min(maxgap) < min(maxbase)) {
       excludeFromStart <- min(
@@ -232,7 +231,7 @@ conseq.matrix <- function(x,
   x0 <- x[dimnames(x)$pos %in% ins, ]
   ## if the ratio of the most freqent base to gap is greater/equal to
   ## gapSuppressionRatio set the gap count to zero (i.e. suppress the gap)
-  i <- which(apply(x0[, c("A", "C", "G", "T")], 1, max) / 
+  i <- which(apply(x0[, c("A", "C", "G", "T")], 1, max) /
                x0[, "-"] >= gapSuppressionRatio)
   if (length(j <- dimnames(x0)$pos[i]) > 0) {
     x[j, "-"] <- 0

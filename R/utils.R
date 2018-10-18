@@ -76,22 +76,23 @@ CODE_PATTERN <- function() {
 COL_PATTERN <- function() {
   c("#CC007A", "#CC2900", "#CCCC00", "#29CC00", "#00CC7A", "#007ACC", "#2900CC")
 }
+
 ipdHla <- function() {
   if (!exists("ipdHlaDb", envir = globalenv()))
-    assign("ipdHlaDb", suppressMessages(ipdDb::loadHlaData()), 
+    assign("ipdHlaDb", suppressMessages(ipdDb::loadHlaData()),
            envir = globalenv())
   get("ipdHlaDb", envir = globalenv())
 }
 
 HLA_LOCI <- function() {
   loci <- ipdHla()$getLoci()
-  unname(vapply(loci, function(x) strsplit1(x, "-")[2], 
+  unname(vapply(loci, function(x) strsplit1(x, "-")[2],
                 FUN.VALUE = character(1)))
 }
 
 ipdKir <- function() {
   if (!exists("ipdKirDb", envir = globalenv()))
-    assign("ipdKirDb", suppressMessages(ipdDb::loadKirData()), 
+    assign("ipdKirDb", suppressMessages(ipdDb::loadKirData()),
            envir = globalenv())
   get("ipdKirDb", envir = globalenv())
 }
@@ -287,6 +288,44 @@ maximum <- function(n, m) {
   unname(Sys.which(cmd) != "")
 }
 
+## Mode
+.getModeValue <- function(v) {
+  uniqv <- unique(v)
+  uniqv[which.max(tabulate(match(v, uniqv)))]
+}
+
+#' Get the number of idling cores that can be used by calling the linux system
+#' program mpstat
+#'
+#' @return An integer giving the number of idling cores
+.getIdleCores <- function() {
+  # total cores
+  N_CORES <- parallel::detectCores()
+
+  # fallback to N_CORES/2 if mpstat not installed
+  if (!.hasCommand("mpstat")) {
+    warning("Install 'sysstat' to make use of idle core detection", immediate. = TRUE)
+    return(max(N_CORES/4, 1))
+  }
+
+  # create list for readable lapply output
+  cores <- lapply(1:N_CORES, function(x) x - 1)
+  names(cores) <- paste0('CPU', 1:N_CORES - 1)
+
+  # use platform specific system commands to get idle time
+  proc_idle_time <- lapply(cores, function(x) {
+    # assumes linux
+    out <- system2(
+      command = 'mpstat',
+      args = c('-P', x),
+      stdout = TRUE)
+    idle_time <- as.double(gsub(",", ".", unlist(strsplit(out[4], ' {2,}'))[12]))
+    idle_time
+  })
+
+  max(sum(proc_idle_time > 90) - 1, 1)
+}
+
 editor <- function(x, pos = NULL, useEditor = "xdg-open") {
   useEditor <- match.arg(useEditor, c("xdg-open", "subl", "gvim", "gedit"))
   assert_that(.hasCommand(useEditor))
@@ -303,11 +342,6 @@ editor <- function(x, pos = NULL, useEditor = "xdg-open") {
   }
 }
 
-## Mode
-.getModeValue <- function(v) {
-  uniqv <- unique(v)
-  uniqv[which.max(tabulate(match(v, uniqv)))]
-}
 
 # Alignment browser -------------------------------------------------------
 
@@ -379,10 +413,10 @@ plotDiagnosticAlignment <- function(x, onlyFinal = FALSE) {
   # Given Ref
   seqs1 <- x$getRefSeq()
   names(seqs1) <- paste0("0 ", names(seqs1))
-  
-  seqs2 <- Biostrings::DNAStringSet(unlist(lapply(x$mapIter, function(y) 
+
+  seqs2 <- Biostrings::DNAStringSet(unlist(lapply(x$mapIter, function(y)
     lapply(y, function(a) unlist(a$conseq)))))
-  names(seqs2) <- unlist(lapply(names(x$mapIter), function(y) 
+  names(seqs2) <- unlist(lapply(names(x$mapIter), function(y)
     paste(x$getHapTypes(), "map", y)))
 
   # final reference

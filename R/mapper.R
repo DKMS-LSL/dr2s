@@ -8,7 +8,9 @@ runminimap <- function(reffile,
                        optsname = "",
                        force = FALSE,
                        outdir,
+                       cores = "auto",
                        ...) {
+  assert_that(.hasCommand("minimap2"))
   if (missing(allele)) {
     allele <- ""
   }
@@ -18,7 +20,12 @@ runminimap <- function(reffile,
   if (!is.null(optsname)) {
     optsname <- gsub("[[:punct:][:space:]]", "", optstring(opts, optsname))
   }
-  opts <- .mergeList(opts, list(t = parallel::detectCores()/4))
+  if (cores == "auto") {
+    cores <- .getIdleCores()
+  }
+  assert_that(is.numeric(cores))
+
+  opts <- .mergeList(opts, list(t = cores))
 
   cmd  <- Sys.which("minimap2")
   args <- .generateMappingCommands(mapper = "minimap", readtype,
@@ -43,15 +50,17 @@ minimapCmd <- function(paths, opts) {
 
 ## Commands for bwamem
 runbwamem <- function(reffile,
-                       readfile,
-                       allele,
-                       readtype,
-                       opts = list(),
-                       refname = "",
-                       optsname = "",
-                       force = FALSE,
-                       outdir,
-                       ...) {
+                      readfile,
+                      allele,
+                      readtype,
+                      opts = list(),
+                      refname = "",
+                      optsname = "",
+                      force = FALSE,
+                      outdir,
+                      cores = "auto",
+                      ...) {
+  assert_that(.hasCommand("bwa"))
   if (missing(allele)) {
     allele <- ""
   }
@@ -61,7 +70,11 @@ runbwamem <- function(reffile,
   if (!is.null(optsname)) {
     optsname <- gsub("[[:punct:][:space:]]", "", optstring(opts, optsname))
   }
-  opts <- .mergeList(opts, list(t = parallel::detectCores()/2))
+  if (cores == "auto") {
+    cores <- .getIdleCores()
+  }
+  assert_that(is.numeric(cores))
+  opts <- .mergeList(opts, list(t = cores))
 
   # debug
   # reffile <- self$getRefPath()
