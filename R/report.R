@@ -34,6 +34,7 @@ report.DR2S <- function(x, which, blockWidth = 80, noRemap = FALSE, createIgv = 
     which <- match.arg(tolower(which), c("mapFinal", "mapIter"))
     .reportMap_(x, which, outdir, blockWidth = blockWidth, ...)
   }
+  writeDR2SConf(x)
   flog.info("Done", name = "info")
   invisible(x)
 }
@@ -77,6 +78,8 @@ report.DR2S <- function(x, which, blockWidth = 80, noRemap = FALSE, createIgv = 
                                sampleDetails,
                                "date=" %<<%
                                  litQuote(Sys.Date()),
+                               "status=" %<<%
+                                 litQuote("unchecked"),
                                sep = ";"))
 
     Biostrings::writeXStringSet(
@@ -198,6 +201,8 @@ reportCheckedConsensus <- function(x, which = "mapFinal") {
                                sampleDetails,
                                "date=" %<<%
                                  litQuote(Sys.Date()),
+                               "status=" %<<%
+                                 litQuote("checked"),
                                sep = ";"))
 
     Biostrings::writeXStringSet(
@@ -359,7 +364,7 @@ refineAlignment <- function(x, hptype, report = FALSE, createIgv = TRUE){
                                                              fragmentReads = TRUE)
 
   ## Map short reads
-  if (!is.null(unlist(readpathSR))){
+  if (!is.null(unlist(readpathSR))) {
     mapgroupSR <- "SR" %<<% hptype
     maptagSR   <- paste("refine", mapgroupSR, x$getLrdType(),
                         x$getSrMapper(), sep = ".")
@@ -426,7 +431,7 @@ refineAlignment <- function(x, hptype, report = FALSE, createIgv = TRUE){
 }
 
 readPairFile <- function(pairfile) {
-  if (endsWith(pairfile, "psa")){
+  if (endsWith(pairfile, "psa")) {
     rs <- readLines(pairfile)
     ## This assignment relies on the premise that hapA is always used!
     ## Usually this should be true, bcs it is the cluster with the most reads
@@ -438,9 +443,9 @@ readPairFile <- function(pairfile) {
     )
 
     names(hap) <- c("hapA", strsplit1(rsB, "\\s")[1])
-  } else if (endsWith(pairfile, "msa")){
+  } else if (endsWith(pairfile, "msa")) {
     hap <- readMSA(pairfile)
-  } else if (endsWith(pairfile, "fa")){
+  } else if (endsWith(pairfile, "fa")) {
     hap <- Biostrings::readDNAStringSet(pairfile)
     names(hap) <- "hapA"
   }
@@ -448,7 +453,7 @@ readPairFile <- function(pairfile) {
   ## Check for ambiguous bases
   seqLetters <- Biostrings::uniqueLetters(hap)
   ambigLetters <- seqLetters[which(!seqLetters %in% VALID_DNA(include = "del"))]
-  if (!length(ambigLetters) == 0){
+  if (!length(ambigLetters) == 0) {
     ambigPositions <- set_names(lapply(ambigLetters, function(x, hap)
       unlist(Biostrings::vmatchPattern(x, hap)), hap = hap), ambigLetters)
     msg <- vapply(seq_along(ambigPositions), function(x, ambigPositions)
@@ -458,7 +463,6 @@ readPairFile <- function(pairfile) {
     stop(paste("Check reported reference! Ambiguous positions were found",
                msg, sep = "\n"))
   }
-
 
   hap
 }
@@ -527,30 +531,30 @@ writeMSA <- function(aln, file="", block.width = 50){
   .getConsPosition <- function(pos) {
    if (length(unique(pos)) == 1) {
      return(".")
-   } else if ("-" %in% pos){
+   } else if ("-" %in% pos) {
      return("+")
    } else {
      return("|")
    }
   }
 
-  alnMat <-as.matrix(aln)
+  alnMat <- as.matrix(aln)
   alnStatLine <- Biostrings::BStringSet(paste0(apply(alnMat, 2, function(x)
     .getConsPosition(x)), collapse = ""))
   alignment <- c(Biostrings::BStringSet(aln), alnStatLine)
 
   ## Write Header
-  cat("#=======================================\n", file=file)
-  cat("#\n", file=file, append = TRUE)
-  cat("# Aligned_sequences: ", length(aln)," \n", file=file, append = TRUE)
+  cat("#=======================================\n", file = file)
+  cat("#\n", file = file, append = TRUE)
+  cat("# Aligned_sequences: ", length(aln)," \n", file = file, append = TRUE)
   vapply(seq_along(aln), function(x, file) {
     cat(sprintf("# %s: %s\n",
                 x, names(aln[x])),
-                file=file, append = TRUE)
+                file = file, append = TRUE)
     TRUE
   }, file = file, FUN.VALUE = logical(1) )
-  cat("#\n#\n", file=file, append = TRUE)
-  cat("#=======================================\n", file=file,append = TRUE)
+  cat("#\n#\n", file = file, append = TRUE)
+  cat("#=======================================\n", file = file,append = TRUE)
 
   # Write sequences
   lstart <- 1L
@@ -570,9 +574,9 @@ writeMSA <- function(aln, file="", block.width = 50){
     ## Split the seq every 10 chars
     sp <- "(.{10})"
     addSp <- "\\1 "
-    a <- vapply(seq_len(length(alignment)-1), function(x, nameWidth, lstart,
-                                                       startWidth, sp, addSp,
-                                                       lend, file) {
+    a <- vapply(seq_len(length(alignment) - 1), function(x, nameWidth, lstart,
+                                                         startWidth, sp, addSp,
+                                                         lend, file) {
       cat(format(names[x], width = nameWidth), " ",
           format(lstart, justify = "right", width = startWidth), " ",
           gsub(sp, addSp, Biostrings::toString(strings[x])), " ",

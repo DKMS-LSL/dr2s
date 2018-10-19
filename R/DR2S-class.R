@@ -88,11 +88,11 @@ DR2S_ <- R6::R6Class(
         private$conf$reference = basename(refPath)
         private$conf$refPath  = file.path("mapInit", basename(refPath))
         cPath <- .dirCreateIfNotExists(normalizePath(
-          file.path(private$conf$outdir, "mapInit"), mustWork=FALSE))
+          file.path(private$conf$outdir, "mapInit"), mustWork = FALSE))
         file.copy(refPath, file.path(cPath,  basename(refPath)))
       } else {
         private$conf$reference = .expandAllele(conf$reference, conf$locus)
-        private$conf$refPath  = generateReferenceSequence(
+        private$conf$refPath = .generateReferenceSequence(
           private$conf$reference,
           private$conf$locus,
           private$conf$outdir,
@@ -117,13 +117,13 @@ DR2S_ <- R6::R6Class(
       .dirCreateIfNotExists(file.path(self$getOutdir()))
       if (file.exists(refPath <- private$conf$reference)) {
         private$conf$reference = basename(refPath)
-        private$conf$refPath  = basename(refPath)
+        private$conf$refPath = basename(refPath)
       } else {
         private$conf$reference = .expandAllele(private$conf$reference,
                                                private$conf$locus)
         outdir <- .dirCreateIfNotExists(normalizePath(
           file.path(private$conf$outdir, "mapInit"), mustWork = FALSE))
-        private$conf$refPath  = generateReferenceSequence(
+        private$conf$refPath = .generateReferenceSequence(
           self$getReference(),
           self$getLocus(),
           private$conf$outdir,
@@ -154,7 +154,7 @@ DR2S_ <- R6::R6Class(
       ))
       invisible(self)
     },
-    run_         = function(step) {
+    run_ = function(step) {
       switch(
         step,
         clear          = self$clear(),
@@ -217,31 +217,31 @@ DR2S_ <- R6::R6Class(
       invisible(self)
     },
     ##
-    getReportStatus = function(){
+    getReportStatus = function() {
       private$reportStatus
     },
     ##
-    setReportStatus = function(report){
+    setReportStatus = function(report) {
       stopifnot(is.logical(report))
       private$reportStatus <- report
       invisible(self)
     },
     ##
-    getDetails = function(){
+    getDetails = function() {
       self$getConfig("details")
     },
     ##
-    setDetails = function(details){
+    setDetails = function(details) {
       stopifnot(is.character(details))
       self$setConfig("details", details)
       invisible(self)
     },
     ##
-    getForceMapping = function(forceMapping){
+    getForceMapping = function(forceMapping) {
       self$getConfig("forceMapping")
     },
     ##
-    setForceMapping = function(forceMapping){
+    setForceMapping = function(forceMapping) {
       stopifnot(is.logical(forceMapping))
       self$setConfig("forceMapping", forceMapping)
       invisible(self)
@@ -686,7 +686,7 @@ DR2S_ <- R6::R6Class(
       if (length(self$getHapTypes()) == 2) {
         plotPartitionHistogram(x = self$getPartition(), label %|ch|% tag,
                                  limits = limits)
-      }else {
+      } else {
         plotPartitionHistogramMulti(x = self$getPartition(),
                                        limits = limits,
                                        label %|ch|% tag)

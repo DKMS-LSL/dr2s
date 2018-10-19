@@ -118,7 +118,7 @@
 #' @keywords internal
 #' @examples
 #' ###
-generateReferenceSequence <- function(allele, locus, outdir, dirtag = NULL) {
+.generateReferenceSequence <- function(allele, locus, outdir, dirtag = NULL) {
   if (is.null(allele)) {
     return(NULL)
   }

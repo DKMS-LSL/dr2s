@@ -283,12 +283,12 @@ HapPart <- function(readNames, snpPos) {
   structure(
     readNames,
     snpPos = snpPos,
-    k       = 0L,            # total number of polymorphic positions
+    k      = 0L,            # total number of polymorphic positions
     # add mcoef and tree
-    mcoef   = rep(0, n),
-    tree    = NULL,          # Add tree from hclust
-    scores   = NULL,
-    mats    = NULL,
+    mcoef  = rep(0, n),
+    tree   = NULL,          # Add tree from hclust
+    scores = NULL,
+    mats   = NULL,
     classification = matrix( # running classification of polymorphic positions
       rep("", n * k),
       nrow = n,
@@ -511,7 +511,7 @@ HTR.HapPart <- function(x) {
 #' ###
 plotPartitionHistogram <- function(x, label = "", limits = NULL) {
   stopifnot(is(x, "HapPart"))
-  if (is.null(limits)){
+  if (is.null(limits)) {
     limits <- x$getLimits()
   }
   data <- partition(x) %>%

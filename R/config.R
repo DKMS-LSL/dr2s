@@ -62,8 +62,6 @@ readDR2SConf <- function(configFile) {
   conf["forceMapping"] <- conf$forceMapping %||% FALSE
   conf["lrmapper"] <- conf$lrmapper %||% "minimap"
   conf["srmapper"] <- conf$srmapper %||% "bwamem"
-  conf["limits"] <- conf$limits %||% list(NULL)
-  conf["haptypes"] <- conf$haptypes %||% list(NULL)
   conf$pipeline <- conf$pipeline %||% if (is.null(conf$shortreads)) {
     LR_PIPELINE()
   } else {
@@ -73,7 +71,12 @@ readDR2SConf <- function(configFile) {
   if (is.null(conf$shortreads))
     conf["shortreads"] <-  list(NULL)
   if (is.null(conf$opts))
-    conf["opts"] <-  list(NULL)
+    conf["opts"] <- list(NULL)
+  if (is.null(conf$limits))
+    conf["limits"] <- list(NULL)
+  if (is.null(conf$haptypes))
+    conf["haptypes"] <- list(NULL)
+
   conf <- expandDR2SConf(conf)
   if (length(conf) == 1) {
     conf[[1]]
@@ -129,10 +132,10 @@ initialiseDR2S <- function(conf, createOutdir = TRUE) {
 
 validateDR2SConf <- function(conf) {
   fields <- c("datadir", "outdir", "threshold", "iterations", "microsatellite",
-              "distAlleles", "filterScores", "forceMapping",
-              "lrmapper", "srmapper", "limits", "haptypes", "pipeline",
-              "longreads", "shortreads", "opts", "sampleId", "locus",
-              "reference", "details")
+              "filterScores", "forceMapping", "lrmapper", "srmapper",
+              "limits", "haptypes", "pipeline", "longreads", "shortreads",
+              "opts", "sampleId", "locus", "reference", "distAlleles",
+              "details")
   assert_that(all(fields %in% names(conf)),
               msg = paste("Missing fields <",
                           comma(fields[!fields %in% names(conf)]),
@@ -249,6 +252,8 @@ writeDR2SConf <- function(x, outFile = NULL) {
     forceMapping   = x$getForceMapping(),
     lrmapper       = x$getLrMapper(),
     srmapper       = x$getSrMapper(),
+    limits         = x$getLimits(),
+    haptypes       = x$getHapTypes(),
     pipeline       = x$getPipeline(),
     longreads      = x$getConfig("longreads"),
     shortreads     = x$getConfig("shortreads"),
@@ -257,3 +262,4 @@ writeDR2SConf <- function(x, outFile = NULL) {
   )
   yaml::write_yaml(conf, outFile)
 }
+

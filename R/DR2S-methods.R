@@ -310,7 +310,6 @@ DR2S_$set("public",
       is.logical(plot)
     )
 
-
     ## Get the reference sequence
     if (!is.null(self$mapInit$SR1)) {
       useSR  <- TRUE
@@ -418,7 +417,6 @@ DR2S_$set("public", "runSplitLongReadsByHaplotype", function(plot = TRUE) {
   names(prts) <- haplotypes
   scores <- lapply(prts, function(x) x$mcoef)
   lmts <- .optimalPartitionLimits(scores)
-
   self$setLimits(setNames(as.list(lmts$limits$c), haplotypes))
   self$partition$lmt <- lmts$plt
 
