@@ -70,29 +70,29 @@ DR2S_ <- R6::R6Class(
     mapIter     = list(),
     srpartition = list(),
     mapFinal    = list(),
-    ## Final consensus sequences for A and B
-    ## class: ConsList
-    consensus   = list(),
+    consensus   = list(), ## <ConsList> Final consensus sequences for A and B
     initialize  = function(conf, createOutdir = TRUE) {
       ## Public fields
       self$mapInit   = list()
       self$partition = list()
-      self$mapIter   = list()#A = list(), B = list())
+      self$mapIter   = list()
       self$mapFinal  = list()
       self$consensus = list()
       ## Private fields
-      private$conf   = initialiseDR2S(conf, createOutdir = createOutdir)
+      private$conf = initialiseDR2S(conf, createOutdir = createOutdir)
+      private$runstats = NULL
       private$reportStatus = FALSE
 
       if (file.exists(refPath <- private$conf$reference)) {
+        private$conf$extref = refPath
         private$conf$reference = basename(refPath)
-        private$conf$refPath  = file.path("mapInit", basename(refPath))
+        private$runstats$refPath = file.path("mapInit", basename(refPath))
         cPath <- .dirCreateIfNotExists(normalizePath(
           file.path(private$conf$outdir, "mapInit"), mustWork = FALSE))
         file.copy(refPath, file.path(cPath,  basename(refPath)))
       } else {
         private$conf$reference = .expandAllele(conf$reference, conf$locus)
-        private$conf$refPath = .generateReferenceSequence(
+        private$runstats$refPath = .generateReferenceSequence(
           private$conf$reference,
           private$conf$locus,
           private$conf$outdir,
@@ -115,15 +115,19 @@ DR2S_ <- R6::R6Class(
     clear = function() {
       unlink(self$getOutdir(), recursive = TRUE)
       .dirCreateIfNotExists(file.path(self$getOutdir()))
-      if (file.exists(refPath <- private$conf$reference)) {
+      if (!is.null(private$conf$extref) &&
+          file.exists(refPath <- private$conf$extref)) {
         private$conf$reference = basename(refPath)
-        private$conf$refPath = basename(refPath)
+        private$runstats$refPath = file.path("mapInit", basename(refPath))
+        cPath <- .dirCreateIfNotExists(normalizePath(
+          file.path(private$conf$outdir, "mapInit"), mustWork = FALSE))
+        file.copy(refPath, file.path(cPath,  basename(refPath)))
       } else {
         private$conf$reference = .expandAllele(private$conf$reference,
                                                private$conf$locus)
         outdir <- .dirCreateIfNotExists(normalizePath(
           file.path(private$conf$outdir, "mapInit"), mustWork = FALSE))
-        private$conf$refPath = .generateReferenceSequence(
+        private$runstats$refPath = .generateReferenceSequence(
           self$getReference(),
           self$getLocus(),
           private$conf$outdir,
@@ -175,7 +179,7 @@ DR2S_ <- R6::R6Class(
       )
     },
     ##
-    ## Getters and Setters ####
+    ## Config getters and setters ####
     ##
     getConfig = function(name = NULL) {
       if (is.null(name))
@@ -202,7 +206,7 @@ DR2S_ <- R6::R6Class(
     },
     ##
     setThreshold = function(threshold) {
-      stopifnot(threshold > 0 && threshold <= 1)
+      assert_that(threshold > 0 && threshold <= 1)
       self$setConfig("threshold", threshold)
       invisible(self)
     },
@@ -212,48 +216,8 @@ DR2S_ <- R6::R6Class(
     },
     ##
     setIterations = function(iterations) {
-      stopifnot(iterations < 10 && iterations > 0 && iterations %% 1 == 0)
+      assert_that(iterations < 10 && iterations > 0 && iterations %% 1 == 0)
       self$setConfig("iterations", iterations)
-      invisible(self)
-    },
-    ##
-    getReportStatus = function() {
-      private$reportStatus
-    },
-    ##
-    setReportStatus = function(report) {
-      stopifnot(is.logical(report))
-      private$reportStatus <- report
-      invisible(self)
-    },
-    ##
-    getDetails = function() {
-      self$getConfig("details")
-    },
-    ##
-    setDetails = function(details) {
-      stopifnot(is.character(details))
-      self$setConfig("details", details)
-      invisible(self)
-    },
-    ##
-    getForceMapping = function(forceMapping) {
-      self$getConfig("forceMapping")
-    },
-    ##
-    setForceMapping = function(forceMapping) {
-      stopifnot(is.logical(forceMapping))
-      self$setConfig("forceMapping", forceMapping)
-      invisible(self)
-    },
-    ##
-    getFilterScores = function() {
-      self$getConfig("filterScores")
-    },
-    ##
-    setFilterScores = function(filterScores) {
-      stopifnot(is.logical(filterScores))
-      self$setConfig("filterScores", filterScores)
       invisible(self)
     },
     ##
@@ -264,6 +228,132 @@ DR2S_ <- R6::R6Class(
     setMicrosatellite = function(microsatellite) {
       assert_that(is.logical(microsatellite))
       self$setConfig("microsatellite", microsatellite)
+      invisible(self)
+    },
+    ##
+    getFilterScores = function() {
+      self$getConfig("filterScores")
+    },
+    ##
+    setFilterScores = function(filterScores) {
+      assert_that(is.logical(filterScores))
+      self$setConfig("filterScores", filterScores)
+      invisible(self)
+    },
+    ##
+    getForceMapping = function() {
+      self$getConfig("forceMapping")
+    },
+    ##
+    setForceMapping = function(forceMapping) {
+      assert_that(is.logical(forceMapping))
+      self$setConfig("forceMapping", forceMapping)
+      invisible(self)
+    },
+    ##
+    getLrMapper = function() {
+      self$getConfig("lrmapper")
+    },
+    ##
+    getSrMapper = function() {
+      self$getConfig("srmapper")
+    },
+    ##
+    getPipeline = function() {
+      self$getConfig("pipeline")
+    },
+    ##
+    getLongreads = function() {
+      dir <- self$getLrdDir()
+      readpath <- findReads(dir, self$getSampleId(), self$getLocus())
+      if (is.null(readpath) || length(readpath) == 0) {
+        flog.error("No reads available for readtype <%s>",
+                   self$getLrdType(), name = "info")
+        stop("No reads available for readtype <", self$getLrdType(), ">")
+      }
+      readpath
+    },
+    ##
+    getShortreads = function() {
+      dir <- self$getSrdDir()
+      if (is.null(dir)) {
+        return(NULL)
+      }
+      readpath <- findReads(dir, self$getSampleId(), self$getLocus())
+      if (is.null(readpath) || length(readpath) == 0) {
+        flog.error("No reads available for readtype <%s>",
+                   self$getSrdType(), name = "info")
+        stop("No reads available for readtype <", self$getSrdType(), ">")
+      }
+      readpath
+    },
+    ##
+    getLrdType = function() {
+      self$getConfig("longreads")$type
+    },
+    ##
+    getLrdDir = function() {
+      file.path(self$getDatadir(), self$getConfig("longreads")$dir)
+    },
+    ##
+    getSrdType = function() {
+      self$getConfig("shortreads")$type
+    },
+    ##
+    getSrdDir = function() {
+      if (!is.null(filtered <- self$getConfig("filteredShortreads"))) {
+        return(self$absPath(filtered))
+      }
+      if (!is.null(srddir <- self$getConfig("shortreads")$dir)) {
+        file.path(self$getDatadir(), srddir)
+      } else {
+        NULL
+      }
+    },
+    ##
+    getOpts = function(name = NULL) {
+      if (is.null(name))
+        mergeList(self$getConfig("opts"), self$getConfig("longreads")$opts,
+                  update = TRUE)
+      else {
+        opts <- mergeList(self$getConfig("opts"),
+                          self$getConfig("longreads")$opts, update = TRUE)
+        if (is.list(opts))
+          opts[[name]]
+        else
+          opts
+      }
+    },
+    ##
+    getSampleId = function() {
+      self$getConfig("sampleId")
+    },
+    ##
+    getLocus = function() {
+      self$getConfig("locus")
+    },
+    ##
+    getReference = function() {
+      self$getConfig("reference")
+    },
+    ##
+    getDistAlleles = function() {
+      self$getConfig("distAlleles")
+    },
+    ##
+    setDistAlleles = function(distAlleles) {
+      stopifnot(is.numeric(distAlleles))
+      self$setConfig("distAlleles", distAlleles)
+      invisible(self)
+    },
+    ##
+    getDetails = function() {
+      self$getConfig("details")
+    },
+    ##
+    setDetails = function(details) {
+      stopifnot(is.character(details))
+      self$setConfig("details", details)
       invisible(self)
     },
     ##
@@ -293,111 +383,62 @@ DR2S_ <- R6::R6Class(
             sep = ";")
     },
     ##
-    getDistAlleles = function() {
-      self$getConfig("distAlleles")
+    ## Runstats getters and setters ####
+    ##
+    getStats = function(name = NULL) {
+      if (is.null(name))
+        private$runstats
+      else
+        private$runstats[[name]]
     },
     ##
-    setDistAlleles = function(distAlleles) {
-      stopifnot(is.numeric(distAlleles))
-      self$setConfig("distAlleles", distAlleles)
+    setStats = function(name, value) {
+      private$runstats[name] = value
       invisible(self)
     },
     ##
-    getLongreads = function() {
-      dir <- self$getLrdDir()
-      readpath <- findReads(dir, self$getSampleId(), self$getLocus())
-      if (is.null(readpath) || length(readpath) == 0) {
-        flog.error("No reads available for readtype <%s>",
-                   self$getLrdType(), name = "info")
-        stop("No reads available for readtype <", self$getLrdType(), ">")
-      }
-      readpath
-    },
-    ##
-    getShortreads = function() {
-      dir <- self$getSrdDir()
-      if (is.null(dir)) {
-        return(NULL)
-      }
-      readpath <- findReads(dir, self$getSampleId(), self$getLocus())
-      if (is.null(readpath) || length(readpath) == 0) {
-        flog.error("No reads available for readtype <%s>",
-                   self$getSrdType(), name = "info")
-        stop("No reads available for readtype <", self$getSrdType(), ">")
-      }
-      readpath
-    },
-    ##
-    getLrMapper = function() {
-      self$getConfig("lrmapper")
-    },
-    ##
-    getSrMapper = function() {
-      self$getConfig("srmapper")
-    },
-    ##
     getLimits = function() {
-      self$getConfig("limits")
+      self$getStats("partitionLongReads")$limits
     },
     ##
     setLimits = function(lmts) {
       # stopifnot(is.null(lmts) || all(lmts >=0 && lmts <=1))
-      private$conf$limits = lmts
+      x <- list()
+      private$runstats$partitionLongReads$limits = lmts
       invisible(self)
     },
     ##
     getHapTypes = function() {
-      self$getConfig("haptypes")
+      self$getStats("partitionLongReads")$haplotypes
     },
     ##
     setHapTypes = function(x) {
       ## Todo: add test for data consistency!
-      private$conf$haptypes = x
+      private$runstats$partitionLongReads$haplotypes = x
       invisible(self)
     },
     ##
-    getPipeline = function() {
-      self$getConfig("pipeline")
-    },
-    ##
-    getLrdType = function() {
-      self$getConfig("longreads")$type
-    },
-    ##
-    getLrdDir = function() {
-      file.path(self$getDatadir(), self$getConfig("longreads")$dir)
-    },
-    ##
-    getSrdType = function() {
-      self$getConfig("shortreads")$type
-    },
-    ##
-    getSrdDir = function() {
-      if (!is.null(filtered <- self$getConfig("filteredShortreads"))) {
-        return(self$absPath(filtered))
-      }
-      if (!is.null(srddir <- self$getConfig("shortreads")$dir)) {
-        file.path(self$getDatadir(), srddir)
-      } else {
-        NULL
-      }
-    },
-    ##
-    getReference = function() {
-      self$getConfig("reference")
-    },
-    ##
-    getSampleId = function() {
-      self$getConfig("sampleId")
-    },
-    ##
-    getLocus = function() {
-      self$getConfig("locus")
-    },
-    ##
     getRefPath = function() {
-      self$absPath(self$getConfig("refPath"))
+      self$absPath(self$getStats("refPath"))
     },
+    ##
+    setRefPath = function(refPath) {
+      self$setStats("refPath", self$relPath(refPath))
+    },
+    ##
+    ## Report Status ####
+    ##
+    getReportStatus = function() {
+      private$reportStatus
+    },
+    ##
+    setReportStatus = function(report) {
+      assert_that(is.logical(report))
+      private$reportStatus <- report
+      invisible(self)
+    },
+    ##
+    ## Internal getters/setters ####
     ##
     getRefSeq = function() {
       if (!is.null(self$getRefPath())) {
@@ -410,20 +451,6 @@ DR2S_ <- R6::R6Class(
           .ipdHla()$getClosestComplete(self$getReference(),
                                        self$getLocus())
         }
-      }
-    },
-    ##
-    getOpts = function(name = NULL) {
-      if (is.null(name))
-        mergeList(self$getConfig("opts"), self$getConfig("longreads")$opts,
-                  update = TRUE)
-      else {
-        opts <- mergeList(self$getConfig("opts"),
-                          self$getConfig("longreads")$opts, update = TRUE)
-        if (is.list(opts))
-          opts[[name]]
-        else
-          opts
       }
     },
     ##
@@ -454,7 +481,7 @@ DR2S_ <- R6::R6Class(
         latest <-  self$mapIter[[
           toString(max(names(self$mapIter)))]][self$getHapTypes()]
         return(vapply(latest, function(x) self$absPath(x$seqpath),
-               character(1)))
+                      character(1)))
       } else {
         return(self$getRefPath())
       }
@@ -479,7 +506,7 @@ DR2S_ <- R6::R6Class(
       if (mapn == 1) {
         ref <- self$mapIter[["0"]][[group]]$conseq$reference %||%
           Biostrings::BStringSet()
-          Biostrings::BStringSet()
+        Biostrings::BStringSet()
       } else if (mapn == 2) {
         ref <- Biostrings::BStringSet()
       }
@@ -500,7 +527,6 @@ DR2S_ <- R6::R6Class(
     },
     ##
     getMapTag = function(iter = "init", group = NULL, ref = "LR") {
-
       if (is.numeric(iter)) {
         group <- match.arg(group, self$getHapTypes())
         return(self$mapIter[[as.character(iter)]][[group]]$tag)
@@ -542,6 +568,20 @@ DR2S_ <- R6::R6Class(
     getSrMapFun = function() {
       match.fun("run" %<<% self$getSrMapper())
     },
+    ## Get the absolut path
+    absPath = function(filename) {
+      assert_that(is.character(filename))
+      vapply(filename, function(x) {
+        normalizePath(
+          file.path(self$getOutdir(), x),
+          mustWork = FALSE)
+      }, FUN.VALUE = character(1))
+    },
+    ## Get the relative path
+    relPath = function(filepath) {
+      ## TODO add assertives
+      .cropPath(self$getOutdir(), filepath)
+    },
     ##
     ## Predicate methods ####
     ##
@@ -577,20 +617,6 @@ DR2S_ <- R6::R6Class(
     hasLongreads = function() {
       lr <- try(self$getLongreads(), silent = TRUE)
       !(is(lr, "try-error") || is.null(lr))
-    },
-    ## Get the absolut path
-    absPath = function(filename) {
-      assert_that(is.character(filename))
-      vapply(filename, function(x) {
-        normalizePath(
-          file.path(self$getOutdir(), x),
-          mustWork = FALSE)
-      }, FUN.VALUE = character(1))
-    },
-    ## Get the relative path
-    relPath = function(filepath) {
-      ## TODO add assertives
-      .cropPath(self$getOutdir(), filepath)
     },
     ##
     ## Plotting methods ####
@@ -638,12 +664,12 @@ DR2S_ <- R6::R6Class(
         threshold <- self$getThreshold()
       }
       plotPileupCoverage(
-        pileup,
-        threshold,
-        range,
-        thin,
-        width,
-        label %|ch|% lbl,
+        x = pileup,
+        threshold = threshold,
+        range = range,
+        thin = thin,
+        width = width,
+        label = label %|ch|% lbl,
         drop.indels = drop.indels
       )
     },
@@ -727,7 +753,6 @@ DR2S_ <- R6::R6Class(
         c("LR")
       }
       plotlist <- foreach(readtype = readtypes) %do% {
-
         tag <- self$getMapTag(ref = readtype)
         self$plotCoverage(
           thin  = thin,
@@ -764,8 +789,8 @@ DR2S_ <- R6::R6Class(
       plotlist <- foreach(hp = hptypes) %do% {
         tag <- self$getMapTag(iteration, hp)
         self$plotGroupCoverage(hp, ref = NULL, iteration = iteration,
-                                    threshold = NULL, range = NULL, thin, width,
-                                    label = tag, drop.indels = drop.indels)
+                               threshold = NULL, range = NULL, thin, width,
+                               label = tag, drop.indels = drop.indels)
       }
       cowplot::plot_grid(plotlist = plotlist, labels = hptypes)
     },
@@ -782,10 +807,9 @@ DR2S_ <- R6::R6Class(
         })
       }
       ggplot() +
-        geom_logo(pwm, method = "bits", seq_type = "dna",
-                             stack_width = 0.9) +
-        facet_wrap(~seq_group, ncol = 1, strip.position = "left") +
         scale_x_continuous(labels = ppos, breaks = seq_along(ppos)) +
+        geom_logo(pwm, method = "bits", seq_type = "dna", stack_width = 0.9) +
+        facet_wrap(~seq_group, ncol = 1, strip.position = "left") +
         theme_logo() +
         theme(axis.text.x  = ggplot2::element_text(size = 10, angle = 60),
               axis.title.y = ggplot2::element_blank(),
@@ -831,6 +855,7 @@ DR2S_ <- R6::R6Class(
   ##
   private = list(
     conf         = NULL,
+    runstats     = NULL,
     reportStatus = NULL
   )
 )

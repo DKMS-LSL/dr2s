@@ -198,8 +198,6 @@ mapInit <- function(x,
 #' each position in the pileup.
 #' @param minNucleotideDepth Minimum count of each nucleotide at a given
 #' position required for that nucleotide to appear in the result.
-#' @param includeDeletions If \code{TRUE}, include deletions in pileup.
-#' @param includeInsertions If \code{TRUE}, include insertions in pileup.
 #' @param gapSuppressionRatio The ratio of base/gap above which gaps at
 #' insertion position are excluded from from consensus calling.
 #' @param force If \code{TRUE}, overwrite existing bam file.
@@ -233,8 +231,6 @@ mapIter <- function(x,
                     minMapq = 0,
                     maxDepth = 1e4,
                     minNucleotideDepth = 3,
-                    includeDeletions = TRUE,
-                    includeInsertions = TRUE,
                     gapSuppressionRatio = 2/5,
                     force = FALSE,
                     plot = TRUE) {

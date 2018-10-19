@@ -13,6 +13,10 @@ polish.DR2S <- function(x,
                         checkHpCount = TRUE,
                         cache = TRUE) {
   flog.info("Step 5: polish ...", name = "info")
+
+  ## Collect start time for polish runstats
+  start.time <- Sys.time()
+
   ## Set this threshold to double the usual.
   ## Probably better to do this only for lr
   if (is.null(threshold)) {
@@ -62,10 +66,10 @@ polish.DR2S <- function(x,
         # n <- seqrle$length[seqrle$length >= 10] %||% 0
         n <- which(seqrle$length > 8)
         nCount <- seqrle$length[n]
-        origPosition <- vapply(n, function(ni) sum(seqrle$lengths[1:((ni)-1)]), FUN.VALUE = integer(1))
+        origPosition <- vapply(n, function(ni) sum(seqrle$lengths[1:((ni) - 1)]), FUN.VALUE = integer(1))
         modeN <- sort(rs$mapFinal$homopolymers[[hptype]])
         #names(n) <- names(modeN)
-        if (!all(names(modeN) %in% vapply(origPosition, function(ni) (ni-5):(ni+5), FUN.VALUE = integer(11)))) {
+        if (!all(names(modeN) %in% vapply(origPosition, function(ni) (ni - 5):(ni + 5), FUN.VALUE = integer(11)))) {
           missingN <- modeN[which(!n %in% modeN)]
           varsHP <- tibble::tibble(haplotype = hptype,
                                    pos       = names(missingN),
@@ -84,14 +88,14 @@ polish.DR2S <- function(x,
         }
       }
       tibble::tibble(haplotype = "",
-                               pos       = "",
-                               ref       = "",
-                               alt       = "",
-                               warning   = "",
-                               refSR     = "",
-                               altSR     = "",
-                               refLR     = "",
-                               altLR     = "")
+                     pos       = "",
+                     ref       = "",
+                     alt       = "",
+                     warning   = "",
+                     refSR     = "",
+                     altSR     = "",
+                     refLR     = "",
+                     altLR     = "")
     })
   }
 
@@ -100,7 +104,11 @@ polish.DR2S <- function(x,
   if (cache)
     rs$cache()
 
-  invisible(rs)
+  ## set polish runstats
+  .setRunstats(self, "polish",
+               list(Runtime = format(Sys.time() - start.time)))
+
+  return(invisible(rs))
 }
 
 

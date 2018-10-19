@@ -249,6 +249,17 @@ maximum <- function(n, m) {
   max(sum(proc_idle_time > 90) - 1, 1)
 }
 
+.setRunstats <- function(self, name, value) {
+  assert_that(
+    is.character(name),
+    is.list(value)
+  )
+  value <- mergeList(self$getStats(name), value)
+  self$setStats(name, list(value))
+  writeDR2SConf(self)
+  NULL
+}
+
 editor <- function(x, pos = NULL, useEditor = "xdg-open") {
   useEditor <- match.arg(useEditor, c("xdg-open", "subl", "gvim", "gedit"))
   assert_that(.hasCommand(useEditor))

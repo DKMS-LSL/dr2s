@@ -302,12 +302,11 @@ plotPileupCoverage <- function(x, threshold = 0.2, range = NULL, thin = 0.1,
   dtpoly$width <- width
   dtpoly[closePositions]$width <- 1
 
-
-  ggplot(dtbg, aes(x = pos, y = count)) +
-    geom_bar(stat = "identity", position = position_identity(),
-             fill = "grey80") +
-    geom_bar(data = dtpoly, stat = "identity", position = position_stack(),
-             aes(fill = nucleotide), width = dtpoly$width) +
+  ## suppress warning because of potentially overlapping x intervals
+  p <- ggplot(dtbg, aes(x = pos, y = count)) +
+    geom_bar(stat = "identity", position = position_stack(), fill = "grey80") +
+    geom_bar(aes(fill = nucleotide), data = dtpoly, stat = "identity",
+             position = position_stack(), width = dtpoly$width) +
     scale_fill_manual(values = NUCCOL(),
                       limits = c("A", "C", "G", "T", "-", "+")) +
     guides(fill = guide_legend(reverse = TRUE, title = "Bases")) +
@@ -318,6 +317,7 @@ plotPileupCoverage <- function(x, threshold = 0.2, range = NULL, thin = 0.1,
       panel.grid = element_blank(),
       axis.line = element_line(colour = "grey50")
     )
+  p
 }
 
 
@@ -372,14 +372,14 @@ plotPileupBasecallFrequency <- function(x, threshold = 0.20, label = "",
   inpos <- inpos + 1
 
   ## Get the reference
-  reference   <- seqinfo(BamFile(bamfile))@seqnames[1]
+  reference <- GenomicRanges::seqnames(GenomicRanges::seqinfo(Rsamtools::BamFile(bamfile)))
   if (readtype == "illumina") {
     inposRanges <- GenomicRanges::GRanges(reference,
                                           IRanges::IRanges(start = inpos,
                                                            end = inpos))
-    bamParam    <- ScanBamParam(what = "seq", which = inposRanges)
+    bamParam <- Rsamtools::ScanBamParam(what = "seq", which = inposRanges)
   } else {
-    bamParam    <- ScanBamParam(what = "seq")
+    bamParam <- Rsamtools::ScanBamParam(what = "seq")
   }
   bam <- GenomicAlignments::readGAlignments(bamfile, param = bamParam,
                                             use.names = TRUE)
@@ -389,16 +389,17 @@ plotPileupBasecallFrequency <- function(x, threshold = 0.20, label = "",
     bam <- bam[names(bam) %in% reads]
   ## Use only reads with an insertion
   readsWithIns <- vapply(GenomicAlignments::cigar(bam),
-                            function(x) grepl("I",  x),
-                            FUN.VALUE = logical(1))
-  bamI <- bam[readsWithIns]
+                         function(x) grepl("I",  x),
+                         FUN.VALUE = logical(1))
+  bamI <- bam[readsWithIns][1:10]
   ## Get all insertions from all reads
-  insSeq <- unlist(Biostrings::DNAStringSetList(
-    bplapply(seq_along(bamI), function(a, bamI, inpos) {
-      read <- bamI[a]
-      .extractInsertion(read, inpos)
-  }, bamI = bamI, inpos = inpos)))
-
+  ## TODO: bplapply throws warning in serialize(data, node$con, xdr = FALSE)
+  ## 'package:stats' may not be available when loading
+  ## For the time being we suppress this warning
+  insSeq <- unlist(Biostrings::DNAStringSetList(suppressWarnings(
+    BiocParallel::bplapply(seq_along(bamI), function(a, bamI, inpos) {
+      .extractInsertion(bamI[a], inpos)
+  }, bamI = bamI, inpos = inpos))))
   ## Extract per positions
   insSeqs <- foreach(i = inpos) %do% {
     message("Position: ", i)

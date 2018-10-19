@@ -270,8 +270,11 @@ createPWM <- function(msa){
     gapError <- .getGapErrorBackground(mat, n = 5)
   }
   ## Collect changed matrix elements
-  changeMat <- bplapply(which(seq$length > 5),
-                        function(i, bamfile, reference, removeError) {
+  ## TODO: bplapply throws warning in serialize(data, node$con, xdr = FALSE)
+  ## 'package:stats' may not be available when loading
+  ## For the time being we suppress this warning
+  changeMat <- suppressWarnings(bplapply(which(seq$length > 5),
+                                function(i, bamfile, reference, removeError) {
     #i <- which(seq$length > 5)[1]
     ## Assign new gap numbers to each position starting from left
     # meanCoverage <- mean(rowSums(mat[seqStart:seqEnd,1:4]))
@@ -338,7 +341,7 @@ createPWM <- function(msa){
       # mat[seqStart:seqEnd,] <- t(Biostrings::consensusMatrix(msa))[
       #   ,VALID_DNA(include = "indel")]
     }
-  }, bamfile = bamfile, reference = reference, removeError = removeError)
+  }, bamfile = bamfile, reference = reference, removeError = removeError))
 
   ## Change the matrix
   for (i in changeMat) {

@@ -20,7 +20,6 @@
 #' @export
 #' @examples
 #' ###
-
 partitionReads <- function(x, distAlleles = 2, sortBy = "count", threshold = 0.2,
                            clMethod = "ward.D", minLen = 0.5, skipGapFreq = 2/3,
                            deepSplit = 1, minClusterSize = 15) {
@@ -55,11 +54,11 @@ partitionReads <- function(x, distAlleles = 2, sortBy = "count", threshold = 0.2
     xseqs <- xseqs[!xseqs == "+"]
 
   ## Get only the fraction of reads that contain at least minLen of total SNPs
-  clustres <- .getClusts(xseqs, clMethod = clMethod, minLen = minLen,
+  clusters <- .getClusts(xseqs, clMethod = clMethod, minLen = minLen,
                          deepSplit = deepSplit, threshold = threshold,
                          minClusterSize = minClusterSize)
-  subclades <- factor(clustres$clades[!clustres$clades == "@"])
-  tree <- clustres$tree
+  subclades <- factor(clusters$clades[!clusters$clades == "@"])
+  tree <- clusters$tree
   hptypes <- levels(subclades)
 
   if (length(subclades) == 0) {
@@ -102,7 +101,8 @@ partitionReads <- function(x, distAlleles = 2, sortBy = "count", threshold = 0.2
   hptypes <- names(mats)
 
   scores <- dplyr::bind_rows(
-    bplapply(seq_along(xseqs), function(s) .getScores(s, xseqs, mats)))
+    suppressWarnings(BiocParallel::bplapply(seq_along(xseqs), function(s)
+      .getScores(s, xseqs, mats))))
 
   clades <- scores %>%
     dplyr::group_by(.data$read) %>%

@@ -74,10 +74,12 @@ readDR2S <- function(path) {
     "Polish and look for inconsistencies between shortreads and longreads ...",
     name = "info")
   polish(x)
+
   flog.info("Report consensus sequence and potential problematic variants",
             name = "info")
   report(x)
-  return(x)
+
+  return(invisible(x))
 }
 
 #' Create IGV xml config files for directly open the longread and shortread

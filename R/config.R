@@ -26,8 +26,6 @@ createDR2SConf <- function(sample,
     forceMapping = forceMapping,
     lrmapper = conf0$lrmapper %||% "minimap",
     srmapper = conf0$srmapper %||% "bwamem",
-    limits = conf0$limits   %||% NULL,
-    haptypes = conf0$haptypes %||% NULL,
     pipeline = conf0$pipeline %||% if (is.null(shortreads)) {
       LR_PIPELINE()
     } else {
@@ -72,11 +70,7 @@ readDR2SConf <- function(configFile) {
     conf["shortreads"] <-  list(NULL)
   if (is.null(conf$opts))
     conf["opts"] <- list(NULL)
-  if (is.null(conf$limits))
-    conf["limits"] <- list(NULL)
-  if (is.null(conf$haptypes))
-    conf["haptypes"] <- list(NULL)
-
+  conf$runstats <- NULL
   conf <- expandDR2SConf(conf)
   if (length(conf) == 1) {
     conf[[1]]
@@ -88,6 +82,9 @@ readDR2SConf <- function(configFile) {
 expandDR2SConf <- function(conf) {
   ## we can have more than one sample
   samples <- conf$samples
+  if (is.null(samples)) {
+    return(list(validateDR2SConf(conf)))
+  }
   conf$samples <- NULL
   sampleIds <- names(samples)
   ## we can have more than one longread type
@@ -133,9 +130,8 @@ initialiseDR2S <- function(conf, createOutdir = TRUE) {
 validateDR2SConf <- function(conf) {
   fields <- c("datadir", "outdir", "threshold", "iterations", "microsatellite",
               "filterScores", "forceMapping", "lrmapper", "srmapper",
-              "limits", "haptypes", "pipeline", "longreads", "shortreads",
-              "opts", "sampleId", "locus", "reference", "distAlleles",
-              "details")
+              "pipeline", "longreads", "shortreads", "opts", "sampleId",
+              "locus", "reference", "distAlleles", "details")
   assert_that(all(fields %in% names(conf)),
               msg = paste("Missing fields <",
                           comma(fields[!fields %in% names(conf)]),
@@ -217,7 +213,7 @@ validateDR2SConf <- function(conf) {
     )
   }
   ## Normalise locus
-  conf$locus   <- sub("^HLA-", "", .normaliseLocus(conf$locus))
+  conf$locus <- sub("^HLA-", "", .normaliseLocus(conf$locus))
   conf
 }
 
@@ -232,34 +228,13 @@ print.DR2Sconf <- function(x, ...) {
 #' @param outFile The destination file.
 #' @export
 writeDR2SConf <- function(x, outFile = NULL) {
+  assert_that(is(x, "DR2S"))
   if (is.null(outFile)) {
     outFile <- file.path(x$getOutdir(), "config.yaml")
   }
-  sample <- list(
-    list(
-      locus = x$getLocus(),
-      reference = x$getReference(),
-      distAlleles = x$getDistAlleles(),
-      details = x$getDetails()))
-  names(sample) <- x$getSampleId()
-  conf <- list(
-    datadir        = x$getDatadir(),
-    outdir         = dirname(x$getOutdir()),
-    threshold      = x$getThreshold(),
-    iterations     = x$getIterations(),
-    microsatellite = x$getMicrosatellite(),
-    filterScores   = x$getFilterScores(),
-    forceMapping   = x$getForceMapping(),
-    lrmapper       = x$getLrMapper(),
-    srmapper       = x$getSrMapper(),
-    limits         = x$getLimits(),
-    haptypes       = x$getHapTypes(),
-    pipeline       = x$getPipeline(),
-    longreads      = x$getConfig("longreads"),
-    shortreads     = x$getConfig("shortreads"),
-    opts           = x$getConfig("opts"),
-    samples        = sample
-  )
+  conf <- x$getConfig()
+  conf$runstats <- x$getStats()
+  conf$runstats$reported <- x$getReportStatus()
   yaml::write_yaml(conf, outFile)
 }
 

@@ -2,6 +2,9 @@
 report.DR2S <- function(x, which, blockWidth = 80, noRemap = FALSE, createIgv = TRUE, ...) {
   flog.info("Step 6: report ...", name = "info")
 
+  ## Collect start time for report runstats
+  start.time <- Sys.time()
+
   ## Check if reporting is finished and exit safely for downstream analysis
   if (x$getReportStatus()) {
     currentCall <- strsplit1(deparse(sys.call()), "\\.")[1]
@@ -34,9 +37,13 @@ report.DR2S <- function(x, which, blockWidth = 80, noRemap = FALSE, createIgv = 
     which <- match.arg(tolower(which), c("mapFinal", "mapIter"))
     .reportMap_(x, which, outdir, blockWidth = blockWidth, ...)
   }
-  writeDR2SConf(x)
+
+  ## set report runstats
+  .setRunstats(self, "report",
+               list(Runtime = format(Sys.time() - start.time)))
   flog.info("Done", name = "info")
-  invisible(x)
+
+  return(invisible(x))
 }
 
 # debug

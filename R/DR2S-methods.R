@@ -58,20 +58,21 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
   # # debug
   # opts = list()
   # optsname = ""
-  # threshold = 1/3
+  # threshold = NULL
   # minBaseQuality = 3
   # minMapq = 50
   # maxDepth = 1e4
   # minNucleotideDepth = 3
   # includeDeletions = TRUE
   # includeInsertions = TRUE
-  # microsatellite = TRUE
+  # microsatellite = FALSE
   # force = FALSE
-  # filterScores = FALSE
-  # forceMapping = TRUE
-  # plot = TRUE
+  # filterScores = TRUE
+  # forceMapping = FALSE
   # topx = 0
   # createIgv = TRUE
+  # plot = TRUE
+  # library(assertthat)
   # library(ggplot2)
   # library(S4Vectors)
   # library(Rsamtools)
@@ -80,6 +81,9 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
   # library(cowplot)
   # self <-dr2s
   # self <- mapper
+
+  ## Collect starttime for mapInit runstats
+  start.time <- Sys.time()
 
   ## Overide default arguments
   args <- self$getOpts("mapInit")
@@ -159,7 +163,7 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
                                                  self$getLrMapper(),
                                                  optstring(opts, optsname))),
                                      collapse = " "))
-    self$setConfig("refPath", file.path(basename(outdir), allele %<<% ".fa"))
+    self$setRefPath(file.path(basename(outdir), allele %<<% ".fa"))
     reffile <- self$getRefPath()
     refseq  <- .getWriteConseq(pileup = pileup, name = "mapInitLR",
                                type = "prob",  threshold = threshold,
@@ -223,6 +227,11 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
                        plot = p, ncol = 1, nrow = plotRows,
                        base_aspect_ratio = as.numeric(paste(5, plotRows, sep = ".")))
   }
+
+  ## set mapInit runstats
+  .setRunstats(self, "mapInit",
+    list(Runtime = format(Sys.time() - start.time)))
+
   return(invisible(self))
 })
 
@@ -251,6 +260,9 @@ partitionLongReads.DR2S <- function(x,
                                     minClusterSize    = 15,
                                     plot              = TRUE,
                                     ...) {
+  ## Collect start time for partitionLongReads runstats
+  start.time <- Sys.time()
+
   x$runPartitionLongReads(threshold         = threshold,
                           skipGapFreq       = skipGapFreq,
                           noGapPartitioning = noGapPartitioning,
@@ -262,7 +274,12 @@ partitionLongReads.DR2S <- function(x,
   x$runSplitLongReadsByHaplotype(plot = plot)
   x$runExtractLongReads()
   x$runGetPartitionedConsensus()
-  invisible(x)
+
+  ## set partitionLongReads runstats
+  .setRunstats(x, "partitionLongReads",
+               list(Runtime = format(Sys.time() - start.time)))
+
+  return(invisible(x))
 }
 
 DR2S_$set("public",
@@ -283,9 +300,9 @@ DR2S_$set("public",
     # selectAllelesBy = "distance"
     # minClusterSize = 15
     # plot = TRUE
-    # self <- dr2s
     # library(futile.logger)
     # library(assertthat)
+    # self <- dr2s
 
     flog.info("Step 1: PartitionLongReads ...", name = "info")
     flog.info(" Partition longreads into haplotypes", name = "info")
@@ -325,10 +342,8 @@ DR2S_$set("public",
     ## Spurious gaps, especially in longreads can hinder a correct clustering
     ## Remove gap positions for clustering
     if (noGapPartitioning) {
-      flog.info(" Use only non-gap positions for clustering",
-                name = "info")
-      ppos <- ppos %>%
-        dplyr::filter(a1 != "-" & a2 != "-")
+      flog.info(" Use only non-gap positions for clustering", name = "info")
+      ppos <- dplyr::filter(ppos, a1 != "-" & a2 != "-")
     }
 
     ## Check if already finished because it is a homozygous sample
@@ -336,6 +351,9 @@ DR2S_$set("public",
       flog.warn(" No polymorphic positions for clustering! Only single allele?",
                 name = "info")
       flog.info(" Entering polish and report pipeline", name = "info")
+      ## set runstats
+      .setRunstats(self, "partitionLongReads",
+                   list(foundPolymorphicPositions = 0L))
       return(invisible(.finishCn1(self)))
     }
 
@@ -354,6 +372,7 @@ DR2S_$set("public",
 
     flog.info(" Partition %s longreads over %s SNPs", NROW(mat), NCOL(mat),
               name = "info")
+
     prt <- partitionReads(x = mat,
                           skipGapFreq = skipGapFreq,
                           deepSplit = 1,
@@ -361,6 +380,14 @@ DR2S_$set("public",
                           distAlleles = distAlleles,
                           sortBy = selectAllelesBy,
                           minClusterSize = minClusterSize)
+
+    ## set runstats
+    .setRunstats(self, "partitionLongReads",
+                 list(nLongreads =  NROW(mat),
+                      foundPolymorphicPositions = NCOL(mat),
+                      usedPolymorphicPositions = K(prt),
+                      foundClades = as.list(table(PRT(prt)))))
+
     ## Set sample haplotypes
     self$setHapTypes(levels(as.factor(PRT(prt))))
 
@@ -378,6 +405,7 @@ DR2S_$set("public",
       lmt = NULL
     ),
     class = c("PartList", "list"))
+
     return(invisible(self))
   })
 
@@ -407,9 +435,9 @@ DR2S_$set("public", "runSplitLongReadsByHaplotype", function(plot = TRUE) {
     list2env(args, envir = env)
   }
 
-  prt  <- partition(self$getPartition())
+  prt <- partition(self$getPartition())
   haplotypes <- levels(prt$haplotype)
-  tag  <- self$getMapTag("init", "LR")
+  tag <- self$getMapTag("init", "LR")
 
   # Set all limits to NULL
   self$setLimits(rep(NA, length(haplotypes)))
@@ -428,6 +456,10 @@ DR2S_$set("public", "runSplitLongReadsByHaplotype", function(plot = TRUE) {
     flog.info("  %s: Using %s longreads with score > %.2f",
               hp, nrow(reads[[hp]]), self$getLimits()[hp], name = "info")
   }
+
+  ## set runstats
+  .setRunstats(self, "partitionLongReads",
+               list(reads = setNames(as.list(as.integer(lmts$limits$r)), haplotypes)))
 
   # results structure
   self$partition$hpl <- structure(
@@ -462,7 +494,8 @@ DR2S_$set("public", "runSplitLongReadsByHaplotype", function(plot = TRUE) {
       pwm[pwm < 0.1] <- 0
       pwm
     })
-    p <- self$plotSeqLogo(ppos, pwm)
+
+    p <- suppressMessages(self$plotSeqLogo(ppos, pwm))
     cowplot::save_plot(filename = self$absPath("plot.Sequence.pdf"),
                        plot        = p,
                        base_width  = 0.4*length(ppos) + 1.4,
@@ -479,6 +512,7 @@ DR2S_$set("public", "runSplitLongReadsByHaplotype", function(plot = TRUE) {
                        limitsize   = FALSE)
 
   }
+
   return(invisible(self))
 })
 
@@ -502,7 +536,6 @@ DR2S_$set("public", "runExtractLongReads", function() {
 
   ## Check if reporting is already finished and exit safely
   if (.checkReportStatus(self)) return(invisible(self))
-
   assert_that(self$hasHapList())
 
   ## Overide default arguments
@@ -593,6 +626,8 @@ DR2S_$set(
       )
       NULL
     }
+
+    return(invisible(self))
   })
 
 
@@ -605,8 +640,6 @@ mapIter.DR2S <- function(x,
                          minMapq = 0,
                          maxDepth = 1e4,
                          minNucleotideDepth = 3,
-                         includeDeletions = TRUE,
-                         includeInsertions = TRUE,
                          gapSuppressionRatio = 2/5,
                          force = FALSE,
                          plot = TRUE) {
@@ -619,39 +652,39 @@ mapIter.DR2S <- function(x,
                gapSuppressionRatio = gapSuppressionRatio,
                force = force,
                plot = plot)
-  invisible(x)
+  return(invisible(x))
 }
 
 DR2S_$set(
   "public", "runMapIter",
   function(opts = list(),
            iterations = 1,
-           threshold = NULL,
            minBaseQuality = 3,
            minMapq = 0,
            maxDepth = 1e4,
            minNucleotideDepth = 3,
-           gapSuppressionRatio = 1/4,
+           gapSuppressionRatio = 2/5,
            force = FALSE,
            plot = TRUE) {
 
     # # debug
     # self <- dr2s
     # opts = list()
+    # iterations = 1
     # minBaseQuality = 3
     # minMapq = 0
     # maxDepth = 1e4
     # minNucleotideDepth = 3
-    # includeDeletions = TRUE
-    # includeInsertions = TRUE
     # gapSuppressionRatio = 2/5
     # force = FALSE
     # plot = TRUE
-    # iterations = 1
     # ##
 
     flog.info("Step 2: MapIter ...", name = "info")
     flog.info(" Iterative mapping of partitioned longreads", name = "info")
+
+    ## Collect start time for mapIter runstats
+    start.time <- Sys.time()
 
     ## Check if reporting is already finished and exit safely
     if (.checkReportStatus(self)) return(invisible(self))
@@ -663,13 +696,10 @@ DR2S_$set(
       list2env(args, envir = env)
     }
 
-    if (is.null(threshold)) {
-      threshold <- self$getThreshold()
-    }
+    threshold <- self$getThreshold()
     hptypes <- self$getHapTypes()
     iterations <- self$getIterations()
     baseoutdir <- self$absPath("mapIter")
-
     includeInsertions = ifelse(self$hasShortreads(), FALSE, TRUE)
     callInsertions = ifelse(self$hasShortreads(), FALSE, TRUE)
 
@@ -742,12 +772,13 @@ DR2S_$set(
 
       }
     }
+
     if (plot) {
       flog.info(" Plot MapIter summary", name = "info")
       ## Coverage and base frequency
       plotlist <- foreach(iteration = seq_len(self$getIterations())) %do% {
-        self$plotmapIterSummary(thin = 0.1, width = 4, iteration = iteration,
-                                drop.indels = TRUE)
+        suppressWarnings(self$plotmapIterSummary(thin = 0.1, width = 4,
+                         iteration = iteration, drop.indels = TRUE))
       }
       p <- cowplot::plot_grid(plotlist = plotlist, nrow = self$getIterations())
       cowplot::save_plot(p, filename = self$absPath("plot.MapIter.pdf"),
@@ -760,9 +791,14 @@ DR2S_$set(
                          base_height = 3*self$getIterations())
 
     }
-    createIgvConfigs(self,map = "mapIter", open = "FALSE")
 
-    invisible(self)
+    createIgvConfigs(self, map = "mapIter", open = "FALSE")
+
+    ## set mapIter runstats
+    .setRunstats(self, "mapIter",
+                 list(Runtime = format(Sys.time() - start.time)))
+
+    return(invisible(self))
   })
 
 #' @export
@@ -800,6 +836,9 @@ DR2S_$set("public", "runPartitionShortReads", function(opts = list(),
   # force = FALSE
   # optsname = ""
   # minMapq = 0
+
+  ## Collect start time for partitionShortReads runstats
+  start.time <- Sys.time()
 
   ## exit savely if shortreads not provided
   if (!self$hasShortreads()) {
@@ -872,6 +911,12 @@ DR2S_$set("public", "runPartitionShortReads", function(opts = list(),
     }
     self$srpartition[[hptype]]$SR[[fq]] <- self$relPath(srfilenames)
   }
+
+  ## set partitionShortReads runstats
+  ## set mapIter runstats
+  .setRunstats(self, "partitionShortReads",
+               list(Runtime = format(Sys.time() - start.time)))
+
   return(invisible(self))
 })
 
@@ -934,6 +979,9 @@ DR2S_$set("public", "runMapFinal", function(opts = list(),
   flog.info("Step 4: mapFinal ...", name = "info")
   flog.info(" Map shortreads and longreads against refined consensus sequences",
             name = "info")
+
+  ## Collect start time for mapFinal runstats
+  start.time <- Sys.time()
 
   ## Check if reporting is already finished and exit safely
   if (!force && .checkReportStatus(self)) return(invisible(self))
@@ -1073,6 +1121,10 @@ DR2S_$set("public", "runMapFinal", function(opts = list(),
                        base_height = 3*length(readtypes))
   }
 
+  ## set mapFinal runstats
+  .setRunstats(self, "mapFinal",
+               list(Runtime = format(Sys.time() - start.time)))
+
   return(invisible(self))
 })
 
@@ -1095,12 +1147,21 @@ print.mapFinal <- function(x, ...) {
 ## Method: runPipeline ####
 DR2S_$set("public", "runPipeline", function() {
   steps_ <- self$getPipeline()
+
+  ## Collect start time for DR2Spipeline runstats
+  start.time <- Sys.time()
+
   while (length(steps_) > 0) {
     step <- steps_[1]
     self$run_(step)
     steps_ <- steps_[-1]
   }
-  self
+
+  ## set DR2Spipeline runstats
+  .setRunstats(self, "DR2Spipeline",
+               list(Runtime = format(Sys.time() - start.time)))
+
+  return(invisible(self))
 })
 
 
