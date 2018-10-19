@@ -129,6 +129,7 @@ DR2S_ <- R6::R6Class(
           private$conf$outdir,
           "mapInit")
       }
+      writeDR2SConf(self)
       invisible(self)
     },
     cleanup = function() {
@@ -403,22 +404,22 @@ DR2S_ <- R6::R6Class(
         Biostrings::readDNAStringSet(self$getRefPath())
       } else  {
         if (startsWith(self$getLocus, "KIR")) {
-          ipdKir()$getClosestComplete(self$getReference(),
-                                         self$getLocus())
+          .ipdKir()$getClosestComplete(self$getReference(),
+                                       self$getLocus())
         } else {
-          ipdHla()$getClosestComplete(self$getReference(),
-                                         self$getLocus())
+          .ipdHla()$getClosestComplete(self$getReference(),
+                                       self$getLocus())
         }
       }
     },
     ##
     getOpts = function(name = NULL) {
       if (is.null(name))
-        .mergeList(self$getConfig("opts"), self$getConfig("longreads")$opts,
-                   update = TRUE)
+        mergeList(self$getConfig("opts"), self$getConfig("longreads")$opts,
+                  update = TRUE)
       else {
-        opts <- .mergeList(self$getConfig("opts"),
-                           self$getConfig("longreads")$opts, update = TRUE)
+        opts <- mergeList(self$getConfig("opts"),
+                          self$getConfig("longreads")$opts, update = TRUE)
         if (is.list(opts))
           opts[[name]]
         else

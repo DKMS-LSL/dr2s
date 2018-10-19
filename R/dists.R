@@ -18,12 +18,12 @@
 #' @export
 #' @examples
 #' ###
-hammingDist <- function(x){
+hammingDist <- function(x) {
   assert_that(is(x, "DNAStringSet"))
   xTmp <- as.matrix(x)
   dnaBaseMapping <- c("G" = 1, "A" = 2, "T" = 3, "C" = 4, "-" = 5, "+" = 6)
-  xMat<- plyr::revalue(xTmp, dnaBaseMapping, warn_missing = FALSE)
-  xMat<- vapply(xMat, as.numeric, FUN.VALUE = double(1))
+  xMat <- plyr::revalue(xTmp, dnaBaseMapping, warn_missing = FALSE)
+  xMat <- vapply(xMat, as.numeric, FUN.VALUE = double(1))
   dim(xMat) <- dim(xTmp)
   rm(xTmp)
   dist <- cpp_hamming(xMat)
@@ -41,7 +41,7 @@ PSDM <- function(x, consmat){
   dnaBaseMapping <- c("G" = 1, "A" = 2, "T" = 3, "C" = 4, "-" = 5, "+" = 6)
   xMat <- plyr::revalue(xTmp, dnaBaseMapping, warn_missing = FALSE)
   xMat <- as.numeric(xMat)
-  
+
   dim(xMat) <- dim(xTmp)
   rm(xTmp)
 

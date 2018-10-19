@@ -24,8 +24,7 @@ runminimap <- function(reffile,
     cores <- .getIdleCores()
   }
   assert_that(is.numeric(cores))
-
-  opts <- .mergeList(opts, list(t = cores))
+  opts <- mergeList(opts, list(t = cores))
 
   cmd  <- Sys.which("minimap2")
   args <- .generateMappingCommands(mapper = "minimap", readtype,
@@ -74,7 +73,7 @@ runbwamem <- function(reffile,
     cores <- .getIdleCores()
   }
   assert_that(is.numeric(cores))
-  opts <- .mergeList(opts, list(t = cores))
+  opts <- mergeList(opts, list(t = cores))
 
   # debug
   # reffile <- self$getRefPath()
@@ -147,7 +146,7 @@ bwamemCmd <- function(paths, opts) {
                   collapse = " ")
 
   if (mapper == "bwamem") {
-    opts <- compact(.mergeList(opts, list(
+    opts <- compact(mergeList(opts, list(
       x = switch(
         readtype,
         pacbio = "pacbio",
@@ -205,7 +204,7 @@ bwamemCmd <- function(paths, opts) {
     )))
     zip <- ".gz"
   } else if (mapper == "minimap") {
-    opts <- compact(.mergeList(opts, list(
+    opts <- compact(mergeList(opts, list(
       x = switch(
         readtype,
         pacbio = "map-pb",

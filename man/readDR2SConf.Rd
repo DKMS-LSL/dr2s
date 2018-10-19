@@ -7,7 +7,10 @@
 readDR2SConf(configFile)
 }
 \arguments{
-\item{configFile}{The path to the config file.}
+\item{configFile}{The path to the valid DR2S config file.}
+}
+\value{
+A \code{DR2Sconf} object or a list of \code{DR2Sconf} objects.
 }
 \description{
 Read a DR2S config file in yaml format

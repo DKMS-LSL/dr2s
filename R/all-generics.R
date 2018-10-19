@@ -44,14 +44,14 @@
 #' inferred reference in mapInit. Set to TRUE if you know you have repeats like
 #' in microsatellites. Usually extends the reference to a maximum length and
 #' enables a better mapping.
+#' @param distAlleles Number of different alleles in the sample. Should be 2
+#' for heterozygous samples, 1 for homozygous samples and > 2 for some KIR loci.
+#' @param filterScores use only reads passing a strict filtering step. TODO
 #' @param forceMapping FALSE set to TRUE if you want to force processing of bad
 #' shortreads, i.e. when the distribution of coverage is bad. Aborts the program
 #' if maximum coverage > 75 \% quantile * 5.
-#' @param filterScores use only reads passing a strict filtering step. TODO
-#' @param distAlleles Number of different alleles in the sample. Should be 2
-#' for heterozygous samples, 1 for homozygous samples and > 2 for some KIR loci.
-#' @param details Metadata of a sample. Will be written to the fasta header of
-#' the final sequences and stored in the config dump.
+#' @param details Named list of sample metadata or \code{NULL}. Will be written
+#' into the fasta header of the final sequences and stored in the config yaml.
 #' @param ... Additional arguments.
 #' @return A \code{\link[DR2S]{DR2S}} config object
 #' @family DR2S mapper functions

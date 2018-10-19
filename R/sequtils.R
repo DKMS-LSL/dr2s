@@ -124,9 +124,9 @@ generateReferenceSequence <- function(allele, locus, outdir, dirtag = NULL) {
   }
   locus <- .normaliseLocus(locus)
   if (startsWith(locus, "HLA")) {
-    ipd <- ipdHla()
+    ipd <- .ipdHla()
   } else {
-    ipd <- ipdKir()
+    ipd <- .ipdKir()
   }
   if (!allele %in% ipd$getAlleles(locus))
     stop(sprintf("Allele %s not found in database", allele))

@@ -1,92 +1,85 @@
 #' @export
 createDR2SConf <- function(sample,
-                             locus,
-                             longreads       = list(type = "pacbio",
-                                                    dir = "pacbio"),
-                             shortreads      = NULL,
-                             datadir         = ".",
-                             outdir          = "./output",
-                             reference       = NULL,
-                             threshold       = 0.20,
-                             iterations      = 1,
-                             microsatellite  = FALSE,
-                             distAlleles     = 2,
-                             filterScores    = FALSE,
-                             forceMapping    = FALSE,
-                             details         = NULL,
-                             ...) {
+                           locus,
+                           longreads = list(type = "pacbio", dir = "pacbio"),
+                           shortreads = NULL,
+                           datadir = ".",
+                           outdir = "./output",
+                           reference = NULL,
+                           threshold = 0.20,
+                           iterations = 1,
+                           microsatellite = FALSE,
+                           distAlleles = 2,
+                           filterScores = FALSE,
+                           forceMapping = FALSE,
+                           details = NULL,
+                           ...) {
   conf0 <- list(...)
   conf1 <- list(
-    datadir        = normalizePath(datadir, mustWork = TRUE),
-    outdir         = outdir,
-    threshold      = threshold,
-    iterations     = iterations,
+    datadir = normalizePath(datadir, mustWork = TRUE),
+    outdir = outdir,
+    threshold = threshold,
+    iterations = iterations,
     microsatellite = microsatellite,
-    distAlleles    = distAlleles,
-    filterScores   = filterScores,
-    forceMapping   = forceMapping,
-    lrmapper       = conf0$lrmapper %||% "minimap",
-    srmapper       = conf0$srmapper %||% "bwamem",
-    limits         = conf0$limits   %||% NULL,
-    haptypes       = conf0$haptypes %||% NULL,
-    pipeline       = conf0$pipeline %||% c("clear",
-                                           "mapInit",
-                                           "partitionLongReads",
-                                           "mapIter",
-                                           "partitionShortReads",
-                                           "mapFinal",
-                                           "polish",
-                                           "report"),
-    longreads      = longreads,
-    shortreads     = shortreads,
-    opts           = conf0$opts %||% NULL,
-    sampleId       = sample,
-    locus          = locus,
-    reference      = reference,
-    details        = gsub(";", ",", details) %||% NULL
+    distAlleles = distAlleles,
+    filterScores = filterScores,
+    forceMapping = forceMapping,
+    lrmapper = conf0$lrmapper %||% "minimap",
+    srmapper = conf0$srmapper %||% "bwamem",
+    limits = conf0$limits   %||% NULL,
+    haptypes = conf0$haptypes %||% NULL,
+    pipeline = conf0$pipeline %||% if (is.null(shortreads)) {
+      LR_PIPELINE()
+    } else {
+      SR_PIPELINE()
+    },
+    longreads = longreads,
+    shortreads = shortreads,
+    opts = conf0$opts %||% NULL,
+    sampleId = sample,
+    locus = locus,
+    reference = reference,
+    details = lapply(details, gsub, pattern = ";", replacement = ",") %||% NULL
   )
   structure(conf1, class = c("DR2Sconf", "list"))
 }
 
 #' Read a DR2S config file in yaml format
-#' @param configFile The path to the config file.
+#' @param configFile The path to the valid DR2S config file.
 #' @details DR2S config files can be created manually or by the
 #' \code{\link{writeDR2SConf}} function.
+#' @return A \code{DR2Sconf} object or a list of \code{DR2Sconf} objects.
 #' @export
 readDR2SConf <- function(configFile) {
   conf <- yaml::yaml.load_file(configFile)
   ## set defaults if necessary
-  conf$datadir        <- conf$datadir %||% normalizePath(".", mustWork = TRUE)
-  conf$outdir         <- conf$outdir  %||% file.path(conf$datadir, "output")
-  conf$threshold      <- conf$threshold      %||% 0.2
-  conf$iterations     <- conf$iterations     %||% 2
-  conf$microsatellite <- conf$microsatellite %||% FALSE
-  conf$filterScores   <- conf$filterScores   %||% TRUE
-  conf$forceMapping   <- conf$forceMapping   %||% FALSE
-  conf$lrmapper       <- conf$lrmapper       %||% "minimap"
-  conf$srmapper       <- conf$srmapper       %||% "bwamem"
-  conf$limits         <- conf$limits         %||% list(NULL)
-  conf$haptypes       <- conf$haptypes       %||% list(NULL)
-  conf$distAlleles    <- conf$distAlleles    %||% 2
-  conf$pipeline       <- conf$pipeline       %||% c("clear",
-                                                    "mapInit",
-                                                    "partitionLongReads",
-                                                    "mapIter",
-                                                    "partitionShortReads",
-                                                    "mapFinal",
-                                                    "polish",
-                                                    "report")
-  conf$longreads       <- conf$longreads %||% list(type = "pacbio",
-                                                   dir = "pacbio")
-  conf$shortreads      <- conf$shortreads %||% NULL
-  conf$details         <- gsub(";", ",", conf$details) %||% list(NULL)
-
-  if (length(conf$shortreads) == 1 && is.list(conf$shortreads[[1]]))
-    conf$shortreads <- conf$shortreads[[1]]
-
+  conf["datadir"] <- conf$datadir %||% normalizePath(".", mustWork = TRUE)
+  conf["outdir"] <- conf$outdir %||% file.path(conf$datadir, "output")
+  conf["threshold"] <- conf$threshold %||% 0.2
+  conf["iterations"] <- conf$iterations %||% 2
+  conf["microsatellite"] <- conf$microsatellite %||% FALSE
+  conf["filterScores"] <- conf$filterScores %||% TRUE
+  conf["forceMapping"] <- conf$forceMapping %||% FALSE
+  conf["lrmapper"] <- conf$lrmapper %||% "minimap"
+  conf["srmapper"] <- conf$srmapper %||% "bwamem"
+  conf["limits"] <- conf$limits %||% list(NULL)
+  conf["haptypes"] <- conf$haptypes %||% list(NULL)
+  conf$pipeline <- conf$pipeline %||% if (is.null(conf$shortreads)) {
+    LR_PIPELINE()
+  } else {
+    SR_PIPELINE()
+  }
+  conf$longreads <- conf$longreads %||% list(type = "pacbio", dir = "pacbio")
+  if (is.null(conf$shortreads))
+    conf["shortreads"] <-  list(NULL)
   if (is.null(conf$opts))
     conf["opts"] <-  list(NULL)
-  expandDR2SConf(structure(conf, class = c("DR2Sconf", "list")))
+  conf <- expandDR2SConf(conf)
+  if (length(conf) == 1) {
+    conf[[1]]
+  } else {
+    conf
+  }
 }
 
 expandDR2SConf <- function(conf) {
@@ -100,25 +93,27 @@ expandDR2SConf <- function(conf) {
     lrds <- list(lrds)
   }
   conf$longreads <- NULL
-
+  # lrd <- lrds[[1]]
+  # sample <- samples[[1]]
+  # sampleId <- sampleIds[[1]]
   foreach(sample = samples, sampleId = sampleIds, .combine = "c") %:%
-    foreach(lrd = lrds, .combine = "c") %:%
-    foreach(dst = sample$distAlleles, .combine = "c") %:%
-    foreach(ref = sample$reference, .combine = "c") %do% {
-      updateDR2SConf(conf, lrd, sampleId, sample, ref, dst)
+    foreach(lrd = lrds, .combine = "c") %do% {
+      updateDR2SConf(conf, lrd, sampleId, sample)
     }
 }
 
-updateDR2SConf <- function(conf0, lrd, sampleId, locus, reference, dst) {
-  conf0$datadir   <- normalizePath(conf0$datadir, mustWork = TRUE)
-  conf0$outdir    <- normalizePath(conf0$outdir, mustWork = FALSE)
+updateDR2SConf <- function(conf0, lrd, sampleId, sample) {
+  conf0$datadir <- normalizePath(conf0$datadir, mustWork = TRUE)
+  conf0$outdir <- normalizePath(conf0$outdir, mustWork = FALSE)
   conf0$longreads <- lrd
-  conf0$distAlleles <- dst
   conf0$sampleId <- sampleId
-  conf0["reference"] <- reference %|ch|% list(NULL)
-  locus$reference    <- NULL
+  conf0$distAlleles <- sample$distAlleles
+  sample$distAlleles <- NULL
+  conf0["reference"] <- sample$reference %|ch|% list(NULL)
+  sample$reference <- NULL
   ## add overides if they exist
-  list(.mergeList(conf0, locus, update = TRUE))
+  conf1 <- mergeList(conf0, sample, update = TRUE)
+  list(validateDR2SConf(conf1))
 }
 
 initialiseDR2S <- function(conf, createOutdir = TRUE) {
@@ -126,10 +121,7 @@ initialiseDR2S <- function(conf, createOutdir = TRUE) {
   if (createOutdir) {
     conf$outdir <- .dirCreateIfNotExists(path = gsub("//+", "/", file.path(
       conf$outdir,
-      conf$sampleId#,
-      ## Use only sample id
-      # conf$longreads$name %||% conf$longreads$dir %||% "",
-      # paste0(.normaliseLocus(conf$locus), ".", conf$longreads$type, ".",
+      conf$sampleId
     )))
   }
   conf
@@ -144,7 +136,7 @@ validateDR2SConf <- function(conf) {
   assert_that(all(fields %in% names(conf)),
               msg = paste("Missing fields <",
                           comma(fields[!fields %in% names(conf)]),
-         "> in config"))
+                          "> in config"))
   conf <- structure(conf[fields], class = c("DR2Sconf", "list"))
   conf$datadir <- normalizePath(conf$datadir, mustWork = TRUE)
   conf$outdir  <- normalizePath(conf$outdir, mustWork = FALSE)
@@ -225,6 +217,7 @@ validateDR2SConf <- function(conf) {
   conf$locus   <- sub("^HLA-", "", .normaliseLocus(conf$locus))
   conf
 }
+
 #' @export
 print.DR2Sconf <- function(x, ...) {
   cat(yaml::as.yaml(x, indent = 4))
@@ -239,26 +232,28 @@ writeDR2SConf <- function(x, outFile = NULL) {
   if (is.null(outFile)) {
     outFile <- file.path(x$getOutdir(), "config.yaml")
   }
-  sample <- list(list(reference = x$getReference(),
-                      locus = x$getLocus(),
-                      distAlleles = x$getDistAlleles(),
-                      details = x$getDetails()))
+  sample <- list(
+    list(
+      locus = x$getLocus(),
+      reference = x$getReference(),
+      distAlleles = x$getDistAlleles(),
+      details = x$getDetails()))
   names(sample) <- x$getSampleId()
   conf <- list(
-    datadir         = x$getDatadir(),
-    outdir          = dirname(x$getOutdir()),
-    threshold       = x$getThreshold(),
-    forceMapping    = x$getForceMapping(),
-    iterations      = x$getIterations(),
-    microsatellites = x$getMicrosatellite(),
-    srmapper        = x$getSrMapper(),
-    lrmapper        = x$getLrMapper(),
-    filterScores    = x$getFilterScores(),
-    pipeline        = x$getPipeline(),
-    opts            = x$getConfig("opts"),
-    longreads       = x$getConfig("longreads"),
-    shortreads      = x$getConfig("shortreads"),
-    samples         = sample
+    datadir        = x$getDatadir(),
+    outdir         = dirname(x$getOutdir()),
+    threshold      = x$getThreshold(),
+    iterations     = x$getIterations(),
+    microsatellite = x$getMicrosatellite(),
+    filterScores   = x$getFilterScores(),
+    forceMapping   = x$getForceMapping(),
+    lrmapper       = x$getLrMapper(),
+    srmapper       = x$getSrMapper(),
+    pipeline       = x$getPipeline(),
+    longreads      = x$getConfig("longreads"),
+    shortreads     = x$getConfig("shortreads"),
+    opts           = x$getConfig("opts"),
+    samples        = sample
   )
   yaml::write_yaml(conf, outFile)
 }

@@ -47,8 +47,8 @@ for heterozygous samples, 1 for homozygous samples and > 2 for some KIR loci.}
 shortreads, i.e. when the distribution of coverage is bad. Aborts the program
 if maximum coverage > 75 \% quantile * 5.}
 
-\item{details}{Metadata of a sample. Will be written to the fasta header of
-the final sequences and stored in the config dump.}
+\item{details}{Named list of sample metadata or \code{NULL}. Will be written
+into the fasta header of the final sequences and stored in the config yaml.}
 
 \item{...}{Additional arguments.}
 }
