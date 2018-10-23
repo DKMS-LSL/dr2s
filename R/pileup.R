@@ -37,31 +37,49 @@
 Pileup <- function(bamfile,
                    threshold = 0.20,
                    ...) {
+  ## Debug
+  # param <- list(
+  #   max_depth = maxDepth,
+  #   min_base_quality = minBaseQuality,
+  #   min_mapq = minMapq,
+  #   min_nucleotide_depth = minNucleotideDepth,
+  #   include_deletions = includeDeletions,
+  #   include_insertions = includeInsertions
+  # )
+  ##
+
   param <- list(...)
 
   if (is.null(param$distinguish_strands))
       param$distinguish_strands <- FALSE
 
-  bfl <- BamFile(bamfile)
-  pParam <- do.call(PileupParam, c(param))
-
-  sParam <- ScanBamParam(
-    flag = scanBamFlag(
+  bfl <- Rsamtools::BamFile(bamfile)
+  pParam <- do.call(Rsamtools::PileupParam, c(param))
+  sParam <- Rsamtools::ScanBamParam(
+    flag = Rsamtools::scanBamFlag(
       isUnmappedQuery = FALSE,
       isSecondaryAlignment = FALSE
     )
   )
-  pileup <- pileup(file = bfl, scanBamParam = sParam,
-                                pileupParam = pParam)
+  pileup <- Rsamtools::pileup(file = bfl,
+                              scanBamParam = sParam,
+                              pileupParam = pParam)
   tryCatch({
     pileup <-
-      dplyr::mutate(dplyr::tbl_df(pileup),
+      dplyr::mutate(tibble::as_tibble(pileup),
                     seqnames = strsplitN(as.character(.data$seqnames), "~", 1,
                                          fixed = TRUE))
   }, error = function(e) {
     flog.info("No reads maps to the reference", name = "info")
     stop("no reads maps to the reference")
   })
+
+  ## Calculate coverage statistics
+  # covr <- quantile(
+  #   dplyr::group_by(pileup, pos) %>%
+  #     dplyr::summarise(n = sum(count)) %>%
+  #     .$n, probs = c(0, 0.5, 1))
+
   structure(
     list(
       bamfile   = bamfile,
@@ -69,7 +87,8 @@ Pileup <- function(bamfile,
       param     = pParam,
       pileup    = pileup,
       reads     = NULL,
-      consmat   = consmat(pileup, freq = FALSE)
+      consmat   = consmat(pileup, freq = FALSE),
+      stats     = list()
     ),
     class = c("pileup", "list")
   )
@@ -82,7 +101,8 @@ print.pileup <- function(x, asString = FALSE, ...) {
   params <- methods::slotNames(x$param)
   names(params) <- params
   values <- lapply(params, methods::slot, object = x$param)
-  info <- paste(methods::slotNames(x$param), values, sep=": ", collapse="; ")
+  info <- paste(methods::slotNames(x$param), values,
+                sep = ": ", collapse = "; ")
   msg <- if (asString) "" else sprintf("An object of class '%s'.\n",
                                        class(x)[1])
   msg <- sprintf("%s Bamfile: %s\n Threshold: %s\n %s\n",
@@ -233,18 +253,19 @@ print.pileup <- function(x, asString = FALSE, ...) {
   msa <- .msaFromBam(bamfile, refseq)
   mat <- createPWM(msa)
   mat["+",] <- 0
-  res <- do.call(dplyr::bind_rows, bplapply(seq_along(msa), function(s, aln, mat) {
-    seq <- as.character(aln[[s]])
-    seq <- unlist(strsplit(seq, split = ""))
-    read <- names(aln[s])
-    ## Make this CPP
-    b <- sum(vapply(seq_along(seq), function(x, mat, seq) mat[seq[x],x],
-                     mat = mat, seq = seq, FUN.VALUE = numeric(1)))
-    t <- tibble::tibble(read, b/length(seq))
-    names(t) <- c("read", "score")
-    t
+  res <- do.call(dplyr::bind_rows, BiocParallel::bplapply(seq_along(msa),
+    function(s, aln, mat) {
+      seq <- as.character(aln[[s]])
+      seq <- unlist(strsplit(seq, split = ""))
+      read <- names(aln[s])
+      ## Make this CPP
+      b <- sum(vapply(seq_along(seq), function(x, mat, seq) mat[seq[x], x],
+                       mat = mat, seq = seq, FUN.VALUE = numeric(1)))
+      t <- tibble::tibble(read, b/length(seq))
+      names(t) <- c("read", "score")
+      t
   }, aln = msa, mat = mat))
-  (res %>% dplyr::arrange(desc(score)))[1:n,]$read
+  dplyr::arrange(res, dplyr::desc(score))[1:n, ]$read
 }
 
 

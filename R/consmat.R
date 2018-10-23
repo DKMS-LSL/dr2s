@@ -47,6 +47,7 @@ consmat.matrix <- function(x, freq = TRUE, ...) {
   x <- if (freq) sweep(x, 1, n, `/`) else x
   Consmat_(x, n, freq, ...)
 }
+
 #' @export
 consmat.tbl_df <- function(x, freq = TRUE, drop.unused.levels = FALSE, ...) {
   stopifnot(all(c("pos", "nucleotide", "count") %in% colnames(x)))
@@ -58,7 +59,6 @@ consmat.tbl_df <- function(x, freq = TRUE, drop.unused.levels = FALSE, ...) {
   rs <- if (freq) sweep(rs, 1, n, `/`) else x
   rs <- rs[,VALID_DNA("indel")]
   Consmat_(rs, n, freq, ...)
-
 }
 
 #' @export
@@ -145,7 +145,7 @@ as.matrix.consmat <- function(x, ...) {
 
 #' @export
 as.data.frame.consmat <- function(x, ...) {
-  df <- dplyr::tbl_df(as.data.frame.table(x)) %>%
+  df <- tibble::as_tibble(as.data.frame.table(x)) %>%
     dplyr::transmute(
       pos = as.integer(as.character(.data$pos)),
       nucleotide = .data$nucleotide,

@@ -11,7 +11,7 @@ InitDR2S(config, createOutdir = TRUE)
 \code{\link[=DR2S_]{createDR2SConfig}} or loaded by
 \code{\link[=DR2S_]{readDR2SConf}}.}
 
-\item{createOutdir}{Create the outdir if not exists.}
+\item{createOutdir}{Create the outdir if it doesn't exists.}
 }
 \value{
 A \code{\link[=DR2S_]{DR2S}} object.

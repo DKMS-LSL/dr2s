@@ -2,50 +2,49 @@
 % Please edit documentation in R/all-generics.R
 \name{createDR2SConf}
 \alias{createDR2SConf}
-\title{Constructor for configuration to create a \code{\link[=DR2S_]{DR2S}} object.}
+\title{Create a \code{\link[=DR2S_]{DR2S}} configuration object.}
 \usage{
-createDR2SConf(sample, locus, longreads = list(type = "pacbio",
-dir = "pacbio"), shortreads = list(type = "illumina", dir = "illumina"),
-datadir = ".", outdir = "./output", reference = NULL,
-threshold = 0.20, iterations = 1, microsatellite = FALSE, distAlleles = 2,
-filterScores = TRUE, forceMapping = FALSE, details = NULL, ...)
+createDR2SConf(sample, locus, longreads = list(type = "pacbio", dir =
+  "pacbio"), shortreads = NULL, datadir = ".", outdir = "./output",
+  reference = NULL, threshold = 0.2, iterations = 1,
+  microsatellite = FALSE, distAlleles = 2, filterScores = FALSE,
+  forceMapping = FALSE, details = NULL, ...)
 }
 \arguments{
 \item{sample}{A unique sample identifier used to locate the long and short
-read FASTQ files.}
+read FASTQ/FASTA files.}
 
-\item{locus}{The HLA or KIR locus.}
+\item{locus}{The HLA or KIR locus (e.g., "A", "DPB1", or "2DL1")}
 
 \item{longreads}{The type and location of the long reads as a named list
-with the fields \code{type} ("pacbio" or "nanopore") and \code{dir}.
-Additional optional fields: \code{name} and \code{opts}.}
+with the fields \code{type} ("pacbio" or "nanopore") and \code{dir}.}
 
-\item{shortreads}{(optional) The type and location of the short reads as a named list
-with the fields \code{type} ("illumina") and \code{dir}.}
+\item{shortreads}{(optional) The type and location of the short reads as a
+named list with the fields \code{type} ("illumina") and \code{dir}.}
 
 \item{datadir}{The data directory (See Note).}
 
 \item{outdir}{The output directory (See Note).}
 
-\item{reference}{The reference allele(s).}
+\item{reference}{The reference allele (See Note).}
 
-\item{threshold}{Threshold frequency for polymorphisms.}
+\item{threshold}{Threshold frequency for detecting polymorphisms.}
 
 \item{iterations}{Number of iterations of the mapIter step.}
 
-\item{microsatellite}{FALSE Perform a second mapping of shortreads to the
-inferred reference in mapInit. Set to TRUE if you know you have repeats like
-in microsatellites. Usually extends the reference to a maximum length and
-enables a better mapping.}
+\item{microsatellite}{<\code{FALSE}>; Perform a second mapping of shortreads
+to the inferred reference in mapInit. Set to TRUE if you suspect
+microsatellites or other repetitive regions in your sequence. Usually extends
+the reference to a maximum length and enables a better mapping.}
 
 \item{distAlleles}{Number of different alleles in the sample. Should be 2
 for heterozygous samples, 1 for homozygous samples and > 2 for some KIR loci.}
 
 \item{filterScores}{use only reads passing a strict filtering step. TODO}
 
-\item{forceMapping}{FALSE set to TRUE if you want to force processing of bad
-shortreads, i.e. when the distribution of coverage is bad. Aborts the program
-if maximum coverage > 75 \% quantile * 5.}
+\item{forceMapping}{<\code{FALSE}>; set to TRUE if you want to force
+processing of "bad" shortreads, i.e. when the distribution of coverage is
+heavily unequal. Aborts the program if maximum coverage > 75 \% quantile * 5.}
 
 \item{details}{Named list of sample metadata or \code{NULL}. Will be written
 into the fasta header of the final sequences and stored in the config yaml.}
@@ -56,26 +55,22 @@ into the fasta header of the final sequences and stored in the config yaml.}
 A \code{\link[DR2S]{DR2S}} config object
 }
 \description{
-Constructor for configuration to create a \code{\link[=DR2S_]{DR2S}} object.
+Create a \code{\link[=DR2S_]{DR2S}} configuration object.
 }
 \section{datadir}{
 
-
-A \code{datadir} must contain arbitrarily named subdirectories
-(default: "pacbio" and "illumina") with long read FASTQs in the format
-\code{SAMPLE_LOCUS_*.fastq(.gz)} and short read FASTQs in the format
-\code{SAMPLE_LOCUS_*R[12]*.fastq(.gz)}, respectively.
+A \code{datadir} must contain subdirectories (default: "pacbio" and
+"illumina") containig long read FASTQs/FASTAs in the format
+\code{SAMPLE_LOCUS_*.fast(q|a)(.gz)} and short read FASTQs/FASTAs in the
+format \code{SAMPLE_LOCUS_*R[12]*.fast(q|a)(.gz)}, respectively.
 }
 
 \section{Outdir}{
 
-
-All output will be placed in directory hierarchy
-\code{OUTDIR/SAMPLE}
+All output will be placed in directory hierarchy \code{OUTDIR/SAMPLE}
 }
 
 \section{Reference}{
-
 
 References can be specified as allele codes or a path to a fasta file
 containing the reference sequence.

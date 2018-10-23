@@ -260,6 +260,13 @@ maximum <- function(n, m) {
   NULL
 }
 
+.coverage <- function(x, probs =  c(0.0, 0.5, 1.0)) {
+  assert_that(is(x, "pileup"))
+  quantile(
+    .rowSums(x$consmat, NROW(x$consmat), NCOL(x$consmat)),
+    probs = probs)
+}
+
 editor <- function(x, pos = NULL, useEditor = "xdg-open") {
   useEditor <- match.arg(useEditor, c("xdg-open", "subl", "gvim", "gedit"))
   assert_that(.hasCommand(useEditor))

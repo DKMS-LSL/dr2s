@@ -10,14 +10,14 @@ mapInitSR <- function(self, threshold = 0.2, opts = list(), optsname = "",
   microsat     <- self$getMicrosatellite()
 
   ## Primary mapping
-  mapLabel     <- "mapInit1"
-  reffile      <- self$getRefPath()
-  allele       <- self$getReference()
-  readtype     <- self$getSrdType()
-  maptag <- paste(mapLabel, paste(litArrows(c(allele, readtype,
-                                              self$getSrMapper(),
-                                              optstring(opts, optsname))),
-                                  collapse = " "))
+  mapLabel <- "mapInit1"
+  reffile  <- self$getRefPath()
+  allele   <- self$getReference()
+  readtype <- self$getSrdType()
+  maptag   <- paste(mapLabel, paste(litArrows(c(allele, readtype,
+                                                self$getSrMapper(),
+                                                optstring(opts, optsname))),
+                                    collapse = " "))
 
   flog.info(" Map shortreads to provided reference", name = "info")
   pileup <- mapReads(
@@ -82,10 +82,12 @@ mapInitSR <- function(self, threshold = 0.2, opts = list(), optsname = "",
 
   ## calc initial consensus
   flog.info(" Construct initial consensus from shortreads", name = "info")
+  ##
+  baseLabel  <- sub(".bam", "", basename(pileup$bamfile))
   ## Get conseq
-  conseqName <- "Init.consensus." %<<% sub(".bam", "", basename(pileup$bamfile))
+  conseqName <- "Init.consensus.1." %<<% baseLabel
   conseqPath <- file.path(outdir, conseqName %<<% ".fa")
-  conseq <- .getWriteConseq(pileup = pileup, name = "mapInit1",
+  conseq <- .getWriteConseq(pileup = pileup, name = "mapInit1.0",
                             type = "prob",  threshold = threshold,
                             forceExcludeGaps = TRUE, conseqPath = conseqPath)
 
@@ -115,13 +117,14 @@ mapInitSR <- function(self, threshold = 0.2, opts = list(), optsname = "",
     # Infer initial consensus
     flog.info(" Construct second consensus from shortreads " %<<%
                 "with refined repeats", name = "info")
-    conseqName <- "Init.consensus.2" %<<%
-      sub(".bam", "", basename(pileup$bamfile))
+    conseqName <- "Init.consensus.2." %<<% baseLabel
     conseqPath <- file.path(outdir, conseqName %<<% ".fa")
     conseq <- .getWriteConseq(pileup, name = "mapInit1.2",
                               type = "prob",  threshold = threshold,
                               forceExcludeGaps = TRUE, conseqPath = conseqPath)
   }
+
+
 
   mapInitSR1 = structure(
     list(
@@ -131,7 +134,8 @@ mapInitSR <- function(self, threshold = 0.2, opts = list(), optsname = "",
       tag     = maptag,
       conseq  = conseq,
       seqpath = self$relPath(conseqPath),
-      ref     = conseqName
+      ref     = conseqName,
+      stats   = list(coverage = .coverage(pileup))
     ),
     class  = c("mapInit", "list")
   )
@@ -166,7 +170,8 @@ mapInitSR <- function(self, threshold = 0.2, opts = list(), optsname = "",
       tag     = maptag,
       conseq  = conseq,
       seqpath = self$relPath(conseqPath),
-      ref     = conseqName
+      ref     = conseqName,
+      stats   = list(coverage = .coverage(pileup))
     ),
     class = c("mapInit", "list")
   )
@@ -176,3 +181,4 @@ mapInitSR <- function(self, threshold = 0.2, opts = list(), optsname = "",
     mapInitSR2 = mapInitSR2
   )
 }
+

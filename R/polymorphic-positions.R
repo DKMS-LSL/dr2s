@@ -8,7 +8,7 @@
 #' @export
 #' @examples
 #' ##
-polymorphicPositions <- function(x, threshold) 
+polymorphicPositions <- function(x, threshold)
   UseMethod("polymorphicPositions")
 #' @export
 polymorphicPositions.consmat <- function(x, threshold = 0.20) {
@@ -19,7 +19,7 @@ polymorphicPositions.consmat <- function(x, threshold = 0.20) {
   pos <- rownames(x)
   i <- cpp_polymorphicPositions(x, threshold)
   rs <- cpp_top2Cols(x[i, ])
-  dplyr::data_frame(
+  tibble::data_frame(
     position = pos[i],
     a1 = nuc[rs$i1],
     f1 = rs$v1,
@@ -35,7 +35,7 @@ polymorphicPositions.pileup <- function(x, threshold = NULL) {
   polymorphicPositions(consmat(x, freq = TRUE), threshold = threshold)
 }
 
-.ambiguousPositions <- function(x, threshold) 
+.ambiguousPositions <- function(x, threshold)
   UseMethod(".ambiguousPositions")
 
 .ambiguousPositions.consmat <- function(x, threshold) {

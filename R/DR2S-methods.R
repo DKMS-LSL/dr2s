@@ -198,10 +198,13 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
 
   self$mapInit = structure(
     list(
+      ## mandatory fields
       reads   = self$relPath(readfile),
       bamfile = self$relPath(pileup$bamfile),
       pileup  = pileup,
       tag     = maptag,
+      stats   = list(coverage = .coverage(pileup)),
+      ## additional fields
       SR1     = SR$mapInitSR1,
       SR2     = SR$mapInitSR2,
       igv     = igv
@@ -230,21 +233,23 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
 
   ## set mapInit runstats
   .setRunstats(self, "mapInit",
-    list(Runtime = format(Sys.time() - start.time)))
+    list(Runtime = format(Sys.time() - start.time),
+         SRcoverage = self$mapInit$SR2$stats$coverage[["50%"]],
+         LRcoverage = self$mapInit$stats$coverage[["50%"]]))
 
   return(invisible(self))
 })
-
 
 #' @export
 print.mapInit <- function(x, ...) {
   msg <- sprintf("An object of class '%s'\n", class(x)[1])
   msg <- sprintf(
-    "%s [Tag]     %s\n [Reads]   %s\n [Bamfile] %s\n [Pileup]\n",
+    "%s [Tag]      %s\n [Reads]    %s\n [Bamfile]  %s\n [Coverage] %s\n",
     msg,
     x$tag,
-    basename(x$reads),
-    basename(x$bamfile)
+    paste(basename(x$reads), collapse = "\n            "),
+    basename(x$bamfile),
+    x$stats$coverage[["50%"]]
   )
   cat(msg)
 }
@@ -292,7 +297,7 @@ DR2S_$set("public",
                    minClusterSize = 15,
                    plot = TRUE,
                    ...) {
-    # debug
+    ## debug
     # threshold = NULL
     # skipGapFreq = 2/3
     # distAlleles = NULL
@@ -452,6 +457,7 @@ DR2S_$set("public", "runSplitLongReadsByHaplotype", function(plot = TRUE) {
   reads <- setNames(lapply(names(self$getLimits()), function(x) {
     dplyr::filter(prt, haplotype == x, mcoef >= self$getLimits()[x])
   }), names(self$getLimits()))
+
   for (hp in haplotypes) {
     flog.info("  %s: Using %s longreads with score > %.2f",
               hp, nrow(reads[[hp]]), self$getLimits()[hp], name = "info")
@@ -569,13 +575,14 @@ DR2S_$set("public", "runExtractLongReads", function() {
       list(
         dir     = self$relPath(dir),
         reads   = self$relPath(out),
-        ref     = NULL,
         bamfile = NULL,
         pileup  = NULL,
+        tag     = NULL,
         conseq  = NULL,
         seqpath = NULL,
+        ref     = NULL,
         params  = NULL,
-        tag     = NULL
+        stats   = NULL
       ),
       class = c("mapIter", "list")
     )
@@ -597,6 +604,7 @@ DR2S_$set(
     bamfile <- self$absPath(self$mapInit$bamfile)
     ref <- if (self$hasShortreads()) self$mapInit$SR1$conseq else self$getRefSeq()
     mat <- .msaFromBam(bamfile, ref, paddingLetter = ".")
+    # hptype = "A"
     foreach(hptype = self$getHapTypes()) %do% {
       flog.info("  Constructing a consensus for haplotype %s ...",
                 hptype, name = "info")
@@ -610,20 +618,25 @@ DR2S_$set(
       Biostrings::writeXStringSet(
         Biostrings::DNAStringSet(gsub("[-+]", "", conseq)),
         seqpath)
-      self$mapIter$`0`[[hptype]] = structure(
-        list(
-          dir     = self$mapIter$`0`[[hptype]]$dir,
-          reads   = self$mapIter$`0`[[hptype]]$reads,
-          ref     = "mapIter0",
-          bamfile = NULL,
-          pileup  = NULL,
-          conseq  = conseq,
-          seqpath = self$relPath(seqpath),
-          params  = NULL,
-          tag     = "mapIter0"
-        ),
-        class = c("mapIter", "list")
-      )
+
+      self$mapIter$`0`[[hptype]]$tag = "mapIter0"
+      self$mapIter$`0`[[hptype]]$ref = "mapIter0"
+      self$mapIter$`0`[[hptype]]$conseq  = conseq
+      self$mapIter$`0`[[hptype]]$seqpath = self$relPath(seqpath)
+      # self$mapIter$`0`[[hptype]] = structure(
+      #   list(
+      #     dir     = self$mapIter$`0`[[hptype]]$dir,
+      #     reads   = self$mapIter$`0`[[hptype]]$reads,
+      #     ref     = "mapIter0",
+      #     bamfile = NULL,
+      #     pileup  = NULL,
+      #     conseq  = conseq,
+      #     seqpath = self$relPath(seqpath),
+      #     params  = NULL,
+      #     tag     = "mapIter0"
+      #   ),
+      #   class = c("mapIter", "list")
+      # )
       NULL
     }
 

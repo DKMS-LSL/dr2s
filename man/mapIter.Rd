@@ -6,7 +6,6 @@
 \usage{
 mapIter(x, opts = list(), iterations = 1, minBaseQuality = 3,
   minMapq = 0, maxDepth = 10000, minNucleotideDepth = 3,
-  includeDeletions = TRUE, includeInsertions = TRUE,
   gapSuppressionRatio = 2/5, force = FALSE, plot = TRUE)
 }
 \arguments{
@@ -28,10 +27,6 @@ each position in the pileup.}
 
 \item{minNucleotideDepth}{Minimum count of each nucleotide at a given
 position required for that nucleotide to appear in the result.}
-
-\item{includeDeletions}{If \code{TRUE}, include deletions in pileup.}
-
-\item{includeInsertions}{If \code{TRUE}, include insertions in pileup.}
 
 \item{gapSuppressionRatio}{The ratio of base/gap above which gaps at
 insertion position are excluded from from consensus calling.}

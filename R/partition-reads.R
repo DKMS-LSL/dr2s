@@ -589,7 +589,7 @@ plotPartitionHaplotypes <- function(x, thin = 1, label = "", sort = TRUE,
                       "0.50 < q <= 0.75", "0.75 < q <= 1"))
   }
 
-  df <- dplyr::data_frame(
+  df <- tibble::data_frame(
     snp   = rep(seq_len(NCOL(rs)), each = NROW(rs)),
     read  = rep.int(seq_len(NROW(rs)), NCOL(rs)),
     hap   = factor(rs2, levels = c("A", "B", "-"), ordered = TRUE),
@@ -669,7 +669,7 @@ plotPartitionTree <- function(x){
       dplyr::mutate(label = as.character(.data$label))
 
     clust <- stats::cutree(tree, k)
-    clust <- dplyr::data_frame(label = names(clust), haplotype = clust)
+    clust <- tibble::data_frame(label = names(clust), haplotype = clust)
     dendr$labels <- dplyr::left_join(dendr$labels, clust, by = "label")
 
     height <- unique(dendr$segments$y)[order(unique(dendr$segments$y),

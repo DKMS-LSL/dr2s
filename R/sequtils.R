@@ -350,12 +350,12 @@ checkHomoPolymerCount <- function(x, count = 10, map = "mapFinal") {
       }
       msarle <- lapply(msa, .seq2rle)
       lens <- vapply(msarle, function(a) max(a$lengths), integer(1))
-      dplyr::data_frame(haptype = hp, position = positionHP, length = lens)
+      tibble::data_frame(haptype = hp, position = positionHP, length = lens)
     }
 
     modes <- homopolymersHP %>%
       dplyr::group_by(.data$position) %>%
-      dplyr::summarize(mode = .getModeValue(length))
+      dplyr::summarise(mode = .getModeValue(length))
     for (i in seq_len(NROW(modes))) {
       modeHP <- modes[i,]
       flog.info("%s: Mode for homopolymer at position %s: %s",

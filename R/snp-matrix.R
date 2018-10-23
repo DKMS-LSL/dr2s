@@ -17,13 +17,12 @@ SNPmatrix <- function(bamfile, refseq, polymorphicPositions) {
   assert_that(requireNamespace("readr", quietly = TRUE),
               file.exists(bamfile),
               is(refseq, "XStringSet"))
-  
   if (is(polymorphicPositions, "tbl_df") &&
-      all(colnames(polymorphicPositions) %in% c("position", "a1", 
+      all(colnames(polymorphicPositions) %in% c("position", "a1",
                                                 "f1", "a2", "f2"))) {
     polymorphicPositions <- polymorphicPositions %>%
-      dplyr::filter_(~a1 %in% VALID_DNA(), ~a2 %in% VALID_DNA()) %>%
-      dplyr::select_(~position) %>%
+      dplyr::filter(a1 %in% VALID_DNA(), a2 %in% VALID_DNA()) %>%
+      dplyr::select(position) %>%
       unlist(use.names = FALSE) %>%
       as.integer()
   }
@@ -32,8 +31,8 @@ SNPmatrix <- function(bamfile, refseq, polymorphicPositions) {
   }
   assert_that(is.integer(polymorphicPositions))
   msa <- .msaFromBam(bamfile, refseq)
-  mat <- vapply(polymorphicPositions, function(x, msa) 
-    as.matrix(Biostrings::subseq(msa, start = x, width = 1)), 
+  mat <- vapply(polymorphicPositions, function(x, msa)
+    as.matrix(Biostrings::subseq(msa, start = x, width = 1L)),
     msa = msa, FUN.VALUE = character(length(msa)))
   rownames(mat) <- names(msa)
   colnames(mat) <- polymorphicPositions

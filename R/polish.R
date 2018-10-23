@@ -123,7 +123,7 @@ polish.DR2S <- function(x,
 
   if (all(vapply(hvars, function(x) length(x) == 0, logical(1)))) {
     return(
-      dplyr::data_frame(
+      tibble::data_frame(
         haplotype = character(0), pos = integer(0), ref = character(0),
         alt = character(0), warning = character(0), refSR = character(0),
         altSR = character(0), refLR = character(0), altLR = character(0)

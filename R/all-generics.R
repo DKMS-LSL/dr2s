@@ -3,53 +3,43 @@
 # constructor -------------------------------------------------------------
 
 
-#' Constructor for configuration to create a \code{\link[=DR2S_]{DR2S}} object.
+#' Create a \code{\link[=DR2S_]{DR2S}} configuration object.
 #'
-#' @usage createDR2SConf(sample, locus, longreads = list(type = "pacbio",
-#' dir = "pacbio"), shortreads = list(type = "illumina", dir = "illumina"),
-#' datadir = ".", outdir = "./output", reference = NULL,
-#' threshold = 0.20, iterations = 1, microsatellite = FALSE, distAlleles = 2,
-#' filterScores = TRUE, forceMapping = FALSE, details = NULL, ...)
 #' @section datadir:
-#'
-#' A \code{datadir} must contain arbitrarily named subdirectories
-#' (default: "pacbio" and "illumina") with long read FASTQs in the format
-#' \code{SAMPLE_LOCUS_*.fastq(.gz)} and short read FASTQs in the format
-#' \code{SAMPLE_LOCUS_*R[12]*.fastq(.gz)}, respectively.
+#' A \code{datadir} must contain subdirectories (default: "pacbio" and
+#' "illumina") containig long read FASTQs/FASTAs in the format
+#' \code{SAMPLE_LOCUS_*.fast(q|a)(.gz)} and short read FASTQs/FASTAs in the
+#' format \code{SAMPLE_LOCUS_*R[12]*.fast(q|a)(.gz)}, respectively.
 #'
 #' @section Outdir:
-#'
-#' All output will be placed in directory hierarchy
-#' \code{OUTDIR/SAMPLE}
+#' All output will be placed in directory hierarchy \code{OUTDIR/SAMPLE}
 #'
 #' @section Reference:
-#'
 #' References can be specified as allele codes or a path to a fasta file
 #' containing the reference sequence.
 #'
 #' @param sample A unique sample identifier used to locate the long and short
-#' read FASTQ files.
-#' @param locus The HLA or KIR locus.
+#' read FASTQ/FASTA files.
+#' @param locus The HLA or KIR locus (e.g., "A", "DPB1", or "2DL1")
 #' @param longreads The type and location of the long reads as a named list
 #' with the fields \code{type} ("pacbio" or "nanopore") and \code{dir}.
-#' Additional optional fields: \code{name} and \code{opts}.
-#' @param shortreads (optional) The type and location of the short reads as a named list
-#' with the fields \code{type} ("illumina") and \code{dir}.
+#' @param shortreads (optional) The type and location of the short reads as a
+#' named list with the fields \code{type} ("illumina") and \code{dir}.
 #' @param datadir The data directory (See Note).
 #' @param outdir The output directory (See Note).
-#' @param reference The reference allele(s).
-#' @param threshold Threshold frequency for polymorphisms.
+#' @param reference The reference allele (See Note).
+#' @param threshold Threshold frequency for detecting polymorphisms.
 #' @param iterations Number of iterations of the mapIter step.
-#' @param microsatellite FALSE Perform a second mapping of shortreads to the
-#' inferred reference in mapInit. Set to TRUE if you know you have repeats like
-#' in microsatellites. Usually extends the reference to a maximum length and
-#' enables a better mapping.
+#' @param microsatellite <\code{FALSE}>; Perform a second mapping of shortreads
+#' to the inferred reference in mapInit. Set to TRUE if you suspect
+#' microsatellites or other repetitive regions in your sequence. Usually extends
+#' the reference to a maximum length and enables a better mapping.
 #' @param distAlleles Number of different alleles in the sample. Should be 2
 #' for heterozygous samples, 1 for homozygous samples and > 2 for some KIR loci.
 #' @param filterScores use only reads passing a strict filtering step. TODO
-#' @param forceMapping FALSE set to TRUE if you want to force processing of bad
-#' shortreads, i.e. when the distribution of coverage is bad. Aborts the program
-#' if maximum coverage > 75 \% quantile * 5.
+#' @param forceMapping <\code{FALSE}>; set to TRUE if you want to force
+#' processing of "bad" shortreads, i.e. when the distribution of coverage is
+#' heavily unequal. Aborts the program if maximum coverage > 75 \% quantile * 5.
 #' @param details Named list of sample metadata or \code{NULL}. Will be written
 #' into the fasta header of the final sequences and stored in the config yaml.
 #' @param ... Additional arguments.
@@ -97,7 +87,7 @@ createDR2SConf <- function(
 #' @param config A DR2S configuration object. Either created by
 #' \code{\link[=DR2S_]{createDR2SConfig}} or loaded by
 #' \code{\link[=DR2S_]{readDR2SConf}}.
-#' @param createOutdir Create the outdir if not exists.
+#' @param createOutdir Create the outdir if it doesn't exists.
 #' @return A \code{\link[=DR2S_]{DR2S}} object.
 #' @export
 InitDR2S <- function(config, createOutdir = TRUE) {
