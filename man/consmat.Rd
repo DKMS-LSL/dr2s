@@ -2,6 +2,7 @@
 % Please edit documentation in R/consmat.R
 \name{consmat}
 \alias{consmat}
+\alias{consmat<-}
 \alias{n}
 \alias{n<-}
 \alias{ins}
@@ -12,6 +13,8 @@
 \title{Construct a consensus matrix from pileup.}
 \usage{
 consmat(x, freq = TRUE, ...)
+
+consmat(x) <- value
 
 n(consmat)
 
@@ -36,9 +39,9 @@ is.freq(consmat)
 \item{...}{Additional arguments such as \code{n}, \code{offsetBases},
 \code{insertions}}
 
-\item{consmat}{The \code{\link{consmat}} object that is changed.}
-
 \item{value}{The value to replace with.}
+
+\item{consmat}{The \code{\link{consmat}} object that is changed.}
 }
 \value{
 A \code{consmat} object.

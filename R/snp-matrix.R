@@ -13,10 +13,10 @@
 #bamfile = self$mapInit$bamfile
 #refseq = self$getRefSeq()
 #polymorphicPositions = ppos
-SNPmatrix <- function(bamfile, refseq, polymorphicPositions) {
-  assert_that(requireNamespace("readr", quietly = TRUE),
-              file.exists(bamfile),
-              is(refseq, "XStringSet"))
+SNPmatrix <- function(bamfile, polymorphicPositions) {
+  assert_that(
+    requireNamespace("readr", quietly = TRUE),
+    file.exists(bamfile))
   if (is(polymorphicPositions, "tbl_df") &&
       all(colnames(polymorphicPositions) %in% c("position", "a1",
                                                 "f1", "a2", "f2"))) {
@@ -30,7 +30,7 @@ SNPmatrix <- function(bamfile, refseq, polymorphicPositions) {
     polymorphicPositions <- as.integer(polymorphicPositions)
   }
   assert_that(is.integer(polymorphicPositions))
-  msa <- .msaFromBam(bamfile, refseq)
+  msa <- .msaFromBam(bamfile)
   mat <- vapply(polymorphicPositions, function(x, msa)
     as.matrix(Biostrings::subseq(msa, start = x, width = 1L)),
     msa = msa, FUN.VALUE = character(length(msa)))

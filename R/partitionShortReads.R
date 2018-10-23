@@ -4,11 +4,8 @@
 #' Get a score for each shortread in a bam file on specific positions.
 #' Scores based on a consensus matrix of longreads.
 #'
-#' @param refname Name of the reference.
 #' @param bamfile BAM file path.
 #' @param mats Consensus matrix from longread clustering at positions in ppos.
-#' @param cores Number of cores or "auto"
-#'
 #' @details
 #' Returns a \code{srpartition} object:
 #' A \code{list} with slots:
@@ -31,25 +28,23 @@
 #' @export
 #' @examples
 #' ###
-getSRPartitionScores <- function(refname, bamfile, mats, cores = "auto") {
+getSRPartitionScores <- function(bamfile, mats) {
   stopifnot(
     requireNamespace("parallel", quietly = TRUE),
     requireNamespace("doParallel", quietly = TRUE),
     requireNamespace("GenomicAlignments", quietly = TRUE)
   )
-
-  # Register parallel worker
-  if (cores == "auto") {
-    cores <- .getIdleCores()
-  }
-  assert_that(is.numeric(cores))
-  doParallel::registerDoParallel(cores = cores)
-
+  bfl <- Rsamtools::BamFile(bamfile)
+  Rsamtools::open.BamFile(bfl)
+  ## Get reference from bamfile
+  refname <- GenomeInfoDb::seqnames(Rsamtools::seqinfo(bfl))
   ## Get polymorphic positions
   ppos <- colnames(mats[[1]])
-  flog.info(" Partition shortreads on %s positions", length(ppos),
-            name = "info")
-  res <- do.call(rbind, bplapply(ppos, function(pos, refname, bamfile, mats) {
+  flog.info(" Partition shortreads on %s positions", length(ppos), name = "info")
+  ## Register as many workers as necessary or available
+  workers <- minimum(length(ppos),  .getIdleCores())
+  bpparam <- BiocParallel::MulticoreParam(workers = workers)
+  res <- do.call(rbind, BiocParallel::bplapply(ppos, function(pos, refname, bamfile, mats) {
     message("Get reads on position ", pos)
     param <- paste(paste(refname, pos, sep = ":"), pos, sep = "-")
     stack <- GenomicAlignments::stackStringsFromBam(bamfile, param = param,
@@ -58,7 +53,8 @@ getSRPartitionScores <- function(refname, bamfile, mats, cores = "auto") {
                      dplyr::bind_rows(lapply(stack, function(x)
                        .partRead(x, mats, pos))))
 
-  }, refname = refname, bamfile = bamfile, mats = mats))
+  }, refname = refname, bamfile = bfl, mats = mats, BPPARAM = bpparam))
+  Rsamtools::close.BamFile(bfl)
 
   structure(
     list(

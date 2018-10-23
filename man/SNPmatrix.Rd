@@ -4,14 +4,14 @@
 \alias{SNPmatrix}
 \title{Construct a SNP matrix.}
 \usage{
-SNPmatrix(bamfile, refseq, polymorphicPositions)
+SNPmatrix(bamfile, polymorphicPositions)
 }
 \arguments{
 \item{bamfile}{A BAM file}
 
-\item{refseq}{Reference sequence as DNAString}
-
 \item{polymorphicPositions}{SNP positions.}
+
+\item{refseq}{Reference sequence as DNAString}
 }
 \value{
 A \code{[read x position]} matrix.

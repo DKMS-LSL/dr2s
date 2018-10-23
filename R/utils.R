@@ -142,11 +142,11 @@ wrap <- function(x, wrap = "\"") {
 }
 
 minimum <- function(n, m) {
-  if (n > m) n else m
+  if (n < m) n else m
 }
 
 maximum <- function(n, m) {
-  if (n < m) n else m
+  if (n > m) n else m
 }
 
 `%||%` <- function(a, b) {
@@ -263,7 +263,7 @@ maximum <- function(n, m) {
 .coverage <- function(x, probs =  c(0.0, 0.5, 1.0)) {
   assert_that(is(x, "pileup"))
   quantile(
-    .rowSums(x$consmat, NROW(x$consmat), NCOL(x$consmat)),
+    .rowSums(consmat(x), NROW(consmat(x)), NCOL(consmat(x))),
     probs = probs)
 }
 

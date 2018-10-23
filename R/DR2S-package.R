@@ -21,6 +21,4 @@
 #' @importFrom Rcpp compileAttributes
 #' @importFrom ggseqlogo geom_logo theme_logo
 #' @importFrom rlang .data set_names
-#' @importFrom BiocParallel bplapply
-
 NULL

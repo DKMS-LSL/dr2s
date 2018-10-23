@@ -87,8 +87,7 @@ partitionReads <- function(x, distAlleles = 2, sortBy = "count", threshold = 0.2
     FUN.VALUE = character(1))
 
   if (length(hptypes) > distAlleles) {
-    flog.info("  Trying to identify chimeric reads/haplotypes ...",
-              name = "info")
+    flog.info("  Trying to identify chimeric reads/haplotypes ...", name = "info")
     if (sortBy == "count") {
       rC <- names(sort(table(subclades),
                        decreasing = TRUE)[seq_len(distAlleles)])
@@ -100,9 +99,10 @@ partitionReads <- function(x, distAlleles = 2, sortBy = "count", threshold = 0.2
   }
   hptypes <- names(mats)
 
+  bpparam <- BiocParallel::MulticoreParam(workers = .getIdleCores())
   scores <- dplyr::bind_rows(
     suppressWarnings(BiocParallel::bplapply(seq_along(xseqs), function(s)
-      .getScores(s, xseqs, mats))))
+      .getScores(s, xseqs, mats), BPPARAM = bpparam)))
 
   clades <- scores %>%
     dplyr::group_by(.data$read) %>%

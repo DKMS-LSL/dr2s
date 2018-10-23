@@ -62,10 +62,10 @@ readDR2S <- function(path) {
   flog.info("Get consensus from final mapping ...", name = "info")
 
   if (!is.null(x$mapInit$SR1)) {
-    cseq <- conseq(x$mapInit$SR2$pileup$consmat, "mapFinalA", "ambig",
+    cseq <- conseq(consmat(x$mapInit$SR2$pileup), "mapFinalA", "ambig",
                    excludeGaps = TRUE, threshold = x$getThreshold())
   } else {
-    cseq <- conseq(x$mapInit$pileup$consmat, "mapFinalA", "ambig",
+    cseq <- conseq(consmat(x$mapInit$pileup), "mapFinalA", "ambig",
                    excludeGaps = TRUE, threshold = x$getThreshold())
   }
   x$mapFinal$seq$A <- cseq

@@ -1,24 +1,45 @@
 
-# Pileup ------------------------------------------------------------------
+# Class: Pileup -----------------------------------------------------------
 
+## Internal onstructor class "pileup"
+Pileup_ <- function(...) {
+  dots <- list(...)
+  structure(
+    list(
+      bamfile   = dots$bamfile,  # <character>; path to bamfile.
+      reffile   = dots$reffile,  # <character>; path to reference.
+      refname   = dots$refname,  # <character>; name of reference.
+      readtype  = dots$readtype, # <character>; "illumina", "pacbio", "nanopore".
+      param     = dots$param,    # <PileupParam>
+      pileup    = dots$pileup,   # <tbl_df> with columns: "seqnames", "pos", "nucleotide", "count".
+      consmat   = consmat(dots$pileup, freq = FALSE), # <consmat>
+      reads     = NULL,          # <character>; names of n top-scoring reads.
+      stats     = list()         # <named list>
+    ),
+    class = c("pileup", "list")
+  )
+}
 
-#' Calculate pile-up for a BAM file.
+#' Calculate pileup for a BAM file.
 #'
-#' @param bamfile BAM file path.
-#' @param threshold Threshold used for SNP calling.
-#' @param ... Additional parameters passed to
-#' \code{\link[Rsamtools]{PileupParam}}.
+#' @param bamfile <\code{character}>; path to bamfile.
+#' @param reffile <\code{character}>; Path to reference.
+#' @param readtype <\code{character}>; one of "illumina", "pacbio", or "nanopore".
+#' @param ... Additional parameters passed to \code{\link[Rsamtools]{PileupParam}}.
 #' @inheritParams Rsamtools::PileupParam
 #'
 #' @details
 #' Returns a \code{pileup} object:
 #' A \code{list} with slots:
 #' \describe{
-#'   \item{bamfile}{<character>; Path to the bam file used to construct the
+#'   \item{bamfile}{<character>; Path to the bamfile used to construct the
 #'   pileup}
-#'   \item{threshold}{<numeric>; Threshold used for calling SNPs}
+#'   \item{reffile}{<character>; Path to the reference used to construct the
+#'   bamfile}
+#'   \item{refname}{<character>; Name of the reference}
+#'   \item{readtype}{<character>; One of "illumina", "pacbio", or "nanopore"}
 #'   \item{param}{A \code{\link[Rsamtools]{PileupParam}} object}
-#'   \item{pilup}{A \code{data.frame} with colums:
+#'   \item{pilup}{A \code{tbl_df} with colums:
 #'     \describe{
 #'       \item{seqnames}{<character>; The RNAME field}
 #'       \item{pos}{<integer>; Genomic position of base}
@@ -26,17 +47,21 @@
 #'       \item{count}{<integer>; Count of base}
 #'     }
 #'   }
-#'   \item{consmat}{Consensus matrix}
-#'   \item{reads}{best scoring reads}
+#'   \item{consmat}{<consmat>; The consensus matrix}
+#'   \item{reads}{<character>; (optional) names of n top-scoring reads}
+#'   \item{stats}{<list>; Run statistics}
 #' }
 #'
 #' @return A \code{pileup} object. See \code{Details}.
 #' @export
 #' @examples
 #' ###
-Pileup <- function(bamfile,
-                   threshold = 0.20,
+pileup <- function(bamfile,
+                   reffile,
+                   readtype,
                    ...) {
+  bamfile <- normalizePath(bamfile, mustWork = TRUE)
+  reffile <- normalizePath(reffile, mustWork = TRUE)
   ## Debug
   # param <- list(
   #   max_depth = maxDepth,
@@ -47,54 +72,37 @@ Pileup <- function(bamfile,
   #   include_insertions = includeInsertions
   # )
   ##
-
   param <- list(...)
-
   if (is.null(param$distinguish_strands))
       param$distinguish_strands <- FALSE
 
   bfl <- Rsamtools::BamFile(bamfile)
-  pParam <- do.call(Rsamtools::PileupParam, c(param))
+  if (Rsamtools::idxstatsBam(bfl)$mapped == 0) {
+    flog.info("No reads maps to the reference", name = "info")
+    stop("No reads maps to the reference")
+  }
+
+  pParam <- do.call(Rsamtools::PileupParam, param)
   sParam <- Rsamtools::ScanBamParam(
     flag = Rsamtools::scanBamFlag(
       isUnmappedQuery = FALSE,
       isSecondaryAlignment = FALSE
-    )
-  )
-  pileup <- Rsamtools::pileup(file = bfl,
-                              scanBamParam = sParam,
-                              pileupParam = pParam)
-  tryCatch({
-    pileup <-
-      dplyr::mutate(tibble::as_tibble(pileup),
-                    seqnames = strsplitN(as.character(.data$seqnames), "~", 1,
-                                         fixed = TRUE))
-  }, error = function(e) {
-    flog.info("No reads maps to the reference", name = "info")
-    stop("no reads maps to the reference")
-  })
-
-  ## Calculate coverage statistics
-  # covr <- quantile(
-  #   dplyr::group_by(pileup, pos) %>%
-  #     dplyr::summarise(n = sum(count)) %>%
-  #     .$n, probs = c(0, 0.5, 1))
-
-  structure(
-    list(
-      bamfile   = bamfile,
-      threshold = threshold,
-      param     = pParam,
-      pileup    = pileup,
-      reads     = NULL,
-      consmat   = consmat(pileup, freq = FALSE),
-      stats     = list()
     ),
-    class = c("pileup", "list")
+    which = IRanges::IRangesList()
   )
+  pileup <- tibble::as_tibble(Rsamtools::pileup(
+    file = bfl,
+    scanBamParam = sParam,
+    pileupParam = pParam))
+  refname <- GenomeInfoDb::seqnames(Rsamtools::seqinfo(bfl))
+
+  Pileup_(bamfile = bamfile, reffile = reffile, refname = refname,
+          readtype = readtype, param = pParam, pileup = pileup)
 }
 
+
 # Methods: pileup ---------------------------------------------------------
+
 
 #' @export
 print.pileup <- function(x, asString = FALSE, ...) {
@@ -103,38 +111,94 @@ print.pileup <- function(x, asString = FALSE, ...) {
   values <- lapply(params, methods::slot, object = x$param)
   info <- paste(methods::slotNames(x$param), values,
                 sep = ": ", collapse = "; ")
-  msg <- if (asString) "" else sprintf("An object of class '%s'.\n",
-                                       class(x)[1])
-  msg <- sprintf("%s Bamfile: %s\n Threshold: %s\n %s\n",
-                 msg, basename(x$bamfile), x$threshold,
+  msg <- if (asString) "" else
+    sprintf("An object of class '%s'.\n", class(x)[1])
+  msg <- sprintf("%s Bamfile: %s\n Reference: %s\n Readtype: %s\n %s\n",
+                 msg, basename(path(x)), basename(refpath(x)), readtype(x),
                  paste0(strwrap(info, initial = "Params: ", exdent = 4),
                         collapse = "\n"))
   if (asString)
     return(msg)
   else {
     cat(msg)
-    print(x$consmat, n = 4)
+    print(consmat(x), n = 4)
   }
 }
+
+#' @export
+path.pileup <- function(x, ...) {
+  x$bamfile
+}
+
+#' @export
+refpath.pileup <- function(x, ...) {
+  x$reffile
+}
+
+#' @export
+refname.pileup <- function(x, ...) {
+  x$refname
+}
+
+#' @export
+readtype.pileup <- function(x, ...) {
+  x$readtype
+}
+
+#' @export
+stats.pileup <- function(x, ...) {
+  x$stats
+}
+
+#' @export
+consmat.pileup <- function(x, freq = FALSE, ...) {
+  cm <- if (is(x$consmat, "consmat")) x$consmat else consmat(x$pileup)
+  consmat(cm, freq = freq)
+}
+
+#' @export
+`consmat<-.pileup` <- function(x, value) {
+  assert_that(is(value, "consmat"))
+  x$consmat <- value
+  x
+}
+
+#' @rdname pileup
+#' @export
+reads <- function(x, ...) UseMethod("reads")
+#' @export
+reads.pileup <- function(x, ..) {
+  x$reads
+}
+
+#' @rdname pileup
+#' @export
+`reads<-` <- function(x, value) UseMethod("reads<-")
+#' @export
+`reads<-.pileup` <- function(x, value) {
+  assert_that(is.character(value))
+  x$reads <- value
+  x
+}
+
 
 # Helpers -----------------------------------------------------------------
 
 
-.pileupFindInsertionPositions_ <- function(x, threshold) {
+.pileupFindInsertionPositions_ <- function(x, threshold = 0.20) {
   cm  <- consmat(x, freq = TRUE)
   pos <- .ambiguousPositions(cm, threshold = threshold)
   pos[cm[pos, "+"] > threshold]
 }
 
-.pileupGetInsertions_ <- function(x, threshold, readtype) {
-  res <- list()
-  colnm <- colnames(x$consmat)
+.pileupGetInsertions_ <- function(x, threshold = 0.20) {
+  res   <- list()
+  colnm <- colnames(consmat(x))
   inpos <- .pileupFindInsertionPositions_(x, threshold)
   inpos <- inpos[!inpos %in% 1:5]
-  inpos <- inpos[!inpos %in% (NROW(x$consmat) - 5):NROW(x$consmat)]
-  bamfile <- x$bamfile
+  inpos <- inpos[!inpos %in% (NROW(consmat(x)) - 5):NROW(consmat(x))]
   if (length(inpos) > 0) {
-    inseqs <- .getInsertions(bamfile, inpos, readtype = readtype)
+    inseqs <- .getInsertions(bamfile = path(x), inpos = inpos, readtype = readtype(x))
     inseqs <- inseqs[order(as.integer(names(inseqs)))]
     for (inseq in inseqs) {
       if (length(inseq) < 100) {
@@ -178,20 +242,17 @@ print.pileup <- function(x, asString = FALSE, ...) {
   }
   # Remove all empty positions for now!! ToDo: Better apply this to the initial
   # ins pos calling in the python script
-  res <- Filter(length,res)
+  res <- Filter(length, res)
   res
 }
 
-.pileupIncludeInsertions <- function(x, threshold = NULL, readtype = "illumina") {
-  stopifnot(is(x, "pileup"))
-  if (!"+" %in% colnames(x$consmat)) {
+.pileupIncludeInsertions <- function(x, threshold = 0.2) {
+  assert_that(is(x, "pileup"))
+  if (!"+" %in% colnames(consmat(x))) {
     flog.warn("No insertions to call!", name = "info")
     return(x)
   }
-  if (is.null(threshold)) {
-    threshold <- x$threshold
-  }
-  ins_ <- .pileupGetInsertions_(x, threshold, readtype = readtype)
+  ins_ <- .pileupGetInsertions_(x, threshold)
   if (length(ins_) == 0) {
     return(x)
   }
@@ -222,25 +283,33 @@ print.pileup <- function(x, asString = FALSE, ...) {
   x
 }
 
-.msaFromBam <- function(bamfile, refseq = NULL, paddingLetter = "+",
-                        region = NULL) {
-  if (is.null(region)) {
-    myParam <- GenomicRanges::GRanges(
-      seqnames = names(refseq),
-      ranges = IRanges::IRanges(start = 1, end = length(refseq[[1]])))
+.msaFromBam <- function(bamfile, region = NULL, paddingLetter = "+") {
+  if (!is(bamfile, "BamFile")) {
+    bamfile <- Rsamtools::BamFile(bamfile)
+  }
+  if (!Rsamtools::isOpen(bamfile)) {
+    Rsamtools::open.BamFile(bamfile)
+    on.exit(Rsamtools::close.BamFile(bamfile))
+  }
+  myParam <- if (is.null(region)) {
+    baminfo <- Rsamtools::seqinfo(bamfile)
+    GenomicRanges::GRanges(
+      seqnames = GenomeInfoDb::seqnames(baminfo),
+      ranges = IRanges::IRanges(start = 1L, end = GenomeInfoDb::seqlengths(baminfo)))
+  } else if (is(region, "Granges")) {
+    region
   } else {
     assert_that(grepl(pattern = "^[[:alnum:]_\\*#:\\.\\-]+:\\d+-\\d+", region))
-    m      <- regexpr("(?<seqname>^[[:alnum:]_\\*#:\\.\\-]+):(?<start>\\d+)-(?<end>\\d+)",
-                      region, perl = TRUE)
+    m <- regexpr("(?<seqname>^[[:alnum:]_\\*#:\\.\\-]+):(?<start>\\d+)-(?<end>\\d+)",
+                 region, perl = TRUE)
     starts <- attr(m, "capture.start")
     ends   <- starts + attr(m, "capture.length") - 1
-    myParam <- GenomicRanges::GRanges(
+    GenomicRanges::GRanges(
       seqnames = substr(region, starts[, "seqname"],  ends[, "seqname"]),
       ranges = IRanges::IRanges(
         start = as.integer(substr(region, starts[, "start"],  ends[, "start"])),
         end =  as.integer(substr(region, starts[, "end"],  ends[, "end"]))))
   }
-
   GenomicAlignments::stackStringsFromBam(
     bamfile,
     param = myParam,
@@ -249,10 +318,11 @@ print.pileup <- function(x, asString = FALSE, ...) {
     use.names = TRUE)
 }
 
-.topXReads <- function(bamfile, refseq, n = 2000) {
-  msa <- .msaFromBam(bamfile, refseq)
+.topXReads <- function(bamfile, n = 2000) {
+  msa <- .msaFromBam(bamfile)
   mat <- createPWM(msa)
   mat["+",] <- 0
+  bpparam <- BiocParallel::MulticoreParam(workers = .getIdleCores())
   res <- do.call(dplyr::bind_rows, BiocParallel::bplapply(seq_along(msa),
     function(s, aln, mat) {
       seq <- as.character(aln[[s]])
@@ -264,7 +334,7 @@ print.pileup <- function(x, asString = FALSE, ...) {
       t <- tibble::tibble(read, b/length(seq))
       names(t) <- c("read", "score")
       t
-  }, aln = msa, mat = mat))
+  }, aln = msa, mat = mat, BPPARAM = bpparam))
   dplyr::arrange(res, dplyr::desc(score))[1:n, ]$read
 }
 
@@ -382,28 +452,26 @@ plotPileupBasecallFrequency <- function(x, threshold = 0.20, label = "",
     )
 }
 
-.getInsertions <- function(bamfile, inpos, reads = NULL, readtype = "illumina") {
+.getInsertions <- function(bamfile, inpos, readtype = "illumina", reads = NULL) {
   assert_that(is.numeric(inpos))
   inpos <- sort(inpos)
-  flog.info("  Extracting insertions at positions %s", comma(inpos),
-            name = "info")
-
+  flog.info("  Extracting insertions at positions %s", comma(inpos), name = "info")
   ## Get the actual position of the first insertion character, not the last
   ##  matching position, so +1
-  inpos <- inpos + 1
-
-  ## Get the reference
-  reference <- GenomicRanges::seqnames(GenomicRanges::seqinfo(Rsamtools::BamFile(bamfile)))
-  if (readtype == "illumina") {
-    inposRanges <- GenomicRanges::GRanges(reference,
-                                          IRanges::IRanges(start = inpos,
-                                                           end = inpos))
-    bamParam <- Rsamtools::ScanBamParam(what = "seq", which = inposRanges)
+  inpos   <- inpos + 1
+  bamfile <- Rsamtools::BamFile(bamfile)
+  baminfo <- GenomicRanges::seqinfo(bamfile)
+  inposRanges <- if (readtype == "illumina") {
+    GenomicRanges::GRanges(
+      seqnames = GenomeInfoDb::seqnames(baminfo),
+      ranges = IRanges::IRanges(start = inpos, end = inpos))
   } else {
-    bamParam <- Rsamtools::ScanBamParam(what = "seq")
+    GenomicRanges::GRanges(
+      seqnames = GenomeInfoDb::seqnames(baminfo),
+      ranges =  IRanges::IRanges(start = 1, end = GenomeInfoDb::seqlengths(baminfo)))
   }
-  bam <- GenomicAlignments::readGAlignments(bamfile, param = bamParam,
-                                            use.names = TRUE)
+  bamParam <- Rsamtools::ScanBamParam(what = "seq", which = inposRanges)
+  bam <- GenomicAlignments::readGAlignments(bamfile, param = bamParam, use.names = TRUE)
 
   ## Use only reads of interest if specified
   if (!is.null(reads))
@@ -412,18 +480,19 @@ plotPileupBasecallFrequency <- function(x, threshold = 0.20, label = "",
   readsWithIns <- vapply(GenomicAlignments::cigar(bam),
                          function(x) grepl("I",  x),
                          FUN.VALUE = logical(1))
-  bamI <- bam[readsWithIns][1:10]
+  bamI <- bam[readsWithIns]
   ## Get all insertions from all reads
   ## TODO: bplapply throws warning in serialize(data, node$con, xdr = FALSE)
   ## 'package:stats' may not be available when loading
   ## For the time being we suppress this warning
+  bpparam <- BiocParallel::MulticoreParam(workers = .getIdleCores())
   insSeq <- unlist(Biostrings::DNAStringSetList(suppressWarnings(
     BiocParallel::bplapply(seq_along(bamI), function(a, bamI, inpos) {
       .extractInsertion(bamI[a], inpos)
-  }, bamI = bamI, inpos = inpos))))
+    }, bamI = bamI, inpos = inpos, BPPARAM = bpparam))))
   ## Extract per positions
   insSeqs <- foreach(i = inpos) %do% {
-    message("Position: ", i)
+    #message("Position: ", i)
     insSeq[which(names(insSeq) == i)]
   }
   ## decrement to last matching position again to work as expected with
@@ -450,11 +519,11 @@ plotPileupBasecallFrequency <- function(x, threshold = 0.20, label = "",
   if (length(insertPos) > 0) {
     seq <- unlist(Biostrings::DNAStringSetList(lapply(seq_along(insertPos),
                                                       function(ip) {
-      ipp <- insertPos[ip]
-      Biostrings::subseq(read@elementMetadata$seq,
-                         start = IRanges::start(ipp),
-                         end = IRanges::end(ipp))
-    })))
+                                                        ipp <- insertPos[ip]
+                                                        Biostrings::subseq(read@elementMetadata$seq,
+                                                                           start = IRanges::start(ipp),
+                                                                           end = IRanges::end(ipp))
+                                                      })))
     names(seq) <- fInPos
     return(seq)
   }
@@ -464,11 +533,11 @@ plotPileupBasecallFrequency <- function(x, threshold = 0.20, label = "",
 .checkCoverage <- function(pileup, forceMapping, plotFile, maptag) {
   flog.warn(" Shortreads seem corrupted or the reference is bad!",
             name = "info")
-  maxCov <- max(rowSums(pileup$consmat))
-  q75Cov <- quantile(rowSums(pileup$consmat), .75)
+  maxCov <- max(rowSums(consmat(pileup, freq = FALSE)))
+  q75Cov <- quantile(rowSums(consmat(pileup, freq = FALSE)), 0.75)
   flog.warn("   Maximum of coverage %s / 75%% quantile %s: %s > 5." %<<%
-                   " No equal distribution of coverage!" %<<%
-                   " Have a look at the mapInit plot",
+              " No equal distribution of coverage!" %<<%
+              " Have a look at the mapInit plot",
             maxCov, q75Cov, maxCov/q75Cov, name = "info")
   plt <- plotPileupCoverage(
     x = pileup,
@@ -482,7 +551,7 @@ plotPileupBasecallFrequency <- function(x, threshold = 0.20, label = "",
                    " "),
              name = "info")
   save_plot(plotFile, plt, base_aspect_ratio = 3,
-                          onefile = TRUE)
+            onefile = TRUE)
   if (!forceMapping) {
     stop("Shortreads probably of bad quality. Bad coverage distribution.
          Run with forceMapping = TRUE to force processing.")

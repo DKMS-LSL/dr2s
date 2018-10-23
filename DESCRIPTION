@@ -53,6 +53,7 @@ Imports:
     ggseqlogo,
     GenomicAlignments,
     GenomicRanges,
+    GenomeInfoDb,
     rtracklayer,
     IRanges,
     rlang,

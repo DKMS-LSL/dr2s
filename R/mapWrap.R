@@ -1,8 +1,8 @@
 ## mapping wrapper functions
 ##
 mapReads <- function(
-  mapFun, maptag, reffile, refseq = NULL, allele, readfile, readtype,
-  threshold, opts = NULL, optsname = "", refname = "", minBaseQuality = 3,
+  mapFun, maptag, reffile, allele, readfile, readtype,
+  opts = NULL, optsname = "", refname = "", minBaseQuality = 3,
   minMapq = 0, maxDepth = 1e4,  minNucleotideDepth = 3,
   includeDeletions, includeInsertions, callInsertions = FALSE,
   clip = FALSE, distributeGaps = FALSE, removeError = TRUE, topx = 0,
@@ -11,8 +11,8 @@ mapReads <- function(
   ## Run mapper
   flog.info("  Mapping ...", name = "info")
   samfile <- mapFun(
-    reffile = reffile, readfile = readfile, allele = allele,
-    readtype = readtype, opts = opts, refname = refname, optsname = optsname,
+    reffile = reffile, readfile = readfile, readtype = readtype,
+    allele = allele, opts = opts, refname = refname, optsname = optsname,
     force = force, outdir = outdir)
 
   if (clip) {
@@ -47,42 +47,43 @@ mapReads <- function(
   bamfile <- .bamSortIndex(samfile = samfile, reffile = reffile,
                            minMapq = minMapq, force = force)
 
-  if (topx > 0) {
-    flog.info("  Extracting the top %s reads ...", topx, name = "info")
-    reads <- .topXReads(bamfile, refseq, n = topx)
-    bam <- BamFile(bamfile)
-    alignmentBam <-  GenomicAlignments::readGAlignments(bam,
-                                                        param = ScanBamParam(
-                                                          what = scanBamWhat()),
-                                                        use.names = TRUE)
+  if (topx > 0 && readtype != "illumina") {
+    flog.info("  Extracting the top-scoring %s longreads ...", topx, name = "info")
+    reads <- .topXReads(bamfile, n = topx)
+    alignmentBam <-  GenomicAlignments::readGAlignments(
+      file = Rsamtools::BamFile(bamfile),
+      param = Rsamtools::ScanBamParam(
+        what = Rsamtools::scanBamWhat(),
+        which = IRanges::IRangesList()),
+      use.names = TRUE)
     rtracklayer::export(alignmentBam[reads], bamfile)
   }
 
   ## Calculate pileup from graphmap produced SAM file
   flog.info("  Piling up ...", name = "info")
-  pileup <- Pileup(bamfile, threshold, max_depth = maxDepth,
-    min_base_quality = minBaseQuality, min_mapq = minMapq,
-    min_nucleotide_depth = minNucleotideDepth,
-    include_deletions = includeDeletions,
-    include_insertions = includeInsertions)
+  pileup <- pileup(bamfile, reffile, readtype,
+                   max_depth = maxDepth,
+                   min_base_quality = minBaseQuality,
+                   min_mapq = minMapq,
+                   min_nucleotide_depth = minNucleotideDepth,
+                   include_deletions = includeDeletions,
+                   include_insertions = includeInsertions)
 
   if (distributeGaps) {
     flog.info("  Distributing gaps ...", name = "info")
-    pileup$consmat <- .distributeGaps(mat = pileup$consmat,
-                                      bamfile = bamfile,
-                                      reference = refseq,
-                                      removeError = removeError)
+    consmat(pileup) <- .distributeGaps(mat = consmat(pileup),
+                                       bamfile = path(pileup),
+                                       removeError = removeError)
   }
 
-  if (callInsertions && is.null(ins(pileup$consmat))) {
+  if (callInsertions && is.null(ins(consmat(pileup)))) {
     flog.info("  Calling insertions ...", name = "info")
     ## TODO check threshold
-    pileup <- .pileupIncludeInsertions(x = pileup, threshold = 0.15,
-                                       readtype = readtype)
+    pileup <- .pileupIncludeInsertions(x = pileup, threshold = 0.15)
   }
 
   if (topx > 0) {
-    pileup$reads <- reads
+    reads(pileup) <- reads
   }
 
   pileup

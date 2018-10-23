@@ -5,16 +5,12 @@
 \title{Get a score for each shortread in a bam file on specific positions.
 Scores based on a consensus matrix of longreads.}
 \usage{
-getSRPartitionScores(refname, bamfile, mats, cores = "auto")
+getSRPartitionScores(refname, bamfile, mats)
 }
 \arguments{
-\item{refname}{Name of the reference.}
-
 \item{bamfile}{BAM file path.}
 
 \item{mats}{Consensus matrix from longread clustering at positions in ppos.}
-
-\item{cores}{Number of cores or "auto"}
 }
 \value{
 A \code{srpatition} object. See \code{Details}.

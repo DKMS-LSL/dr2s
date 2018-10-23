@@ -351,24 +351,19 @@ refineAlignment <- function(x, hptype, report = FALSE, createIgv = TRUE){
   ## Remap long reads to the same reference sequences as short reads
   flog.info(" Refine mapping for haplotype %s ...", hptype, name = "info" )
   mapgroupLR <- "LR" %<<% hptype
-  maptagLR   <- paste("refine", mapgroupLR, x$getLrdType(),
-                      x$getLrMapper(), sep = ".")
-  pileup <- mapReads(maptag = maptagLR, reffile = refpath,
-                     readfile = readpathLR, threshold = x$getThreshold(),
-                     allele = mapgroupLR, readtype = x$getLrdType(),
-                     outdir = outdir, force = TRUE, clean = TRUE,
-                     includeDeletions = FALSE, includeInsertions = FALSE,
-                     mapFun = x$getLrMapFun(), refname = hptype)
+  maptagLR   <- paste("refine", mapgroupLR, x$getLrdType(), x$getLrMapper(), sep = ".")
+  pileup <- mapReads(
+    mapFun = x$getLrMapFun(), maptag = maptagLR, reffile = refpath,
+    readfile = readpathLR, allele = mapgroupLR, readtype = x$getLrdType(),
+    outdir = outdir, force = TRUE, clean = TRUE, includeDeletions = FALSE,
+    includeInsertions = FALSE, refname = hptype)
 
-
-  x$consensus$refine$bamfile[[mapgroupLR]] = x$relPath(pileup$bamfile)
+  x$consensus$refine$bamfile[[mapgroupLR]] = x$relPath(path(pileup))
 
   if (createIgv)
-    x$consensus$refine$igv[[mapgroupLR]] <- createIgvJsFiles(refpath,
-                                                             pileup$bamfile,
-                                                             x$getOutdir(),
-                                                             sampleSize = 100,
-                                                             fragmentReads = TRUE)
+    x$consensus$refine$igv[[mapgroupLR]] <- createIgvJsFiles(
+      refpath(pileup), path(pileup), x$getOutdir(), sampleSize = 100,
+      fragmentReads = TRUE)
 
   ## Map short reads
   if (!is.null(unlist(readpathSR))) {
@@ -378,23 +373,19 @@ refineAlignment <- function(x, hptype, report = FALSE, createIgv = TRUE){
     readfiles <- unlist(readpathSR)
 
     ## Mapper
-    pileup <- mapReads(maptag = maptagSR, reffile = refpath,
-                       readfile = readfiles, threshold = x$getThreshold(),
-                       allele = mapgroupSR, readtype = x$getSrdType(),
-                       outdir = outdir, force = TRUE, clean = TRUE,
-                       includeDeletions = FALSE, includeInsertions = FALSE,
-                       mapFun = x$getSrMapFun(), refname = hptype, clip = TRUE)
+    pileup <- mapReads(
+      mapFun = x$getSrMapFun(), maptag = maptagSR, reffile = refpath,
+      readfile = readfiles, allele = mapgroupSR, readtype = x$getSrdType(),
+      outdir = outdir, force = TRUE, clean = TRUE, includeDeletions = FALSE,
+      includeInsertions = FALSE, refname = hptype, clip = TRUE)
 
-    x$consensus$refine$bamfile[[mapgroupSR]] = x$relPath(pileup$bamfile)
-    x$consensus$refine$igv[[mapgroupSR]] <- createIgvJsFiles(refpath,
-                                                             pileup$bamfile,
-                                                             x$getOutdir(),
-                                                             sampleSize = 100)
-
+    x$consensus$refine$bamfile[[mapgroupSR]] = x$relPath(path(pileup))
+    x$consensus$refine$igv[[mapgroupSR]] <- createIgvJsFiles(
+      refpath(pileup), path(pileup), x$getOutdir(), sampleSize = 100)
   }
 
   # calc new consensus
-  cseq <- conseq(pileup$consmat, "refine" %<<% hptype, "ambig",
+  cseq <- conseq(consmat(pileup), "refine" %<<% hptype, "ambig",
                  excludeGaps = FALSE, threshold = x$getThreshold())
   x$consensus$refine$consensus[[hptype]] <- cseq
   x$cache()

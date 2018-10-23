@@ -87,12 +87,6 @@ consmat.consmat <- function(x, freq = TRUE, ...) {
 }
 
 #' @export
-consmat.pileup <- function(x, freq = TRUE, ...) {
-  cm <- if (is(x$consmat, "consmat")) x$consmat else consmat(x$pileup)
-  consmat(cm, freq = freq)
-}
-
-#' @export
 print.consmat <- function(x, n = 25, noHead = FALSE, transpose = FALSE,  ...) {
   if (!noHead) {
     cat("Consensus Matrix: ", NROW(x), " x ", NCOL(x), "\n", sep = "")
@@ -154,6 +148,10 @@ as.data.frame.consmat <- function(x, ...) {
     dplyr::arrange(.data$pos, .data$nucleotide)
   df
 }
+
+#' @rdname consmat
+#' @export
+`consmat<-` <- function(x, value) UseMethod("consmat<-")
 
 #' @rdname consmat
 #' @export
@@ -262,28 +260,31 @@ createPWM <- function(msa){
   cmat
 }
 
-# mat <- pileup$consmat
+# mat <- consmat(pileup)
 #removeError = TRUE
-.distributeGaps <- function(mat, bamfile, reference, removeError = FALSE) {
+.distributeGaps <- function(mat, bamfile, removeError = FALSE) {
   seq <- .mat2rle(mat)
   if (removeError) {
     gapError <- .getGapErrorBackground(mat, n = 5)
   }
+  bfl <- Rsamtools::BamFile(bamfile)
+  Rsamtools::open.BamFile(bfl)
   ## Collect changed matrix elements
   ## TODO: bplapply throws warning in serialize(data, node$con, xdr = FALSE)
   ## 'package:stats' may not be available when loading
   ## For the time being we suppress this warning
-  changeMat <- suppressWarnings(bplapply(which(seq$length > 5),
-                                function(i, bamfile, reference, removeError) {
+  workers <- minimum(sum(idx <- seq$length > 5), .getIdleCores())
+  bpparam <- BiocParallel::MulticoreParam(workers = workers, log = FALSE)
+  changeMat <- suppressWarnings(BiocParallel::bplapply(which(idx), function(i, bamfile) {
     #i <- which(seq$length > 5)[1]
     ## Assign new gap numbers to each position starting from left
     # meanCoverage <- mean(rowSums(mat[seqStart:seqEnd,1:4]))
     seqStart <- sum(seq$lengths[seq_len(i - 1)]) + 1
-    seqEnd <- seqStart + seq$lengths[i] - 1
-    region <- names(reference) %<<% ":" %<<% seqStart %<<% "-" %<<% seqEnd
-
-    msa <- .msaFromBam(bamfile, reference, paddingLetter = "+",
-                       region = region)
+    seqEnd   <- seqStart + seq$lengths[i] - 1
+    region   <- GenomicRanges::GRanges(
+      seqnames = GenomeInfoDb::seqnames(Rsamtools::seqinfo(bamfile)),
+      ranges = IRanges::IRanges(start = seqStart, end =  seqEnd))
+    msa <- .msaFromBam(bamfile, region = region, paddingLetter = "+")
 
     ## Skip position if empty
     if (length(msa) == 0) {
@@ -336,13 +337,13 @@ createPWM <- function(msa){
       list(
         seqStart = seqStart,
         seqEnd = seqEnd,
-        matPart = t(Biostrings::consensusMatrix(msa))[ ,VALID_DNA(include = "indel")]
+        matPart = t(Biostrings::consensusMatrix(msa, as.prob = FALSE))[
+          , VALID_DNA(include = "indel")]
       )
-      # mat[seqStart:seqEnd,] <- t(Biostrings::consensusMatrix(msa))[
-      #   ,VALID_DNA(include = "indel")]
     }
-  }, bamfile = bamfile, reference = reference, removeError = removeError))
-
+  }, bamfile = bfl, BPPARAM = bpparam))
+  ##
+  Rsamtools::close.BamFile(bfl)
   ## Change the matrix
   for (i in changeMat) {
     mat[i$seqStart:i$seqEnd, ] <- i$mat

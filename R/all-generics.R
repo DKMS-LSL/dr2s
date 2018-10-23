@@ -529,3 +529,64 @@ clear <- function(x, ...) {
 cache <- function(x, ...) {
   UseMethod("cache")
 }
+
+#' Access the path of an object
+#'
+#' @param x An object containing paths.
+#' @param ... Additional arguments.
+#' @return A character vector.
+#' @export
+#' @examples
+#' ###
+path <- function(x, ...) {
+  UseMethod("path")
+}
+
+#' Access the reference path of an object
+#'
+#' @param x An object containing paths
+#' @param ... Additional arguments.
+#' @return A character vector.
+#' @export
+#' @examples
+#' ###
+refpath <- function(x, ...) {
+  UseMethod("refpath")
+}
+
+#' Access the reference name of an object
+#'
+#' @param x An object containing paths.
+#' @param ... Additional arguments.
+#' @return A character vector.
+#' @export
+#' @examples
+#' ###
+refname <- function(x, ...) {
+  UseMethod("refname")
+}
+
+#' Access the readtype path of an object
+#'
+#' @param x An object containing readtypes.
+#' @param ... Additional arguments.
+#' @return A character vector.
+#' @export
+#' @examples
+#' ###
+readtype <- function(x, ...) {
+  UseMethod("readtype")
+}
+
+#' Access the stats path of an object
+#'
+#' @param x An object containing stats
+#' @param ... Additional arguments.
+#' @return A named list.
+#' @export
+#' @examples
+#' ###
+stats <- function(x, ...) {
+  UseMethod("stats")
+}
+
