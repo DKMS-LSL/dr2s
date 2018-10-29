@@ -6,7 +6,7 @@
 \alias{reads<-}
 \title{Calculate pileup for a BAM file.}
 \usage{
-pileup(bamfile, reffile, readtype, ...)
+pileup(bamfile, reffile, readtype, ..., pParam)
 
 reads(x, ...)
 
@@ -20,6 +20,8 @@ reads(x) <- value
 \item{readtype}{<\code{character}>; one of "illumina", "pacbio", or "nanopore".}
 
 \item{...}{Additional parameters passed to \code{\link[Rsamtools]{PileupParam}}.}
+
+\item{pParam}{A \code{\link[Rsamtools]{PileupParam}} object.}
 }
 \value{
 A \code{pileup} object. See \code{Details}.

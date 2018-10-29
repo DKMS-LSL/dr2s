@@ -316,11 +316,8 @@ checkHomoPolymerCount <- function(x, count = 10, map = "mapFinal") {
     homopolymersHP <- foreach(pos = n, .combine = rbind) %do% {
       positionHP <- sum(seqrle$length[seq_len(pos-1)])#+1
       lenHP <- seqrle$lengths[pos]
-      msa <- .msaFromBam(bamfile,
-                          refseq = seq,
-                          region = sprintf("%s:%s-%s",
-                                           names(seq),
-                                           positionHP-10,
+      msa <- .msaFromBam(bamfile, sprintf("%s:%s-%s", names(seq),
+                                           positionHP - 10,
                                            positionHP + lenHP + 10))
 
       covering <- vapply(msa, function(a, lenHP) {

@@ -1,9 +1,7 @@
-mapInitSR <- function(self, threshold = 0.2, opts = list(), optsname = "",
-                      minBaseQuality = 3, minMapq = 50, maxDepth = 1e4,
-                      minNucleotideDepth = 3, includeDeletions = TRUE,
-                      includeInsertions = TRUE, callInsertions = TRUE,
-                      clip = FALSE, distributeGaps = FALSE, removeError = TRUE,
-                      topx = 0, outdir, force, clean) {
+mapInitSR <- function(self, threshold = 0.2, opts = list(), includeDeletions = TRUE,
+                      includeInsertions = TRUE, callInsertions = TRUE, clip = FALSE,
+                      distributeGaps = FALSE, removeError = TRUE, topx = 0,
+                      outdir, force, clean, ...) {
 
   ## get flags
   forceMapping <- self$getForceMapping()
@@ -16,18 +14,17 @@ mapInitSR <- function(self, threshold = 0.2, opts = list(), optsname = "",
   readtype <- self$getSrdType()
   maptag   <- paste(mapLabel, paste(litArrows(c(allele, readtype,
                                                 self$getSrMapper(),
-                                                optstring(opts, optsname))),
+                                                optstring(opts))),
                                     collapse = " "))
 
   flog.info(" Map shortreads to provided reference", name = "info")
   pileup <- mapReads(
     mapFun = self$getSrMapFun(), maptag = maptag, reffile = reffile,
     allele = allele, readfile = self$getShortreads(), readtype = readtype,
-    opts = opts, optsname = optsname, refname = "", minBaseQuality = minBaseQuality,
-    minMapq = minMapq, maxDepth = maxDepth, minNucleotideDepth = minNucleotideDepth,
-    includeDeletions = includeDeletions, includeInsertions = includeInsertions,
-    callInsertions = TRUE, clip = FALSE, distributeGaps = FALSE, removeError = TRUE,
-    topx = 0, outdir = outdir, force = force, clean = clean)
+    opts = opts, refname = "", includeDeletions = includeDeletions,
+    includeInsertions = includeInsertions, callInsertions = TRUE,
+    clip = FALSE, distributeGaps = FALSE, removeError = TRUE,
+    topx = 0, outdir = outdir, force = force, clean = clean, ...) #minMapq = 50)
 
   # ## TODO: maybe bum this?
   # if (filterScores) {
@@ -62,13 +59,12 @@ mapInitSR <- function(self, threshold = 0.2, opts = list(), optsname = "",
   #   samfile <- mapFun(
   #     reffile  = self$getRefPath(),
   #     readfile = readfile,
-  #     allele   = self$getReference(),
   #     readtype = self$getSrdType(),
-  #     opts     = opts,
+  #     allele   = self$getReference(),
   #     refname  = "",
-  #     optsname = optsname,
   #     force    = force,
-  #     outdir   = outdir
+  #     outdir   = outdir,
+  #     opts     = opts,
   #   )
   # }
 
@@ -97,18 +93,17 @@ mapInitSR <- function(self, threshold = 0.2, opts = list(), optsname = "",
     readtype <- self$getSrdType()
     maptag   <- paste(mapLabel, paste0(litArrows(c(conseqName, readtype,
                                                    self$getSrMapper(),
-                                                   optstring(opts, optsname))),
+                                                   optstring(opts))),
                                        collapse = " "))
     flog.info(" Refine microsatellites or repeats by extending the reference", name = "info")
     flog.info(" Remap shortreads to initial consensus from shortreads", name = "info")
     pileup <- mapReads(
       mapFun = self$getSrMapFun(), maptag = maptag, reffile = reffile,
       allele = allele, readfile = self$getShortreads(), readtype = readtype,
-      opts = opts, optsname = optsname, refname = "", minBaseQuality = minBaseQuality,
-      minMapq = minMapq, maxDepth = maxDepth, minNucleotideDepth = minNucleotideDepth,
-      includeDeletions = includeDeletions, includeInsertions = includeInsertions,
-      callInsertions = TRUE, clip = FALSE, distributeGaps = FALSE,
-      removeError = TRUE, topx = 0, outdir = outdir, force = force, clean = clean)
+      opts = opts, refname = "", includeDeletions = includeDeletions,
+      includeInsertions = includeInsertions, callInsertions = TRUE,
+      clip = FALSE, distributeGaps = FALSE, removeError = TRUE, topx = 0,
+      outdir = outdir, force = force, clean = clean, ...) #minMapq = 50)
 
     # Infer initial consensus
     flog.info(" Construct second consensus from shortreads " %<<%
@@ -142,18 +137,17 @@ mapInitSR <- function(self, threshold = 0.2, opts = list(), optsname = "",
   readtype <- self$getSrdType()
   maptag   <- paste(mapLabel, paste0(litArrows(c(allele, readtype,
                                                  self$getSrMapper(),
-                                                 optstring(opts, optsname))),
+                                                 optstring(opts))),
                                      collapse = " "))
 
   flog.info(" Remap shortreads to consensus for SNP calling", name = "info")
   pileup <- mapReads(
     mapFun = self$getSrMapFun(), maptag = maptag, reffile = reffile,
     allele = allele, readfile = self$getShortreads(), readtype = readtype,
-    opts = opts, optsname = optsname, refname = "", minBaseQuality = minBaseQuality,
-    minMapq = minMapq, maxDepth = maxDepth, minNucleotideDepth = minNucleotideDepth,
-    includeDeletions = TRUE, includeInsertions = FALSE, callInsertions = FALSE,
-    clip = FALSE, distributeGaps = FALSE, removeError = TRUE, topx = 0,
-    outdir = outdir, force = force, clean = clean)
+    opts = opts, refname = "", includeDeletions = TRUE,
+    includeInsertions = FALSE, callInsertions = FALSE, clip = FALSE,
+    distributeGaps = FALSE, removeError = TRUE, topx = 0,
+    outdir = outdir, force = force, clean = clean, ...) #minMapq = 50)
 
   mapInitSR2 = structure(
     list(

@@ -5,7 +5,7 @@
 \title{Polish final haplotype sequences.}
 \usage{
 polish(x, threshold = x$getThreshold(), checkHpCount = TRUE,
-  cache = TRUE)
+  cache = TRUE, ...)
 }
 \arguments{
 \item{x}{A \code{\link[=DR2S_]{DR2S}} object.}

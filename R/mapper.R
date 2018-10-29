@@ -1,13 +1,12 @@
 ## Commands for minimap2
 runminimap <- function(reffile,
                        readfile,
-                       allele,
                        readtype,
-                       opts = list(),
+                       allele,
                        refname = "",
-                       optsname = "",
                        force = FALSE,
                        outdir,
+                       opts = list(),
                        cores = "auto",
                        ...) {
   assert_that(.hasCommand("minimap2"))
@@ -17,19 +16,15 @@ runminimap <- function(reffile,
   if (missing(readtype)) {
     readtype <- "illumina"
   }
-  if (!is.null(optsname)) {
-    optsname <- gsub("[[:punct:][:space:]]", "", optstring(opts, optsname))
-  }
   if (cores == "auto") {
     cores <- .getIdleCores()
   }
   assert_that(is.numeric(cores))
   opts <- mergeList(opts, list(t = cores))
 
-  cmd  <- Sys.which("minimap2")
-  args <- .generateMappingCommands(mapper = "minimap", readtype,
-                                   reffile, readfile, allele, opts,
-                                   refname, optsname, outdir = outdir)
+  cmd  <- normalizePath(Sys.which("minimap2"), mustWork = TRUE)
+  args <- .generateMappingCommands("minimap", readtype, reffile, readfile,
+                                   allele, refname, outdir, opts)
   ## Don't execute if file exists and force is false
   if (force || !file.exists(args$outfile)) {
     system2(cmd, args$args)
@@ -50,13 +45,12 @@ minimapCmd <- function(paths, opts) {
 ## Commands for bwamem
 runbwamem <- function(reffile,
                       readfile,
-                      allele,
                       readtype,
-                      opts = list(),
+                      allele,
                       refname = "",
-                      optsname = "",
                       force = FALSE,
                       outdir,
+                      opts = list(),
                       cores = "auto",
                       ...) {
   assert_that(.hasCommand("bwa"))
@@ -65,9 +59,6 @@ runbwamem <- function(reffile,
   }
   if (missing(readtype)) {
     readtype <- "illumina"
-  }
-  if (!is.null(optsname)) {
-    optsname <- gsub("[[:punct:][:space:]]", "", optstring(opts, optsname))
   }
   if (cores == "auto") {
     cores <- .getIdleCores()
@@ -81,10 +72,9 @@ runbwamem <- function(reffile,
   # refname <- "n"
   # outdir <- self$getOutdir()
 
-  cmd <- normalizePath(Sys.which("bwa"), mustWork = TRUE)
+  cmd  <- normalizePath(Sys.which("bwa"), mustWork = TRUE)
   args <- .generateMappingCommands("bwamem", readtype, reffile, readfile,
-                                   allele, opts, refname, optsname,
-                                   outdir = outdir)
+                                   allele, refname, outdir, opts)
   ## Don't execute if file exists and force is false
   if (force || !file.exists(args$outfile)) {
     system2(cmd, args$args$idx)
@@ -97,7 +87,7 @@ runbwamem <- function(reffile,
   .fileDeleteIfExists(args$reffile %<<% ".fai")
   .fileDeleteIfExists(args$reffile %<<% ".pac")
   .fileDeleteIfExists(args$reffile %<<% ".sa")
-
+  ##
   args$outfile
 }
 
@@ -118,8 +108,7 @@ bwamemCmd <- function(paths, opts) {
 
 .makeOpts <- function(opts) {
   opts[vapply(opts, isTRUE, FALSE)] <- ""
-  gsub("\\s+", " ", paste0(sprintf("-%s %s", names(opts), opts),
-                           collapse = " "))
+  gsub("\\s+", " ", paste0(sprintf("-%s %s", names(opts), opts), collapse = " "))
 }
 
 .generateMappingCommands <- function(mapper,
@@ -127,23 +116,20 @@ bwamemCmd <- function(paths, opts) {
                                      reffile,
                                      readfile,
                                      allele,
-                                     opts = list(),
                                      refname = "",
-                                     optsname = "",
-                                     outdir = "./output") {
+                                     outdir = "./output",
+                                     opts = list()) {
   mapper   <- match.arg(mapper, c("minimap", "bwamem"))
   readtype <- match.arg(readtype, c("pacbio", "nanopore", "illumina"))
   mapfun   <- match.fun(mapper %<<% "Cmd")
   outdir   <- .dirCreateIfNotExists(outdir)
-
-  reffile <- normalizePath(reffile, mustWork = TRUE)
-  ref <- file.path(outdir, basename(reffile))
+  reffile  <- normalizePath(reffile, mustWork = TRUE)
+  ref      <- file.path(outdir, basename(reffile))
   if (reffile != ref) {
     stopifnot(file.copy(reffile, ref, overwrite = TRUE))
   }
-
-  reads <- paste0(wrap(normalizePath(readfile, mustWork = TRUE), "'"),
-                  collapse = " ")
+  optsname <- optstring(opts)
+  reads <- paste0(wrap(normalizePath(readfile, mustWork = TRUE), "'"), collapse = " ")
 
   if (mapper == "bwamem") {
     opts <- compact(mergeList(opts, list(
@@ -271,8 +257,7 @@ bwamemCmd <- function(paths, opts) {
   ## reffile and outfile format
   ## [prefix.]allele.readtype.mapper.[refname.][optsname.][suffix.]ext
   # workaround for these damn windows filename conventions
-  alleleNm  <- gsub("[*]", "_",
-                    gsub("[:]", "_", paste0(allele, collapse = "~")))
+  alleleNm  <- gsub("[*]", "_", gsub("[:]", "_", paste0(allele, collapse = "~")))
   allelename <- sprintf("%s%s.%s.", alleleNm %<<% ".", readtype, mapper)
   refname <- if (nzchar(refname)) refname %<<% "." else ""
   optsname <- if (nzchar(optsname)) optsname %<<% "." else ""
@@ -286,7 +271,7 @@ bwamemCmd <- function(paths, opts) {
   )
 
   list(
-    args      = mapfun(paths, opts),
+    args     = mapfun(paths, opts),
     reffile  = paths$reffile,
     readfile = paths$readfile,
     outfile  = paths$outfile

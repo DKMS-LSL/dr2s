@@ -5,7 +5,7 @@
 \title{Get a score for each shortread in a bam file on specific positions.
 Scores based on a consensus matrix of longreads.}
 \usage{
-getSRPartitionScores(refname, bamfile, mats)
+getSRPartitionScores(bamfile, mats)
 }
 \arguments{
 \item{bamfile}{BAM file path.}

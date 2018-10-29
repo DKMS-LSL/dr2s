@@ -27,6 +27,7 @@ Pileup_ <- function(...) {
 #' @param readtype <\code{character}>; one of "illumina", "pacbio", or "nanopore".
 #' @param ... Additional parameters passed to \code{\link[Rsamtools]{PileupParam}}.
 #' @inheritParams Rsamtools::PileupParam
+#' @param pParam A \code{\link[Rsamtools]{PileupParam}} object.
 #'
 #' @details
 #' Returns a \code{pileup} object:
@@ -59,30 +60,27 @@ Pileup_ <- function(...) {
 pileup <- function(bamfile,
                    reffile,
                    readtype,
-                   ...) {
+                   ...,
+                   pParam) {
   bamfile <- normalizePath(bamfile, mustWork = TRUE)
   reffile <- normalizePath(reffile, mustWork = TRUE)
-  ## Debug
-  # param <- list(
-  #   max_depth = maxDepth,
-  #   min_base_quality = minBaseQuality,
-  #   min_mapq = minMapq,
-  #   min_nucleotide_depth = minNucleotideDepth,
-  #   include_deletions = includeDeletions,
-  #   include_insertions = includeInsertions
-  # )
-  ##
-  param <- list(...)
-  if (is.null(param$distinguish_strands))
-      param$distinguish_strands <- FALSE
 
-  bfl <- Rsamtools::BamFile(bamfile)
-  if (Rsamtools::idxstatsBam(bfl)$mapped == 0) {
+  if (missing(pParam)) {
+    param <- list(...)
+    if (is.null(param$distinguish_strands))
+      param$distinguish_strands <- FALSE
+    pParam <- do.call(Rsamtools::PileupParam, param)
+  }
+  assert_that(is(pParam, "PileupParam"))
+
+  bam <- Rsamtools::BamFile(bamfile)
+  Rsamtools::open.BamFile(bam)
+  on.exit(Rsamtools::close.BamFile(bam))
+  if (Rsamtools::idxstatsBam(bam)$mapped == 0) {
     flog.info("No reads maps to the reference", name = "info")
     stop("No reads maps to the reference")
   }
 
-  pParam <- do.call(Rsamtools::PileupParam, param)
   sParam <- Rsamtools::ScanBamParam(
     flag = Rsamtools::scanBamFlag(
       isUnmappedQuery = FALSE,
@@ -91,11 +89,10 @@ pileup <- function(bamfile,
     which = IRanges::IRangesList()
   )
   pileup <- tibble::as_tibble(Rsamtools::pileup(
-    file = bfl,
+    file = bam,
     scanBamParam = sParam,
     pileupParam = pParam))
-  refname <- GenomeInfoDb::seqnames(Rsamtools::seqinfo(bfl))
-
+  refname <- GenomeInfoDb::seqnames(Rsamtools::seqinfo(bam))
   Pileup_(bamfile = bamfile, reffile = reffile, refname = refname,
           readtype = readtype, param = pParam, pileup = pileup)
 }
@@ -291,20 +288,20 @@ reads.pileup <- function(x, ..) {
     Rsamtools::open.BamFile(bamfile)
     on.exit(Rsamtools::close.BamFile(bamfile))
   }
-  myParam <- if (is.null(region)) {
+  if (is.null(region)) {
     baminfo <- Rsamtools::seqinfo(bamfile)
-    GenomicRanges::GRanges(
+    myParam <- GenomicRanges::GRanges(
       seqnames = GenomeInfoDb::seqnames(baminfo),
       ranges = IRanges::IRanges(start = 1L, end = GenomeInfoDb::seqlengths(baminfo)))
-  } else if (is(region, "Granges")) {
-    region
+  } else if (is(region, "GRanges")) {
+    myParam <- region
   } else {
     assert_that(grepl(pattern = "^[[:alnum:]_\\*#:\\.\\-]+:\\d+-\\d+", region))
     m <- regexpr("(?<seqname>^[[:alnum:]_\\*#:\\.\\-]+):(?<start>\\d+)-(?<end>\\d+)",
                  region, perl = TRUE)
     starts <- attr(m, "capture.start")
     ends   <- starts + attr(m, "capture.length") - 1
-    GenomicRanges::GRanges(
+    myParam <- GenomicRanges::GRanges(
       seqnames = substr(region, starts[, "seqname"],  ends[, "seqname"]),
       ranges = IRanges::IRanges(
         start = as.integer(substr(region, starts[, "start"],  ends[, "start"])),

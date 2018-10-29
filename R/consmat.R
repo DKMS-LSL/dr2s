@@ -267,8 +267,6 @@ createPWM <- function(msa){
   if (removeError) {
     gapError <- .getGapErrorBackground(mat, n = 5)
   }
-  bfl <- Rsamtools::BamFile(bamfile)
-  Rsamtools::open.BamFile(bfl)
   ## Collect changed matrix elements
   ## TODO: bplapply throws warning in serialize(data, node$con, xdr = FALSE)
   ## 'package:stats' may not be available when loading
@@ -276,9 +274,9 @@ createPWM <- function(msa){
   workers <- minimum(sum(idx <- seq$length > 5), .getIdleCores())
   bpparam <- BiocParallel::MulticoreParam(workers = workers, log = FALSE)
   changeMat <- suppressWarnings(BiocParallel::bplapply(which(idx), function(i, bamfile) {
-    #i <- which(seq$length > 5)[1]
+    #  i <- which(seq$length > 5)[2]
     ## Assign new gap numbers to each position starting from left
-    # meanCoverage <- mean(rowSums(mat[seqStart:seqEnd,1:4]))
+    #  meanCoverage <- mean(rowSums(mat[(seqStart-2):(seqEnd+2),1:4]))
     seqStart <- sum(seq$lengths[seq_len(i - 1)]) + 1
     seqEnd   <- seqStart + seq$lengths[i] - 1
     region   <- GenomicRanges::GRanges(
@@ -341,14 +339,12 @@ createPWM <- function(msa){
           , VALID_DNA(include = "indel")]
       )
     }
-  }, bamfile = bfl, BPPARAM = bpparam))
+  }, bamfile = Rsamtools::BamFile(bamfile), BPPARAM = bpparam))
   ##
-  Rsamtools::close.BamFile(bfl)
   ## Change the matrix
   for (i in changeMat) {
     mat[i$seqStart:i$seqEnd, ] <- i$mat
   }
-
   mat
 }
 

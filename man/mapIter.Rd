@@ -4,9 +4,8 @@
 \alias{mapIter}
 \title{Iterative mapping.}
 \usage{
-mapIter(x, opts = list(), iterations = 1, minBaseQuality = 3,
-  minMapq = 0, maxDepth = 10000, minNucleotideDepth = 3,
-  gapSuppressionRatio = 2/5, force = FALSE, plot = TRUE)
+mapIter(x, opts = list(), iterations = 1, gapSuppressionRatio = 2/5,
+  force = FALSE, plot = TRUE, ...)
 }
 \arguments{
 \item{x}{A \code{\link[=DR2S_]{DR2S}} object.}
@@ -16,18 +15,6 @@ mapIter(x, opts = list(), iterations = 1, minBaseQuality = 3,
 \item{iterations}{Number of iterations. How often are the clustered reads
 remapped to the updated reference.}
 
-\item{minBaseQuality}{Minimum \sQuote{QUAL} value for each nucleotide in an
-alignment.}
-
-\item{minMapq}{Minimum \sQuote{MAPQ} value for an alignment to be included
-in pileup.}
-
-\item{maxDepth}{Maximum number of overlapping alignments considered for
-each position in the pileup.}
-
-\item{minNucleotideDepth}{Minimum count of each nucleotide at a given
-position required for that nucleotide to appear in the result.}
-
 \item{gapSuppressionRatio}{The ratio of base/gap above which gaps at
 insertion position are excluded from from consensus calling.}
 
@@ -35,7 +22,7 @@ insertion position are excluded from from consensus calling.}
 
 \item{plot}{Plot diagnostics.}
 
-\item{...}{Further arguments passed to methods.}
+\item{...}{Additional parameters passed to \code{\link[Rsamtools]{PileupParam}}.}
 }
 \value{
 A \code{\link[=DR2S_]{DR2S}} object.

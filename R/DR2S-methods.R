@@ -2,75 +2,55 @@
 #' @export
 mapInit.DR2S <- function(x,
                          opts = list(),
-                         optsname = "",
                          threshold = NULL,
-                         minBaseQuality = 3,
-                         minMapq = 50,
-                         maxDepth = 1e4,
-                         minNucleotideDepth = 3,
                          includeDeletions = TRUE,
                          includeInsertions = TRUE,
                          microsatellite = FALSE,
-                         force = FALSE,
                          filterScores = TRUE,
                          forceMapping = FALSE,
                          topx = 0,
                          createIgv = TRUE,
-                         plot = TRUE) {
+                         force = FALSE,
+                         plot = TRUE,
+                         ...) {
   x$runMapInit(opts = opts,
-               optsname = optsname,
                threshold = threshold,
-               minBaseQuality = minBaseQuality,
-               minMapq = minMapq,
-               maxDepth = maxDepth,
-               minNucleotideDepth = minNucleotideDepth,
                includeDeletions = includeDeletions,
                includeInsertions = includeInsertions,
                microsatellite = microsatellite,
-               force = force,
                filterScores = filterScores,
                forceMapping = forceMapping,
                topx = topx,
                createIgv = createIgv,
-               plot = plot)
+               force = force,
+               plot = plot,
+               ...)
   invisible(x)
 }
 
 DR2S_$set("public", "runMapInit", function(opts = list(),
-                                           optsname = "",
                                            threshold = NULL,
-                                           minBaseQuality = 3,
-                                           minMapq = 50,
-                                           maxDepth = 1e4,
-                                           minNucleotideDepth = 3,
                                            includeDeletions = TRUE,
                                            includeInsertions = TRUE,
                                            microsatellite = FALSE,
-                                           force = FALSE,
                                            filterScores = TRUE,
                                            forceMapping = FALSE,
                                            topx = 0,
                                            createIgv = TRUE,
-                                           plot = TRUE) {
-
-  flog.info("Step 0: mapInit ...", name = "info")
-
+                                           force = FALSE,
+                                           plot = TRUE,
+                                           ...) {
   # # debug
   # opts = list()
-  # optsname = ""
   # threshold = NULL
-  # minBaseQuality = 3
-  # minMapq = 50
-  # maxDepth = 1e4
-  # minNucleotideDepth = 3
   # includeDeletions = TRUE
   # includeInsertions = TRUE
   # microsatellite = FALSE
-  # force = FALSE
   # filterScores = TRUE
   # forceMapping = FALSE
   # topx = 0
   # createIgv = TRUE
+  # force = FALSE
   # plot = TRUE
   # library(assertthat)
   # library(ggplot2)
@@ -81,6 +61,8 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
   # library(cowplot)
   # self <-dr2s
   # self <- mapper
+
+  flog.info("Step 0: mapInit ...", name = "info")
 
   ## Collect starttime for mapInit runstats
   start.time <- Sys.time()
@@ -97,19 +79,17 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
 
   ## Get options and prepare mapping
   outdir <- .dirCreateIfNotExists(self$absPath("mapInit"))
-  .dirCreateIfNotExists(path = file.path(self$absPath(".plots")))
+  .dirCreateIfNotExists(file.path(self$absPath(".plots")))
   clean  <- TRUE
   igv    <- list()
   SR     <- list()
 
   if (self$hasShortreads()) {
     SR <- mapInitSR(
-      self = self, threshold = threshold, opts = opts, optsname = optsname,
-      minBaseQuality = minBaseQuality, minMapq = minMapq, maxDepth = maxDepth,
-      minNucleotideDepth = minNucleotideDepth, includeDeletions = includeDeletions,
-      includeInsertions = includeInsertions, callInsertions = TRUE,
-      clip = FALSE, distributeGaps = FALSE, removeError = TRUE,
-      topx = 0, outdir = outdir, force = force, clean = clean)
+      self = self, threshold = threshold, opts = opts, includeDeletions = includeDeletions,
+      includeInsertions = includeInsertions, callInsertions = TRUE, clip = FALSE,
+      distributeGaps = FALSE, removeError = TRUE, topx = 0, outdir = outdir,
+      force = force, clean = clean, minMapq = 50, ...)
 
     ### TODO wrap this command up
     if (createIgv)
@@ -135,16 +115,15 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
     mapFun   <- self$getLrMapFun()
     maptag   <- paste(mapLabel, paste0(litArrows(c(allele, readtype,
                                                    self$getLrMapper(),
-                                                   optstring(opts, optsname))),
+                                                   optstring(opts))),
                                        collapse = " "))
     pileup <- mapReads(
       mapFun = mapFun, maptag = maptag, reffile = reffile,
       allele = allele, readfile = readfile, readtype = readtype, opts = opts,
-      optsname = optsname, refname = "", minBaseQuality = minBaseQuality,
-      minMapq = minMapq, maxDepth = maxDepth, minNucleotideDepth = minNucleotideDepth,
-      includeDeletions = TRUE, includeInsertions = TRUE, callInsertions = TRUE,
-      clip = FALSE, distributeGaps = TRUE, removeError = TRUE, topx = topx,
-      outdir = outdir, force = force , clean = clean)
+      refname = "",  includeDeletions = TRUE, includeInsertions = TRUE,
+      callInsertions = TRUE, clip = FALSE, distributeGaps = TRUE,
+      removeError = TRUE, topx = topx, outdir = outdir, force = force,
+      clean = clean, ...)
 
     if (!is.null(reads(pileup))) {
       file <- paste(
@@ -160,7 +139,7 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
     allele <- "Init.LRconsensus." %<<% sub(".bam", "", basename(path(pileup)))
     maptag <- paste(mapLabel, paste0(litArrows(c(allele, readtype,
                                                  self$getLrMapper(),
-                                                 optstring(opts, optsname))),
+                                                 optstring(opts))),
                                      collapse = " "))
     self$setRefPath(file.path(basename(outdir), allele %<<% ".fa"))
     reffile <- self$getRefPath()
@@ -175,16 +154,15 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
   mapFun   <- self$getLrMapFun()
   maptag   <- paste(mapLabel, paste0(litArrows(c(allele, readtype,
                                                  self$getLrMapper(),
-                                                 optstring(opts, optsname))),
+                                                 optstring(opts))),
                                      collapse = " "))
   pileup <- mapReads(
     mapFun = mapFun, maptag = maptag, reffile = reffile,
     allele = allele, readfile = readfile, readtype = readtype, opts = opts,
-    optsname = optsname, refname = "", minBaseQuality = minBaseQuality,
-    minMapq = minMapq, maxDepth = maxDepth, minNucleotideDepth = minNucleotideDepth,
-    includeDeletions = TRUE, includeInsertions = FALSE, callInsertions = FALSE,
-    clip = FALSE, distributeGaps = TRUE, removeError = TRUE, topx = topx,
-    outdir = outdir, force = force , clean = clean)
+    refname = "", includeDeletions = TRUE, includeInsertions = FALSE,
+    callInsertions = FALSE, clip = FALSE, distributeGaps = TRUE,
+    removeError = TRUE, topx = topx, outdir = outdir, force = force,
+    clean = clean, ...)
 
   if (createIgv)
     igv[["LR"]] <- createIgvJsFiles(
@@ -625,22 +603,16 @@ DR2S_$set(
 mapIter.DR2S <- function(x,
                          opts = list(),
                          iterations = 1,
-                         minBaseQuality = 3,
-                         minMapq = 0,
-                         maxDepth = 1e4,
-                         minNucleotideDepth = 3,
                          gapSuppressionRatio = 2/5,
                          force = FALSE,
-                         plot = TRUE) {
+                         plot = TRUE,
+                         ...) {
   x$runMapIter(opts = opts,
                iterations = iterations,
-               minBaseQuality = minBaseQuality,
-               minMapq = minMapq,
-               maxDepth = maxDepth,
-               minNucleotideDepth = minNucleotideDepth,
                gapSuppressionRatio = gapSuppressionRatio,
                force = force,
-               plot = plot)
+               plot = plot,
+               ...)
   return(invisible(x))
 }
 
@@ -648,22 +620,15 @@ DR2S_$set(
   "public", "runMapIter",
   function(opts = list(),
            iterations = 1,
-           minBaseQuality = 3,
-           minMapq = 0,
-           maxDepth = 1e4,
-           minNucleotideDepth = 3,
            gapSuppressionRatio = 2/5,
            force = FALSE,
-           plot = TRUE) {
+           plot = TRUE,
+           ...) {
 
     # # debug
     # self <- dr2s
     # opts = list()
-    # iterations = 1
-    # minBaseQuality = 3
-    # minMapq = 0
-    # maxDepth = 1e4
-    # minNucleotideDepth = 3
+    # iterations = 2
     # gapSuppressionRatio = 2/5
     # force = FALSE
     # plot = TRUE
@@ -689,26 +654,26 @@ DR2S_$set(
     hptypes <- self$getHapTypes()
     iterations <- self$getIterations()
     baseoutdir <- self$absPath("mapIter")
-    includeInsertions = ifelse(self$hasShortreads(), FALSE, TRUE)
-    callInsertions = ifelse(self$hasShortreads(), FALSE, TRUE)
+    includeInsertions <- ifelse(self$hasShortreads(), FALSE, TRUE)
+    callInsertions <- ifelse(self$hasShortreads(), FALSE, TRUE)
 
     ## Mapper
     mapFun <- self$getLrMapFun()
 
+    # iteration <- 1
     for (iteration in seq_len(iterations)) {
       flog.info(" Iteration %s of %s", iteration, iterations, name = "info")
 
       iterationC <- toString(iteration)
       prevIteration <- self$mapIter[[toString(iteration - 1)]]
 
+      # hptype = "A"
       foreach(hptype = hptypes) %do% {
         reffile  <- self$absPath(prevIteration[[hptype]]$seqpath)
-        refseq   <- prevIteration[[hptype]]$conseq
         readfile <- self$absPath(prevIteration[[hptype]]$reads)
         readtype <- self$getLrdType()
         allele   <- "mapIter" %<<% iterationC
-        optsname <- sprintf("%s", hptype)
-        refname  <- prevIteration[[hptype]]$ref
+        refname  <- sprintf("%s.%s", prevIteration[[hptype]]$ref, hptype)
         outdir   <- file.path(baseoutdir, hptype)
         mapLabel <- "mapIter"
         maptag   <- paste(mapLabel,
@@ -719,13 +684,12 @@ DR2S_$set(
                   name = "info")
 
         pileup <- mapReads(
-          mapFun = mapFun, maptag = maptag, reffile = reffile,
-          allele = allele, readfile = readfile, readtype = readtype, opts = opts,
-          optsname = optsname, refname = refname, minBaseQuality = minBaseQuality,
-          minMapq = minMapq, maxDepth = maxDepth, minNucleotideDepth = minNucleotideDepth,
+          mapFun = mapFun, maptag = maptag, reffile = reffile, allele = allele,
+          readfile = readfile, readtype = readtype, opts = opts, refname = refname,
           includeDeletions = TRUE, includeInsertions = includeInsertions,
           callInsertions = callInsertions, clip = FALSE, distributeGaps = TRUE,
-          removeError = TRUE, topx = 0, outdir = outdir, force = force, clean = clean)
+          removeError = TRUE, topx = 0, outdir = outdir, force = force,
+          clean = clean, ...)
 
         # ## Construct consensus sequence
         flog.info("   Constructing consensus ...", name = "info")
@@ -754,7 +718,6 @@ DR2S_$set(
           ),
           class = c("mapIter", "list")
         )
-
       }
     }
 
@@ -812,15 +775,10 @@ partitionShortReads.DR2S <- function(x,
 # TODO: look at arguments and make same
 DR2S_$set("public", "runPartitionShortReads", function(opts = list(),
                                                        force = FALSE,
-                                                       optsname = "",
-                                                       minMapq = 0,
                                                        ...) {
-
   ## debug
   # opts = list()
   # force = FALSE
-  # optsname = ""
-  # minMapq = 0
 
   ## Collect start time for partitionShortReads runstats
   start.time <- Sys.time()
@@ -834,8 +792,7 @@ DR2S_$set("public", "runPartitionShortReads", function(opts = list(),
 
   ## exit savely if initial SR mapping not performed
   if (is.null(self$mapInit$SR2)) {
-    flog.warn(" Cannot partition shortreads. Run 'mapInit()' first",
-              name = "info")
+    flog.warn(" Cannot partition shortreads. Run 'mapInit()' first", name = "info")
     return(invisible(self))
   }
 
@@ -844,7 +801,7 @@ DR2S_$set("public", "runPartitionShortReads", function(opts = list(),
 
   flog.info("Step 3: PartitionShortReads ...", name = "info")
   flog.info(" Partition shortreads based on initial mapping and " %<<%
-              "longread clustering", name = "info")
+            "longread clustering", name = "info")
 
   ## Overide default arguments
   args <- self$getOpts("partitionSR")
@@ -857,7 +814,7 @@ DR2S_$set("public", "runPartitionShortReads", function(opts = list(),
   hptypes <- self$getHapTypes()
   prtMat  <- self$partition$mat
   seqs <- lapply(self$partition$hpl, function(x) .getSeqsFromMat(
-    as.matrix(prtMat[x,])))
+    as.matrix(prtMat[x, ])))
 
   mats <- lapply(seqs, function(x, names) {
     magrittr::set_colnames(createPWM(x), names)
@@ -907,61 +864,48 @@ DR2S_$set("public", "runPartitionShortReads", function(opts = list(),
 #' @export
 mapFinal.DR2S <- function(x,
                           opts = list(),
-                          minBaseQuality = 3,
-                          minMapq = 50,
-                          maxDepth = 1e5,
-                          minNucleotideDepth = 3,
                           includeDeletions = TRUE,
                           includeInsertions = TRUE,
                           force = FALSE,
                           plot = TRUE,
                           createIgv = TRUE,
-                          clip = FALSE) {
+                          clip = FALSE,
+                          ...) {
   x$runMapFinal(opts = opts,
-                minBaseQuality = minBaseQuality,
-                minMapq = minMapq,
-                maxDepth = maxDepth,
-                minNucleotideDepth = minNucleotideDepth,
                 includeDeletions = includeDeletions,
                 includeInsertions = includeInsertions,
                 force = force,
                 plot = plot,
                 createIgv = createIgv,
-                clip = clip)
+                clip = clip,
+                ...)
   invisible(x)
 }
+
 DR2S_$set("public", "runMapFinal", function(opts = list(),
-                                            minBaseQuality = 3,
-                                            threshold = NULL,
-                                            minMapq = 50,
-                                            maxDepth = 1e5,
-                                            minNucleotideDepth = 3,
                                             includeDeletions = TRUE,
                                             includeInsertions = TRUE,
                                             force = FALSE,
                                             plot = TRUE,
                                             createIgv = TRUE,
-                                            clip = FALSE) {
+                                            clip = FALSE,
+                                            ...) {
 
   ## debug
   # opts = list()
-  # minBaseQuality = 3
-  # minMapq = 50
-  # maxDepth = 1e5
-  # minNucleotideDepth = 3
   # includeDeletions = TRUE
   # includeInsertions = TRUE
   # force = FALSE
   # plot = TRUE
-  # clip = TRUE
-  # self <- dr2s
+  # createIgv = TRUE
+  # clip = FALSE
   # library(futile.logger)
   # library(foreach)
   # library(rlang)
+  # self <- dr2s
 
   flog.info("Step 4: mapFinal ...", name = "info")
-  flog.info(" Map shortreads and longreads against refined consensus sequences",
-            name = "info")
+  flog.info(" Map shortreads and longreads against refined consensus sequences", name = "info")
 
   ## Collect start time for mapFinal runstats
   start.time <- Sys.time()
@@ -975,12 +919,10 @@ DR2S_$set("public", "runMapFinal", function(opts = list(),
     env  <- environment()
     list2env(args, envir = env)
   }
-  if (is.null(threshold)) {
-    threshold <- self$getThreshold()
-  }
+
 
   ## stop if no shortreads provided
-  if (is.null(self$getConfig("shortreads"))) {
+  if (!self$hasShortreads()) {
     flog.warn(" Cannot run mapFinal. No shortreads provided", name = "info")
     return(invisible(self))
   }
@@ -993,8 +935,8 @@ DR2S_$set("public", "runMapFinal", function(opts = list(),
     self$absPath(lastIter[[x]]$reads), FUN.VALUE = character(1))
   reffiles     <- vapply(hptypes, function(x)
     self$absPath(lastIter[[x]]$seqpath), FUN.VALUE = character(1))
-  refseqs      <- set_names(lapply(hptypes, function(x)
-    lastIter[[x]]$conseq), hptypes)
+  # refseqs      <- set_names(lapply(hptypes, function(x)
+  #   lastIter[[x]]$conseq), hptypes)
   readfilesSR  <- set_names(lapply(hptypes, function(x)
     self$absPath(unlist(self$srpartition[[x]]$SR))), hptypes)
 
@@ -1016,7 +958,7 @@ DR2S_$set("public", "runMapFinal", function(opts = list(),
   for (hptype in hptypes) {
     flog.info(" Run mapFinal for haplotype %s", hptype, name = "info" )
     reffile    <- reffiles[[hptype]]
-    refseq     <- refseqs[[hptype]]
+    #refseq     <- refseqs[[hptype]]
     mapgroupLR <- "LR" %<<% hptype
     readtype   <- self$getLrdType()
     maptagLR   <- paste("mapFinal", mapgroupLR, readtype, self$getLrMapper(),
@@ -1026,17 +968,16 @@ DR2S_$set("public", "runMapFinal", function(opts = list(),
 
     pileup <- mapReads(
       mapFun = self$getLrMapFun(), maptag = maptagLR, reffile = reffile,
-      allele = mapgroupLR, readtype = readtype, readfile = readfileLR,
-      opts = opts, outdir = outdir, minMapq = minMapq, refname = hptype,
-      optsname = optstring(opts), minBaseQuality = minBaseQuality,
-      maxDepth = maxDepth, minNucleotideDepth = minNucleotideDepth,
-      force = force, includeDeletions = includeDeletions, clean = TRUE,
-      includeInsertions = includeInsertions,
-      callInsertions = FALSE, distributeGaps = TRUE)
+      allele = mapgroupLR, readfile = readfileLR, readtype = readtype,
+      opts = opts, refname = hptype, includeDeletions = includeDeletions,
+      includeInsertions = includeInsertions, callInsertions = FALSE,
+      clip = FALSE, distributeGaps = TRUE, removeError = TRUE, topx = 0,
+      outdir = outdir, force = force, clean = TRUE, max_depth = 1e4,
+      min_mapq = 50, ...)
 
     self$mapFinal$bamfile[[mapgroupLR]] = path(pileup)
     if (createIgv)
-      self$mapFinal$igv[[mapgroupLR]] <- createIgvJsFiles(
+      self$mapFinal$igv[[mapgroupLR]] = createIgvJsFiles(
         refpath(pileup), path(pileup), self$getOutdir(), sampleSize = 100,
         fragmentReads = TRUE)
     self$mapFinal$pileup[[mapgroupLR]] = pileup
@@ -1060,26 +1001,26 @@ DR2S_$set("public", "runMapFinal", function(opts = list(),
 
       pileup <- mapReads(
         mapFun = self$getSrMapFun(), maptag = maptagSR, reffile = reffile,
-        readfile = readfiles, allele = mapgroupSR, readtype = readtype,
-        opts = opts, outdir = outdir, minMapq = minMapq,
-        optsname = optstring(opts), minBaseQuality = minBaseQuality + 10,
-        maxDepth = maxDepth, minNucleotideDepth = minNucleotideDepth,
-        force = force, includeDeletions = includeDeletions, clean = TRUE,
-        includeInsertions = includeInsertions,
-        callInsertions = TRUE, distributeGaps = TRUE)
+        allele = mapgroupSR, readfile = readfiles, readtype = readtype,
+        opts = opts, refname = "", includeDeletions = includeDeletions,
+        includeInsertions = includeInsertions, callInsertions = TRUE,
+        clip = FALSE, distributeGaps = TRUE, removeError = TRUE, topx = 0,
+        outdir = outdir, force = force, clean = TRUE,
+        max_depth = 1e5, min_mapq = 50, min_base_quality = 13, ...)
+
       # calc new consensus
       cseq <- conseq(consmat(pileup), name = "mapFinal" %<<% hptype,
                      type = "ambig", threshold = 0.2, excludeGaps = TRUE)
 
-      self$mapFinal$bamfile[[mapgroupSR]] <- self$relPath(path(pileup))
-      if (createIgv)
-        self$mapFinal$igv[[mapgroupSR]] <- createIgvJsFiles(
+      self$mapFinal$bamfile[[mapgroupSR]] = self$relPath(path(pileup))
+      if (createIgv) {
+        self$mapFinal$igv[[mapgroupSR]] = createIgvJsFiles(
           refpath(pileup), path(pileup), self$getOutdir(), sampleSize = 100)
+      }
       self$mapFinal$pileup[[mapgroupSR]] = pileup
       self$mapFinal$tag[[mapgroupSR]] = maptagSR
-      self$mapFinal$seq[[hptype]] <- cseq
+      self$mapFinal$seq[[hptype]] = cseq
     }
-
   }
 
   if (plot) {
@@ -1090,8 +1031,8 @@ DR2S_$set("public", "runMapFinal", function(opts = list(),
       readtypes <- c("LR")
     }
     plotlist <- foreach(readtype = readtypes) %do% {
-      self$plotmapFinalSummary(iteration = "final", readtype = readtype,
-                               thin = 0.25, width = 20)
+      suppressWarnings(self$plotmapFinalSummary(iteration = "final",
+                       readtype = readtype, thin = 0.25, width = 20))
     }
     p <- cowplot::plot_grid(plotlist = plotlist, nrow = 2, labels = readtypes)
     cowplot::save_plot(p, filename = self$absPath("plot.MapFinal.pdf"),

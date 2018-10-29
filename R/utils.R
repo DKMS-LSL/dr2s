@@ -94,10 +94,10 @@ strsplitN <- function(x, split, n, from = "start", collapse = split, ...) {
                  list(x = xs, n = n), NULL))
 }
 
-optstring <- function(opts, ...) {
+optstring <- function(opts) {
+  opts <- list()
   opts[vapply(opts, isTRUE, FALSE)] <- ""
-  paste0(c(sprintf("-%s%s", names(opts), opts), ...), collapse = " ") %|ch|%
-    "default"
+  paste(sprintf("%s%s", names(opts), opts), collapse = "")
 }
 
 compact <- function(x) {
@@ -265,6 +265,18 @@ maximum <- function(n, m) {
   quantile(
     .rowSums(consmat(x), NROW(consmat(x)), NCOL(consmat(x))),
     probs = probs)
+}
+
+.collectPileupParams <- function(...) {
+  dots <- list(...)
+  pParamList <- list(
+    max_depth = dots$max_depth %||% dots$maxDepth %||% 1e4,
+    min_base_quality = dots$min_base_quality %||% dots$minBaseQuality %||% 3,
+    min_mapq = dots$min_mapq %||% dots$minMapq %||% 0,
+    min_nucleotide_depth = dots$min_nucleotide_depth %||% dots$minNucleotideDepth %||% 3,
+    distinguish_strands = dots$distinguish_strands %||% dots$distinguishStrands %||% FALSE
+  )
+  do.call(Rsamtools::PileupParam, pParamList)
 }
 
 editor <- function(x, pos = NULL, useEditor = "xdg-open") {

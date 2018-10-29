@@ -4,33 +4,17 @@
 \alias{mapInit}
 \title{Initial mapping.}
 \usage{
-mapInit(x, opts = list(), optsname = "", threshold = NULL,
-  minBaseQuality = 3, minMapq = 50, maxDepth = 10000,
-  minNucleotideDepth = 3, includeDeletions = TRUE,
+mapInit(x, opts = list(), threshold = NULL, includeDeletions = TRUE,
   includeInsertions = TRUE, microsatellite = FALSE,
   filterScores = TRUE, forceMapping = FALSE, topx = 0,
-  createIgv = TRUE, force = FALSE, plot = TRUE)
+  createIgv = TRUE, force = FALSE, plot = TRUE, ...)
 }
 \arguments{
 \item{x}{A \code{\link[=DR2S_]{DR2S}} object.}
 
 \item{opts}{Mapper options.}
 
-\item{optsname}{Additional text to describe the options used.}
-
 \item{threshold}{Threshold to call a variant.}
-
-\item{minBaseQuality}{Minimum \sQuote{QUAL} value for each nucleotide in an
-alignment.}
-
-\item{minMapq}{Minimum \sQuote{MAPQ} value for an alignment to be included
-in pileup.}
-
-\item{maxDepth}{Maximum number of overlapping alignments considered for
-each position in the pileup.}
-
-\item{minNucleotideDepth}{Minimum count of each nucleotide at a given
-position required for that nucleotide to appear in the result.}
 
 \item{includeDeletions}{If \code{TRUE}, include deletions in pileup.}
 
@@ -46,7 +30,7 @@ quality and removes all softclipping reads. Usually not necessary.}
 \item{forceMapping}{if \code{FALSE} the program throws an error in case the
 coverage of shortreads is too different at different parts of the sequence.}
 
-\item{topx}{Select the best x reads.}
+\item{topx}{Select the x best-scoring reads.}
 
 \item{createIgv}{Subsample for looking with IgvJs in the shiny app.}
 
@@ -54,7 +38,7 @@ coverage of shortreads is too different at different parts of the sequence.}
 
 \item{plot}{Produce diagnostic plots.}
 
-\item{...}{Further arguments passed to methods.}
+\item{...}{Additional parameters passed to \code{\link[Rsamtools]{PileupParam}}.}
 }
 \value{
 A \code{\link[=DR2S_]{DR2S}} object.

@@ -105,16 +105,7 @@ InitDR2S <- function(config, createOutdir = TRUE) {
 #'
 #' @param x A \code{\link[=DR2S_]{DR2S}} object.
 #' @param opts Mapper options.
-#' @param optsname Additional text to describe the options used.
 #' @param threshold Threshold to call a variant.
-#' @param minBaseQuality Minimum \sQuote{QUAL} value for each nucleotide in an
-#' alignment.
-#' @param minMapq Minimum \sQuote{MAPQ} value for an alignment to be included
-#' in pileup.
-#' @param maxDepth Maximum number of overlapping alignments considered for
-#' each position in the pileup.
-#' @param minNucleotideDepth Minimum count of each nucleotide at a given
-#' position required for that nucleotide to appear in the result.
 #' @param includeDeletions If \code{TRUE}, include deletions in pileup.
 #' @param includeInsertions If \code{TRUE}, include insertions in pileup.
 #' @param microsatellite If \code{TRUE} remap the shortreads again to expand
@@ -124,12 +115,12 @@ InitDR2S <- function(config, createOutdir = TRUE) {
 #' quality and removes all softclipping reads. Usually not necessary.
 #' @param forceMapping if \code{FALSE} the program throws an error in case the
 #' coverage of shortreads is too different at different parts of the sequence.
-#' @param topx Select the best x reads.
+#' @param topx Select the x best-scoring reads.
 #' @param createIgv Subsample for looking with IgvJs in the shiny app.
 #' @param force If \code{TRUE}, overwrite existing bam files.
 #' @param plot Produce diagnostic plots.
-#' @param ... Further arguments passed to methods.
-#'
+#' @param ... Additional parameters passed to \code{\link[Rsamtools]{PileupParam}}.
+#' @inheritParams Rsamtools::PileupParam
 #' @return A \code{\link[=DR2S_]{DR2S}} object.
 #' @family DR2S mapper functions
 #' @export
@@ -152,12 +143,7 @@ InitDR2S <- function(config, createOutdir = TRUE) {
 #' }
 mapInit <- function(x,
                     opts = list(),
-                    optsname = "",
                     threshold = NULL,
-                    minBaseQuality = 3,
-                    minMapq = 50,
-                    maxDepth = 1e4,
-                    minNucleotideDepth = 3,
                     includeDeletions = TRUE,
                     includeInsertions = TRUE,
                     microsatellite = FALSE,
@@ -166,7 +152,8 @@ mapInit <- function(x,
                     topx = 0,
                     createIgv = TRUE,
                     force = FALSE,
-                    plot = TRUE) {
+                    plot = TRUE,
+                    ...) {
   UseMethod("mapInit")
 }
 
@@ -180,20 +167,12 @@ mapInit <- function(x,
 #' @param opts Mapper options.
 #' @param iterations Number of iterations. How often are the clustered reads
 #' remapped to the updated reference.
-#' @param minBaseQuality Minimum \sQuote{QUAL} value for each nucleotide in an
-#' alignment.
-#' @param minMapq Minimum \sQuote{MAPQ} value for an alignment to be included
-#' in pileup.
-#' @param maxDepth Maximum number of overlapping alignments considered for
-#' each position in the pileup.
-#' @param minNucleotideDepth Minimum count of each nucleotide at a given
-#' position required for that nucleotide to appear in the result.
 #' @param gapSuppressionRatio The ratio of base/gap above which gaps at
 #' insertion position are excluded from from consensus calling.
 #' @param force If \code{TRUE}, overwrite existing bam file.
 #' @param plot Plot diagnostics.
-#' @param ... Further arguments passed to methods.
-#'
+#' @param ... Additional parameters passed to \code{\link[Rsamtools]{PileupParam}}.
+#' @inheritParams Rsamtools::PileupParam
 #' @return A \code{\link[=DR2S_]{DR2S}} object.
 #' @family DR2S mapper functions
 #' @export
@@ -217,13 +196,10 @@ mapInit <- function(x,
 mapIter <- function(x,
                     opts = list(),
                     iterations = 1,
-                    minBaseQuality = 3,
-                    minMapq = 0,
-                    maxDepth = 1e4,
-                    minNucleotideDepth = 3,
                     gapSuppressionRatio = 2/5,
                     force = FALSE,
-                    plot = TRUE) {
+                    plot = TRUE,
+                    ...) {
   UseMethod("mapIter")
 }
 
@@ -235,14 +211,6 @@ mapIter <- function(x,
 #'
 #' @param x A \code{\link[=DR2S_]{DR2S}} object.
 #' @param opts Mapper options.
-#' @param minBaseQuality Minimum \sQuote{QUAL} value for each nucleotide in an
-#' alignment.
-#' @param minMapq Minimum \sQuote{MAPQ} value for an alignment to be included
-#' in pileup.
-#' @param maxDepth Maximum number of overlapping alignments considered for
-#' each position in the pileup.
-#' @param minNucleotideDepth Minimum count of each nucleotide at a given
-#' position required for that nucleotide to appear in the result.
 #' @param includeDeletions If \code{TRUE}, include deletions in pileup.
 #' @param includeInsertions If \code{TRUE}, include insertions in pileup.
 #' from bam files for
@@ -251,8 +219,8 @@ mapIter <- function(x,
 #' @param force If \code{TRUE}, overwrite existing bam file.
 #' @param createIgv Subsample for looking with IgvJs in the shiny app.
 #' @param plot Plot diagnostics.
-#' @param ... Further arguments passed to methods.
-#'
+#' @param ... Additional parameters passed to \code{\link[Rsamtools]{PileupParam}}.
+#' @inheritParams Rsamtools::PileupParam
 #' @return A \code{\link[=DR2S_]{DR2S}} object.
 #' @family DR2S mapper functions
 #' @export
@@ -275,16 +243,13 @@ mapIter <- function(x,
 #' }
 mapFinal <- function(x,
                      opts = list(),
-                     minBaseQuality = 7,
-                     minMapq = 0,
-                     maxDepth = 1e5,
-                     minNucleotideDepth = 3,
                      includeDeletions = TRUE,
                      includeInsertions = TRUE,
                      clip = TRUE,
                      force = FALSE,
                      createIgv = TRUE,
-                     plot = TRUE) {
+                     plot = TRUE,
+                     ...) {
   UseMethod("mapFinal")
 }
 
@@ -308,7 +273,6 @@ mapFinal <- function(x,
 #' with the most reads as the true alleles.
 #' @param plot Plot
 #' @param ... Further arguments passed to methods.
-#'
 #' @return A \code{\link[=DR2S_]{DR2S}} object.
 #' @family DR2S mapper functions
 #' @export
@@ -346,7 +310,6 @@ partitionLongReads <- function(x,
 #' @param opts list with options passed to the mapper.
 #' @param force force the creation of new fastq files if they already exist.
 #' @param ... Further arguments passed to methods.
-#'
 #' @return A \code{\link[=DR2S_]{DR2S}} object.
 #' @family DR2S partition functions
 #' @export
@@ -388,7 +351,6 @@ partitionShortReads <- function(x,
 #' @param cache Cache the updated \code{DR2S} object after assembling the
 #' haplotypes.
 #' @param ... Additional arguments passed to methods.
-#'
 #' @return A \code{\link[=DR2S_]{DR2S}} object with the \code{consensus} field
 #' populated.
 #' @family DR2S mapper functions
@@ -413,7 +375,8 @@ partitionShortReads <- function(x,
 polish <- function(x,
                    threshold = x$getThreshold(),
                    checkHpCount = TRUE,
-                   cache = TRUE) {
+                   cache = TRUE,
+                   ...) {
   UseMethod("polish")
 }
 

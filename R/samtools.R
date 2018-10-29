@@ -11,12 +11,12 @@
   assert_that(is.numeric(threads))
   samfile <- normalizePath(samfile, mustWork = TRUE)
   reffile <- normalizePath(reffile, mustWork = TRUE)
-  # ext <- sprintf("%s.sorted",
-  #                if (minMapq > 0)
-  #                  minMapq %<<% "MAPQ"
-  #                else
-  #                  "")
-  ext <- ".sorted"
+  ext <- sprintf("%s.sorted",
+                 if (minMapq > 0)
+                   ".MAPQ" %<<% minMapq
+                 else
+                   "")
+  #ext <- ".sorted"
   samtoolsPath <- Sys.which("samtools")
   sorted <- sub("\\.sam(\\.gz)?", paste(ext, "bam", sep = "."), samfile)
   if (nzchar(samtoolsPath)) {
@@ -46,7 +46,7 @@
       flag = flag,
       what = scanBamWhat())
     sorted <- filterBam(file = bamfile, dest = sorted,
-                      param = param, filter = filter)
+                        param = param, filter = filter)
     ## Index the bam
     indexBam(sorted)
   }
@@ -78,6 +78,8 @@ subSampleBam <- function(bamfile, windowSize = NULL, sampleSize = 100,
     endsWith(bamfile, ".bam"),
     is.numeric(sampleSize))
   bam <- BamFile(bamfile)
+  Rsamtools::open.BamFile(bam)
+  on.exit(Rsamtools::close.BamFile(bam))
 
   ## Get everything from the bamfile if nothing else is specified
   if (is.null(what))

@@ -4,27 +4,14 @@
 \alias{mapFinal}
 \title{Final mapping (long reads and short reads).}
 \usage{
-mapFinal(x, opts = list(), minBaseQuality = 7, minMapq = 0,
-  maxDepth = 100000, minNucleotideDepth = 3, includeDeletions = TRUE,
+mapFinal(x, opts = list(), includeDeletions = TRUE,
   includeInsertions = TRUE, clip = TRUE, force = FALSE,
-  createIgv = TRUE, plot = TRUE)
+  createIgv = TRUE, plot = TRUE, ...)
 }
 \arguments{
 \item{x}{A \code{\link[=DR2S_]{DR2S}} object.}
 
 \item{opts}{Mapper options.}
-
-\item{minBaseQuality}{Minimum \sQuote{QUAL} value for each nucleotide in an
-alignment.}
-
-\item{minMapq}{Minimum \sQuote{MAPQ} value for an alignment to be included
-in pileup.}
-
-\item{maxDepth}{Maximum number of overlapping alignments considered for
-each position in the pileup.}
-
-\item{minNucleotideDepth}{Minimum count of each nucleotide at a given
-position required for that nucleotide to appear in the result.}
 
 \item{includeDeletions}{If \code{TRUE}, include deletions in pileup.}
 
@@ -40,7 +27,7 @@ from bam files for
 
 \item{plot}{Plot diagnostics.}
 
-\item{...}{Further arguments passed to methods.}
+\item{...}{Additional parameters passed to \code{\link[Rsamtools]{PileupParam}}.}
 }
 \value{
 A \code{\link[=DR2S_]{DR2S}} object.
