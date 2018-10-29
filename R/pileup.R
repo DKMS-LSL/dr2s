@@ -317,10 +317,14 @@ reads.pileup <- function(x, ..) {
 
 .topXReads <- function(bamfile, n = 2000) {
   msa <- .msaFromBam(bamfile)
+  ## there is no point in sampling if
+  if (length(msa) <= n)
+    return(names(msa))
+
   mat <- createPWM(msa)
-  mat["+",] <- 0
+  mat["+", ] <- 0
   bpparam <- BiocParallel::MulticoreParam(workers = .getIdleCores())
-  res <- do.call(dplyr::bind_rows, BiocParallel::bplapply(seq_along(msa),
+  res <- do.call(dplyr::bind_rows, suppressWarnings(BiocParallel::bplapply(seq_along(msa),
     function(s, aln, mat) {
       seq <- as.character(aln[[s]])
       seq <- unlist(strsplit(seq, split = ""))
@@ -328,11 +332,9 @@ reads.pileup <- function(x, ..) {
       ## Make this CPP
       b <- sum(vapply(seq_along(seq), function(x, mat, seq) mat[seq[x], x],
                        mat = mat, seq = seq, FUN.VALUE = numeric(1)))
-      t <- tibble::tibble(read, b/length(seq))
-      names(t) <- c("read", "score")
-      t
-  }, aln = msa, mat = mat, BPPARAM = bpparam))
-  dplyr::arrange(res, dplyr::desc(score))[1:n, ]$read
+      tibble::tibble(read = read, score = b/length(seq))
+  }, aln = msa, mat = mat, BPPARAM = bpparam)))
+  dplyr::top_n(res, n, score)$read
 }
 
 

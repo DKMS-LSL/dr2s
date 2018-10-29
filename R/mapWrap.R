@@ -53,7 +53,8 @@ mapReads <- function(
         what = Rsamtools::scanBamWhat(),
         which = IRanges::IRangesList()),
       use.names = TRUE)
-    rtracklayer::export(alignmentBam[reads], bamfile)
+    if (length(reads) < length(alignmentBam))
+      rtracklayer::export(alignmentBam[reads], bamfile)
   }
 
   ## Calculate pileup from graphmap produced SAM file

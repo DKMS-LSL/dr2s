@@ -105,7 +105,7 @@ polish.DR2S <- function(x,
     rs$cache()
 
   ## set polish runstats
-  .setRunstats(self, "polish",
+  .setRunstats(x, "polish",
                list(Runtime = format(Sys.time() - start.time)))
 
   return(invisible(rs))

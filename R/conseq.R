@@ -248,5 +248,5 @@ conseq.matrix <- function(x,
   Biostrings::writeXStringSet(
     Biostrings::DNAStringSet(gsub("[-+]", "N", conseq)),
     conseqPath)
-  conseq
+  invisible(conseq)
 }

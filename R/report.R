@@ -28,7 +28,7 @@ report.DR2S <- function(x, which, blockWidth = 80, noRemap = FALSE, createIgv = 
       .reportMap_(x, map = "mapFinal", outdir = outdir,
                   blockWidth = blockWidth,
                   noRemap = noRemap, createIgv = createIgv, ...)
-    } else if (all(is(x$mapIter$`0`$A, "mapIter"))) {
+    } else if (is(x$mapIter$`0`$A, "mapIter")) {
       .reportMap_(x, map = "mapIter", outdir = outdir,
                   blockWidth = blockWidth, ...)
     } else
@@ -39,7 +39,7 @@ report.DR2S <- function(x, which, blockWidth = 80, noRemap = FALSE, createIgv = 
   }
 
   ## set report runstats
-  .setRunstats(self, "report",
+  .setRunstats(x, "report",
                list(Runtime = format(Sys.time() - start.time)))
   flog.info("Done", name = "info")
 
@@ -66,16 +66,13 @@ report.DR2S <- function(x, which, blockWidth = 80, noRemap = FALSE, createIgv = 
   for (hptype in x$getHapTypes()) {
     hapFile <- paste(map, hptype, x$getLrdType(), x$getLrMapper(), "unchecked.fa", sep = ".")
     seq <- haps[[hptype]]
-    seqname <- paste(x$getSampleId(), sub("^hap", "", names(seq)), sep = "_")
+    seqname <- paste(x$getSampleId(), hptype, sep = "_")
     sampleDetails <- x$getSampleDetails()
     names(seq) <-  paste(seqname,
-                         paste("haplotype=" %<<%
-                                 litQuote(sub("^hap", "", names(seq))),
+                         paste("haplotype=" %<<% litQuote(hptype),
                                sampleDetails,
-                               "date=" %<<%
-                                 litQuote(Sys.Date()),
-                               "status=" %<<%
-                                 litQuote("unchecked"),
+                               "date=" %<<% litQuote(Sys.Date()),
+                               "status=" %<<% litQuote("unchecked"),
                                sep = ";"))
 
     Biostrings::writeXStringSet(
@@ -122,7 +119,6 @@ report.DR2S <- function(x, which, blockWidth = 80, noRemap = FALSE, createIgv = 
       flog.info("Remapping final sequences", name = "info")
       lapply(x$getHapTypes(), function(h) refineAlignment(x, h, report = TRUE, createIgv = createIgv))
     }
-
   }
 
   x$setReportStatus(TRUE)
