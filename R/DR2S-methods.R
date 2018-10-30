@@ -668,9 +668,10 @@ DR2S_$set(
       # hptype = "A"
       # hptype = "B"
       foreach(hptype = hptypes) %do% {
+        flog.info("  Map partitioned longreads of haplotype %s", hptype, name = "info")
+        readtype <- self$getLrdType()
         reffile  <- self$absPath(prevIteration[[hptype]]$seqpath)
         readfile <- self$absPath(prevIteration[[hptype]]$reads)
-        readtype <- self$getLrdType()
         allele   <- "mapIter" %<<% iterationC
         refname  <- sprintf("%s.%s", prevIteration[[hptype]]$ref, hptype)
         outdir   <- file.path(baseoutdir, hptype)
@@ -679,8 +680,6 @@ DR2S_$set(
                           paste0(litArrows(c(iteration, hptype,
                                              readtype, self$getLrMapper())),
                                  collapse = " "))
-        flog.info("  Map partitioned longreads of haplotype %s", hptype, name = "info")
-
         pileup <- mapReads(
           mapFun = mapFun, maptag = maptag, reffile = reffile, allele = allele,
           readfile = readfile, readtype = readtype, opts = opts, refname = refname,
@@ -689,7 +688,7 @@ DR2S_$set(
           removeError = TRUE, topx = 0, outdir = outdir, force = force,
           clean = clean, ...)
 
-        # ## Construct consensus sequence
+        ## Construct consensus sequence
         flog.info("   Constructing consensus ...", name = "info")
         conseqName <- "consensus.mapIter." %<<% iteration %<<% "." %<<% hptype
         conseqPath <- file.path(outdir, conseqName %<<% ".fa")
@@ -697,8 +696,7 @@ DR2S_$set(
                          excludeGaps = TRUE, gapSuppressionRatio = gapSuppressionRatio)
         Biostrings::writeXStringSet(
           Biostrings::DNAStringSet(gsub("[-+]", "", conseq)),
-          conseqPath
-        )
+          conseqPath)
 
         ## Initialize structure
         self$mapIter[[iterationC]][[hptype]] = structure(
@@ -904,7 +902,7 @@ DR2S_$set("public", "runMapFinal", function(opts = list(),
   # self <- dr2s
 
   flog.info("Step 4: mapFinal ...", name = "info")
-  flog.info(" Map shortreads and longreads against refined consensus sequences", name = "info")
+  flog.info(" Map shortreads and longreads against mapIter consensus sequences", name = "info")
 
   ## Collect start time for mapFinal runstats
   start.time <- Sys.time()
@@ -929,10 +927,10 @@ DR2S_$set("public", "runMapFinal", function(opts = list(),
   outdir       <- .dirCreateIfNotExists(self$absPath(reftag))
   lastIter     <- self$mapIter[[max(names(self$mapIter))]]
   hptypes      <- self$getHapTypes()
-  readfilesLR  <- vapply(hptypes, function(x)
-    self$absPath(lastIter[[x]]$reads), FUN.VALUE = character(1))
   reffiles     <- vapply(hptypes, function(x)
     self$absPath(lastIter[[x]]$seqpath), FUN.VALUE = character(1))
+  readfilesLR  <- vapply(hptypes, function(x)
+    self$absPath(lastIter[[x]]$reads), FUN.VALUE = character(1))
   readfilesSR  <- set_names(lapply(hptypes, function(x)
     self$absPath(self$srpartition[[x]]$SR)), hptypes)
 
@@ -950,70 +948,68 @@ DR2S_$set("public", "runMapFinal", function(opts = list(),
     ), class = c("mapFinal", "list")
   )
 
-  ## Remap long reads to the same reference sequences as short reads
   ## hptype = "A"
   ## hptype = "B"
   for (hptype in hptypes) {
     flog.info(" Run mapFinal for haplotype %s", hptype, name = "info" )
-    reffile    <- reffiles[[hptype]]
-    mapgroupLR <- "LR" %<<% hptype
-    readtype   <- self$getLrdType()
-    maptagLR   <- paste("mapFinal", mapgroupLR, readtype, self$getLrMapper(), optstring(opts), sep = ".")
-    readfileLR <- readfilesLR[[hptype]]
-    flog.info("  Map longreads to consensus", name = "info")
+    reffile <- reffiles[[hptype]]
+
+    ## Map longreads
+    flog.info(" Map longreads", name = "info")
+    readtype <- self$getLrdType()
+    mapgroup <- "LR" %<<% hptype
+    maptag   <- paste("mapFinal", mapgroup, readtype, self$getLrMapper(), optstring(opts), sep = ".")
+    readfile <- readfilesLR[[hptype]]
     pileup <- mapReads(
-      mapFun = self$getLrMapFun(), maptag = maptagLR, reffile = reffile,
-      allele = mapgroupLR, readfile = readfileLR, readtype = readtype,
+      mapFun = self$getLrMapFun(), maptag = maptag, reffile = reffile,
+      allele = mapgroup, readfile = readfile, readtype = readtype,
       opts = opts, refname = hptype, includeDeletions = includeDeletions,
       includeInsertions = includeInsertions, callInsertions = FALSE,
       clip = FALSE, distributeGaps = TRUE, removeError = TRUE, topx = 0,
       outdir = outdir, force = force, clean = TRUE, max_depth = 1e4,
       min_mapq = 50, ...)
-
-    self$mapFinal$bamfile[[mapgroupLR]] = path(pileup)
-    if (createIgv)
-      self$mapFinal$igv[[mapgroupLR]] = createIgvJsFiles(
+    self$mapFinal$bamfile[[mapgroup]] = self$relPath(path(pileup))
+    self$mapFinal$pileup[[mapgroup]] = pileup
+    self$mapFinal$tag[[mapgroup]] = maptag
+    if (createIgv) {
+      self$mapFinal$igv[[mapgroup]] = createIgvJsFiles(
         refpath(pileup), path(pileup), self$getOutdir(), sampleSize = 100,
         fragmentReads = TRUE)
-    self$mapFinal$pileup[[mapgroupLR]] = pileup
-    self$mapFinal$tag[[mapgroupLR]] = maptagLR
-
-    # calc new consensus
-    cseq <- conseq(consmat(pileup), name = "mapFinal" %<<% hptype,
-                   type = "ambig", threshold = 0.2, excludeGaps = FALSE)
-    self$mapFinal$seq[[hptype]] <- cseq
-
-    ## Map short reads
-    if (!is.null(readfilesSR[[hptype]])) {
-      flog.info("  Map shortreads to consensus", name = "info")
-      mapgroupSR <- "SR" %<<% hptype
-      readtype   <- self$getSrdType()
-      maptagSR   <- paste("mapFinal", mapgroupSR, self$getLrdType(), self$getSrMapper(),
-                          optstring(opts), sep = ".")
-      readfiles <- readfilesSR[[hptype]]
-
-      pileup <- mapReads(
-        mapFun = self$getSrMapFun(), maptag = maptagSR, reffile = reffile,
-        allele = mapgroupSR, readfile = readfiles, readtype = readtype,
-        opts = opts, refname = "", includeDeletions = includeDeletions,
-        includeInsertions = includeInsertions, callInsertions = TRUE,
-        clip = FALSE, distributeGaps = TRUE, removeError = TRUE, topx = 0,
-        outdir = outdir, force = force, clean = TRUE,
-        max_depth = 1e5, min_mapq = 50, min_base_quality = 13, ...)
-
-      self$mapFinal$bamfile[[mapgroupSR]] = self$relPath(path(pileup))
-      if (createIgv) {
-        self$mapFinal$igv[[mapgroupSR]] = createIgvJsFiles(
-          refpath(pileup), path(pileup), self$getOutdir(), sampleSize = 100)
-      }
-      self$mapFinal$pileup[[mapgroupSR]] = pileup
-      self$mapFinal$tag[[mapgroupSR]] = maptagSR
-
-      # calc new consensus
-      cseq <- conseq(consmat(pileup), name = "mapFinal" %<<% hptype,
-                     type = "ambig", threshold = 0.2, excludeGaps = TRUE)
-      self$mapFinal$seq[[hptype]] = cseq
     }
+
+    ## Map shortreads
+    flog.info(" Map shortreads", name = "info")
+    readtype <- self$getSrdType()
+    mapgroup <- "SR" %<<% hptype
+    maptag   <- paste("mapFinal", mapgroup, readtype, self$getSrMapper(), optstring(opts), sep = ".")
+    readfile <- readfilesSR[[hptype]]
+    pileup <- mapReads(
+      mapFun = self$getSrMapFun(), maptag = maptag, reffile = reffile,
+      allele = mapgroup, readfile = readfile, readtype = readtype,
+      opts = opts, refname = hptype, includeDeletions = includeDeletions,
+      includeInsertions = includeInsertions, callInsertions = TRUE,
+      clip = FALSE, distributeGaps = TRUE, removeError = TRUE, topx = 0,
+      outdir = outdir, force = force, clean = TRUE, max_depth = 1e5,
+      min_mapq = 50, min_base_quality = 13, ...)
+    self$mapFinal$bamfile[[mapgroup]] = self$relPath(path(pileup))
+    self$mapFinal$pileup[[mapgroup]] = pileup
+    self$mapFinal$tag[[mapgroup]] = maptag
+    if (createIgv) {
+      self$mapFinal$igv[[mapgroup]] = createIgvJsFiles(
+        refpath(pileup), path(pileup), self$getOutdir(), sampleSize = 100)
+    }
+
+    ## Construct consensus sequence
+    flog.info(" Construct shortread consensus for haplotype <%s>", hptype, name = "info")
+    conseqName <- "consensus.mapFinal." %<<% hptype
+    conseqPath <- file.path(outdir, conseqName %<<% ".fa")
+    conseq <- conseq(pileup, name = conseqName, type = "ambig", threshold = 1/4,
+                     excludeGaps = TRUE)
+    Biostrings::writeXStringSet(
+      Biostrings::DNAStringSet(gsub("[-+]", "", conseq)),
+      conseqPath)
+    self$mapFinal$seq[[hptype]] <- conseq
+    self$mapFinal$seqpath[[hptype]] <- self$relPath(conseqPath)
   }
 
   if (plot) {
@@ -1047,12 +1043,10 @@ DR2S_$set("public", "runMapFinal", function(opts = list(),
 
 #' @export
 print.mapFinal <- function(x, ...) {
+  fmt <- "%s [Dir] %s\n [Longreads] %s\n [Shortreads] %s\n [References] %s\n [Bamfile] %s"
   msg  <- sprintf("An object of class '%s'.\n", class(x)[1])
   bamf <- comma(basename(unlist(x$bamfile) %||% ""))
-  msg <- sprintf(
-    "%s [Dir] %s\n [Longreads] %s\n [Shortreads] %s\n [References] %s\n
-    [Bamfile] %s",
-    msg, x$dir,
+  msg <- sprintf(fmt, msg, x$dir,
     comma(basename(unlist(x$lreads))),
     comma(basename(unlist(x$sreads))),
     comma(basename(unlist(x$ref))),

@@ -17,7 +17,7 @@ mapInitSR <- function(self, threshold = 0.2, opts = list(), includeDeletions = T
                                                 optstring(opts))),
                                     collapse = " "))
 
-  flog.info(" Map shortreads to provided reference", name = "info")
+  flog.info(" Map shortreads to provided reference <%s>", self$getReference(), name = "info")
   pileup <- mapReads(
     mapFun = self$getSrMapFun(), maptag = maptag, reffile = reffile,
     allele = allele, readfile = self$getShortreads(), readtype = readtype,
