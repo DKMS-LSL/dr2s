@@ -267,6 +267,9 @@ createPWM <- function(msa){
   if (removeError) {
     gapError <- .getGapErrorBackground(mat, n = 5)
   }
+  bam <- Rsamtools::BamFile(bamfile)
+  Rsamtools::open.BamFile(bam)
+  on.exit(Rsamtools::close.BamFile(bam))
   ## Collect changed matrix elements
   ## TODO: bplapply throws warning in serialize(data, node$con, xdr = FALSE)
   ## 'package:stats' may not be available when loading
@@ -278,12 +281,9 @@ createPWM <- function(msa){
     ## Assign new gap numbers to each position starting from left
     #  meanCoverage <- mean(rowSums(mat[(seqStart-2):(seqEnd+2),1:4]))
     seqStart <- sum(seq$lengths[seq_len(i - 1)]) + 1
-    seqEnd   <- seqStart + seq$lengths[i] - 1
-    region   <- GenomicRanges::GRanges(
-      seqnames = GenomeInfoDb::seqnames(Rsamtools::seqinfo(bamfile)),
-      ranges = IRanges::IRanges(start = seqStart, end =  seqEnd))
-    msa <- .msaFromBam(bamfile, region = region, paddingLetter = "+")
-
+    seqEnd <- seqStart + seq$lengths[i] - 1
+    range <- c(seqStart, seqEnd)
+    msa <- .msaFromBam(bamfile, range, paddingLetter = "+")
     ## Skip position if empty
     if (length(msa) == 0) {
       NULL
@@ -292,7 +292,6 @@ createPWM <- function(msa){
       ## gives no Info
       msa <- msa[vapply(msa, function(x) !"+" %in% Biostrings::uniqueLetters(x),
                         FUN.VALUE = logical(1))]
-
       if (removeError) {
         aFreq <- Biostrings::alphabetFrequency(msa[1])
         nt <- colnames(aFreq)[which.max(aFreq)]
@@ -339,7 +338,7 @@ createPWM <- function(msa){
           , VALID_DNA(include = "indel")]
       )
     }
-  }, bamfile = Rsamtools::BamFile(bamfile), BPPARAM = bpparam))
+  }, bamfile = bam, BPPARAM = bpparam))
   ##
   ## Change the matrix
   for (i in changeMat) {

@@ -278,8 +278,8 @@
 #' ###
 #' @export
 checkHomoPolymerCount <- function(x, count = 10, map = "mapFinal") {
-  map <- match.arg(map, c("mapFinal", "refine"))
   assert_that(is(x, "DR2S"))
+  map <- match.arg(map, c("mapFinal", "refine"))
   hptypes <- x$getHapTypes()
   if (map == "mapFinal") {
     if (length(hptypes) > 1) {
@@ -293,7 +293,7 @@ checkHomoPolymerCount <- function(x, count = 10, map = "mapFinal") {
     }
     x$mapFinal$homopolymers <- list()
     plotname <- "plot.homopolymers.pdf"
-  } else if ( map == "refine" ) {
+  } else if (map == "refine") {
     refseqs <- lapply(x$consensus$refine$ref, function(hp) {
       seq <- Biostrings::readDNAStringSet(file.path(x$getOutdir(), hp))
       names(seq) <- strsplit1(names(seq), " ")[1]
@@ -303,23 +303,27 @@ checkHomoPolymerCount <- function(x, count = 10, map = "mapFinal") {
     bambase <- x$consensus$refine$bamfile
     plotname <- "plot.homopolymers.refine.pdf"
   }
+  #hp <- "A"
   p <- foreach(hp = hptypes) %do% {
-    #hp <- "A"
     seq <- refseqs[[hp]]
     seqrle <- .seq2rle(seq)
     n <- which(seqrle$lengths > count)
     if (length(n) == 0) {
       return(NULL)
     }
-    bamfile <- ifelse(length(hptypes) == 1, bambase, bambase["SR" %<<% hp])
-    bamfile <- file.path(x$getOutdir(), bamfile)
-    homopolymersHP <- foreach(pos = n, .combine = rbind) %do% {
-      positionHP <- sum(seqrle$length[seq_len(pos-1)])#+1
-      lenHP <- seqrle$lengths[pos]
-      msa <- .msaFromBam(bamfile, sprintf("%s:%s-%s", names(seq),
-                                           positionHP - 10,
-                                           positionHP + lenHP + 10))
 
+    bamfile <- file.path(
+      x$getOutdir(), ifelse(length(hptypes) == 1, bambase, bambase["SR" %<<% hp]))
+
+    bam <- Rsamtools::BamFile(bamfile)
+    Rsamtools::open.BamFile(bam)
+    on.exit(Rsamtools::close.BamFile(bam))
+
+    homopolymersHP <- foreach(pos = n, .combine = rbind) %do% {
+      positionHP <- sum(seqrle$length[seq_len(pos - 1)])#+1
+      lenHP <- seqrle$lengths[pos]
+      range <- c(positionHP - 10, positionHP + lenHP + 10)
+      msa <- .msaFromBam(bam, range)
       covering <- vapply(msa, function(a, lenHP) {
         nchar(gsub(pattern = "\\+", "", toString(a))) == lenHP + 21
         }, lenHP = lenHP, FUN.VALUE = logical(1), USE.NAMES = TRUE)

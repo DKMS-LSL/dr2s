@@ -29,15 +29,24 @@
 #' @examples
 #' ###
 getSRPartitionScores <- function(bamfile, mats) {
-  stopifnot(
+  assert_that(
     requireNamespace("parallel", quietly = TRUE),
     requireNamespace("doParallel", quietly = TRUE),
-    requireNamespace("GenomicAlignments", quietly = TRUE)
-  )
-  bfl <- Rsamtools::BamFile(bamfile)
-  Rsamtools::open.BamFile(bfl)
+    requireNamespace("GenomicAlignments", quietly = TRUE))
+
+  ## make sure that all available cores get utilised
+  op <- options("dr2s.max.cores")
+  if (!is.null(op$dr2s.max.cores)) {
+    options(dr2s.max.cores = NULL)
+    on.exit(options(op))
+  }
+
+  bam <- Rsamtools::BamFile(bamfile)
+  Rsamtools::open.BamFile(bam)
+  on.exit(Rsamtools::close.BamFile(bam))
+
   ## Get reference from bamfile
-  refname <- GenomeInfoDb::seqnames(Rsamtools::seqinfo(bfl))
+  refname <- GenomeInfoDb::seqnames(Rsamtools::seqinfo(bam))
   ## Get polymorphic positions
   ppos <- colnames(mats[[1]])
   flog.info(" Partition shortreads on %s positions", length(ppos), name = "info")
@@ -48,16 +57,13 @@ getSRPartitionScores <- function(bamfile, mats) {
     suppressWarnings(BiocParallel::bplapply(as.integer(ppos),
     function(pos, refname, bamfile, mats) {
       #message("Get reads on position ", pos)
-      #pos <- as.integer(ppos)[108]
-      #param <- paste(paste(refname, pos, sep = ":"), pos, sep = "-")
       param <- GenomicRanges::GRanges(
         seqnames = refname, ranges = IRanges::IRanges(start = pos, end = pos))
       stack <- GenomicAlignments::stackStringsFromBam(bamfile, param = param, use.names = TRUE)
       dplyr::bind_cols(read = rep(names(stack), each = length(mats)),
                        dplyr::bind_rows(lapply(stack, function(x)
                          .partRead(x, mats, pos))))
-  }, refname = refname, bamfile = bfl, mats = mats, BPPARAM = bpparam)))
-  Rsamtools::close.BamFile(bfl)
+  }, refname = refname, bamfile = bam, mats = mats, BPPARAM = bpparam)))
   structure(
     list(
       bamfile     = bamfile,

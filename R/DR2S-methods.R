@@ -570,7 +570,7 @@ DR2S_$set(
     # Construct consensus from initial mapping with the clustered reads
     flog.info(" Construct consensus sequences using the mapInit reference", name = "info")
     bamfile <- self$absPath(self$mapInit$bamfile)
-    mat <- .msaFromBam(bamfile, paddingLetter = ".")
+    mat <- .msaFromBam(Rsamtools::BamFile(bamfile), paddingLetter = ".")
     # hptype = "A"
     foreach(hptype = self$getHapTypes()) %do% {
       flog.info("  Constructing a consensus for haplotype %s ...", hptype, name = "info")
@@ -679,8 +679,7 @@ DR2S_$set(
                           paste0(litArrows(c(iteration, hptype,
                                              readtype, self$getLrMapper())),
                                  collapse = " "))
-        flog.info("  Map partitioned longreads of haplotype %s", hptype,
-                  name = "info")
+        flog.info("  Map partitioned longreads of haplotype %s", hptype, name = "info")
 
         pileup <- mapReads(
           mapFun = mapFun, maptag = maptag, reffile = reffile, allele = allele,
@@ -688,7 +687,7 @@ DR2S_$set(
           includeDeletions = TRUE, includeInsertions = includeInsertions,
           callInsertions = callInsertions, clip = FALSE, distributeGaps = TRUE,
           removeError = TRUE, topx = 0, outdir = outdir, force = force,
-          clean = clean)#, ...)
+          clean = clean, ...)
 
         # ## Construct consensus sequence
         flog.info("   Constructing consensus ...", name = "info")
@@ -1031,7 +1030,7 @@ DR2S_$set("public", "runMapFinal", function(opts = list(),
     p <- cowplot::plot_grid(plotlist = plotlist, nrow = 2, labels = readtypes)
     cowplot::save_plot(p, filename = self$absPath("plot.MapFinal.pdf"),
                        base_width = 12*length(hptypes),
-                       title     = paste(self$getLocus(), self$getSampleId(),
+                       title = paste(self$getLocus(), self$getSampleId(),
                                          sep = "." ),
                        base_height = 3*length(readtypes))
     cowplot::save_plot(p, filename = self$absPath(".plots/plot.MapFinal.svg"),

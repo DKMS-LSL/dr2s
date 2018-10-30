@@ -36,19 +36,19 @@
     }
   } else {
     ## Sam to bam
-    bamfile <- asBam(samfile, tempfile(), indexDestination = TRUE, overwrite = TRUE)
-
+    bamfile <- Rsamtools::asBam(samfile, tempfile(), overwrite = TRUE,
+                                indexDestination = TRUE)
     ## Filter the bam by flag
-    flag <- scanBamFlag(isUnmappedQuery = FALSE, isSecondaryAlignment = FALSE)
+    flag <- Rsamtools::scanBamFlag(isUnmappedQuery = FALSE, isSecondaryAlignment = FALSE)
     ## remove also the in Rsamtools unsupported supplmentary alignment flags
     filter <- S4Vectors::FilterRules(list(flag = function(x) x$flag <= flag[2]))
-    param <- ScanBamParam(
+    param <- Rsamtools::ScanBamParam(
       flag = flag,
-      what = scanBamWhat())
-    sorted <- filterBam(file = bamfile, dest = sorted,
-                        param = param, filter = filter)
+      what = Rsamtools::scanBamWhat())
+    sorted <- Rsamtools::filterBam(file = bamfile, dest = sorted,
+                                   param = param, filter = filter)
     ## Index the bam
-    indexBam(sorted)
+    Rsamtools::indexBam(sorted)
   }
   ## Clean up only if the bamfile now exists
   if (clean && file.exists(sorted)) {
@@ -77,7 +77,8 @@ subSampleBam <- function(bamfile, windowSize = NULL, sampleSize = 100,
     file.exists(bamfile),
     endsWith(bamfile, ".bam"),
     is.numeric(sampleSize))
-  bam <- BamFile(bamfile)
+
+  bam <- Rsamtools::BamFile(bamfile)
   Rsamtools::open.BamFile(bam)
   on.exit(Rsamtools::close.BamFile(bam))
 
@@ -86,10 +87,8 @@ subSampleBam <- function(bamfile, windowSize = NULL, sampleSize = 100,
     what <- scanBamWhat()
   assert_that(is.character(what))
 
-  alignmentBam <-  GenomicAlignments::readGAlignments(bam,
-                                                      param = ScanBamParam(
-                                                      what = what),
-                                                      use.names = TRUE)
+  alignmentBam <-  GenomicAlignments::readGAlignments(
+    bam, param = Rsamtools::ScanBamParam(what = what), use.names = TRUE)
   ## Use the median read length if no window size is given
   if (is.null(windowSize))
     windowSize <- IRanges::median(GenomicAlignments::qwidth(alignmentBam))

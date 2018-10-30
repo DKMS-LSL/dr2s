@@ -76,6 +76,7 @@ pileup <- function(bamfile,
   bam <- Rsamtools::BamFile(bamfile)
   Rsamtools::open.BamFile(bam)
   on.exit(Rsamtools::close.BamFile(bam))
+
   if (Rsamtools::idxstatsBam(bam)$mapped == 0) {
     flog.info("No reads maps to the reference", name = "info")
     stop("No reads maps to the reference")
@@ -280,47 +281,37 @@ reads.pileup <- function(x, ..) {
   x
 }
 
-.msaFromBam <- function(bamfile, region = NULL, paddingLetter = "+") {
-  if (!is(bamfile, "BamFile")) {
-    bamfile <- Rsamtools::BamFile(bamfile)
-  }
+.msaFromBam <- function(bamfile, range = NULL, paddingLetter = "+") {
+  assert_that(
+    is(bamfile, "BamFile"),
+    is.null(range) || (is.numeric(range) && length(range) == 2 && range[1] <= range[2])
+  )
   if (!Rsamtools::isOpen(bamfile)) {
     Rsamtools::open.BamFile(bamfile)
     on.exit(Rsamtools::close.BamFile(bamfile))
   }
-  if (is.null(region)) {
-    baminfo <- Rsamtools::seqinfo(bamfile)
-    myParam <- GenomicRanges::GRanges(
+  baminfo <- Rsamtools::seqinfo(bamfile)
+  param <- if (is.null(range)) {
+    GenomicRanges::GRanges(
       seqnames = GenomeInfoDb::seqnames(baminfo),
       ranges = IRanges::IRanges(start = 1L, end = GenomeInfoDb::seqlengths(baminfo)))
-  } else if (is(region, "GRanges")) {
-    myParam <- region
   } else {
-    assert_that(grepl(pattern = "^[[:alnum:]_\\*#:\\.\\-]+:\\d+-\\d+", region))
-    m <- regexpr("(?<seqname>^[[:alnum:]_\\*#:\\.\\-]+):(?<start>\\d+)-(?<end>\\d+)",
-                 region, perl = TRUE)
-    starts <- attr(m, "capture.start")
-    ends   <- starts + attr(m, "capture.length") - 1
-    myParam <- GenomicRanges::GRanges(
-      seqnames = substr(region, starts[, "seqname"],  ends[, "seqname"]),
-      ranges = IRanges::IRanges(
-        start = as.integer(substr(region, starts[, "start"],  ends[, "start"])),
-        end =  as.integer(substr(region, starts[, "end"],  ends[, "end"]))))
+    GenomicRanges::GRanges(
+      seqnames = GenomeInfoDb::seqnames(baminfo),
+      ranges = IRanges::IRanges(start = range[1], end = range[2]))
   }
   GenomicAlignments::stackStringsFromBam(
-    bamfile,
-    param = myParam,
-    Lpadding.letter = paddingLetter,
-    Rpadding.letter = paddingLetter,
+    file = bamfile, index = bamfile, param = param,
+    Lpadding.letter = paddingLetter, Rpadding.letter = paddingLetter,
     use.names = TRUE)
 }
 
 .topXReads <- function(bamfile, n = 2000) {
-  msa <- .msaFromBam(bamfile)
+  msa <- .msaFromBam(Rsamtools::BamFile(bamfile))
   ## there is no point in sampling if
-  if (length(msa) <= n)
+  if (length(msa) <= n) {
     return(names(msa))
-
+  }
   mat <- createPWM(msa)
   mat["+", ] <- 0
   bpparam <- BiocParallel::MulticoreParam(workers = .getIdleCores())
@@ -458,8 +449,12 @@ plotPileupBasecallFrequency <- function(x, threshold = 0.20, label = "",
   ## Get the actual position of the first insertion character, not the last
   ##  matching position, so +1
   inpos   <- inpos + 1
-  bamfile <- Rsamtools::BamFile(bamfile)
-  baminfo <- GenomicRanges::seqinfo(bamfile)
+
+  bam <- Rsamtools::BamFile(bamfile)
+  Rsamtools::open.BamFile(bam)
+  on.exit(Rsamtools::close.BamFile(bam))
+
+  baminfo <- GenomicRanges::seqinfo(bam)
   inposRanges <- if (readtype == "illumina") {
     GenomicRanges::GRanges(
       seqnames = GenomeInfoDb::seqnames(baminfo),
@@ -470,25 +465,25 @@ plotPileupBasecallFrequency <- function(x, threshold = 0.20, label = "",
       ranges =  IRanges::IRanges(start = 1, end = GenomeInfoDb::seqlengths(baminfo)))
   }
   bamParam <- Rsamtools::ScanBamParam(what = "seq", which = inposRanges)
-  bam <- GenomicAlignments::readGAlignments(bamfile, param = bamParam, use.names = TRUE)
+  aln <- GenomicAlignments::readGAlignments(bam, param = bamParam, use.names = TRUE)
 
   ## Use only reads of interest if specified
   if (!is.null(reads))
-    bam <- bam[names(bam) %in% reads]
+    aln <- aln[names(aln) %in% reads]
   ## Use only reads with an insertion
-  readsWithIns <- vapply(GenomicAlignments::cigar(bam),
+  readsWithIns <- vapply(GenomicAlignments::cigar(aln),
                          function(x) grepl("I",  x),
                          FUN.VALUE = logical(1))
-  bamI <- bam[readsWithIns]
+  alnI <- aln[readsWithIns]
   ## Get all insertions from all reads
   ## TODO: bplapply throws warning in serialize(data, node$con, xdr = FALSE)
   ## 'package:stats' may not be available when loading
   ## For the time being we suppress this warning
   bpparam <- BiocParallel::MulticoreParam(workers = .getIdleCores())
   insSeq <- unlist(Biostrings::DNAStringSetList(suppressWarnings(
-    BiocParallel::bplapply(seq_along(bamI), function(a, bamI, inpos) {
-      .extractInsertion(bamI[a], inpos)
-    }, bamI = bamI, inpos = inpos, BPPARAM = bpparam))))
+    BiocParallel::bplapply(seq_along(alnI), function(a, alnI, inpos) {
+      .extractInsertion(alnI[a], inpos)
+    }, alnI = bamI, inpos = inpos, BPPARAM = bpparam))))
   ## Extract per positions
   insSeqs <- foreach(i = inpos) %do% {
     #message("Position: ", i)
