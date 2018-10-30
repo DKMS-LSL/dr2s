@@ -271,7 +271,7 @@ createPWM <- function(msa){
   ## TODO: bplapply throws warning in serialize(data, node$con, xdr = FALSE)
   ## 'package:stats' may not be available when loading
   ## For the time being we suppress this warning
-  workers <- minimum(sum(idx <- seq$length > 5), .getIdleCores())
+  workers <- min(sum(idx <- seq$length > 5), .getIdleCores())
   bpparam <- BiocParallel::MulticoreParam(workers = workers, log = FALSE)
   changeMat <- suppressWarnings(BiocParallel::bplapply(which(idx), function(i, bamfile) {
     #  i <- which(seq$length > 5)[2]

@@ -306,7 +306,7 @@ HapPart <- function(readNames, snpPos) {
 #' @export
 print.HapPart <- function(x, sortBy = "none", nrows = 8, ...) {
   sortBy <- match.arg(sortBy, c("none", "name", "mcoef"))
-  n <- maximum(length(x), nrows)
+  n <- max(length(x), nrows)
   df0 <- data.frame(
     read      = substr(as.vector(x), 1, 12) %<<% "...",
     mcoef     = mcoef(x),

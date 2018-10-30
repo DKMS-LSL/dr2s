@@ -179,7 +179,7 @@ MergeEnv_$set("public", "showConsensus", function(envir,
   if (missing(pos)) {
     pos <- envir$pos
   }
-  min <- minimum(pos + offsetBases - left, 1)
+  min <- min(pos + offsetBases - left, 1)
   lr <- envir$LR[min:(pos + offsetBases + right), , drop = FALSE]
   sr <- envir$SR[min:(pos + offsetBases + right), , drop = FALSE]
   ## Conseq
@@ -205,7 +205,7 @@ MergeEnv_$set("public", "showMatrix", function(envir, pos, left = 6,
   if (missing(pos)) {
     pos <- envir$pos
   }
-  min <- minimum(pos + offsetBases - left, 1)
+  min <- min(pos + offsetBases - left, 1)
   lr <- envir$LR[min:(pos + offsetBases + right), , drop = FALSE]
   sr <- envir$SR[min:(pos + offsetBases + right), , drop = FALSE]
   lcs <- .makeAmbigConsensus_(lr, threshold = self$threshold,

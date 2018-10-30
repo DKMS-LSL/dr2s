@@ -141,14 +141,6 @@ wrap <- function(x, wrap = "\"") {
   sprintf("%s%s%s", wrap, x, wrap)
 }
 
-minimum <- function(n, m) {
-  if (n < m) n else m
-}
-
-maximum <- function(n, m) {
-  if (n > m) n else m
-}
-
 `%||%` <- function(a, b) {
   if (length(a) == 0) b else a
 }
@@ -162,9 +154,7 @@ maximum <- function(n, m) {
 }
 
 `%<<%` <- function(a, b) {
-  a <- as.character(a)
-  b <- as.character(b)
-  paste0(a, b)
+  paste0(as.character(a), as.character(b))
 }
 
 `%+%` <- function(a, b) {
@@ -222,18 +212,23 @@ maximum <- function(n, m) {
 #'
 #' @return An integer giving the number of idling cores
 .getIdleCores <- function() {
-  # total cores
+  # total number of cores
   N_CORES <- parallel::detectCores()
 
-  # fallback to N_CORES/2 if mpstat not installed
+  # if dr2s.max.cores is set, return whichever is smaller
+  if (!is.null(MAX_CORES <- getOption("dr2s.max.cores"))) {
+    return(min(MAX_CORES, N_CORES))
+  }
+
+  # fallback to N_CORES/4 if mpstat not installed
   if (!.hasCommand("mpstat")) {
     warning("Install 'sysstat' to make use of idle core detection", immediate. = TRUE)
-    return(max(N_CORES/4, 1))
+    return(max(floor(N_CORES/4), 1))
   }
 
   # create list for readable lapply output
-  cores <- lapply(1:N_CORES, function(x) x - 1)
-  names(cores) <- paste0('CPU', 1:N_CORES - 1)
+  cores <- lapply(seq_len(N_CORES), function(x) x - 1)
+  names(cores) <- paste0('CPU', seq_len(N_CORES) - 1)
 
   # use platform specific system commands to get idle time
   proc_idle_time <- lapply(cores, function(x) {
@@ -242,8 +237,7 @@ maximum <- function(n, m) {
       command = 'mpstat',
       args = c('-P', x),
       stdout = TRUE)
-    idle_time <- as.double(gsub(",", ".", unlist(strsplit(out[4], ' {2,}'))[12]))
-    idle_time
+    as.double(gsub(",", ".", unlist(strsplit(out[4], ' {2,}'))[12]))
   })
 
   max(sum(proc_idle_time > 90) - 1, 1)

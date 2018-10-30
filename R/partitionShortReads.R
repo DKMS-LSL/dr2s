@@ -42,7 +42,7 @@ getSRPartitionScores <- function(bamfile, mats) {
   ppos <- colnames(mats[[1]])
   flog.info(" Partition shortreads on %s positions", length(ppos), name = "info")
   ## Register as many workers as necessary or available
-  workers <- minimum(length(ppos),  .getIdleCores())
+  workers <- min(length(ppos), .getIdleCores())
   bpparam <- BiocParallel::MulticoreParam(workers = workers)
   res <- do.call(dplyr::bind_rows,
     suppressWarnings(BiocParallel::bplapply(as.integer(ppos),

@@ -1,3 +1,18 @@
+## allow setting maximum number of available cores via an environment
+## variable
+.onLoad <- function(libname, pkgname) {
+  op <- options()
+  op.dr2s <- list(
+    #dr2s.max.cores = max(1L, parallel::detectCores() - 1L)
+    dr2s.max.cores = NULL
+  )
+  toset <- !(names(op.dr2s) %in% names(op))
+  if (any(toset)) {
+    options(op.dr2s[toset])
+  }
+  invisible(NULL)
+}
+
 ## Define global variables for vars in "foreach" and "data.table" to avoid
 ## R CMD check warnings
 globalVariables(c("lrd", "h", "hp", "i", "pos", "sampleId", "nucleotide", "freq",
