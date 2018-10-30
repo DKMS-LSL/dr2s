@@ -13,7 +13,7 @@ mapInitSR <- function(self, threshold = 0.2, opts = list(), includeDeletions = T
   allele   <- self$getReference()
   readtype <- self$getSrdType()
   maptag   <- paste(mapLabel, paste(litArrows(c(allele, readtype,
-                                                self$getSrMapper(),
+                                                self$getSrdMapper(),
                                                 optstring(opts))),
                                     collapse = " "))
 
@@ -92,7 +92,7 @@ mapInitSR <- function(self, threshold = 0.2, opts = list(), includeDeletions = T
     allele   <- conseqName
     readtype <- self$getSrdType()
     maptag   <- paste(mapLabel, paste0(litArrows(c(conseqName, readtype,
-                                                   self$getSrMapper(),
+                                                   self$getSrdMapper(),
                                                    optstring(opts))),
                                        collapse = " "))
     flog.info(" Refine microsatellites or repeats by extending the reference", name = "info")
@@ -136,7 +136,7 @@ mapInitSR <- function(self, threshold = 0.2, opts = list(), includeDeletions = T
   allele   <- mapInitSR1$ref
   readtype <- self$getSrdType()
   maptag   <- paste(mapLabel, paste0(litArrows(c(allele, readtype,
-                                                 self$getSrMapper(),
+                                                 self$getSrdMapper(),
                                                  optstring(opts))),
                                      collapse = " "))
 

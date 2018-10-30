@@ -4,11 +4,11 @@
 \alias{createDR2SConf}
 \title{Create a \code{\link[=DR2S_]{DR2S}} configuration object.}
 \usage{
-createDR2SConf(sample, locus, longreads = list(type = "pacbio", dir =
-  "pacbio"), shortreads = NULL, datadir = ".", outdir = "./output",
-  reference = NULL, threshold = 0.2, iterations = 1,
-  microsatellite = FALSE, distAlleles = 2, filterScores = FALSE,
-  forceMapping = FALSE, details = NULL, ...)
+createDR2SConf(sample, locus, longreads = list(dir = "pacbio", type =
+  "pacbio", mapper = "ninimap"), shortreads = NULL, datadir = ".",
+  outdir = "./output", reference = NULL, threshold = 0.2,
+  iterations = 1, microsatellite = FALSE, distAlleles = 2,
+  filterScores = FALSE, forceMapping = FALSE, details = NULL, ...)
 }
 \arguments{
 \item{sample}{A unique sample identifier used to locate the long and short
@@ -16,11 +16,13 @@ read FASTQ/FASTA files.}
 
 \item{locus}{The HLA or KIR locus (e.g., "A", "DPB1", or "2DL1")}
 
-\item{longreads}{The type and location of the long reads as a named list
-with the fields \code{type} ("pacbio" or "nanopore") and \code{dir}.}
+\item{longreads}{Location, type, and mapper for long reads as a named list
+with the fields \code{dir}, \code{type} ("pacbio" or "nanopore") and
+\code{mapper} ("bwamem" or "minimap").}
 
-\item{shortreads}{(optional) The type and location of the short reads as a
-named list with the fields \code{type} ("illumina") and \code{dir}.}
+\item{shortreads}{(optional) Location, type, and mapper for short reads
+as a named list with the fields \code{dir}, \code{type} ("illumina") and
+\code{mapper} ("bwamem" or "minimap").}
 
 \item{datadir}{The data directory (See Note).}
 

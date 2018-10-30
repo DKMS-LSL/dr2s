@@ -6,7 +6,7 @@ InitDR2S.DR2Sconf <- function(config, createOutdir = TRUE) {
 #' @export
 cache.DR2S <- function(x, outname, ...) {
   if (missing(outname)) {
-    outname <- paste("DR2S", x$getLrdType(), x$getLrMapper(), "rds", sep = ".")
+    outname <- paste("DR2S", x$getLrdType(), x$getLrdMapper(), "rds", sep = ".")
   }
   x$cache(outname = outname)
   invisible(x)
@@ -65,24 +65,18 @@ clear.DR2S <- function(x, ...) {
 DR2S_ <- R6::R6Class(
   classname = "DR2S",
   public = list(
+    ## Public fields
     mapInit     = list(),
     partition   = list(),
     mapIter     = list(),
     srpartition = list(),
     mapFinal    = list(),
     consensus   = list(), ## <ConsList> Final consensus sequences for A and B
+    ## Public functions
     initialize  = function(conf, createOutdir = TRUE) {
-      ## Public fields
-      self$mapInit   = list()
-      self$partition = list()
-      self$mapIter   = list()
-      self$mapFinal  = list()
-      self$consensus = list()
-      ## Private fields
       private$conf = initialiseDR2S(conf, createOutdir = createOutdir)
       private$runstats = NULL
       private$reportStatus = FALSE
-
       if (file.exists(refPath <- private$conf$reference)) {
         private$conf$extref = refPath
         private$conf$reference = basename(refPath)
@@ -104,7 +98,7 @@ DR2S_ <- R6::R6Class(
     },
     cache = function(outname) {
       if (missing(outname)) {
-        outname <- paste("DR2S", self$getLrdType(), self$getLrMapper(), "rds",
+        outname <- paste("DR2S", self$getLrdType(), self$getLrdMapper(), "rds",
                          sep = ".")
       }
       path <- file.path(self$getOutdir(), outname)
@@ -153,7 +147,7 @@ DR2S_ <- R6::R6Class(
               "Mapper: <%s>\nDatadir: <%s>\nOutdir: <%s>\n"
       cat(sprintf(fmt1,
                   self$getReference(),
-                  self$getLrdType(), self$getSrdType(), self$getLrMapper(),
+                  self$getLrdType(), self$getSrdType(), self$getLrdMapper(),
                   self$getDatadir(), self$getOutdir()
       ))
       invisible(self)
@@ -251,41 +245,8 @@ DR2S_ <- R6::R6Class(
       invisible(self)
     },
     ##
-    getLrMapper = function() {
-      self$getConfig("lrmapper")
-    },
-    ##
-    getSrMapper = function() {
-      self$getConfig("srmapper")
-    },
-    ##
-    getPipeline = function() {
-      self$getConfig("pipeline")
-    },
-    ##
-    getLongreads = function() {
-      dir <- self$getLrdDir()
-      readpath <- findReads(dir, self$getSampleId(), self$getLocus())
-      if (is.null(readpath) || length(readpath) == 0) {
-        flog.error("No reads available for readtype <%s>",
-                   self$getLrdType(), name = "info")
-        stop("No reads available for readtype <", self$getLrdType(), ">")
-      }
-      readpath
-    },
-    ##
-    getShortreads = function() {
-      dir <- self$getSrdDir()
-      if (is.null(dir)) {
-        return(NULL)
-      }
-      readpath <- findReads(dir, self$getSampleId(), self$getLocus())
-      if (is.null(readpath) || length(readpath) == 0) {
-        flog.error("No reads available for readtype <%s>",
-                   self$getSrdType(), name = "info")
-        stop("No reads available for readtype <", self$getSrdType(), ">")
-      }
-      readpath
+    getLrdMapper = function() {
+      self$getConfig("longreads")$mapper
     },
     ##
     getLrdType = function() {
@@ -293,7 +254,31 @@ DR2S_ <- R6::R6Class(
     },
     ##
     getLrdDir = function() {
-      file.path(self$getDatadir(), self$getConfig("longreads")$dir)
+      lrddir <- self$getConfig("longreads")$dir
+      if (is.null(lrddir)) {
+        self$getDatadir()
+      } else {
+        file.path(self$getDatadir(), lrddir)
+      }
+    },
+    ##
+    getLongreads = function() {
+      lrdfile <- self$getConfig("longreads")$file
+      if (!is.null(lrdfile)) {
+        readpath <- file.path(self$getDatadir(), lrdfile)
+      } else {
+        lrddir <- self$getLrdDir()
+        readpath <- findReads(lrddir, self$getSampleId(), self$getLocus())
+      }
+      if (is.null(readpath) || length(readpath) == 0 || !file.exists(readpath)) {
+        flog.error("No reads available for readtype <%s>", self$getLrdType(), name = "info")
+        stop("No reads available for readtype <", self$getLrdType(), ">")
+      }
+      readpath
+    },
+    ##
+    getSrdMapper = function() {
+      self$getConfig("shortreads")$mapper
     },
     ##
     getSrdType = function() {
@@ -301,20 +286,38 @@ DR2S_ <- R6::R6Class(
     },
     ##
     getSrdDir = function() {
-      if (!is.null(filtered <- self$getConfig("filteredShortreads"))) {
+      filtered <- self$getConfig("filteredShortreads")
+      if (!is.null(filtered)) {
         return(self$absPath(filtered))
       }
-      if (!is.null(srddir <- self$getConfig("shortreads")$dir)) {
+      srddir <- self$getConfig("shortreads")$dir
+      if (!is.null(srddir)) {
         file.path(self$getDatadir(), srddir)
       } else {
         NULL
       }
     },
     ##
+    getShortreads = function() {
+      srddir <- self$getSrdDir()
+      if (is.null(srddir)) {
+        return(NULL)
+      }
+      readpath <- findReads(srddir, self$getSampleId(), self$getLocus())
+      if (is.null(readpath) || length(readpath) == 0 || !file.exists(readpath)) {
+        flog.error("No reads available for readtype <%s>", self$getSrdType(), name = "info")
+        stop("No reads available for readtype <", self$getSrdType(), ">")
+      }
+      readpath
+    },
+    ##
+    getPipeline = function() {
+      self$getConfig("pipeline")
+    },
+    ##
     getOpts = function(name = NULL) {
       if (is.null(name))
-        mergeList(self$getConfig("opts"), self$getConfig("longreads")$opts,
-                  update = TRUE)
+        mergeList(self$getConfig("opts"), self$getConfig("longreads")$opts, update = TRUE)
       else {
         opts <- mergeList(self$getConfig("opts"),
                           self$getConfig("longreads")$opts, update = TRUE)
@@ -562,11 +565,11 @@ DR2S_ <- R6::R6Class(
     },
     ##
     getLrMapFun = function() {
-      match.fun("run" %<<% self$getLrMapper())
+      match.fun("run" %<<% self$getLrdMapper())
     },
     ##
     getSrMapFun = function() {
-      match.fun("run" %<<% self$getSrMapper())
+      match.fun("run" %<<% self$getSrdMapper())
     },
     ## Get the absolut path
     absPath = function(filename) {

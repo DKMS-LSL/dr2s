@@ -1,7 +1,7 @@
 #' @export
 createDR2SConf <- function(sample,
                            locus,
-                           longreads = list(type = "pacbio", dir = "pacbio"),
+                           longreads = list(dir = "pacbio", type = "pacbio", mapper = "minimap"),
                            shortreads = NULL,
                            datadir = ".",
                            outdir = "./output",
@@ -15,8 +15,9 @@ createDR2SConf <- function(sample,
                            details = NULL,
                            ...) {
   conf0 <- list(...)
+  datadir0 <- normalizePath(datadir, mustWork = TRUE)
   conf1 <- list(
-    datadir = normalizePath(datadir, mustWork = TRUE),
+    datadir = datadir0,
     outdir = outdir,
     threshold = threshold,
     iterations = iterations,
@@ -24,8 +25,6 @@ createDR2SConf <- function(sample,
     distAlleles = distAlleles,
     filterScores = filterScores,
     forceMapping = forceMapping,
-    lrmapper = conf0$lrmapper %||% "minimap",
-    srmapper = conf0$srmapper %||% "bwamem",
     pipeline = conf0$pipeline %||% if (is.null(shortreads)) {
       LR_PIPELINE()
     } else {
@@ -58,16 +57,14 @@ readDR2SConf <- function(configFile) {
   conf["microsatellite"] <- conf$microsatellite %||% FALSE
   conf["filterScores"] <- conf$filterScores %||% TRUE
   conf["forceMapping"] <- conf$forceMapping %||% FALSE
-  conf["lrmapper"] <- conf$lrmapper %||% "minimap"
-  conf["srmapper"] <- conf$srmapper %||% "bwamem"
   conf$pipeline <- conf$pipeline %||% if (is.null(conf$shortreads)) {
     LR_PIPELINE()
   } else {
     SR_PIPELINE()
   }
-  conf$longreads <- conf$longreads %||% list(type = "pacbio", dir = "pacbio")
+  conf$longreads <- conf$longreads %||% list(dir = "pacbio", type = "pacbio", mapper = "minimap")
   if (is.null(conf$shortreads))
-    conf["shortreads"] <-  list(NULL)
+    conf["shortreads"] <- list(NULL)
   if (is.null(conf$opts))
     conf["opts"] <- list(NULL)
   conf$runstats <- NULL
@@ -128,10 +125,10 @@ initialiseDR2S <- function(conf, createOutdir = TRUE) {
 }
 
 validateDR2SConf <- function(conf) {
-  fields <- c("datadir", "outdir", "threshold", "iterations", "microsatellite",
-              "filterScores", "forceMapping", "lrmapper", "srmapper",
-              "pipeline", "longreads", "shortreads", "opts", "sampleId",
-              "locus", "reference", "distAlleles", "details")
+  fields <- c("sampleId", "locus", "reference", "details",
+              "threshold", "iterations", "microsatellite", "filterScores",
+              "forceMapping", "distAlleles", "datadir", "outdir",
+              "longreads", "shortreads", "pipeline", "opts")
   assert_that(all(fields %in% names(conf)),
               msg = paste("Missing fields <",
                           comma(fields[!fields %in% names(conf)]),
@@ -150,21 +147,19 @@ validateDR2SConf <- function(conf) {
     is.count(conf$iterations),
     conf$iterations > 0,
     conf$iterations < 10,
-    msg = "The number of iterations must be integers between 1 and 10"
+    msg = "The number of mapping iterations must be integers between 1 and 10"
   )
+
   # check all logicals
   assert_that(
     is.logical(conf$filterScores),
     is.logical(conf$microsatellite),
     is.logical(conf$forceMapping)
   )
+
   # check number of distinct alleles
   assert_that(is.count(conf$distAlleles),
               msg = "Number of distinct alleles (distAlleles) must be numeric")
-
-  ## Check mapper
-  conf$lrmapper <- match.arg(conf$lrmapper, c("bwamem", "minimap"))
-  conf$srmapper <- match.arg(conf$srmapper, c("bwamem", "minimap"))
 
   ## Check pipeline
   pipesteps <- c("clear", "cache", "mapInit", "mapIter", "mapFinal",
@@ -176,41 +171,69 @@ validateDR2SConf <- function(conf) {
                 comma(conf$pipeline[!conf$pipeline %in% pipesteps]), ">") )
 
   ## Check long reads
-  ## Long reads must have a "type" and a "dir" field.
-  readfields <- c("type", "dir")
+  ## Long reads must have a "type", "mapper" and a "dir" or a "file" field.
+  readfields0 <- c("dir", "file", "type", "mapper")
+  readfields1 <- c("dir", "type", "mapper")
+  readfields2 <- c("file", "type", "mapper")
   assert_that(
-    all(readfields %in% names(conf$longreads)),
+    all(readfields1 %in% names(conf$longreads)) || all(readfields2 %in% names(conf$longreads)),
     msg = paste("Missing fields <",
-                comma(readfields[!readfields %in% names(conf$longreads)]),
+                comma(readfields0[!readfields0 %in% names(conf$longreads)]),
                 "> in longreads config"))
+
   ## Type must be one of "pacbio" or "nanopore"
   assert_that(
     conf$longreads$type %in% c("pacbio", "nanopore"),
     msg = paste("Unsupported longread type", conf$longreads$type)
   )
-  longreaddir <- file.path(conf$datadir, conf$longreads$dir)
-  assert_that(is.dir(longreaddir))
-  assert_that(length(dir(longreaddir, pattern = ".+fast(q|a)(.gz)?")) > 0,
-              msg = "No fasta or fastq file in the longread directory"
+
+  ## Mapper must be one of "bwamem" or "minimap"
+  assert_that(
+    conf$longreads$mapper %in% c("bwamem", "minimap"),
+    msg = paste("Unsupported longread mapper", conf$longreads$mapper)
   )
+
+  ## Longread file must be available
+  if (!is.null(conf$longreads$dir)) {
+    longreaddir <- file.path(conf$datadir, conf$longreads$dir)
+    assert_that(is.dir(longreaddir))
+    assert_that(length(dir(longreaddir, pattern = ".+fast(q|a)(.gz)?")) > 0,
+                msg = "No fasta or fastq file in the longread directory")
+  } else {
+    longreadfile <- file.path(conf$datadir, conf$longreads$file)
+    assert_that(file.exists(longreadfile), msg = "No longreads available")
+  }
 
   ## Check short reads (short reads are optional i.e. the field can be NULL)
   if (!is.null(conf$shortreads)) {
+    ## For shortreads we only allow fields "dir", "type", "mapper"
     assert_that(
-      all(readfields %in% names(conf$shortreads)),
+      all(readfields1 %in% names(conf$shortreads)),
       msg = paste("Missing fields <",
-                  comma(readfields[!readfields %in% names(conf$shortreads)]),
+                  comma(readfields1[!readfields1 %in% names(conf$shortreads)]),
                   "> in shortreads config"))
+
     ## Type must be "illumina"
     assert_that(
       conf$shortreads$type == "illumina",
       msg = paste("Unsupported shortread type", conf$shortreads$type)
     )
+
+    ## Mapper must be one of "bwamem" or "minimap"
+    assert_that(
+      conf$shortreads$mapper %in% c("bwamem", "minimap"),
+      msg = paste("Unsupported shortread mapper", conf$shortreads$mapper)
+    )
+
+    assert_that(!is.null(conf$shortreads$dir))
     shortreaddir <- file.path(conf$datadir, conf$shortreads$dir)
     assert_that(is.dir(shortreaddir))
     assert_that(length(dir(shortreaddir, pattern = ".+fast(q|a)(.gz)?")) > 0,
                 msg = "No fasta or fastq file in the shortread directory"
     )
+  } else {
+    ## set shortreads field in config to NULL
+    conf$shortreads = NULL
   }
   ## Normalise locus
   conf$locus <- sub("^HLA-", "", .normaliseLocus(conf$locus))

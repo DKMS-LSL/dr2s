@@ -112,7 +112,7 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
     readtype <- self$getLrdType()
     mapFun   <- self$getLrMapFun()
     maptag   <- paste(mapLabel, paste0(litArrows(c(allele, readtype,
-                                                   self$getLrMapper(),
+                                                   self$getLrdMapper(),
                                                    optstring(opts))),
                                        collapse = " "))
     pileup <- mapReads(
@@ -135,7 +135,7 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
     flog.info(" Map longreads to initial LR consensus for clustering", name = "info")
     allele <- "Init.LRconsensus." %<<% sub(".bam", "", basename(path(pileup)))
     maptag <- paste(mapLabel, paste0(litArrows(c(allele, readtype,
-                                                 self$getLrMapper(),
+                                                 self$getLrdMapper(),
                                                  optstring(opts))),
                                      collapse = " "))
     self$setRefPath(file.path(basename(outdir), allele %<<% ".fa"))
@@ -150,7 +150,7 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
   readtype <- self$getLrdType()
   mapFun   <- self$getLrMapFun()
   maptag   <- paste(mapLabel, paste0(litArrows(c(allele, readtype,
-                                                 self$getLrMapper(),
+                                                 self$getLrdMapper(),
                                                  optstring(opts))),
                                      collapse = " "))
   pileup <- mapReads(
@@ -534,7 +534,7 @@ DR2S_$set("public", "runExtractLongReads", function() {
       qnames = qnames
     )
     file <- paste(
-      "hap", hptype, self$getLrdType(), self$getLrMapper(),
+      "hap", hptype, self$getLrdType(), self$getLrdMapper(),
       "lim" %<<% as.character(100*abs(attr(self$getHapList(hptype), "limit"))),
       "n" %<<% length(fq),
       "fastq", "gz", sep = ".")
@@ -678,7 +678,7 @@ DR2S_$set(
         mapLabel <- "mapIter"
         maptag   <- paste(mapLabel,
                           paste0(litArrows(c(iteration, hptype,
-                                             readtype, self$getLrMapper())),
+                                             readtype, self$getLrdMapper())),
                                  collapse = " "))
         pileup <- mapReads(
           mapFun = mapFun, maptag = maptag, reffile = reffile, allele = allele,
@@ -958,7 +958,7 @@ DR2S_$set("public", "runMapFinal", function(opts = list(),
     flog.info(" Map longreads", name = "info")
     readtype <- self$getLrdType()
     mapgroup <- "LR" %<<% hptype
-    maptag   <- paste("mapFinal", mapgroup, readtype, self$getLrMapper(), optstring(opts), sep = ".")
+    maptag   <- paste("mapFinal", mapgroup, readtype, self$getLrdMapper(), optstring(opts), sep = ".")
     readfile <- readfilesLR[[hptype]]
     pileup <- mapReads(
       mapFun = self$getLrMapFun(), maptag = maptag, reffile = reffile,
@@ -981,7 +981,7 @@ DR2S_$set("public", "runMapFinal", function(opts = list(),
     flog.info(" Map shortreads", name = "info")
     readtype <- self$getSrdType()
     mapgroup <- "SR" %<<% hptype
-    maptag   <- paste("mapFinal", mapgroup, readtype, self$getSrMapper(), optstring(opts), sep = ".")
+    maptag   <- paste("mapFinal", mapgroup, readtype, self$getSrdMapper(), optstring(opts), sep = ".")
     readfile <- readfilesSR[[hptype]]
     pileup <- mapReads(
       mapFun = self$getSrMapFun(), maptag = maptag, reffile = reffile,

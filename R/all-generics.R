@@ -21,10 +21,12 @@
 #' @param sample A unique sample identifier used to locate the long and short
 #' read FASTQ/FASTA files.
 #' @param locus The HLA or KIR locus (e.g., "A", "DPB1", or "2DL1")
-#' @param longreads The type and location of the long reads as a named list
-#' with the fields \code{type} ("pacbio" or "nanopore") and \code{dir}.
-#' @param shortreads (optional) The type and location of the short reads as a
-#' named list with the fields \code{type} ("illumina") and \code{dir}.
+#' @param longreads Location, type, and mapper for long reads as a named list
+#' with the fields \code{dir}, \code{type} ("pacbio" or "nanopore") and
+#' \code{mapper} ("bwamem" or "minimap").
+#' @param shortreads (optional) Location, type, and mapper for short reads
+#' as a named list with the fields \code{dir}, \code{type} ("illumina") and
+#' \code{mapper} ("bwamem" or "minimap").
 #' @param datadir The data directory (See Note).
 #' @param outdir The output directory (See Note).
 #' @param reference The reference allele (See Note).
@@ -65,21 +67,21 @@
 #'   report(blockWidth = 60)
 #' }
 createDR2SConf <- function(
-                    sample,
-                    locus,
-                    longreads      = list(type = "pacbio", dir = "pacbio"),
-                    shortreads     = list(type = "illumina", dir = "illumina"),
-                    datadir        = ".",
-                    outdir         = "./output",
-                    reference      = NULL,
-                    threshold      = 0.20,
-                    iterations     = 1,
-                    microsatellite = FALSE,
-                    distAlleles    = 2,
-                    filterScores   = TRUE,
-                    forceMapping   = FALSE,
-                    details        = NULL,
-                    ...) {
+  sample,
+  locus,
+  longreads      = list(dir = "pacbio", type = "pacbio", mapper = "minimap"),
+  shortreads     = list(dir = "illumina", type = "illumina", mapper = "bwamem"),
+  datadir        = ".",
+  outdir         = "./output",
+  reference      = NULL,
+  threshold      = 0.20,
+  iterations     = 1,
+  microsatellite = FALSE,
+  distAlleles    = 2,
+  filterScores   = TRUE,
+  forceMapping   = FALSE,
+  details        = NULL,
+  ...) {
   UseMethod("DR2SConf")
 }
 
