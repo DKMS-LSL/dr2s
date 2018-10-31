@@ -8,14 +8,14 @@
 #' @param x \code{pileup} object.
 #' @param name Name for consensus sequence.
 #' @param type One of "prob", "ambig" or "simple".
-#' @param threshold If \code{type == "ambig"}, threshold to call an ambiguous
+#' @param threshold If \code{type = "ambig"}, threshold to call an ambiguous
 #' consensus call.
-#' @param excludeGaps Exclude gaps at insertion position from consensus
-#' calling.
-#' @param gapSuppressionRatio The ratio of base/gap above which gaps at
-#' insertion position are excluded from from consensus calling.
-#' @param forceExcludeGaps Exclude gaps at from consensus calling irrespective
-#' of the frequency of the gap.
+#' @param suppressAllGaps If \code{type = "prob"} or \code{type = "ambig"},
+#' suppress all gaps from consensus calling irrespective of the frequency of the gap.
+#' @param suppressInsGaps If \code{type = "prob"}, suppress gaps at insertion position
+#' from consensus calling based on \code{columnOccupancy}.
+#' @param columnOccupancy Minimum occupancy (1 - fraction of gap) below which
+#' bases at insertion position are excluded from from consensus calling.
 #' @param ... Additional arguments.
 #' @return A \code{\linkS4class{BStringSet}} object with a metadata list
 #' containing the slots:
@@ -31,81 +31,76 @@
 #' @examples
 #' ###
 conseq <- function(x,
-                   name                = "conseq",
-                   type                = c("prob", "ambig", "simple"),
-                   threshold           = NULL,
-                   excludeGaps         = TRUE,
-                   gapSuppressionRatio = 2/5,
-                   forceExcludeGaps    = FALSE,
+                   name            = "conseq",
+                   type            = c("prob", "ambig", "simple"),
+                   threshold       = NULL,
+                   suppressAllGaps = FALSE,
+                   suppressInsGaps = TRUE,
+                   columnOccupancy = 0.4,
                    ...)
   UseMethod("conseq")
+
 #' @export
 conseq.pileup <- function(x,
-                          name                = "conseq",
-                          type                = c("prob", "ambig", "simple"),
-                          threshold           = NULL,
-                          excludeGaps         = TRUE,
-                          gapSuppressionRatio = 2/5,
-                          forceExcludeGaps    = FALSE, ...) {
+                          name            = "conseq",
+                          type            = c("prob", "ambig", "simple"),
+                          threshold       = NULL,
+                          suppressAllGaps = FALSE,
+                          suppressInsGaps = TRUE,
+                          columnOccupancy = 0.4,
+                          ...) {
   if (is.null(threshold)) {
     threshold <- x$threshold
   }
   x <- consmat(x, freq = FALSE)
   conseq(x, name = name, type = type, threshold = threshold,
-         excludeGaps = excludeGaps,
-         gapSuppressionRatio = gapSuppressionRatio,
-         forceExcludeGaps = forceExcludeGaps, ... )
+         suppressAllGaps = suppressAllGaps, suppressInsGaps = suppressInsGaps,
+         columnOccupancy = columnOccupancy, ...)
 }
+
 #' @export
 conseq.matrix <- function(x,
-                          name                = NULL,
-                          type                = c("prob", "ambig", "simple"),
-                          threshold           = NULL,
-                          excludeGaps         = TRUE,
-                          gapSuppressionRatio = 2/5,
-                          forceExcludeGaps    = FALSE, ...) {
+                          name            = NULL,
+                          type            = c("prob", "ambig", "simple"),
+                          threshold       = NULL,
+                          suppressAllGaps = FALSE,
+                          suppressInsGaps = TRUE,
+                          columnOccupancy = 0.4,
+                          ...) {
   type <- match.arg(type, c("prob", "ambig", "simple"))
   if (type == "ambig" && is.null(threshold)) {
     stop("Must set threshold for ambiguity consensus calling!")
   }
   x <- consmat(x, freq = FALSE)
   conseq <- switch(type,
-    prob  = .makeProbConsensus_(x, excludeGaps = excludeGaps,
-                                forceExcludeGaps = forceExcludeGaps,
-                                gapSuppressionRatio = gapSuppressionRatio),
-    ambig = .makeAmbigConsensus_(x, threshold, excludeGaps = excludeGaps),
+    prob   = .makeProbConsensus_(x,
+                                 suppressAllGaps = suppressAllGaps,
+                                 suppressInsGaps = suppressInsGaps,
+                                 columnOccupancy = columnOccupancy,
+                                 ...),
+    ambig  = .makeAmbigConsensus_(x, threshold, suppressAllGaps, ...),
     simple = .makeSimpleConsensus_(x)
-
   )
   names(conseq) <- name
   conseq
 }
 
 ## strict consensus based on z-scores
-## <excludeGaps> affects behaviour at insertion positions
-## if <excludeGaps> the gap count at insertion position is set to zero if
-## the ratio of base/gap >= gapSuppressionRatio (2/3), which allows calling
-## the alternate base even if at lower frequency than the gap.
-## if <forceExcludeGaps> all gap counts will be set to zero.
+## if <suppressAllGaps> all gap counts are set to zero.
+## if <suppressInsGaps> only gap counts at insertion position are affected
+## and if the maximum base frequency >= <columnOccupancy> at an insertion position
+## the gap count is set to zero.
 .makeProbConsensus_ <- function(x,
-                                excludeGaps = TRUE,
-                                forceExcludeGaps = FALSE,
-                                gapSuppressionRatio = 2/5,
-                                asString = FALSE) {
-
-
-
-
-  #cseq <- conseq(reads, "hap" %<<% hptype, "prob", excludeGaps = TRUE)
-
+                                suppressAllGaps = FALSE,
+                                suppressInsGaps = TRUE,
+                                columnOccupancy = 0.4,
+                                asString = FALSE,
+                                ...) {
   xOri <- x
-  if (excludeGaps && length(ins_ <- as.character(ins(x))) > 0) {
-    x <- .suppressGaps_(x, ins = ins_,
-                        gapSuppressionRatio = gapSuppressionRatio)
-  }
-  if (forceExcludeGaps) {
+  if (suppressAllGaps) {
     x[, "-"] <- 0
-
+  } else if (suppressInsGaps && length(ins_ <- as.character(ins(x))) > 0) {
+    x <- .suppressGaps_(x, ins = ins_, columnOccupancy = columnOccupancy)
   }
   # don't allow gaps at beginning and end
   maxbases <- names(unlist(unname(apply(x, 1, function(a)
@@ -119,12 +114,12 @@ conseq.matrix <- function(x,
     if (min(maxgap) < min(maxbase)) {
       excludeFromStart <- min(
         which(maxbases == "-")):(min(which(maxbases != "-")) - 1)
-      x[excludeFromStart,"-"] <- 0
+      x[excludeFromStart, "-"] <- 0
     }
     if (max(maxgap) > max(maxbase)) {
       excludeFromEnd <- (max(
         which(maxbases != "-")) + 1):max(which(maxbases == "-"))
-      x[excludeFromEnd,"-"] <- 0
+      x[excludeFromEnd, "-"] <- 0
     }
   }
 
@@ -132,7 +127,7 @@ conseq.matrix <- function(x,
   if (length(i <- which(n(x) == 0L)) > 0) {
     x <- x[-i, ]
   }
-  rowsd <- mean(n(x)) / 2
+  rowsd <- mean(n(x))/2
   z <- sweep(sweep(x, 1, .rowMeans(x, NROW(x), NCOL(x)), `-`), 1, rowsd, `/`)
   bases <- colnames(x)[apply(z, 1, which.max)]
   if (asString) {
@@ -142,7 +137,7 @@ conseq.matrix <- function(x,
   seq  <- Biostrings::BStringSet(paste0(bases[!dels], collapse = ""))
 
   # fix zscore; rm del positions
-  z <- z[!dels,]
+  z <- z[!dels, ]
 
   metadata(seq) <- list(
     zscore     = unname(apply(z, 1, max)),
@@ -152,18 +147,20 @@ conseq.matrix <- function(x,
     deletions  = unname(which(dels)),
     consmat    = xOri
   )
+
   return(seq)
 }
 
 ## consensus with ambiguities
-## <excludeGaps> affects behaviour at polymorphic positions:
-## if <!excludeGaps> a gap ambiguity will be called (small letter)
-## if <excludeGaps> the alternate base(s) will be called irrespective
+## <suppressAllGaps> affects behaviour at polymorphic positions:
+## if <!suppressAllGaps> a gap ambiguity may be called (small letter)
+## if <suppressAllGaps> the alternate base will be called irrespective
 ## of the frequency of the gap
 .makeAmbigConsensus_ <- function(x,
-                                  threshold,
-                                  excludeGaps = FALSE,
-                                  asString = FALSE) {
+                                 threshold,
+                                 suppressAllGaps = FALSE,
+                                 asString = FALSE,
+                                 ...) {
   ## Filter all bases with a frequency > threshold
   cmf <- consmat(x, freq = TRUE)
   ## remove rows which have been set to zero
@@ -183,8 +180,8 @@ conseq.matrix <- function(x,
     else if (length(b) > 1) {
       ## sort by name
       b <- b[order(names(b))]
-      ## if we have a gap and excludeGaps == TRUE
-      if (any(gap <- names(b) == "-") && excludeGaps) {
+      ## if we have a gap and suppressAllGaps == TRUE
+      if (suppressAllGaps && any(gap <- names(b) == "-")) {
         b <- b[!gap]
       }
       NUC <- paste0(names(b), collapse = "")
@@ -205,6 +202,7 @@ conseq.matrix <- function(x,
   attr(ambigs, "ambiguities") <- unname(bases[which(!bases %in% DNA_BASES())])
   dels <- bases == "-"
   seq  <- Biostrings::BStringSet(paste0(bases[!dels], collapse = ""))
+
   metadata(seq) <- list(
     zscore     = NULL,
     freq       = unname(vapply(s, function(x) sum(x[["freq"]]), 0)),
@@ -213,8 +211,10 @@ conseq.matrix <- function(x,
     deletions  = unname(which(dels)),
     consmat    = x
   )
-  seq
+
+  return(seq)
 }
+
 .makeSimpleConsensus_ <- function(x) {
   cmf <- consmat(x, freq = TRUE)
   if (any(na_ <- is.na(rowSums(cmf)))) {
@@ -224,29 +224,25 @@ conseq.matrix <- function(x,
   paste0(colnames(cmf)[apply(cmf, 1, which.max)], collapse = "")
 }
 
-
 ## Helper functions
-# gapSuppressionRatio = base/gap
-.suppressGaps_ <- function(x, ins, gapSuppressionRatio = 2/5) {
+.suppressGaps_ <- function(x, ins, columnOccupancy = 0.4) {
   x0 <- x[dimnames(x)$pos %in% ins, ]
-  ## if the ratio of the most freqent base to gap is greater/equal to
-  ## gapSuppressionRatio set the gap count to zero (i.e. suppress the gap)
+  ## if frequency of the most frequent base is greater or equal to the
+  ## columnOccupancy (1 - gap frequency) set the gap count to zero
+  ## (i.e. suppress the gap)
   i <- which(apply(x0[, c("A", "C", "G", "T")], 1, max) /
-               x0[, "-"] >= gapSuppressionRatio)
+               x0[, "-"] >= columnOccupancy)
   if (length(j <- dimnames(x0)$pos[i]) > 0) {
     x[j, "-"] <- 0
   }
-
   x
 }
 
-
-.getWriteConseq <- function(pileup, name, type, threshold, forceExcludeGaps,
-                           conseqPath) {
+.getWriteConseq <- function(pileup, name, type, threshold, suppressAllGaps, conseqPath) {
   conseq <- conseq(consmat(pileup), name = name, type = type,
-                   threshold = threshold, forceExcludeGaps = TRUE)
+                   threshold = threshold, suppressAllGaps = suppressAllGaps)
   Biostrings::writeXStringSet(
     Biostrings::DNAStringSet(gsub("[-+]", "N", conseq)),
     conseqPath)
-  invisible(conseq)
+  return(invisible(conseq))
 }

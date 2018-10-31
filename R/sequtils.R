@@ -258,7 +258,7 @@
 }
 
 .mat2rle <- function(mat) {
-  seq <- conseq(mat, type = "prob", forceExcludeGaps = TRUE)
+  seq <- conseq(mat, type = "prob", suppressAllGaps = TRUE)
   .seq2rle(seq)
 }
 

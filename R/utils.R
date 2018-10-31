@@ -209,9 +209,11 @@ wrap <- function(x, wrap = "\"") {
 
 #' Get the number of idling cores that can be used by calling the linux system
 #' program mpstat
+#' @param max_cpu_usage Maximum cpu usage (percentage idle time) for a core to
+#' still be considered idle.
 #'
 #' @return An integer giving the number of idling cores
-.getIdleCores <- function() {
+.getIdleCores <- function(max_cpu_usage = 10) {
   # total number of cores
   N_CORES <- parallel::detectCores()
 
@@ -229,18 +231,14 @@ wrap <- function(x, wrap = "\"") {
   # create list for readable lapply output
   cores <- lapply(seq_len(N_CORES), function(x) x - 1)
   names(cores) <- paste0('CPU', seq_len(N_CORES) - 1)
-
   # use platform specific system commands to get idle time
-  proc_idle_time <- lapply(cores, function(x) {
+  proc_idle_time <- vapply(cores, function(x) {
     # assumes linux
-    out <- system2(
-      command = 'mpstat',
-      args = c('-P', x),
-      stdout = TRUE)
-    as.double(gsub(",", ".", unlist(strsplit(out[4], ' {2,}'))[12]))
-  })
+    out <- system2(command = 'mpstat', args = c('-P', x), stdout = TRUE)
+    as.double(sub(",", ".", unlist(strsplit(out[4], ' {2,}'))[12]))
+  }, FUN.VALUE = double(1))
 
-  max(sum(proc_idle_time > 90) - 1, 1)
+  max(sum(proc_idle_time < max_cpu_usage) - 1, 1)
 }
 
 .setRunstats <- function(self, name, value) {

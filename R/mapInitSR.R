@@ -82,9 +82,9 @@ mapInitSR <- function(self, threshold = 0.2, opts = list(), includeDeletions = T
   ## Get conseq
   conseqName <- "Init.consensus.1." %<<% baseLabel
   conseqPath <- file.path(outdir, conseqName %<<% ".fa")
-  conseq <- .getWriteConseq(pileup = pileup, name = "mapInit1.0",
-                            type = "prob",  threshold = threshold,
-                            forceExcludeGaps = TRUE, conseqPath = conseqPath)
+  conseq <- .getWriteConseq(pileup = pileup, name = "mapInit1.0", type = "prob",
+                            threshold = threshold, suppressAllGaps = TRUE,
+                            conseqPath = conseqPath)
 
   if (microsat) {
     mapLabel <- "mapInit1.2"
@@ -110,9 +110,9 @@ mapInitSR <- function(self, threshold = 0.2, opts = list(), includeDeletions = T
                 "with refined repeats", name = "info")
     conseqName <- "Init.consensus.2." %<<% baseLabel
     conseqPath <- file.path(outdir, conseqName %<<% ".fa")
-    conseq <- .getWriteConseq(pileup, name = "mapInit1.2",
-                              type = "prob", threshold = threshold,
-                              forceExcludeGaps = TRUE, conseqPath = conseqPath)
+    conseq <- .getWriteConseq(pileup, name = "mapInit1.2", type = "prob",
+                              threshold = threshold, suppressAllGaps = TRUE,
+                              conseqPath = conseqPath)
   }
 
   mapInitSR1 = structure(

@@ -25,12 +25,10 @@ report.DR2S <- function(x, which, blockWidth = 80, noRemap = FALSE, createIgv = 
     ## if `which` is unspecified choose `mapFinal` if available,
     ## otherwise try `mapIter`
     if (is(x$mapFinal, "mapFinal")) {
-      .reportMap_(x, map = "mapFinal", outdir = outdir,
-                  blockWidth = blockWidth,
+      .reportMap_(x, map = "mapFinal", outdir = outdir, blockWidth = blockWidth,
                   noRemap = noRemap, createIgv = createIgv, ...)
     } else if (is(x$mapIter$`0`$A, "mapIter")) {
-      .reportMap_(x, map = "mapIter", outdir = outdir,
-                  blockWidth = blockWidth, ...)
+      .reportMap_(x, map = "mapIter", outdir = outdir, blockWidth = blockWidth, ...)
     } else
       stop("Nothing to report")
   } else {
@@ -350,8 +348,9 @@ refineAlignment <- function(x, hptype, report = FALSE, createIgv = TRUE){
   }
 
   # calc new consensus
-  cseq <- conseq(consmat(pileup), "refine" %<<% hptype, "ambig",
-                 excludeGaps = FALSE, threshold = x$getThreshold())
+  consName <- "refine" %<<% hptype
+  cseq <- conseq(consmat(pileup), name = consName, type = "ambig",
+                 threshold = x$getThreshold(), suppressAllGaps = FALSE)
   x$consensus$refine$consensus[[hptype]] <- cseq
   x$cache()
   createIgvConfigs(x, map = "refine", open = FALSE)

@@ -63,10 +63,10 @@ readDR2S <- function(path) {
 
   if (!is.null(x$mapInit$SR1)) {
     cseq <- conseq(consmat(x$mapInit$SR2$pileup), "mapFinalA", "ambig",
-                   excludeGaps = TRUE, threshold = x$getThreshold())
+                   suppressAllGaps = TRUE, threshold = x$getThreshold())
   } else {
     cseq <- conseq(consmat(x$mapInit$pileup), "mapFinalA", "ambig",
-                   excludeGaps = TRUE, threshold = x$getThreshold())
+                   suppressAllGaps = TRUE, threshold = x$getThreshold())
   }
   x$mapFinal$seq$A <- cseq
 

@@ -11,7 +11,7 @@ mapReads <- function(
   samfile <- mapFun(reffile, readfile, readtype, allele, refname, force, outdir, opts)
 
   ## define minMapq for bamfile sorting
-  #dots <- list(minMapq = 0)
+  # dots <- list(minMapq = 0)
   dots <- list(...)
   minMapq <- dots$min_mapq %||% dots$minMapq %||% 0
 

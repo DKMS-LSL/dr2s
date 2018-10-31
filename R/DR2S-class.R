@@ -250,7 +250,7 @@ DR2S_ <- R6::R6Class(
     },
     ##
     getLrdType = function() {
-      self$getConfig("longreads")$type
+      self$getConfig("longreads")$platform
     },
     ##
     getLrdDir = function() {
@@ -282,7 +282,7 @@ DR2S_ <- R6::R6Class(
     },
     ##
     getSrdType = function() {
-      self$getConfig("shortreads")$type
+      self$getConfig("shortreads")$platform
     },
     ##
     getSrdDir = function() {
@@ -481,7 +481,7 @@ DR2S_ <- R6::R6Class(
       if (length(self$mapFinal) > 0) {
         return(self$absPath(self$mapFinal$seq))
       } else if (length(self$mapIter) > 0) {
-        latest <-  self$mapIter[[
+        latest <- self$mapIter[[
           toString(max(names(self$mapIter)))]][self$getHapTypes()]
         return(vapply(latest, function(x) self$absPath(x$seqpath),
                       character(1)))
@@ -493,13 +493,13 @@ DR2S_ <- R6::R6Class(
     getLatestRef = function() {
       if (!is.null(self$consensus$seq)) {
         return(self$consensus$seq)
-      }else if (length(self$mapFinal) > 0) {
+      } else if (length(self$mapFinal) > 0) {
         return(self$mapFinal$seq)
       } else if (length(self$mapIter) > 0) {
-        latest <-  self$mapIter[[
+        latest <- self$mapIter[[
           toString(max(names(self$mapIter)))]][self$getHapTypes()]
         return(lapply(latest, function(x) x$conseq))
-      }  else {
+      } else {
         return(self$getRefSeq())
       }
     },

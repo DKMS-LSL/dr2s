@@ -5,7 +5,11 @@
 \title{Get the number of idling cores that can be used by calling the linux system
 program mpstat}
 \usage{
-.getIdleCores()
+.getIdleCores(max_cpu_usage = 10)
+}
+\arguments{
+\item{max_cpu_usage}{Maximum cpu usage (percentage idle time) for a core to
+still be considered idle.}
 }
 \value{
 An integer giving the number of idling cores

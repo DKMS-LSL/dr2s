@@ -12,7 +12,7 @@
 #' format \code{SAMPLE_LOCUS_*R[12]*.fast(q|a)(.gz)}, respectively.
 #'
 #' @section Outdir:
-#' All output will be placed in directory hierarchy \code{OUTDIR/SAMPLE}
+#' All output will be placed in directory hierarchy \code{OUTDIR/SAMPLE/LOCUS}
 #'
 #' @section Reference:
 #' References can be specified as allele codes or a path to a fasta file
@@ -21,11 +21,11 @@
 #' @param sample A unique sample identifier used to locate the long and short
 #' read FASTQ/FASTA files.
 #' @param locus The HLA or KIR locus (e.g., "A", "DPB1", or "2DL1")
-#' @param longreads Location, type, and mapper for long reads as a named list
-#' with the fields \code{dir}, \code{type} ("pacbio" or "nanopore") and
+#' @param longreads Location, platform, and mapper for longreads as a named list
+#' with the fields \code{dir}, \code{platform} ("pacbio" or "nanopore") and
 #' \code{mapper} ("bwamem" or "minimap").
 #' @param shortreads (optional) Location, type, and mapper for short reads
-#' as a named list with the fields \code{dir}, \code{type} ("illumina") and
+#' as a named list with the fields \code{platform}, \code{type} ("illumina") and
 #' \code{mapper} ("bwamem" or "minimap").
 #' @param datadir The data directory (See Note).
 #' @param outdir The output directory (See Note).
@@ -69,8 +69,8 @@
 createDR2SConf <- function(
   sample,
   locus,
-  longreads      = list(dir = "pacbio", type = "pacbio", mapper = "minimap"),
-  shortreads     = list(dir = "illumina", type = "illumina", mapper = "bwamem"),
+  longreads      = list(dir = "pacbio", platform = "pacbio", mapper = "minimap"),
+  shortreads     = list(dir = "illumina", platform = "illumina", mapper = "bwamem"),
   datadir        = ".",
   outdir         = "./output",
   reference      = NULL,
@@ -162,15 +162,15 @@ mapInit <- function(x,
 #' Iterative mapping.
 #'
 #' Partitioned long reads are mapped against the MSA consensus sequence of
-#' the best 40 sequences for each haplotype. Indels are \strong{excluded} from
-#' pileup. New consensus sequences for both alleles are inferred.
+#' each haplotype. Indels are \strong{excluded} from pileup.
+#' New reference consensus sequences for both alleles are inferred.
 #'
 #' @param x A \code{\link[=DR2S_]{DR2S}} object.
 #' @param opts Mapper options.
-#' @param iterations Number of iterations. How often are the clustered reads
-#' remapped to the updated reference.
-#' @param gapSuppressionRatio The ratio of base/gap above which gaps at
-#' insertion position are excluded from from consensus calling.
+#' @param iterations Number of \code{mapIter} iterations. How often are the
+#' clustered reads remapped to updated reference sequences.
+#' @param columnOccupancy Minimum occupancy (1 - fraction of gap) below which
+#' bases at insertion position are excluded from from consensus calling.
 #' @param force If \code{TRUE}, overwrite existing bam file.
 #' @param plot Plot diagnostics.
 #' @param ... Additional parameters passed to \code{\link[Rsamtools]{PileupParam}}.
@@ -198,7 +198,7 @@ mapInit <- function(x,
 mapIter <- function(x,
                     opts = list(),
                     iterations = 1,
-                    gapSuppressionRatio = 2/5,
+                    columnOccupancy = 0.4,
                     force = FALSE,
                     plot = TRUE,
                     ...) {

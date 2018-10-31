@@ -267,23 +267,27 @@ createPWM <- function(msa){
   if (removeError) {
     gapError <- .getGapErrorBackground(mat, n = 5)
   }
+  workers <- min(sum(idx <- seq$length > 5), .getIdleCores())
+  bpparam <- BiocParallel::MulticoreParam(workers = workers, log = FALSE)
+  flog.info("   Using %s workers to distribute gaps at positions <%s>",
+            workers, comma(which(idx)), name = "info")
   bam <- Rsamtools::BamFile(bamfile)
-  Rsamtools::open.BamFile(bam)
-  on.exit(Rsamtools::close.BamFile(bam))
+  if (workers > 1) {
+    Rsamtools::open.BamFile(bam)
+    on.exit(Rsamtools::close.BamFile(bam))
+  }
   ## Collect changed matrix elements
   ## TODO: bplapply throws warning in serialize(data, node$con, xdr = FALSE)
   ## 'package:stats' may not be available when loading
   ## For the time being we suppress this warning
-  workers <- min(sum(idx <- seq$length > 5), .getIdleCores())
-  bpparam <- BiocParallel::MulticoreParam(workers = workers, log = FALSE)
-  changeMat <- suppressWarnings(BiocParallel::bplapply(which(idx), function(i, bamfile) {
+  changeMat <- suppressWarnings(BiocParallel::bplapply(which(idx), function(i, bfl) {
     #  i <- which(seq$length > 5)[2]
     ## Assign new gap numbers to each position starting from left
     #  meanCoverage <- mean(rowSums(mat[(seqStart-2):(seqEnd+2),1:4]))
     seqStart <- sum(seq$lengths[seq_len(i - 1)]) + 1
     seqEnd <- seqStart + seq$lengths[i] - 1
     range <- c(seqStart, seqEnd)
-    msa <- .msaFromBam(bamfile, range, paddingLetter = "+")
+    msa <- .msaFromBam(bfl, range, paddingLetter = "+")
     ## Skip position if empty
     if (length(msa) == 0) {
       NULL
@@ -338,8 +342,10 @@ createPWM <- function(msa){
           , VALID_DNA(include = "indel")]
       )
     }
-  }, bamfile = bam, BPPARAM = bpparam))
+    #}, bamfile = bamfile, BPPARAM = bpparam))
+  }, bfl = bam, BPPARAM = bpparam))
   ##
+  assert_that(!any(vapply(changeMat, is.null, FUN.VALUE = logical(1))))
   ## Change the matrix
   for (i in changeMat) {
     mat[i$seqStart:i$seqEnd, ] <- i$mat

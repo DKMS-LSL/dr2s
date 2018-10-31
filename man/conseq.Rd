@@ -5,8 +5,8 @@
 \title{Construct a consensus sequence}
 \usage{
 conseq(x, name = "conseq", type = c("prob", "ambig", "simple"),
-  threshold = NULL, excludeGaps = TRUE, gapSuppressionRatio = 2/5,
-  forceExcludeGaps = FALSE, ...)
+  threshold = NULL, suppressAllGaps = FALSE, suppressInsGaps = TRUE,
+  columnOccupancy = 0.4, ...)
 }
 \arguments{
 \item{x}{\code{pileup} object.}
@@ -15,17 +15,17 @@ conseq(x, name = "conseq", type = c("prob", "ambig", "simple"),
 
 \item{type}{One of "prob", "ambig" or "simple".}
 
-\item{threshold}{If \code{type == "ambig"}, threshold to call an ambiguous
+\item{threshold}{If \code{type = "ambig"}, threshold to call an ambiguous
 consensus call.}
 
-\item{excludeGaps}{Exclude gaps at insertion position from consensus
-calling.}
+\item{suppressAllGaps}{If \code{type = "prob"} or \code{type = "ambig"},
+suppress all gaps from consensus calling irrespective of the frequency of the gap.}
 
-\item{gapSuppressionRatio}{The ratio of base/gap above which gaps at
-insertion position are excluded from from consensus calling.}
+\item{suppressInsGaps}{If \code{type = "prob"}, suppress gaps at insertion position
+from consensus calling based on \code{columnOccupancy}.}
 
-\item{forceExcludeGaps}{Exclude gaps at from consensus calling irrespective
-of the frequency of the gap.}
+\item{columnOccupancy}{Minimum occupancy (1 - fraction of gap) below which
+bases at insertion position are excluded from from consensus calling.}
 
 \item{...}{Additional arguments.}
 }

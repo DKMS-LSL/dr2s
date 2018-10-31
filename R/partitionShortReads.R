@@ -41,18 +41,20 @@ getSRPartitionScores <- function(bamfile, mats) {
     on.exit(options(op))
   }
 
-  bam <- Rsamtools::BamFile(bamfile)
-  Rsamtools::open.BamFile(bam)
-  on.exit(Rsamtools::close.BamFile(bam))
-
-  ## Get reference from bamfile
-  refname <- GenomeInfoDb::seqnames(Rsamtools::seqinfo(bam))
   ## Get polymorphic positions
   ppos <- colnames(mats[[1]])
-  flog.info(" Partition shortreads on %s positions", length(ppos), name = "info")
   ## Register as many workers as necessary or available
   workers <- min(length(ppos), .getIdleCores())
   bpparam <- BiocParallel::MulticoreParam(workers = workers)
+  bam <- Rsamtools::BamFile(bamfile)
+  ## Get reference from bamfile
+  refname <- GenomeInfoDb::seqnames(Rsamtools::seqinfo(bam))
+  if (workers > 1) {
+    Rsamtools::open.BamFile(bam)
+    on.exit(Rsamtools::close.BamFile(bam))
+  }
+  flog.info(" Using %s workers to partition shortreads on %s positions",
+            workers, length(ppos), name = "info")
   res <- do.call(dplyr::bind_rows,
     suppressWarnings(BiocParallel::bplapply(as.integer(ppos),
     function(pos, refname, bamfile, mats) {

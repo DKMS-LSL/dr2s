@@ -4,7 +4,7 @@
 \alias{mapIter}
 \title{Iterative mapping.}
 \usage{
-mapIter(x, opts = list(), iterations = 1, gapSuppressionRatio = 2/5,
+mapIter(x, opts = list(), iterations = 1, columnOccupancy = 0.4,
   force = FALSE, plot = TRUE, ...)
 }
 \arguments{
@@ -12,11 +12,11 @@ mapIter(x, opts = list(), iterations = 1, gapSuppressionRatio = 2/5,
 
 \item{opts}{Mapper options.}
 
-\item{iterations}{Number of iterations. How often are the clustered reads
-remapped to the updated reference.}
+\item{iterations}{Number of \code{mapIter} iterations. How often are the
+clustered reads remapped to updated reference sequences.}
 
-\item{gapSuppressionRatio}{The ratio of base/gap above which gaps at
-insertion position are excluded from from consensus calling.}
+\item{columnOccupancy}{Minimum occupancy (1 - fraction of gap) below which
+bases at insertion position are excluded from from consensus calling.}
 
 \item{force}{If \code{TRUE}, overwrite existing bam file.}
 
@@ -29,8 +29,8 @@ A \code{\link[=DR2S_]{DR2S}} object.
 }
 \description{
 Partitioned long reads are mapped against the MSA consensus sequence of
-the best 40 sequences for each haplotype. Indels are \strong{excluded} from
-pileup. New consensus sequences for both alleles are inferred.
+each haplotype. Indels are \strong{excluded} from pileup.
+New reference consensus sequences for both alleles are inferred.
 }
 \examples{
 \dontrun{

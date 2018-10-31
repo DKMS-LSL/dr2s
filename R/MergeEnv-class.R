@@ -184,11 +184,11 @@ MergeEnv_$set("public", "showConsensus", function(envir,
   sr <- envir$SR[min:(pos + offsetBases + right), , drop = FALSE]
   ## Conseq
   lcs <- tolower(.makeAmbigConsensus_(lr, threshold = self$threshold,
-                                       excludeGaps = FALSE, asString = TRUE))
-    # here
+                                      suppressAllGaps = FALSE, asString = TRUE))
+  ## here
   substr(lcs, left + 1, left + 1) <- toupper(substr(lcs, left + 1, left + 1))
   scs <- tolower(.makeAmbigConsensus_(sr, threshold = self$threshold,
-                                       excludeGaps = FALSE, asString = TRUE))
+                                      suppressAllGaps = FALSE, asString = TRUE))
   substr(scs, left + 1, left + 1) <- toupper(substr(scs, left + 1, left + 1))
   show <- sprintf(" Haplotype %s [%s] \nlr: %s\nsr: %s\n\n",
                   envir$haplotype, pos, lcs, scs)
@@ -209,9 +209,9 @@ MergeEnv_$set("public", "showMatrix", function(envir, pos, left = 6,
   lr <- envir$LR[min:(pos + offsetBases + right), , drop = FALSE]
   sr <- envir$SR[min:(pos + offsetBases + right), , drop = FALSE]
   lcs <- .makeAmbigConsensus_(lr, threshold = self$threshold,
-                               excludeGaps = FALSE, asString = TRUE)
+                              suppressAllGaps = FALSE, asString = TRUE)
   scs <- .makeAmbigConsensus_(sr, threshold = self$threshold,
-                               excludeGaps = FALSE, asString = TRUE)
+                              suppressAllGaps = FALSE, asString = TRUE)
   cat("Haplotype ", envir$haplotype,
       "\nLong read map position [", pos + offsetBases,
       "] Consensus [", lcs, "]\n")
@@ -229,41 +229,34 @@ MergeEnv_$set("public", "export", function() {
               .final = function(x) setNames(x, self$x$getHapTypes())) %do% {
                 envir <- self$hptypes[[hptype]]
                 list(
-                  matrix   = ifelse(!is.null(envir$SR), envir$SR, envir$LR),
+                  matrix = ifelse(!is.null(envir$SR), envir$SR, envir$LR),
                   variants = compact(envir$variants)
                 )
               },
-      ## consensus for checking
+      ## consensus for checking with ambigs
       seq = list(foreach(hptype = self$x$getHapTypes(),
                          .final = function(x)
                            setNames(x, self$x$getHapTypes())) %do% {
                            self$x$mapFinal$pileup
-                           if (!is.null(self$hptypes[[hptype]]$SR)){
-                             reads <- self$hptypes[[hptype]]$SR
+                             reads <- if (!is.null(self$hptypes[[hptype]]$SR)){
+                             self$hptypes[[hptype]]$SR
                            } else {
-                             reads <- self$x$mapFinal$pileup[[
-                               "LR" %<<% hptype]]$consmat
+                             self$x$mapFinal$pileup[["LR"%<<%hptype]]$consmat
                            }
-                           seqname =
-                           cseq <- conseq(reads, "hap" %<<% hptype, "ambig",
-                                          excludeGaps = TRUE,
-                                          threshold = self$threshold)
+                           cseq <- conseq(reads, "hap"%<<%hptype, "ambig", suppressAllGaps = TRUE, threshold = self$threshold)
                            metadata(cseq) <- list()
                            cseq
                          }),
-
-      ## consensus for remapping without ambig characters
+      ## consensus for remapping without ambigs
       noAmbig = list(foreach(hptype = self$x$getHapTypes(),
                              .final = function(x)
                                setNames(x, self$x$getHapTypes())) %do% {
-                                 if (!is.null(self$hptypes[[hptype]]$SR)){
-                                   reads <- self$hptypes[[hptype]]$SR
+                                 reads <- if (!is.null(self$hptypes[[hptype]]$SR)) {
+                                   self$hptypes[[hptype]]$SR
                                  } else {
-                                   reads <- self$x$mapFinal$pileup[[
-                                     "LR" %<<%hptype]]$consmat
+                                   self$x$mapFinal$pileup[["LR"%<<%hptype]]$consmat
                                  }
-                                 cseq <- conseq(reads, "hap" %<<% hptype,
-                                                "prob", excludeGaps = TRUE)
+                                 cseq <- conseq(reads, "hap"%<<%hptype, "prob", suppressAllGaps = TRUE)
                                  metadata(cseq) <- list()
                                  cseq
                                })
