@@ -125,12 +125,12 @@ expandDR2SConf <- function(conf) {
 
 updateDR2SConf <- function(conf0, lrd, sampleId, sample) {
   conf0$datadir <- normalizePath(conf0$datadir, mustWork = TRUE)
-  conf0$outdir <- normalizePath(conf0$outdir, mustWork = FALSE)
+  conf0$outdir  <- normalizePath(conf0$outdir, mustWork = FALSE)
   conf0$longreads <- lrd
-  conf0$sampleId <- sampleId
-  conf0$distAlleles <- sample$distAlleles
+  conf0$sampleId  <- sampleId
+  conf0$distAlleles <- conf0$distAlleles %||% sample$distAlleles
   sample$distAlleles <- NULL
-  conf0["reference"] <- sample$reference %|ch|% list(NULL)
+  conf0["reference"] <- sample$reference %||% conf0$reference %||% list(NULL)
   sample$reference <- NULL
   ## add overides if they exist
   conf1 <- mergeList(conf0, sample, update = TRUE)
