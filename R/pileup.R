@@ -252,6 +252,7 @@ reads.pileup <- function(x, ..) {
   }
   ins_ <- .pileupGetInsertions_(x, threshold)
   if (length(ins_) == 0) {
+    flog.info("   No insertions found at threshold <%s>", threshold, name = "info")
     return(x)
   }
   offsetBases <- 0L
