@@ -2,15 +2,17 @@
 % Please edit documentation in R/config.R
 \name{writeDR2SConf}
 \alias{writeDR2SConf}
-\title{Write the DR2S config as yaml.}
+\title{Write the DR2S config as yaml or jsoon.}
 \usage{
-writeDR2SConf(x, outFile = NULL)
+writeDR2SConf(x, outFile = NULL, format = "auto")
 }
 \arguments{
 \item{x}{A \code{\link{DR2S}} object.}
 
 \item{outFile}{The destination file.}
+
+\item{format}{Output format ("auto", "yaml" or "json")}
 }
 \description{
-Write the DR2S config as yaml.
+Write the DR2S config as yaml or jsoon.
 }

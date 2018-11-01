@@ -340,6 +340,10 @@ DR2S_ <- R6::R6Class(
       self$getConfig("reference")
     },
     ##
+    getHPC = function() {
+      self$getConfig("longreads")$hpc
+    },
+    ##
     getDistAlleles = function() {
       self$getConfig("distAlleles")
     },
@@ -376,6 +380,7 @@ DR2S_ <- R6::R6Class(
 
       paste("locus=" %<<% litQuote(self$getLocus()),
             "ref=" %<<% litQuote(self$getReference()),
+            "hpc=" %<<% litQuote(self$getHPC()),
             details,
             "short_read_data=" %<<% litQuote(ifelse(sr, "yes", "no")),
             "short_read_type=" %<<% litQuote(ifelse(sr, self$getSrdType(), "")),

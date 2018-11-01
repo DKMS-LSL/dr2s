@@ -84,7 +84,7 @@ subSampleBam <- function(bamfile, windowSize = NULL, sampleSize = 100,
 
   ## Get everything from the bamfile if nothing else is specified
   if (is.null(what))
-    what <- scanBamWhat()
+    what <- Rsamtools::scanBamWhat()
   assert_that(is.character(what))
 
   alignmentBam <-  GenomicAlignments::readGAlignments(
@@ -122,7 +122,7 @@ subSampleBam <- function(bamfile, windowSize = NULL, sampleSize = 100,
   }
   ## Split the reads if specified.
   if (fragmentReads) {
-    sampledAlignmentBam <- .fragmentReads(sampledAlignmentBam, fragmentLength = fragmentWidth)
+    sampledAlignmentBam <- .fragmentReads(alignment = sampledAlignmentBam, fragmentLength = fragmentWidth)
   }
 
   newBamfile <- gsub(".bam", ".sampled.bam", bamfile)
@@ -139,13 +139,13 @@ subSampleBam <- function(bamfile, windowSize = NULL, sampleSize = 100,
 .fragmentReads <- function(alignment, fragmentLength = 1000) {
   assert_that(is(alignment, "GAlignments"), is.count(fragmentLength))
   fragmentAlignment <- GenomicAlignments::GAlignmentsList(
-    lapply(seq_along(alignment),  function(ii, fragmentLength) {
-      # ii <- 1
+    lapply(seq_along(alignment), function(ii, fragmentLength) {
+      # ii <- 55
       a <- alignment[ii]
       readWidth <- GenomicAlignments::qwidth(a)
       windowLen <- ceiling(readWidth/fragmentLength)
       wi <- floor(seq(from = 1, readWidth, length.out = windowLen))
-      if (length(wi) > 1) {
+      if (length(wi) > 2) {
         wRanges <- IRanges::IRanges(start = c(1, wi[2:(windowLen - 1)] + 1), end = wi[2:windowLen])
         aa <- rep(a, windowLen - 1)
         a <- GenomicAlignments::qnarrow(aa, wRanges)
@@ -154,8 +154,7 @@ subSampleBam <- function(bamfile, windowSize = NULL, sampleSize = 100,
       }
       a
     }, fragmentLength = fragmentLength))
-  fragmentAlignment <- unlist(fragmentAlignment, recursive = TRUE,
-                             use.names = TRUE)
+  fragmentAlignment <- unlist(fragmentAlignment, recursive = TRUE, use.names = TRUE)
   fragmentAlignment[order(GenomicAlignments::start(fragmentAlignment))]
 }
 

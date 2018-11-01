@@ -524,18 +524,12 @@ DR2S_$set("public", "runExtractLongReads", function() {
   hptypes <- self$getHapTypes()
   for (hptype in hptypes) {
     dir <- .dirCreateIfNotExists(
-      normalizePath(file.path(self$getOutdir(), "mapIter", (hptype)),
-                    mustWork = FALSE)
-    )
+      normalizePath(file.path(self$getOutdir(), "mapIter", (hptype)), mustWork = FALSE))
     qnames <- self$getHapList(hptype)
-
-    fq  <- .extractFastq(
-      x = self$absPath(self$mapInit$bamfile),
-      qnames = qnames
-    )
+    fq  <- .extractFastq(self$absPath(self$mapInit$bamfile), qnames = qnames)
     file <- paste(
       "hap", hptype, self$getLrdType(), self$getLrdMapper(),
-      "lim" %<<% as.character(100*abs(attr(self$getHapList(hptype), "limit"))),
+      "lim" %<<% as.character(round(100*abs(attr(self$getHapList(hptype), "limit")), 2)),
       "n" %<<% length(fq),
       "fastq", "gz", sep = ".")
     out <- .fileDeleteIfExists(file.path(dir, file))

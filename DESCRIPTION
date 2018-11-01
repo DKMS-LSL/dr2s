@@ -43,6 +43,7 @@ Imports:
     assertthat,
     magrittr,
     yaml,
+    jsonlite,
     doParallel,
     tibble,
     methods,

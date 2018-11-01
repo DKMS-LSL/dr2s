@@ -1,7 +1,7 @@
 #' @export
 createDR2SConf <- function(sample,
                            locus,
-                           longreads = list(dir = "pacbio", type = "pacbio", mapper = "minimap"),
+                           longreads = list(dir = "pacbio", platform = "pacbio", mapper = "minimap"),
                            shortreads = NULL,
                            datadir = ".",
                            outdir = "./output",
@@ -33,6 +33,7 @@ createDR2SConf <- function(sample,
     longreads = longreads,
     shortreads = shortreads,
     opts = conf0$opts %||% NULL,
+    format = conf0$format %||% "yaml",
     sampleId = sample,
     locus = locus,
     reference = reference,
@@ -41,14 +42,29 @@ createDR2SConf <- function(sample,
   structure(conf1, class = c("DR2Sconf", "list"))
 }
 
-#' Read a DR2S config file in yaml format
+#' Read a DR2S config file in yaml or json format
 #' @param configFile The path to the valid DR2S config file.
+#' @param format Input format ("auto", "yaml" or "json")
 #' @details DR2S config files can be created manually or by the
 #' \code{\link{writeDR2SConf}} function.
 #' @return A \code{DR2Sconf} object or a list of \code{DR2Sconf} objects.
 #' @export
-readDR2SConf <- function(configFile) {
-  conf <- yaml::yaml.load_file(configFile)
+readDR2SConf <- function(configFile, format = "auto") {
+  format0 <- match.arg(format, c("auto", "yaml", "json"))
+  if (format0 == "auto") {
+    if (endsWith(tolower(configFile), ".yaml")) {
+      format0 <- "yaml"
+    } else if (endsWith(tolower(configFile), ".json")) {
+      format0 <- "json"
+    } else {
+      stop("Config file format not recognised")
+    }
+  }
+  conf <- switch(
+    format0,
+    yaml = yaml::yaml.load_file(configFile),
+    json = jsonlite::fromJSON(configFile)
+  )
   ## set defaults if necessary
   conf["threshold"] <- conf$threshold %||% 0.2
   conf["iterations"] <- conf$iterations %||% 2
@@ -58,6 +74,7 @@ readDR2SConf <- function(configFile) {
   conf["distAlleles"] <- conf$distAlleles %||% 2
   conf["datadir"] <- conf$datadir %||% normalizePath(".", mustWork = TRUE)
   conf["outdir"] <- conf$outdir %||% file.path(conf$datadir, "output")
+  conf["format"] <- if (format == "auto") format0 else format
   conf$longreads <- conf$longreads %||% list(dir = "pacbio", type = "pacbio", mapper = "minimap")
   conf$pipeline  <- conf$pipeline  %||% if (is.null(conf$shortreads)) {
     LR_PIPELINE()
@@ -81,23 +98,46 @@ readDR2SConf <- function(configFile) {
 
 #' @export
 print.DR2Sconf <- function(x, ...) {
-  cat(yaml::as.yaml(x, indent = 4))
+  if (x$format == "yaml") {
+    cat(yaml::as.yaml(x, indent = 4))
+  } else if (x$format == "json") {
+    print(jsonlite::toJSON(x, auto_unbox = TRUE, digits = 4, pretty = TRUE))
+  }
   invisible(x)
 }
 
-#' Write the DR2S config as yaml.
+#' Write the DR2S config as yaml or jsoon.
 #' @param x A \code{\link{DR2S}} object.
 #' @param outFile The destination file.
+#' @param format Output format ("auto", "yaml" or "json")
 #' @export
-writeDR2SConf <- function(x, outFile = NULL) {
+writeDR2SConf <- function(x, outFile = NULL, format = "auto") {
   assert_that(is(x, "DR2S"))
-  if (is.null(outFile)) {
-    outFile <- file.path(x$getOutdir(), "config.yaml")
+  format <- match.arg(format, c("auto", "yaml", "json"))
+  if (format == "auto") {
+    format <- match.arg(x$getConfig("format"), c("yaml", "json"))
   }
+  if (is.null(outFile)) {
+    outFile <- switch(
+      format,
+      yaml = file.path(x$getOutdir(), "config.yaml"),
+      json = file.path(x$getOutdir(), "config.json")
+    )
+  }
+  assert_that({
+    if (format == "yaml")
+      endsWith(outFile, ".yaml")
+    else if (format == "json")
+      endsWith(outFile, ".json")
+  }, msg = paste0("Config file format <", format, "> does not match file extension"))
   conf <- x$getConfig()
   conf$runstats <- x$getStats()
   conf$runstats$reported <- x$getReportStatus()
-  yaml::write_yaml(conf, outFile)
+  switch(
+    format,
+    yaml = yaml::write_yaml(conf, outFile),
+    json = jsonlite::write_json(conf, path = outFile, auto_unbox = TRUE, pretty = TRUE)
+  )
 }
 
 expandDR2SConf <- function(conf) {
@@ -163,7 +203,7 @@ ORDERED_CONF_FIELDS <- function() {
     # Run data
     "datadir", "outdir", "reference", "longreads", "shortreads",
     # Options
-    "pipeline", "opts"
+    "pipeline", "opts", "format"
   )
 }
 
@@ -171,12 +211,13 @@ normaliseLongreads <- function(lrd) {
   ## Set defaults
   lrd$platform <- tolower(lrd$platform) %||% tolower(lrd$type)
   lrd$mapper   <- tolower(lrd$mapper) %||% "minimap"
+  lrd$hpc      <- as.integer(lrd$hpc) %||% 0L
 
   ## Long reads must have a "dir" or "file", and a "platform" and "mapper" field.
-  fields0 <- c("dir", "file", "platform", "mapper")
+  fields0 <- c("dir", "file", "platform", "mapper", "hpc")
   lrd <- compact(lrd[fields0])
-  fields1 <- c("file", "platform", "mapper")
-  fields2 <- c("dir", "platform", "mapper")
+  fields1 <- c("file", "platform", "mapper", "hpc")
+  fields2 <- c("dir", "platform", "mapper", "hpc")
   assert_that(
     all(fields1 %in% names(lrd)) || all(fields2 %in% names(lrd)),
     msg = paste0("Missing fields <",
@@ -193,6 +234,13 @@ normaliseLongreads <- function(lrd) {
   assert_that(
     lrd$mapper %in% c("bwamem", "minimap"),
     msg = paste0("Unsupported longread mapper <", lrd$mapper, ">")
+  )
+
+  ## Homopolymer compression level 4, 3, 2, 1, 0
+  assert_that(
+    is.integer(lrd$hpc),
+    lrd$hpc %in% 0:4,
+    msg = paste0("Homopolymer compression level <", lrd$hpc, "> not supported")
   )
 
   lrd

@@ -2,18 +2,20 @@
 % Please edit documentation in R/config.R
 \name{readDR2SConf}
 \alias{readDR2SConf}
-\title{Read a DR2S config file in yaml format}
+\title{Read a DR2S config file in yaml or json format}
 \usage{
-readDR2SConf(configFile)
+readDR2SConf(configFile, format = "auto")
 }
 \arguments{
 \item{configFile}{The path to the valid DR2S config file.}
+
+\item{format}{Input format ("auto", "yaml" or "json")}
 }
 \value{
 A \code{DR2Sconf} object or a list of \code{DR2Sconf} objects.
 }
 \description{
-Read a DR2S config file in yaml format
+Read a DR2S config file in yaml or json format
 }
 \details{
 DR2S config files can be created manually or by the

@@ -4,7 +4,7 @@
 \alias{createDR2SConf}
 \title{Create a \code{\link[=DR2S_]{DR2S}} configuration object.}
 \usage{
-createDR2SConf(sample, locus, longreads = list(dir = "pacbio", type =
+createDR2SConf(sample, locus, longreads = list(dir = "pacbio", platform =
   "pacbio", mapper = "minimap"), shortreads = NULL, datadir = ".",
   outdir = "./output", reference = NULL, threshold = 0.2,
   iterations = 1, microsatellite = FALSE, distAlleles = 2,
