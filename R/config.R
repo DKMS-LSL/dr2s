@@ -1,7 +1,7 @@
 #' @export
 createDR2SConf <- function(sample,
                            locus,
-                           longreads = list(dir = "pacbio", platform = "pacbio", mapper = "minimap"),
+                           longreads = list(dir = "pacbio", type = "pacbio", mapper = "minimap"),
                            shortreads = NULL,
                            datadir = ".",
                            outdir = "./output",
@@ -190,7 +190,7 @@ MANDATORY_CONF_FIELDS <- function() {
     # Run data
     "datadir", "outdir", "reference", "longreads",
     # Options
-    "pipeline"
+    "pipeline", "format"
   )
 }
 
@@ -209,25 +209,24 @@ ORDERED_CONF_FIELDS <- function() {
 
 normaliseLongreads <- function(lrd) {
   ## Set defaults
-  lrd$platform <- tolower(lrd$platform) %||% tolower(lrd$type)
-  lrd$mapper   <- tolower(lrd$mapper) %||% "minimap"
-  lrd$hpc      <- as.integer(lrd$hpc) %||% 0L
-
-  ## Long reads must have a "dir" or "file", and a "platform" and "mapper" field.
-  fields0 <- c("dir", "file", "platform", "mapper", "hpc")
+  lrd$type <- tolower(lrd$type) %||% "pacbio"
+  lrd$mapper <- tolower(lrd$mapper) %||% "minimap"
+  ## Long reads optional fields
+  fields0 <- c("dir", "file", "type", "platform", "mapper", "hpc")
   lrd <- compact(lrd[fields0])
-  fields1 <- c("file", "platform", "mapper", "hpc")
-  fields2 <- c("dir", "platform", "mapper", "hpc")
+  ## Long reads mandatory fields
+  fields1 <- c("file", "type", "mapper")
+  fields2 <- c("dir", "type", "mapper")
   assert_that(
     all(fields1 %in% names(lrd)) || all(fields2 %in% names(lrd)),
     msg = paste0("Missing fields <",
                  comma(fields0[!fields0 %in% names(lrd)]),
                  "> in longreads config"))
 
-  ## Platform must be one of "pacbio" or "nanopore"
+  ## Type must be one of "pacbio" or "nanopore"
   assert_that(
-    lrd$platform %in% c("pacbio", "nanopore"),
-    msg = paste0("Unsupported longread type <", lrd$platform, ">")
+    lrd$type %in% c("pacbio", "nanopore"),
+    msg = paste0("Unsupported longread type <", lrd$type, ">")
   )
 
   ## Mapper must be one of "bwamem" or "minimap"
@@ -237,33 +236,37 @@ normaliseLongreads <- function(lrd) {
   )
 
   ## Homopolymer compression level 4, 3, 2, 1, 0
-  assert_that(
-    is.integer(lrd$hpc),
-    lrd$hpc %in% 0:4,
-    msg = paste0("Homopolymer compression level <", lrd$hpc, "> not supported")
-  )
+  if (!is.null(lrd$hpc)) {
+    lrd$hpc <- as.integer(lrd$hpc)
+    assert_that(
+      lrd$hpc %in% 0:4,
+      msg = paste0("Homopolymer compression level <", lrd$hpc, "> not supported")
+    )
+  }
 
   lrd
 }
 
 normaliseShortreads <- function(srd) {
   ## Set defaults
-  srd$platform <- tolower(srd$platform) %||% tolower(srd$type)
-  srd$mapper   <- tolower(srd$mapper) %||% "bwamem"
+  srd$type   <- tolower(srd$type) %||% "illumina"
+  srd$mapper <- tolower(srd$mapper) %||% "bwamem"
 
-  ## short reads must have a "dir" a "platform" and and "mapper" field.
-  fields0 <- c("dir", "platform", "mapper")
+  ## short reads optional fields.
+  fields0 <- c("dir", "type", "platform", "mapper")
   srd <- compact(srd[fields0])
+  ## short reads mandatory fields
+  fields1 <- c("dir", "type", "mapper")
   assert_that(
-    all(fields0 %in% names(srd)),
+    all(fields1 %in% names(srd)),
     msg = paste0("Missing fields <",
-                 comma(fields0[!fields0 %in% names(srd)]),
+                 comma(fields1[!fields1 %in% names(srd)]),
                  "> in shortreads config"))
 
   ## Platform must be "illumina"
   assert_that(
-    srd$platform %in% "illumina",
-    msg = paste0("Unsupported longread type <", srd$platform, ">")
+    srd$type %in% "illumina",
+    msg = paste0("Unsupported longread type <", srd$type, ">")
   )
 
   ## Mapper must be one of "bwamem" or "minimap"
@@ -321,7 +324,7 @@ validateDR2SConf <- function(conf) {
                 comma(conf$pipeline[!conf$pipeline %in% pipesteps]), ">") )
 
   ## Assert longreads
-  conf$longreads <- normaliseLongreads(conf$longreads)
+  conf$longreads <- normaliseLongreads(lrd = conf$longreads)
 
   ## Assert that longreads are available
   if (!is.null(conf$longreads$dir)) {

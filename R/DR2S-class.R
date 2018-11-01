@@ -250,7 +250,7 @@ DR2S_ <- R6::R6Class(
     },
     ##
     getLrdType = function() {
-      self$getConfig("longreads")$platform
+      self$getConfig("longreads")$type
     },
     ##
     getLrdDir = function() {
@@ -282,7 +282,7 @@ DR2S_ <- R6::R6Class(
     },
     ##
     getSrdType = function() {
-      self$getConfig("shortreads")$platform
+      self$getConfig("shortreads")$type
     },
     ##
     getSrdDir = function() {
@@ -349,8 +349,18 @@ DR2S_ <- R6::R6Class(
     },
     ##
     setDistAlleles = function(distAlleles) {
-      stopifnot(is.numeric(distAlleles))
+      assert_that(is.numeric(distAlleles))
       self$setConfig("distAlleles", distAlleles)
+      invisible(self)
+    },
+    ##
+    getFormat = function() {
+      self$getConfig("format")
+    },
+    ##
+    setFormat = function(format) {
+      assert_that(is.character(format) ,format %in% c("yaml", "json"))
+      self$setConfig("format", format)
       invisible(self)
     },
     ##
@@ -359,7 +369,7 @@ DR2S_ <- R6::R6Class(
     },
     ##
     setDetails = function(details) {
-      stopifnot(is.character(details))
+      assert_that(is.character(details))
       self$setConfig("details", details)
       invisible(self)
     },

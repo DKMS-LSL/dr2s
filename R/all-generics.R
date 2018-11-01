@@ -21,11 +21,11 @@
 #' @param sample A unique sample identifier used to locate the long and short
 #' read FASTQ/FASTA files.
 #' @param locus The HLA or KIR locus (e.g., "A", "DPB1", or "2DL1")
-#' @param longreads Location, platform, and mapper for longreads as a named list
-#' with the fields \code{dir}, \code{platform} ("pacbio" or "nanopore") and
+#' @param longreads Location, type, and mapper for longreads as a named list
+#' with the fields \code{dir}, \code{type} ("pacbio" or "nanopore") and
 #' \code{mapper} ("bwamem" or "minimap").
 #' @param shortreads (optional) Location, type, and mapper for short reads
-#' as a named list with the fields \code{platform}, \code{type} ("illumina") and
+#' as a named list with the fields \code{dir}, \code{type} ("illumina") and
 #' \code{mapper} ("bwamem" or "minimap").
 #' @param datadir The data directory (See Note).
 #' @param outdir The output directory (See Note).
@@ -69,8 +69,8 @@
 createDR2SConf <- function(
   sample,
   locus,
-  longreads      = list(dir = "pacbio", platform = "pacbio", mapper = "minimap"),
-  shortreads     = list(dir = "illumina", platform = "illumina", mapper = "bwamem"),
+  longreads      = list(dir = "pacbio", type = "pacbio", mapper = "minimap"),
+  shortreads     = list(dir = "illumina", type = "illumina", mapper = "bwamem"),
   datadir        = ".",
   outdir         = "./output",
   reference      = NULL,

@@ -100,8 +100,9 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
         sampleSize = 100)
 
     flog.info(" Map longreads to SR consensus for clustering", name = "info")
+    readfile <- self$getLongreads()
     reffile <- self$absPath(SR$mapInitSR1$seqpath)
-    allele  <- SR$mapInitSR1$ref
+    allele <- SR$mapInitSR1$ref
   }
   else {
     flog.info(" Map longreads to reference for initial LR consensus", name = "info")
@@ -146,7 +147,6 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
   }
 
   mapLabel <- "mapInit"
-  readfile <- self$getLongreads()
   readtype <- self$getLrdType()
   mapFun   <- self$getLrMapFun()
   maptag   <- paste(mapLabel, paste0(litArrows(c(allele, readtype,

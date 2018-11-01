@@ -4,7 +4,7 @@
 \alias{createDR2SConf}
 \title{Create a \code{\link[=DR2S_]{DR2S}} configuration object.}
 \usage{
-createDR2SConf(sample, locus, longreads = list(dir = "pacbio", platform =
+createDR2SConf(sample, locus, longreads = list(dir = "pacbio", type =
   "pacbio", mapper = "minimap"), shortreads = NULL, datadir = ".",
   outdir = "./output", reference = NULL, threshold = 0.2,
   iterations = 1, microsatellite = FALSE, distAlleles = 2,
@@ -16,12 +16,12 @@ read FASTQ/FASTA files.}
 
 \item{locus}{The HLA or KIR locus (e.g., "A", "DPB1", or "2DL1")}
 
-\item{longreads}{Location, platform, and mapper for longreads as a named list
-with the fields \code{dir}, \code{platform} ("pacbio" or "nanopore") and
+\item{longreads}{Location, type, and mapper for longreads as a named list
+with the fields \code{dir}, \code{type} ("pacbio" or "nanopore") and
 \code{mapper} ("bwamem" or "minimap").}
 
 \item{shortreads}{(optional) Location, type, and mapper for short reads
-as a named list with the fields \code{platform}, \code{type} ("illumina") and
+as a named list with the fields \code{dir}, \code{type} ("illumina") and
 \code{mapper} ("bwamem" or "minimap").}
 
 \item{datadir}{The data directory (See Note).}
