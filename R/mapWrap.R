@@ -7,10 +7,10 @@ mapReads <- function(
   outdir, force, clean, ...) {
 
   ## Run mapper
-  flog.info("  Mapping ...", name = "info")
+  flog.info("  Mapping to <%s> ...", names(reffile), name = "info")
   samfile <- mapFun(reffile, readfile, readtype, allele, refname, force, outdir, opts)
 
-  ## define minMapq for bamfile sorting
+  ## collect minMapq for use in .bamSortIndex
   # dots <- list(minMapq = 0)
   dots <- list(...)
   minMapq <- dots$min_mapq %||% dots$minMapq %||% 0
@@ -58,11 +58,14 @@ mapReads <- function(
   }
 
   ## Calculate pileup from graphmap produced SAM file
-  ## pParam = .collectPileupParams()
+  ## pParam = .collectPileupParams(includeDeletion = includeDeletions, includeInsertions = includeInsertions)
   ## pileup <- pileup(bamfile, reffile, readtype, pParam = pParam)
   flog.info("  Piling up ...", name = "info")
-  pileup <- pileup(bamfile, reffile, readtype, pParam = .collectPileupParams(...))
-
+  pileup <- pileup(bamfile, reffile, readtype,
+                   pParam = .collectPileupParams(
+                     includeDeletion = includeDeletions,
+                     includeInsertions = includeInsertions,
+                     ...))
   if (distributeGaps) {
     flog.info("  Distributing gaps ...", name = "info")
     consmat(pileup) <- .distributeGaps(mat = consmat(pileup),

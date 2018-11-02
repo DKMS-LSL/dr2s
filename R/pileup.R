@@ -446,7 +446,7 @@ plotPileupBasecallFrequency <- function(x, threshold = 0.20, label = "",
 .getInsertions <- function(bamfile, inpos, readtype = "illumina", reads = NULL) {
   assert_that(is.numeric(inpos))
   inpos <- sort(inpos)
-  flog.info("  Extracting insertions at positions %s", comma(inpos), name = "info")
+  flog.info("   Extracting insertions at positions <%s>", comma(inpos), name = "info")
   ## Get the actual position of the first insertion character, not the last
   ##  matching position, so +1
   inpos   <- inpos + 1
@@ -484,7 +484,7 @@ plotPileupBasecallFrequency <- function(x, threshold = 0.20, label = "",
   insSeq <- unlist(Biostrings::DNAStringSetList(suppressWarnings(
     BiocParallel::bplapply(seq_along(alnI), function(a, alnI, inpos) {
       .extractInsertion(alnI[a], inpos)
-    }, alnI = bamI, inpos = inpos, BPPARAM = bpparam))))
+    }, alnI = alnI, inpos = inpos, BPPARAM = bpparam))))
   ## Extract per positions
   insSeqs <- foreach(i = inpos) %do% {
     #message("Position: ", i)

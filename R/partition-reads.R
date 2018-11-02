@@ -36,14 +36,14 @@ partitionReads <- function(x, distAlleles = 2, sortBy = "count", threshold = 0.2
     })
     xm <- as.matrix(xm[, !badPpos])
     badPpos <- ppos[badPpos]
-    flog.info("%s SNPs are covered by less than %g%% of sequences and" %<<%
-               " discarded. Using the remaining %s SNPs for clustering ...",
+    flog.info(" %s SNPs are covered by less than %g%% of sequences and" %<<%
+              " discarded. Using the remaining %s SNPs for clustering ...",
               length(badPpos), 1 - skipGapFreq, NCOL(xm), name = "info")
     if (NCOL(xm) == 0) {
-      flog.error("  Aborting. No SNP remaining for clustering!" %<<%
-                  " Check your reads and reference and have a look" %<<%
-                        " at mapInit plots!")
-      stop("No SNPs remaining for clustering. Check mapInit plots!")
+      flog.error("  Aborting. No SNP remain for clustering!" %<<%
+                 " Check your reads and reference and have a look" %<<%
+                 " at mapInit plots!")
+      stop("No SNPs remain for clustering. Check mapInit plots!")
     }
   }
 
@@ -66,7 +66,7 @@ partitionReads <- function(x, distAlleles = 2, sortBy = "count", threshold = 0.2
     stop("To few longreads for clustering")
   }
 
-  flog.info("  Initial clustering results in %s haplotypes %s",
+  flog.info("  Initial clustering results in %s haplotypes <%s>",
             length(hptypes), comma(hptypes), name = "info")
 
   ## Get scores and assign clades by freq mat
@@ -94,7 +94,7 @@ partitionReads <- function(x, distAlleles = 2, sortBy = "count", threshold = 0.2
     } else if (sortBy == "distance") {
       rC <- sort(.findChimeric(seqs = hpseqs, distAlleles = distAlleles))
     }
-    flog.info("  Use only clusters %s ...", comma(rC), name = "info")
+    flog.info("  Use only clusters <%s> ...", comma(rC), name = "info")
     mats <- mats[rC]
   }
   hptypes <- names(mats)
@@ -117,11 +117,9 @@ partitionReads <- function(x, distAlleles = 2, sortBy = "count", threshold = 0.2
   ## Correctly classified clades in the initial clustering
   falseClassified <- NROW(dplyr::filter(clades, .data$correct == FALSE)) /
     NROW(dplyr::filter(clades, .data$correct == TRUE))
-  flog.info("  Corrected classification of %.2f%% of reads",
-            100*falseClassified, name = "info")
+  flog.info("  Corrected classification of %.2f%% of reads", 100*falseClassified, name = "info")
   lapply(hptypes, function(hp, clades) {
-    invisible(flog.info("  %s reads in haplotype %s", table(clades$clade)[hp],
-                        hp, name = "info"))
+    invisible(flog.info("  %s reads in haplotype <%s>", table(clades$clade)[hp], hp, name = "info"))
    }, clades = clades)
 
   # Create the partition table

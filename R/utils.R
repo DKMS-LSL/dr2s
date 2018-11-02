@@ -262,11 +262,19 @@ wrap <- function(x, wrap = "\"") {
 .collectPileupParams <- function(...) {
   dots <- list(...)
   pParamList <- list(
-    max_depth = dots$max_depth %||% dots$maxDepth %||% 1e4,
+    max_depth        = dots$max_depth %||% dots$maxDepth %||% 1e4,
     min_base_quality = dots$min_base_quality %||% dots$minBaseQuality %||% 3,
-    min_mapq = dots$min_mapq %||% dots$minMapq %||% 0,
-    min_nucleotide_depth = dots$min_nucleotide_depth %||% dots$minNucleotideDepth %||% 3,
-    distinguish_strands = dots$distinguish_strands %||% dots$distinguishStrands %||% FALSE
+    min_mapq         = dots$min_mapq %||% dots$minMapq %||% 0,
+    min_nucleotide_depth    = dots$min_nucleotide_depth %||% dots$minNucleotideDepth %||% 3,
+    min_minor_allele_depth  = dots$min_minor_allele_depth %||% dots$minMinorAlleleDepth %||% 0,
+    distinguish_strands     = dots$distinguish_strands %||% dots$distinguishStrands %||% FALSE,
+    distinguish_nucleotides = dots$distinguish_nucleotides %||% dots$distinguishNucleotides %||% TRUE,
+    ignore_query_Ns   = dots$ignore_query_Ns %||% dots$ignoreQueryNs %||% TRUE,
+    include_deletions = dots$include_deletions %||% dots$includeDeletions %||% TRUE,
+    include_insertions = dots$include_insertions %||% dots$includeInsertions %||% FALSE,
+    left_bins  = dots$left_bins %||% dots$leftBins,
+    query_bins = dots$query_bins %||% dots$queryBins,
+    cycle_bins = dots$cycle_bins %||% dots$cycleBins
   )
   do.call(Rsamtools::PileupParam, pParamList)
 }
