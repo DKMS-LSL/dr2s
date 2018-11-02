@@ -1,5 +1,6 @@
 #' @export
 report.DR2S <- function(x, which, blockWidth = 80, noRemap = FALSE, createIgv = TRUE, ...) {
+
   flog.info("# report", name = "info")
 
   ## Collect start time for report runstats
@@ -300,7 +301,7 @@ refineAlignment <- function(x, hptype, report = FALSE, createIgv = TRUE, ...) {
       readpathSR <- x$getShortreads()
     }
   } else {
-    readpathLR <- x$absPath(x$mapFinal$lreads[hptype])
+    readpathLR <- x$absPath(x$mapFinal$lreads[[hptype]])
     readpathSR <- x$absPath(x$mapFinal$sreads[[hptype]])
   }
   refpath <- ifelse(report, {
@@ -315,7 +316,7 @@ refineAlignment <- function(x, hptype, report = FALSE, createIgv = TRUE, ...) {
   set_names(.getUpdatedSeqs(x, hptype)))
 
   x$consensus$refine$ref[[hptype]] <- x$relPath(refpath)
-  names(refpath) <- hptype
+  names(refpath) <- x$relPath(refpath)
 
   ## Remap long reads to the same reference sequences as short reads
   flog.info("%sRefine mapping for haplotype <%s>", indent(), hptype, name = "info" )
@@ -325,7 +326,7 @@ refineAlignment <- function(x, hptype, report = FALSE, createIgv = TRUE, ...) {
     mapFun = x$getLrMapFun(), maptag = maptagLR, reffile = refpath,
     readfile = readpathLR, allele = mapgroupLR, readtype = x$getLrdType(),
     outdir = outdir, force = TRUE, clean = TRUE, includeDeletions = FALSE,
-    includeInsertions = FALSE, refname = hptype)
+    includeInsertions = FALSE, refname = hptype, indent = incr(indent))
 
   x$consensus$refine$bamfile[[mapgroupLR]] = x$relPath(path(pileup))
 
@@ -338,14 +339,14 @@ refineAlignment <- function(x, hptype, report = FALSE, createIgv = TRUE, ...) {
   if (!is.null(unlist(readpathSR))) {
     mapgroupSR <- "SR" %<<% hptype
     maptagSR <- paste("refine", mapgroupSR, x$getSrdType(), x$getSrdMapper(), sep = ".")
-    readfiles <- unlist(readpathSR)
-
+    readfiles <- readpathSR
     ## Mapper
     pileup <- mapReads(
       mapFun = x$getSrMapFun(), maptag = maptagSR, reffile = refpath,
       readfile = readfiles, allele = mapgroupSR, readtype = x$getSrdType(),
       outdir = outdir, force = TRUE, clean = TRUE, includeDeletions = FALSE,
-      includeInsertions = FALSE, refname = hptype, clip = TRUE)
+      includeInsertions = FALSE, refname = hptype, clip = TRUE,
+      indent = incr(indent))
 
     x$consensus$refine$bamfile[[mapgroupSR]] = x$relPath(path(pileup))
     x$consensus$refine$igv[[mapgroupSR]] <- createIgvJsFiles(
