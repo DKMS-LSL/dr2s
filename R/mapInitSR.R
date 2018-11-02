@@ -3,6 +3,9 @@ mapInitSR <- function(self, threshold = 0.2, opts = list(), includeDeletions = T
                       distributeGaps = FALSE, removeError = TRUE, topx = 0,
                       outdir, force, clean, ...) {
 
+  ## get indenter
+  indent <- list(...)$indent %||% indentation()
+
   ## get flags
   forceMapping <- self$getForceMapping()
   microsat     <- self$getMicrosatellite()
@@ -11,22 +14,22 @@ mapInitSR <- function(self, threshold = 0.2, opts = list(), includeDeletions = T
   mapLabel <- "mapInit1"
   reffile  <- self$getRefPath()
   allele   <- self$getReference()
+  readfile <- self$getShortreads()
   readtype <- self$getSrdType()
   maptag   <- paste(mapLabel, paste(litArrows(c(allele, readtype,
                                                 self$getSrdMapper(),
                                                 optstring(opts))),
                                     collapse = " "))
-
-  flog.info(" Map shortreads to provided reference <%s>", self$getReference(), name = "info")
   pileup <- mapReads(
     mapFun = self$getSrMapFun(), maptag = maptag, reffile = reffile,
-    allele = allele, readfile = self$getShortreads(), readtype = readtype,
+    allele = allele, readfile = readfile, readtype = readtype,
     opts = opts, refname = "", includeDeletions = includeDeletions,
     includeInsertions = includeInsertions, callInsertions = TRUE,
     clip = FALSE, distributeGaps = FALSE, removeError = TRUE,
-    topx = 0, outdir = outdir, force = force, clean = clean, ...) #minMapq = 50)
+    topx = 0, outdir = outdir, force = force, clean = clean,
+    indent = indent, ...)#minMapq = 50)
 
-  # ## TODO: maybe bum this?
+  # ## TODO: maybe bum this? ####
   # if (filterScores) {
   #   flog.info(" Filter reads with low alignment scores", name = "info")
   #   ## Run bam - sort - index pipeline
@@ -72,16 +75,15 @@ mapInitSR <- function(self, threshold = 0.2, opts = list(), includeDeletions = T
   if (max(rowSums(consmat(pileup, freq = FALSE))) /
       quantile(rowSums(consmat(pileup, freq = FALSE)), 0.75) > 5) {
     plotFile <- self$absPath("plot.MapInit.SR.problem.pdf")
-    .checkCoverage(pileup, forceMapping, plotFile, maptag)
+    .checkCoverage(pileup, forceMapping, plotFile, maptag, indent = incr(indent))
   }
 
-  ## calc initial consensus
-  flog.info(" Construct initial consensus from shortreads", name = "info")
-  ##
+  ## Construct initial consensus sequence
   baseLabel  <- sub(".bam", "", basename(path(pileup)))
-  ## Get conseq
   conseqName <- "Init.consensus.1." %<<% baseLabel
   conseqPath <- file.path(outdir, conseqName %<<% ".fa")
+  names(conseqPath) <- self$relPath(conseqPath)
+  flog.info("%sConstruct consensus <%s>", indent(), names(conseqPath), name = "info")
   conseq <- .getWriteConseq(pileup = pileup, name = "mapInit1.0", type = "prob",
                             threshold = threshold, suppressAllGaps = TRUE,
                             conseqPath = conseqPath)
@@ -90,26 +92,26 @@ mapInitSR <- function(self, threshold = 0.2, opts = list(), includeDeletions = T
     mapLabel <- "mapInit1.2"
     reffile  <- conseqPath
     allele   <- conseqName
+    readfile <- self$getShortreads()
     readtype <- self$getSrdType()
     maptag   <- paste(mapLabel, paste0(litArrows(c(conseqName, readtype,
                                                    self$getSrdMapper(),
                                                    optstring(opts))),
                                        collapse = " "))
-    flog.info(" Refine microsatellites or repeats by extending the reference", name = "info")
-    flog.info(" Remap shortreads to initial consensus from shortreads", name = "info")
+    flog.info("%sRemap shortreads to extended reference", indent(), name = "info")
     pileup <- mapReads(
       mapFun = self$getSrMapFun(), maptag = maptag, reffile = reffile,
-      allele = allele, readfile = self$getShortreads(), readtype = readtype,
+      allele = allele, readfile = readfile, readtype = readtype,
       opts = opts, refname = "", includeDeletions = includeDeletions,
       includeInsertions = includeInsertions, callInsertions = TRUE,
       clip = FALSE, distributeGaps = FALSE, removeError = TRUE, topx = 0,
-      outdir = outdir, force = force, clean = clean, ...) #minMapq = 50)
+      outdir = outdir, force = force, clean = clean, indent = indent, ...)#minMapq = 50)
 
-    # Infer initial consensus
-    flog.info(" Construct second consensus from shortreads " %<<%
-                "with refined repeats", name = "info")
+    # Construct secondary initial consensus sequence
     conseqName <- "Init.consensus.2." %<<% baseLabel
     conseqPath <- file.path(outdir, conseqName %<<% ".fa")
+    names(conseqPath) <- self$relPath(conseqPath)
+    flog.info("%sConstruct consensus <%s>", indent(), names(conseqPath) , name = "info")
     conseq <- .getWriteConseq(pileup, name = "mapInit1.2", type = "prob",
                               threshold = threshold, suppressAllGaps = TRUE,
                               conseqPath = conseqPath)
@@ -117,7 +119,7 @@ mapInitSR <- function(self, threshold = 0.2, opts = list(), includeDeletions = T
 
   mapInitSR1 = structure(
     list(
-      reads   = self$relPath(self$getShortreads()),
+      reads   = readfile,
       bamfile = self$relPath(path(pileup)),
       pileup  = pileup,
       tag     = maptag,
@@ -134,24 +136,23 @@ mapInitSR <- function(self, threshold = 0.2, opts = list(), includeDeletions = T
   mapLabel <- "mapInit2"
   reffile  <- self$absPath(mapInitSR1$seqpath)
   allele   <- mapInitSR1$ref
+  readfile <- self$getShortreads()
   readtype <- self$getSrdType()
   maptag   <- paste(mapLabel, paste0(litArrows(c(allele, readtype,
                                                  self$getSrdMapper(),
                                                  optstring(opts))),
                                      collapse = " "))
-
-  flog.info(" Remap shortreads to consensus for SNP calling", name = "info")
   pileup <- mapReads(
     mapFun = self$getSrMapFun(), maptag = maptag, reffile = reffile,
-    allele = allele, readfile = self$getShortreads(), readtype = readtype,
+    allele = allele, readfile = readfile, readtype = readtype,
     opts = opts, refname = "", includeDeletions = TRUE,
     includeInsertions = FALSE, callInsertions = FALSE, clip = FALSE,
     distributeGaps = FALSE, removeError = TRUE, topx = 0,
-    outdir = outdir, force = force, clean = clean, ...) #minMapq = 50)
+    outdir = outdir, force = force, clean = clean, indent = indent, ...)# minMapq = 50)
 
   mapInitSR2 = structure(
     list(
-      reads   = self$relPath(self$getShortreads()),
+      reads   = readfile,
       bamfile = self$relPath(path(pileup)),
       pileup  = pileup,
       tag     = maptag,

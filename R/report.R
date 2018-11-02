@@ -1,6 +1,6 @@
 #' @export
 report.DR2S <- function(x, which, blockWidth = 80, noRemap = FALSE, createIgv = TRUE, ...) {
-  flog.info("Step 6: report ...", name = "info")
+  flog.info("# report", name = "info")
 
   ## Collect start time for report runstats
   start.time <- Sys.time()
@@ -50,7 +50,8 @@ report.DR2S <- function(x, which, blockWidth = 80, noRemap = FALSE, createIgv = 
   map <- match.arg(tolower(map), c("mapfinal", "mapiter"))
   ref <- Biostrings::BStringSet(x$getRefSeq())
   haps <- x$getLatestRef()
-
+  ## Initiate indenter
+  indent <- indentation(1)
   ## Write html alignment file
   alnFile <- paste(map, "aln", x$getLrdType(), x$getLrdMapper(), "unchecked", sep = ".")
   # get all seqs as stringset
@@ -114,8 +115,9 @@ report.DR2S <- function(x, which, blockWidth = 80, noRemap = FALSE, createIgv = 
     .writeRefineAlignments(path = x$getOutdir(), haptypes = x$getHapTypes())
 
     if (!noRemap) {
-      flog.info("Remapping final sequences", name = "info")
-      lapply(x$getHapTypes(), function(h) refineAlignment(x, h, report = TRUE, createIgv = createIgv))
+      flog.info("%sRemapping final sequences", indent(), name = "info")
+      lapply(x$getHapTypes(), function(h)
+        refineAlignment(x, h, report = TRUE, createIgv = createIgv, indent = indent))
     }
   }
 
@@ -262,7 +264,10 @@ checkAlignmentFile <- function(x, which = "mapFinal", where = 0,
 #' @return Creates an executable bash file for inspecting the mapping with IGV
 #' @family DR2S mapper functions
 #' @export
-refineAlignment <- function(x, hptype, report = FALSE, createIgv = TRUE){
+refineAlignment <- function(x, hptype, report = FALSE, createIgv = TRUE, ...) {
+
+  indent <- list(...)$indent %||% indentation()
+
   ## Overide default arguments
   args <- x$getOpts("refineMapping")
   if (!is.null(args)) {
@@ -272,7 +277,7 @@ refineAlignment <- function(x, hptype, report = FALSE, createIgv = TRUE){
 
   ## stop if no shortreads provided
   if (!x$hasShortreads()) {
-    flog.warn(" Cannot refine mapping. No shortreads provided", name = "info")
+    flog.warn("%sCannot refine mapping. No shortreads provided", indent(), name = "info")
     return(invisible(x))
   }
 
@@ -313,7 +318,7 @@ refineAlignment <- function(x, hptype, report = FALSE, createIgv = TRUE){
   names(refpath) <- hptype
 
   ## Remap long reads to the same reference sequences as short reads
-  flog.info(" Refine mapping for haplotype %s ...", hptype, name = "info" )
+  flog.info("%sRefine mapping for haplotype <%s>", indent(), hptype, name = "info" )
   mapgroupLR <- "LR" %<<% hptype
   maptagLR <- paste("refine", mapgroupLR, x$getLrdType(), x$getLrdMapper(), sep = ".")
   pileup <- mapReads(

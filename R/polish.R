@@ -12,7 +12,7 @@ polish.DR2S <- function(x,
                         threshold = NULL,
                         checkHpCount = TRUE,
                         cache = TRUE) {
-  flog.info("Step 5: polish ...", name = "info")
+  flog.info("# polish", name = "info")
 
   ## Collect start time for polish runstats
   start.time <- Sys.time()

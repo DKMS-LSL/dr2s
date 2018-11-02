@@ -6,17 +6,18 @@ mapReads <- function(
   clip = FALSE, distributeGaps = FALSE, removeError = TRUE, topx = 0,
   outdir, force, clean, ...) {
 
-  ## Run mapper
-  flog.info("  Mapping to <%s> ...", names(reffile), name = "info")
-  samfile <- mapFun(reffile, readfile, readtype, allele, refname, force, outdir, opts)
+  indent <- list(...)$indent %||% indentation()
+  flog.info("%sMap <%s> reads <%s> to reference <%s>", indent(),
+            readtype, comma(names(readfile)), names(reffile), name = "info")
 
+  ## Run mapper
+  samfile <- mapFun(reffile, readfile, readtype, allele, refname, force, outdir, opts)
   ## collect minMapq for use in .bamSortIndex
-  # dots <- list(minMapq = 0)
-  dots <- list(...)
-  minMapq <- dots$min_mapq %||% dots$minMapq %||% 0
+  # minMapq = 0
+  minMapq <- list(...)$min_mapq %||% list(...)$minMapq %||% 0
 
   if (clip) {
-    flog.info("  Trimming softclips and polymorphic ends ...", name = "info")
+    flog.info("%sTrim softclips and polymorphic ends", indent(), name = "info")
     ## Run bam - sort - index pipeline
     bamfile <- .bamSortIndex(samfile = samfile, reffile = reffile,
                              minMapq = minMapq, force = force, clean = TRUE)
@@ -31,22 +32,21 @@ mapReads <- function(
     ShortRead::writeFastq(fq, fqout, compress = TRUE)
     .fileDeleteIfExists(bamfile)
     ## Rerun mapper
-    flog.info("   Mapping trimmed short reads against latest consensus ...", name = "info")
-    samfile <- mapFun(reffile, readfile, readtype, allele, refname, force,
-                      outdir, opts = list(A = 1, B = 4, O = 2))
+    flog.info("%sRemap trimmed reads <%s> to reference <%s>", indent(), fqfile, names(reffile), name = "info")
+    samfile <- mapFun(reffile, fqout, readtype, allele, refname, force, outdir, opts = list(A = 1, B = 4, O = 2))
     # cleanup
     .fileDeleteIfExists(fqout)
     .fileDeleteIfExists(fqdir)
   }
 
   ## Run bam - sort - index pipeline
-  flog.info("  Indexing ...", name = "info")
+  flog.info("%sSort and index", indent(), name = "info")
   bamfile <- .bamSortIndex(samfile = samfile, reffile = reffile,
                            minMapq = minMapq, force = force)
 
   if (topx > 0 && readtype != "illumina") {
-    flog.info("  Extracting the top-scoring %s longreads ...", topx, name = "info")
-    reads <- .topXReads(bamfile, n = topx)
+    flog.info("%sExtract the top-scoring %s reads", indent(), topx, name = "info")
+    reads <- .topXReads(bamfile, n = topx, indent = incr(indent))
     alignmentBam <- GenomicAlignments::readGAlignments(
       file = Rsamtools::BamFile(bamfile),
       param = Rsamtools::ScanBamParam(
@@ -60,23 +60,26 @@ mapReads <- function(
   ## Calculate pileup from graphmap produced SAM file
   ## pParam = .collectPileupParams(includeDeletion = includeDeletions, includeInsertions = includeInsertions)
   ## pileup <- pileup(bamfile, reffile, readtype, pParam = pParam)
-  flog.info("  Piling up ...", name = "info")
-  pileup <- pileup(bamfile, reffile, readtype,
+  flog.info("%sPile up", indent(), name = "info")
+  pileup <- pileup(bamfile, reffile, readtype, indent = incr(indent),
                    pParam = .collectPileupParams(
                      includeDeletion = includeDeletions,
                      includeInsertions = includeInsertions,
                      ...))
   if (distributeGaps) {
-    flog.info("  Distributing gaps ...", name = "info")
+    flog.info("%sDistribute gaps", indent(), name = "info")
     consmat(pileup) <- .distributeGaps(mat = consmat(pileup),
                                        bamfile = path(pileup),
-                                       removeError = removeError)
+                                       removeError = removeError,
+                                       indent = incr(indent))
   }
 
   if (callInsertions && is.null(ins(consmat(pileup)))) {
-    flog.info("  Calling insertions ...", name = "info")
+    flog.info("%sCall insertions", indent(), name = "info")
     ## TODO check threshold
-    pileup <- .pileupIncludeInsertions(x = pileup, threshold = 0.15)
+    pileup <- .pileupIncludeInsertions(x = pileup,
+                                       threshold = 0.15,
+                                       indent = incr(indent))
   }
 
   if (topx > 0) {

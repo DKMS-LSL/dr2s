@@ -64,7 +64,7 @@ pileup <- function(bamfile,
                    pParam) {
   bamfile <- normalizePath(bamfile, mustWork = TRUE)
   reffile <- normalizePath(reffile, mustWork = TRUE)
-
+  indent <- list(...)$indent %||% indentation()
   if (missing(pParam)) {
     param <- list(...)
     if (is.null(param$distinguish_strands))
@@ -78,8 +78,8 @@ pileup <- function(bamfile,
   on.exit(Rsamtools::close.BamFile(bam))
 
   if (Rsamtools::idxstatsBam(bam)$mapped == 0) {
-    flog.info("No reads maps to the reference", name = "info")
-    stop("No reads maps to the reference")
+    flog.info("%sNo reads map to reference", indent(), name = "info")
+    stop("No reads map to reference")
   }
 
   sParam <- Rsamtools::ScanBamParam(
@@ -189,14 +189,15 @@ reads.pileup <- function(x, ..) {
   pos[cm[pos, "+"] > threshold]
 }
 
-.pileupGetInsertions_ <- function(x, threshold = 0.20) {
+.pileupGetInsertions_ <- function(x, threshold = 0.20, ...) {
+  indent <- list(...)$indent %||% indentation()
   res   <- list()
   colnm <- colnames(consmat(x))
   inpos <- .pileupFindInsertionPositions_(x, threshold)
   inpos <- inpos[!inpos %in% 1:5]
   inpos <- inpos[!inpos %in% (NROW(consmat(x)) - 5):NROW(consmat(x))]
   if (length(inpos) > 0) {
-    inseqs <- .getInsertions(bamfile = path(x), inpos = inpos, readtype = readtype(x))
+    inseqs <- .getInsertions(bamfile = path(x), inpos = inpos, readtype = readtype(x), indent = indent)
     inseqs <- inseqs[order(as.integer(names(inseqs)))]
     for (inseq in inseqs) {
       if (length(inseq) < 100) {
@@ -244,15 +245,16 @@ reads.pileup <- function(x, ..) {
   res
 }
 
-.pileupIncludeInsertions <- function(x, threshold = 0.2) {
+.pileupIncludeInsertions <- function(x, threshold = 0.2, ...) {
   assert_that(is(x, "pileup"))
+  indent <- list(...)$indent %||% indentation()
   if (!"+" %in% colnames(consmat(x))) {
-    flog.warn("No insertions to call!", name = "info")
+    flog.warn("%sNo insertions to call", indent(), name = "info")
     return(x)
   }
-  ins_ <- .pileupGetInsertions_(x, threshold)
+  ins_ <- .pileupGetInsertions_(x, threshold, indent = indent)
   if (length(ins_) == 0) {
-    flog.info("   No insertions found at threshold <%s>", threshold, name = "info")
+    flog.info("%sNo insertions found at threshold <%s>", indent(), threshold, name = "info")
     return(x)
   }
   offsetBases <- 0L
@@ -307,8 +309,10 @@ reads.pileup <- function(x, ..) {
     use.names = TRUE)
 }
 
-.topXReads <- function(bamfile, n = 2000) {
+.topXReads <- function(bamfile, n = 2000, ...) {
+  indent <- list(...)$indent %||% indentation()
   msa <- .msaFromBam(Rsamtools::BamFile(bamfile))
+  flog.info("%sSample from %s longreads", indent(), length(msa), name = "info")
   ## there is no point in sampling if
   if (length(msa) <= n) {
     return(names(msa))
@@ -443,10 +447,11 @@ plotPileupBasecallFrequency <- function(x, threshold = 0.20, label = "",
     )
 }
 
-.getInsertions <- function(bamfile, inpos, readtype = "illumina", reads = NULL) {
+.getInsertions <- function(bamfile, inpos, readtype = "illumina", reads = NULL, ...) {
   assert_that(is.numeric(inpos))
   inpos <- sort(inpos)
-  flog.info("   Extracting insertions at positions <%s>", comma(inpos), name = "info")
+  indent <- list(...)$indent %||% indentation()
+  flog.info("%sExtract insertions at positions <%s>", indent(), comma(inpos), name = "info")
   ## Get the actual position of the first insertion character, not the last
   ##  matching position, so +1
   inpos   <- inpos + 1
@@ -525,15 +530,15 @@ plotPileupBasecallFrequency <- function(x, threshold = 0.20, label = "",
   Biostrings::DNAStringSet("-")
 }
 
-.checkCoverage <- function(pileup, forceMapping, plotFile, maptag) {
-  flog.warn(" Shortreads seem corrupted or the reference is bad!",
-            name = "info")
+.checkCoverage <- function(pileup, forceMapping, plotFile, maptag, ...) {
+  indent <- list(...)$indent %||% indentation()
+  flog.warn("%sShortreads seem corrupted or the reference is bad!", indent(), name = "info")
   maxCov <- max(rowSums(consmat(pileup, freq = FALSE)))
   q75Cov <- quantile(rowSums(consmat(pileup, freq = FALSE)), 0.75)
-  flog.warn("   Maximum of coverage %s / 75%% quantile %s: %s > 5." %<<%
-              " No equal distribution of coverage!" %<<%
-              " Have a look at the mapInit plot",
-            maxCov, q75Cov, maxCov/q75Cov, name = "info")
+  flog.warn("%sMaximum of coverage %s / 75%% quantile %s: %s > 5." %<<%
+            " No equal distribution of coverage!" %<<%
+            " Have a look at the mapInit plot",
+            indent(), maxCov, q75Cov, maxCov/q75Cov, name = "info")
   plt <- plotPileupCoverage(
     x = pileup,
     thin = 0.25,
@@ -541,17 +546,14 @@ plotPileupBasecallFrequency <- function(x, threshold = 0.20, label = "",
     label = maptag,
     drop.indels = TRUE
   )
-  flog.error(paste(" Aborting. If you want to force processing set ",
-                   "forceMapping = TRUE in DR2S object initialisation",
-                   " "),
-             name = "info")
+  flog.error("%sAborting. If you want to force processing set" %<<%
+             " forceMapping = TRUE in DR2S object initialisation", indent(), name = "info")
   save_plot(plotFile, plt, base_aspect_ratio = 3,
             onefile = TRUE)
   if (!forceMapping) {
     stop("Shortreads probably of bad quality. Bad coverage distribution.
          Run with forceMapping = TRUE to force processing.")
   } else {
-    flog.warn(" Continue. Be aware that resulsts may not be correct!!",
-              name = "info")
+    flog.warn("%sContinue. Be aware that resulsts may not be correct!!", indent(), name = "info")
   }
 }

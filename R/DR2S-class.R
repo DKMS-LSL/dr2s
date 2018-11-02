@@ -83,7 +83,7 @@ DR2S_ <- R6::R6Class(
         private$runstats$refPath = file.path("mapInit", basename(refPath))
         cPath <- .dirCreateIfNotExists(normalizePath(
           file.path(private$conf$outdir, "mapInit"), mustWork = FALSE))
-        file.copy(refPath, file.path(cPath,  basename(refPath)))
+        file.copy(refPath, file.path(cPath, basename(refPath)))
       } else {
         private$conf$reference = .expandAllele(conf$reference, conf$locus)
         private$runstats$refPath = .generateReferenceSequence(
@@ -266,9 +266,11 @@ DR2S_ <- R6::R6Class(
       lrdfile <- self$getConfig("longreads")$file
       if (!is.null(lrdfile)) {
         readpath <- file.path(self$getDatadir(), lrdfile)
+        names(readpath) <- lrdfile
       } else {
         lrddir <- self$getLrdDir()
-        readpath <- findReads(lrddir, self$getSampleId(), self$getLocus())
+        readpath <- findReads(datadir = lrddir, self$getSampleId(), self$getLocus())
+        names(readpath) <- .cropPath(self$getDatadir(), readpath)
       }
       if (is.null(readpath) || length(readpath) == 0 || !file.exists(readpath)) {
         flog.error("No reads available for readtype <%s>", self$getLrdType(), name = "info")
@@ -304,6 +306,7 @@ DR2S_ <- R6::R6Class(
         return(NULL)
       }
       readpath <- findReads(srddir, self$getSampleId(), self$getLocus())
+      names(readpath) <- .cropPath(self$getDatadir(), readpath)
       if (is.null(readpath) || length(readpath) == 0 || !file.exists(readpath)) {
         flog.error("No reads available for readtype <%s>", self$getSrdType(), name = "info")
         stop("No reads available for readtype <", self$getSrdType(), ">")
@@ -589,16 +592,24 @@ DR2S_ <- R6::R6Class(
     ## Get the absolut path
     absPath = function(filename) {
       assert_that(is.character(filename))
+      ## set relpath as name attribute
+      names(filename) <- filename
       vapply(filename, function(x) {
         normalizePath(
           file.path(self$getOutdir(), x),
           mustWork = FALSE)
-      }, FUN.VALUE = character(1))
+      }, FUN.VALUE = character(1), USE.NAMES = TRUE)
     },
     ## Get the relative path
     relPath = function(filepath) {
       ## TODO add assertives
-      .cropPath(self$getOutdir(), filepath)
+      if (all(startsWith(filepath, self$getOutdir()))) {
+        .cropPath(self$getOutdir(), filepath)
+      } else if (all(startsWith(filepath, self$getDatadir()))) {
+        .cropPath(self$getDatadir(), filepath)
+      } else {
+        filepath
+      }
     },
     ##
     ## Predicate methods ####

@@ -15,6 +15,7 @@
 #' frequency of gaps within a haplotype group exceeds \code{skipGapFreq}.
 #' @param deepSplit sensitivity parameter passed to
 #' \code{\link[dynamicTreeCut]{cutreeHybrid}}.
+#' @param ...  Additional parameters.
 #'
 #' @return A \code{HapPart} object.
 #' @export
@@ -22,7 +23,9 @@
 #' ###
 partitionReads <- function(x, distAlleles = 2, sortBy = "count", threshold = 0.2,
                            clMethod = "ward.D", minLen = 0.5, skipGapFreq = 2/3,
-                           deepSplit = 1, minClusterSize = 15) {
+                           deepSplit = 1, minClusterSize = 15, ...) {
+
+  indent <- list(...)$indent %||% indentation()
   sortBy <- match.arg(sortBy, c("count", "distance"))
   # get SNPs
   ppos <- colnames(x)
@@ -36,13 +39,13 @@ partitionReads <- function(x, distAlleles = 2, sortBy = "count", threshold = 0.2
     })
     xm <- as.matrix(xm[, !badPpos])
     badPpos <- ppos[badPpos]
-    flog.info(" %s SNPs are covered by less than %g%% of sequences and" %<<%
-              " discarded. Using the remaining %s SNPs for clustering ...",
-              length(badPpos), 1 - skipGapFreq, NCOL(xm), name = "info")
+    flog.info("%s%s SNPs are covered by less than %g%% of sequences and" %<<%
+              " discarded. Using the remaining %s SNPs for clustering",
+              indent(), length(badPpos), 1 - skipGapFreq, NCOL(xm), name = "info")
     if (NCOL(xm) == 0) {
-      flog.error("  Aborting. No SNP remain for clustering!" %<<%
+      flog.error("%sAborting. No SNP remain for clustering!" %<<%
                  " Check your reads and reference and have a look" %<<%
-                 " at mapInit plots!")
+                 " at mapInit plots!", indent(), name = "info")
       stop("No SNPs remain for clustering. Check mapInit plots!")
     }
   }
@@ -56,18 +59,18 @@ partitionReads <- function(x, distAlleles = 2, sortBy = "count", threshold = 0.2
   ## Get only the fraction of reads that contain at least minLen of total SNPs
   clusters <- .getClusts(xseqs, clMethod = clMethod, minLen = minLen,
                          deepSplit = deepSplit, threshold = threshold,
-                         minClusterSize = minClusterSize)
+                         minClusterSize = minClusterSize, indent = indent)
   subclades <- factor(clusters$clades[!clusters$clades == "@"])
   tree <- clusters$tree
   hptypes <- levels(subclades)
 
   if (length(subclades) == 0) {
-    flog.error("  Two few longreads for clustering", name = "info")
+    flog.error("%sTwo few longreads for clustering", indent(), name = "info")
     stop("To few longreads for clustering")
   }
 
-  flog.info("  Initial clustering results in %s haplotypes <%s>",
-            length(hptypes), comma(hptypes), name = "info")
+  flog.info("%sInitial clustering results in %s haplotypes <%s>",
+            indent(), length(hptypes), comma(hptypes), name = "info")
 
   ## Get scores and assign clades by freq mat
   ## Position Weight Matrix: Use frequency plus pseudocount/ basefrequency
@@ -87,14 +90,14 @@ partitionReads <- function(x, distAlleles = 2, sortBy = "count", threshold = 0.2
     FUN.VALUE = character(1))
 
   if (length(hptypes) > distAlleles) {
-    flog.info("  Trying to identify chimeric reads/haplotypes ...", name = "info")
+    flog.info("%sIdentify chimeric reads/haplotypes", indent(), name = "info")
     if (sortBy == "count") {
       rC <- names(sort(table(subclades),
                        decreasing = TRUE)[seq_len(distAlleles)])
     } else if (sortBy == "distance") {
       rC <- sort(.findChimeric(seqs = hpseqs, distAlleles = distAlleles))
     }
-    flog.info("  Use only clusters <%s> ...", comma(rC), name = "info")
+    flog.info("%sUse only clusters <%s>", indent(), comma(rC), name = "info")
     mats <- mats[rC]
   }
   hptypes <- names(mats)
@@ -117,9 +120,9 @@ partitionReads <- function(x, distAlleles = 2, sortBy = "count", threshold = 0.2
   ## Correctly classified clades in the initial clustering
   falseClassified <- NROW(dplyr::filter(clades, .data$correct == FALSE)) /
     NROW(dplyr::filter(clades, .data$correct == TRUE))
-  flog.info("  Corrected classification of %.2f%% of reads", 100*falseClassified, name = "info")
+  flog.info("%sCorrected classification of %.2f%% of reads", indent(), 100*falseClassified, name = "info")
   lapply(hptypes, function(hp, clades) {
-    invisible(flog.info("  %s reads in haplotype <%s>", table(clades$clade)[hp], hp, name = "info"))
+    invisible(flog.info("%s%s reads in haplotype <%s>", indent(), table(clades$clade)[hp], hp, name = "info"))
    }, clades = clades)
 
   # Create the partition table
@@ -141,7 +144,7 @@ partitionReads <- function(x, distAlleles = 2, sortBy = "count", threshold = 0.2
 
 .getClusts <- function(xseqs, minLen = 0.80, clMethod = "ward.D",
                        deepSplit = 1, minReadsFrac = 1/3, threshold = 0.2,
-                       minClusterSize = 15) {
+                       minClusterSize = 15, ...) {
 
   assert_that(
     is.double(minLen),
@@ -149,17 +152,18 @@ partitionReads <- function(x, distAlleles = 2, sortBy = "count", threshold = 0.2
     is.double(threshold)
   )
 
+  indent <- list(...)$indent %||% indentation()
+
   # heuristic for how many reads should be used
-  minLen <- .getMinLenClust(minReadsFrac, minLen, xseqs)
-  flog.info("  Using only longreads containing at least %s%% of all SNPs ...",
-            minLen*100, name = "info")
+  minLen <- .getMinLenClust(minReadsFrac, minLen, xseqs, indent = indent)
+  flog.info("%sUse only longreads containing at least %s%% of all SNPs",
+            indent(), minLen*100, name = "info")
   xSub <- xseqs[Biostrings::width(gsub("\\+", "", xseqs)) >
                    minLen*Biostrings::width(xseqs[1])]
 
   ## Consensus matrix with pseudocount
-  flog.info("  Constructing a Position Specific Distance Matrix" %<<%
-            " of the remaining %s sequences ...",
-            length(xSub), name = "info")
+  flog.info("%sConstruct a Position Specific Distance Matrix" %<<%
+            " from the remaining %s sequences", indent(), length(xSub), name = "info")
   consmat  <- as.matrix(
     Biostrings::consensusMatrix(xSub, as.prob = TRUE)[c(VALID_DNA(), "+" ), ] +
       1/length(xSub)
@@ -195,12 +199,13 @@ partitionReads <- function(x, distAlleles = 2, sortBy = "count", threshold = 0.2
 }
 
 ## Get minimal fraction of SNPs needed for a read to be used
-.getMinLenClust <- function(minReadsFrac, minLen, xseqs){
+.getMinLenClust <- function(minReadsFrac, minLen, xseqs, ...) {
+  indent <- list(...)$indent %||% indentation()
   adjustedMinReadsFrac <- minReadsFrac +
     (0.03*Biostrings::width(xseqs[1])/50) * 1500^2/length(xseqs)^2
   adjustedMinReadsFrac <- min(0.5, adjustedMinReadsFrac)
-  flog.info("  Adjusting minimal fraction of reads used for clustering" %<<%
-              " from %g%% to %g%% ...", minReadsFrac*100,
+  flog.info("%sAdjust the minimal fraction of reads used for clustering" %<<%
+            " from %g%% to %g%%", indent(), minReadsFrac*100,
             adjustedMinReadsFrac*100, name = "info")
   # get long reads containing sufficient number of SNPs
   minLens <- seq(1, 0, -0.01)

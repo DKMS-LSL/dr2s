@@ -6,7 +6,7 @@
 \usage{
 partitionReads(x, distAlleles = 2, sortBy = "count", threshold = 0.2,
   clMethod = "ward.D", minLen = 0.5, skipGapFreq = 2/3,
-  deepSplit = 1, minClusterSize = 15)
+  deepSplit = 1, minClusterSize = 15, ...)
 }
 \arguments{
 \item{x}{A \code{[read x position]} SNP matrix.}
@@ -29,6 +29,8 @@ frequency of gaps within a haplotype group exceeds \code{skipGapFreq}.}
 
 \item{deepSplit}{sensitivity parameter passed to
 \code{\link[dynamicTreeCut]{cutreeHybrid}}.}
+
+\item{...}{Additional parameters.}
 }
 \value{
 A \code{HapPart} object.

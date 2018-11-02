@@ -1,5 +1,5 @@
 ## Extract (a subset of) reads from a bamfile
-.extractFastq <- function(x, qnames=NULL) {
+.extractFastq <- function(x, qnames = NULL) {
   stopifnot(is.character(x) && length(x) == 1)
   bam <- scanBam(x)[[1]]
   qn <-
@@ -12,7 +12,10 @@
 }
 
 # todo add length and cut option
-.filterReads <- function(bam, qnames=NULL, preserveRefEnds=TRUE) {
+.filterReads <- function(bam, qnames = NULL, preserveRefEnds = TRUE, ...) {
+
+  indent <- list(...)$indent %||% indentation()
+
   readlength <- 250
   i <- if (is.null(qnames)) {
     seq_along(bam$qname)
@@ -44,14 +47,11 @@
   alignmentScoreThreshold = 0.3*readlength # Change to dynamic
   badScore <- bam$qname[bam$tag$AS < alignmentScoreThreshold]
   trim <- id[trim < 0.3 * readlength]
-  flog.info("  Filtering %s softclipping reads from %s reads in total;" %<<%
-              "removing reads < %s bp ...",
-            length(trim),
-            length(id),
-            0.3*readlength,
-            name = "info")
-  flog.info("  Filtering %s reads with an alignment score < %s ...",
-            length(badScore), alignmentScoreThreshold, name = "info")
+  flog.info("%sFiltering %s softclipping reads from %s reads in total;" %<<%
+            "removing reads < %s bp", indent(), length(trim), length(id),
+            0.3*readlength, name = "info")
+  flog.info("%sFiltering %s reads with an alignment score < %s ...",
+            indent(), length(badScore), alignmentScoreThreshold, name = "info")
   unique(c(trim, badScore))
 }
 
@@ -188,7 +188,7 @@
   } else seq_along(start)
   pos   <- 1
   while (length(i) > 0) {
-    message("Trimming ", length(i), " reads from start")
+    #message("Trimming ", length(i), " reads from start")
     i <- i[Biostrings::width(sr[i]) > pos]
     if (length(i) == 0)
       next

@@ -104,6 +104,22 @@ compact <- function(x) {
   x[!vapply(x, is.null, FALSE, USE.NAMES = FALSE)]
 }
 
+indentation <- function(level = 1, shift = 2) {
+  structure(function() {
+    paste0(rep(" ", level*shift), collapse = "")
+  }, class = c("indenter", "function"))
+}
+
+lvl <- function(x) UseMethod("lvl")
+lvl.indenter <- function(x) {
+  get("level", environment(x))
+}
+
+incr <- function(x, i) UseMethod("incr")
+incr.indenter <- function(x, i = 1) {
+  indentation(lvl(x) + i)
+}
+
 usc <- function(x) gsub("[*:?<>|]", "_", x)
 
 underscore <- function(x) gsub("\\s+", "_", x)
@@ -180,7 +196,7 @@ wrap <- function(x, wrap = "\"") {
       path <- file.path(getwd(), p)
     }
     normalizePath(p, mustWork = TRUE)
-  }, FUN.VALUE = character(1))
+  }, FUN.VALUE = character(1), USE.NAMES = FALSE)
 }
 
 .fileDeleteIfExists <- function(path) {
@@ -191,9 +207,8 @@ wrap <- function(x, wrap = "\"") {
   invisible(path)
 }
 
-
 .cropPath <- function(base, path) {
-  gsub("^/", "", gsub(base,"", path))
+  gsub("^/", "", gsub(base, "", unname(path)))
 }
 
 .hasCommand <- function(cmd) {

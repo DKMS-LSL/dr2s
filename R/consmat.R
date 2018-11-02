@@ -262,15 +262,16 @@ createPWM <- function(msa){
 
 # mat <- consmat(pileup)
 #removeError = TRUE
-.distributeGaps <- function(mat, bamfile, removeError = FALSE) {
+.distributeGaps <- function(mat, bamfile, removeError = FALSE, ...) {
+  indent <- list(...)$indent %||% indentation()
   seq <- .mat2rle(mat)
   if (removeError) {
     gapError <- .getGapErrorBackground(mat, n = 5)
   }
   workers <- min(sum(idx <- seq$length > 5), .getIdleCores())
   bpparam <- BiocParallel::MulticoreParam(workers = workers, log = FALSE)
-  flog.info("   Using %s workers to distribute gaps at positions <%s>",
-            workers, comma(which(idx)), name = "info")
+  flog.info("%sUse %s workers to distribute gaps at positions <%s>",
+            indent(), workers, comma(which(idx)), name = "info")
   bam <- Rsamtools::BamFile(bamfile)
   if (workers > 1) {
     Rsamtools::open.BamFile(bam)

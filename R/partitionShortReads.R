@@ -28,11 +28,13 @@
 #' @export
 #' @examples
 #' ###
-getSRPartitionScores <- function(bamfile, mats) {
+getSRPartitionScores <- function(bamfile, mats, ...) {
   assert_that(
     requireNamespace("parallel", quietly = TRUE),
     requireNamespace("doParallel", quietly = TRUE),
     requireNamespace("GenomicAlignments", quietly = TRUE))
+
+  indent <- list(...)$indent %||% indentation()
 
   ## make sure that all available cores get utilised
   op <- options("dr2s.max.cores")
@@ -53,8 +55,8 @@ getSRPartitionScores <- function(bamfile, mats) {
     Rsamtools::open.BamFile(bam)
     on.exit(Rsamtools::close.BamFile(bam))
   }
-  flog.info(" Using %s workers to partition shortreads on %s positions",
-            workers, length(ppos), name = "info")
+  flog.info("%sUsing %s workers to partition shortreads on %s positions",
+            indent(), workers, length(ppos), name = "info")
   res <- do.call(dplyr::bind_rows,
     suppressWarnings(BiocParallel::bplapply(as.integer(ppos),
     function(pos, refname, bamfile, mats) {
@@ -95,7 +97,10 @@ getSRPartitionScores <- function(bamfile, mats) {
 #' @examples
 #' ### Score
 #
-scoreHighestSR <- function(srpartition, diffThreshold = 0.001) {
+scoreHighestSR <- function(srpartition, diffThreshold = 0.001, ...) {
+
+  indent <- list(...)$indent %||% indentation()
+
   sr <- unique(data.table::as.data.table(srpartition)
                # Get the sum of each read and hptype
                [, clade := sum(prob), by = list(read, haplotype)]
@@ -107,7 +112,7 @@ scoreHighestSR <- function(srpartition, diffThreshold = 0.001) {
   srtmp <- NULL
   sr2 <- NULL
   while (TRUE) {
-    flog.info(" Calculate shortread scoring with cutoff = %s", diffThreshold, name = "info")
+    flog.info("%sCalculate shortread scoring with cutoff = %s", indent(), diffThreshold, name = "info")
     if (NROW(srtmp) > 0) {
       srtmp <- sr[pos %in% names(which(!correctScoring))]
       srtmp <- srtmp[abs(1 - (clade/max)) < diffThreshold]
@@ -130,7 +135,8 @@ scoreHighestSR <- function(srpartition, diffThreshold = 0.001) {
   dtplyr::tbl_dt(sr2)
 }
 
-.writePartFq <- function(fq, srFastqHap, dontUseReads = NULL, useReads = NULL) {
+.writePartFq <- function(fq, srFastqHap, dontUseReads = NULL, useReads = NULL, ...) {
+  indent <- list(...)$indent %||% indentation()
   fqstream = ShortRead::FastqStreamer(fq)
   .fileDeleteIfExists(srFastqHap)
   repeat {
@@ -144,7 +150,7 @@ scoreHighestSR <- function(srpartition, diffThreshold = 0.001) {
       # useReads = qnames
       useReads <- which(!fqnames %in% dontUseReads)
     }
-    flog.info("  Using %s of %s reads", length(useReads), length(fqnames), name = "info")
+    flog.info("%sUsing %s of %s reads", indent(), length(useReads), length(fqnames), name = "info")
     sr <- sr[useReads]
     ShortRead::writeFastq(sr, srFastqHap, mode = "a", compress = TRUE)
   }
