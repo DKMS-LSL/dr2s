@@ -117,6 +117,7 @@ LR_PIPELINE <- function() {
     "mapInit",
     "partitionLongReads",
     "mapIter",
-    "report"
+    "report",
+    "cache"
   )
 }
