@@ -367,6 +367,7 @@ initialiseDR2S <- function(conf, createOutdir = TRUE) {
   if (createOutdir) {
     conf$outdir <- .dirCreateIfNotExists(path = gsub("//+", "/", file.path(
       conf$outdir,
+      conf$details$platform %||% "",
       conf$locus,
       conf$sampleId
     )))

@@ -269,7 +269,9 @@ DR2S_ <- R6::R6Class(
         names(readpath) <- lrdfile
       } else {
         lrddir <- self$getLrdDir()
-        readpath <- findReads(datadir = lrddir, self$getSampleId(), self$getLocus())
+        readpath <- findReads(datadir = lrddir,
+                              sampleId = self$getSampleId(),
+                              locus = self$getLocus())
         names(readpath) <- .cropPath(self$getDatadir(), readpath)
       }
       if (is.null(readpath) || length(readpath) == 0 || !file.exists(readpath)) {
@@ -347,6 +349,15 @@ DR2S_ <- R6::R6Class(
       self$getConfig("longreads")$hpc
     },
     ##
+    getPlatform = function() {
+      platform <- self$getDetails("platform")
+      if (is.null(platform)) {
+        self$getConfig("longreads")$type
+      } else {
+        platform
+      }
+    },
+    ##
     getDistAlleles = function() {
       self$getConfig("distAlleles")
     },
@@ -367,8 +378,13 @@ DR2S_ <- R6::R6Class(
       invisible(self)
     },
     ##
-    getDetails = function() {
-      self$getConfig("details")
+    getDetails = function(name = NULL) {
+      if (is.null(name)) {
+        self$getConfig("details")
+      } else {
+        assert_that(is.character(name))
+        self$getConfig("details")[[name]]
+      }
     },
     ##
     setDetails = function(details) {
@@ -895,10 +911,9 @@ DR2S_ <- R6::R6Class(
 findReads <- function(datadir, sampleId, locus) {
   locus <- sub("^HLA-", "", toupper(locus))
   locus <- sub("^KIR-", "", toupper(locus))
-  filePattern <- sampleId %<<% ".+" %<<% "fast(q|a)(\\.gz)?$"
+  filePattern <- sampleId %<<% "_" %<<% locus %<<% ".+" %<<% "fast(q|a)(\\.gz)?$"
   readPath <- dir(datadir, pattern = filePattern, full.names = TRUE)
-  readPath <- readPath[grep(pattern = "^((?!_trimmed.fastq).)*$",
-                              readPath, perl = TRUE)]
+  readPath <- readPath[grep(pattern = "^((?!_trimmed.fastq).)*$", readPath, perl = TRUE)]
   if (length(readPath) > 0) {
     normalizePath(readPath, mustWork = TRUE)
   } else readPath
