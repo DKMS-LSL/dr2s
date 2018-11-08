@@ -65,6 +65,15 @@ readDR2SConf <- function(configFile, format = "auto") {
     yaml = yaml::yaml.load_file(configFile),
     json = jsonlite::fromJSON(configFile)
   )
+  ## set eferenc if extref exists
+  if (!is.null(conf$extref)) {
+    tryCatch(
+      conf$reference <- normalizePath(conf$extref, mustWork = TRUE),
+      error = function(e) {
+        flog.error("External reference file <%s> not found", conf$extref, name = "info")
+        stop("External reference file <", conf$extref, "> not found")
+      })
+  }
   ## set defaults if necessary
   conf["threshold"] <- conf$threshold %||% 0.2
   conf["iterations"] <- conf$iterations %||% 2
@@ -73,7 +82,7 @@ readDR2SConf <- function(configFile, format = "auto") {
   conf["forceMapping"] <- conf$forceMapping %||% FALSE
   conf["distAlleles"] <- conf$distAlleles %||% 2
   conf["datadir"] <- conf$datadir %||% normalizePath(".", mustWork = TRUE)
-  conf["outdir"] <- conf$outdir %||% file.path(conf$datadir, "output")
+  conf["outdir"] <- .cropOutdir(conf)
   conf["format"] <- if (format == "auto") format0 else format
   conf$longreads <- conf$longreads %||% list(dir = "pacbio", type = "pacbio", mapper = "minimap")
   conf$pipeline  <- conf$pipeline  %||% if (is.null(conf$shortreads)) {
@@ -94,6 +103,15 @@ readDR2SConf <- function(configFile, format = "auto") {
   } else {
     conf
   }
+}
+
+.cropOutdir <- function(conf) {
+  outdir <- conf$outdir %||% file.path(conf$datadir, "output")
+  pathext <- gsub("//", "/", file.path("",
+                                       conf$details$platform %||% "",
+                                       conf$locus,
+                                       conf$sampleId))
+  sub(pathext, "", outdir, fixed = TRUE)
 }
 
 #' @export

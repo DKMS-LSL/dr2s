@@ -33,9 +33,10 @@ partitionReads <- function(x, distAlleles = 2, sortBy = "count", threshold = 0.2
   xm <- as.matrix(x[order(rownames(x)), , drop = FALSE])
   ## if there is only one SNP for clustering, use it! If it does not match both
   ## sequencing types it will be reported
+  x <- xm[, 1]
   if (length(ppos) > 1) {
     badPpos <- apply(xm, 2, function(x) {
-      NROW(x[x == "+"])/NROW(x) > skipGapFreq
+      NROW(x[x == "+" | x == "-"])/NROW(x) > skipGapFreq
     })
     xm <- as.matrix(xm[, !badPpos])
     badPpos <- ppos[badPpos]
@@ -45,7 +46,7 @@ partitionReads <- function(x, distAlleles = 2, sortBy = "count", threshold = 0.2
     if (NCOL(xm) == 0) {
       flog.error("%sAborting. No SNP remain for clustering!" %<<%
                  " Check your reads and reference and have a look" %<<%
-                 " at mapInit plots!", indent(), name = "info")
+                 " at the mapInit plot!", indent(), name = "info")
       stop("No SNPs remain for clustering. Check mapInit plots!")
     }
   }

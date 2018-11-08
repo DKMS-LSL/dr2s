@@ -111,7 +111,7 @@ mapInitSR <- function(self, threshold = 0.2, opts = list(), includeDeletions = T
     conseqName <- "Init.consensus.2." %<<% baseLabel
     conseqPath <- file.path(outdir, conseqName %<<% ".fa")
     names(conseqPath) <- self$relPath(conseqPath)
-    flog.info("%sConstruct consensus <%s>", indent(), names(conseqPath) , name = "info")
+    flog.info("%sConstruct consensus <%s>", indent(), names(conseqPath), name = "info")
     conseq <- .getWriteConseq(pileup, name = "mapInit1.2", type = "prob",
                               threshold = threshold, suppressAllGaps = TRUE,
                               conseqPath = conseqPath)
@@ -124,7 +124,7 @@ mapInitSR <- function(self, threshold = 0.2, opts = list(), includeDeletions = T
       pileup  = pileup,
       tag     = maptag,
       conseq  = conseq,
-      seqpath = self$relPath(conseqPath),
+      seqpath = self$relPath(filepath = conseqPath),
       ref     = conseqName,
       stats   = list(coverage = .coverage(pileup))
     ),

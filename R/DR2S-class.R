@@ -78,7 +78,7 @@ DR2S_ <- R6::R6Class(
       private$runstats = NULL
       private$reportStatus = FALSE
       if (file.exists(refPath <- private$conf$reference)) {
-        private$conf$extref = refPath
+        private$conf$extref = normalizePath(refPath, mustWork = TRUE)
         private$conf$reference = basename(refPath)
         private$runstats$refPath = file.path("mapInit", basename(refPath))
         cPath <- .dirCreateIfNotExists(normalizePath(
@@ -350,12 +350,9 @@ DR2S_ <- R6::R6Class(
     },
     ##
     getPlatform = function() {
-      platform <- self$getDetails("platform")
-      if (is.null(platform)) {
+      self$getDetails("platform") %||%
+        self$getConfig("longreads")$platform  %||%
         self$getConfig("longreads")$type
-      } else {
-        platform
-      }
     },
     ##
     getDistAlleles = function() {
@@ -620,9 +617,9 @@ DR2S_ <- R6::R6Class(
     relPath = function(filepath) {
       ## TODO add assertives
       if (all(startsWith(filepath, self$getOutdir()))) {
-        .cropPath(self$getOutdir(), filepath)
+        .cropPath(base = self$getOutdir(), path = filepath)
       } else if (all(startsWith(filepath, self$getDatadir()))) {
-        .cropPath(self$getDatadir(), filepath)
+        .cropPath(base = self$getDatadir(), path = filepath)
       } else {
         filepath
       }

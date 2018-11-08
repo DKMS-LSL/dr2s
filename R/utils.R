@@ -208,7 +208,7 @@ wrap <- function(x, wrap = "\"") {
 }
 
 .cropPath <- function(base, path) {
-  gsub("^/", "", gsub(base, "", unname(path)))
+  gsub("^/", "", gsub(base, "", unname(path), fixed = TRUE))
 }
 
 .hasCommand <- function(cmd) {
