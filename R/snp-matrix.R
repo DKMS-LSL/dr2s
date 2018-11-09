@@ -10,7 +10,7 @@
 #' ##
 
 # debug
-#bamfile = self$mapInit$bamfile
+#bamfile = bampath(self$mapInit)
 #refseq = self$getRefSeq()
 #polymorphicPositions = ppos
 SNPmatrix <- function(bamfile, polymorphicPositions) {
@@ -19,8 +19,7 @@ SNPmatrix <- function(bamfile, polymorphicPositions) {
     file.exists(bamfile)
   )
   if (is(polymorphicPositions, "tbl_df") &&
-      all(colnames(polymorphicPositions) %in% c("position", "a1",
-                                                "f1", "a2", "f2"))) {
+      all(colnames(polymorphicPositions) %in% c("position", "a1", "f1", "a2", "f2"))) {
     polymorphicPositions <- polymorphicPositions %>%
       dplyr::filter(a1 %in% VALID_DNA(), a2 %in% VALID_DNA()) %>%
       dplyr::select(position) %>%

@@ -33,16 +33,15 @@ partitionReads <- function(x, distAlleles = 2, sortBy = "count", threshold = 0.2
   xm <- as.matrix(x[order(rownames(x)), , drop = FALSE])
   ## if there is only one SNP for clustering, use it! If it does not match both
   ## sequencing types it will be reported
-  x <- xm[, 1]
   if (length(ppos) > 1) {
     badPpos <- apply(xm, 2, function(x) {
       NROW(x[x == "+" | x == "-"])/NROW(x) > skipGapFreq
     })
     xm <- as.matrix(xm[, !badPpos])
     badPpos <- ppos[badPpos]
-    flog.info("%s%s SNPs are covered by less than %g%% of sequences and" %<<%
-              " discarded. Using the remaining %s SNPs for clustering",
-              indent(), length(badPpos), 1 - skipGapFreq, NCOL(xm), name = "info")
+    flog.info("%s%s SNPs occupy less than %g%% of reads and are" %<<%
+              " discarded. Using the remaining %s SNPs for clustering,",
+              indent(), length(badPpos), 100*(1 - skipGapFreq), NCOL(xm), name = "info")
     if (NCOL(xm) == 0) {
       flog.error("%sAborting. No SNP remain for clustering!" %<<%
                  " Check your reads and reference and have a look" %<<%
@@ -102,21 +101,21 @@ partitionReads <- function(x, distAlleles = 2, sortBy = "count", threshold = 0.2
     mats <- mats[rC]
   }
   hptypes <- names(mats)
-
   bpparam <- BiocParallel::MulticoreParam(workers = .getIdleCores())
-  scores <- dplyr::bind_rows(
+  scores  <- tibble::as_tibble(dplyr::bind_rows(
     suppressWarnings(BiocParallel::bplapply(seq_along(xseqs), function(s)
-      .getScores(s, xseqs, mats), BPPARAM = bpparam)))
+      .getScores(s, xseqs, mats), BPPARAM = bpparam))))
 
   clades <- scores %>%
     dplyr::group_by(.data$read) %>%
     dplyr::slice(which.max(.data$score)) %>%
     dplyr::ungroup() %>%
-    dplyr::mutate(clustclade = ifelse(.data$read %in% names(subclades),
-                                      as.character(subclades[.data$read]),
-                                      NA)) %>%
-    dplyr::mutate(correct = dplyr::if_else(.data$clustclade == .data$clade,
-                                           TRUE, FALSE))
+    dplyr::mutate(
+      clustclade = dplyr::if_else(.data$read %in% names(subclades),
+                                  as.character(subclades[.data$read]),
+                                  NA_character_)) %>%
+    dplyr::mutate(
+      correct = dplyr::if_else(.data$clustclade == .data$clade, TRUE, FALSE))
 
   ## Correctly classified clades in the initial clustering
   falseClassified <- NROW(dplyr::filter(clades, .data$correct == FALSE)) /
@@ -128,17 +127,18 @@ partitionReads <- function(x, distAlleles = 2, sortBy = "count", threshold = 0.2
 
   # Create the partition table
   part_ <- HapPart(readNames = clades$read, snpPos = colnames(xm))
-  PRT(part_) <- clades$clade
-  HTR(part_) <- tree
-  K(part_)   <- length(ppos) - length(badPpos)
-  oc(part_)  <- as.character(unique(subclades))
-  mcoef(part_)  <- clades$score
-  scores(part_) <- scores
+  PRT(part_)    <- clades$clade  ## <character>; the haplotype assignment for each read
+  mcoef(part_)  <- clades$score  ## <numeric>; the membership coefficient for each read
+  HTR(part_)    <- tree          ## <hclust>; hierarchical cluster tree
+  K(part_)      <- length(ppos) - length(badPpos) ## <numeric>; The total number of polymorphic positions used.
+  OC(part_)     <- levels(subclades) ## <character>; The original clusters
+  SCR(part_)    <- scores
   SQS(part_)    <- hpseqs
   PWM(part_)    <- mats
 
   return(part_)
 }
+
 
 
 # Helpers -----------------------------------------------------------------
@@ -165,10 +165,11 @@ partitionReads <- function(x, distAlleles = 2, sortBy = "count", threshold = 0.2
   ## Consensus matrix with pseudocount
   flog.info("%sConstruct a Position Specific Distance Matrix" %<<%
             " from the remaining %s sequences", indent(), length(xSub), name = "info")
-  consmat  <- as.matrix(
-    Biostrings::consensusMatrix(xSub, as.prob = TRUE)[c(VALID_DNA(), "+" ), ] +
+  consmat <- as.matrix(
+    Biostrings::consensusMatrix(xSub, as.prob = TRUE, baseOnly = FALSE)[c(VALID_DNA(), "+" ), ] +
       1/length(xSub)
   )
+
   # Remove gaps below a threshold as they are probably sequencing artifacts
   con <- apply(consmat, 2, function(a) {
     a["-"] <- ifelse(a["-"] < threshold, min(a), a["-"])
@@ -180,7 +181,7 @@ partitionReads <- function(x, distAlleles = 2, sortBy = "count", threshold = 0.2
   dist <- stats::as.dist(dist)
 
   ## replace "na" with mean for a being able to cluster
-  dist[is.na(dist)] <- mean(dist,na.rm = TRUE)
+  dist[is.na(dist)] <- mean(dist, na.rm = TRUE)
 
   ## Perform a hierarchical clustering
   hcc <-  stats::hclust(dist, method = clMethod)
@@ -226,7 +227,6 @@ partitionReads <- function(x, distAlleles = 2, sortBy = "count", threshold = 0.2
   seq <- as.character(xseqs[[s]])
   seq <- unlist(strsplit(seq, split = ""))
   read <- names(xseqs[s])
-
   b <- vapply(mats, function(t) {
     sum(vapply(seq_along(seq), function(x) t[seq[x],x], FUN.VALUE = numeric(1)))
   }, numeric(1))
@@ -250,8 +250,8 @@ partitionReads <- function(x, distAlleles = 2, sortBy = "count", threshold = 0.2
 
   dm <- foreach(h = names(seqs), .combine = 'cbind') %:%
     foreach(hp = names(seqs)) %do% {
-      f <- vapply(forward, function(x) x[h,hp], FUN.VALUE = numeric(1))
-      r <- vapply(reverse, function(x) x[h,hp], FUN.VALUE = numeric(1))
+      f <- vapply(forward, function(x) x[h, hp], FUN.VALUE = numeric(1))
+      r <- vapply(reverse, function(x) x[h, hp], FUN.VALUE = numeric(1))
       unname(stats::quantile(f + r)[2])
     }
   nms <- vapply(strsplit(names(seqs), ":"), function(x) x[1],
@@ -262,6 +262,7 @@ partitionReads <- function(x, distAlleles = 2, sortBy = "count", threshold = 0.2
 }
 
 # Class: HapPart -----------------------------------------------------------
+
 #' HapPart (Haplotype Partition) stores the haplotype information from
 #' longread clustering.
 #' @param readNames The names of reads in each cluster.
@@ -278,17 +279,15 @@ partitionReads <- function(x, distAlleles = 2, sortBy = "count", threshold = 0.2
 #' @slot mats PWM matrices of the haplotype sequences.
 #' @slot classification ... TODO
 #' @export
-
 HapPart <- function(readNames, snpPos) {
   readNames <- as.character(readNames)
   snpPos   <- as.integer(snpPos)
   n <- length(readNames) # number of reads
-  k <- length(snpPos)   # number of polymorphic positions
+  k <- length(snpPos)    # number of polymorphic positions
   structure(
     readNames,
     snpPos = snpPos,
     k      = 0L,            # total number of polymorphic positions
-    # add mcoef and tree
     mcoef  = rep(0, n),
     tree   = NULL,          # Add tree from hclust
     scores = NULL,
@@ -337,14 +336,14 @@ print.HapPart <- function(x, sortBy = "none", nrows = 8, ...) {
   attr(rs, "classification") <- CLS(x)[i, , drop = FALSE]
   attr(rs, "partition") <- PRT(x)[i]
   attr(rs, "tree") <- HTR(x)
-  attr(rs, "scores") <- scores(x)
+  attr(rs, "scores") <- SCR(x)
   class(rs) <- c("HapPart", "character")
   rs
 }
 
 mcoef <- function(x) UseMethod("mcoef")
 #' @describeIn HapPart
-#' Get the membership coefficient mcoef.
+#' The membership coefficient in the assigned clade.
 #' @export
 mcoef.HapPart <- function(x) {
   attr(x, "mcoef")
@@ -370,29 +369,29 @@ PWM.HapPart <- function(x) {
 }
 
 ## Get the original number of clusters for plotting the tree
-oc <- function(x) UseMethod("oc")
+OC <- function(x) UseMethod("OC")
 #' @describeIn HapPart
-#' Get the original clusters from \code{\link[stats]{hclust}}.
+#' The original clusters from \code{\link[stats]{hclust}}.
 #' @export
-oc.HapPart <- function(x) {
+OC.HapPart <- function(x) {
   attr(x, "oc")
 }
-`oc<-` <- function(x, value) UseMethod("oc<-")
-`oc<-.HapPart` <- function(x, value){
+`OC<-` <- function(x, value) UseMethod("oc<-")
+`OC<-.HapPart` <- function(x, value){
   attr(x, "oc") <- value
   x
 }
 
 ## All vs all cluster distances for each read
-scores <- function(x) UseMethod("scores")
+SCR <- function(x) UseMethod("scores")
 #' @describeIn HapPart
-#' Get the membership scores for each read for each cluster.
+#' The membership scores for each read in each cluster.
 #' @export
-scores.HapPart <- function(x) {
+SCR.HapPart <- function(x) {
   attr(x, "scores")
 }
-`scores<-` <- function(x, value) UseMethod("scores<-")
-`scores<-.HapPart` <- function(x, value) {
+`SCR<-` <- function(x, value) UseMethod("SCR<-")
+`SCR<-.HapPart` <- function(x, value) {
   attr(x, "scores") <- value
   x
 }
@@ -411,7 +410,7 @@ partition.HapPart <- function(x) {
 ## Total number of polymorphic positions between haplotypes
 K <- function(x) UseMethod("K")
 #' @describeIn HapPart
-#' Get the total number of polymorphic positions.
+#' The total number of polymorphic positions used.
 #' @export
 K.HapPart <- function(x) {
   attr(x, "k")
@@ -468,12 +467,11 @@ SNP.HapPart <- function(x) {
   x
 }
 
-## Get the partition table
+## Get the partition vector
 PRT <- function(x) UseMethod("PRT")
 #' @describeIn HapPart
-#' Get the haplotype partition as a
-#' \code{\link[base]{data.frame}} containing
-#' columns of \code{read}, \code{haplotype} and \code{mcoef} for each read.
+#' The haplotype assignment as a character vector <A>, <B>, ... for
+#' each read.
 #' @export
 PRT.HapPart <- function(x) {
   attr(x, "partition")
@@ -488,7 +486,7 @@ PRT.HapPart <- function(x) {
 ## get tree from hclust
 HTR <- function(x) UseMethod("HTR")
 #' @describeIn HapPart
-#' Get the resulting tree from \code{\link[stats]{hclust}}.
+#' The cluster tree produced by \code{\link[stats]{hclust}}.
 #' @export
 HTR.HapPart <- function(x) {
   attr(x, "tree")
@@ -632,7 +630,7 @@ plotPartitionHaplotypes <- function(x, thin = 1, label = "", sort = TRUE,
 plotRadarPartition <- function(x){
   stopifnot(is(x, "HapPart"))
 
-  df <- dplyr::full_join(scores(x), partition(x), by = "read")
+  df <- dplyr::full_join(SCR(x), partition(x), by = "read")
 
   # use bigger size for 2d radarplot.
   size <- ifelse(length(levels(df$haplotype)) == 2, 4, 0.05)
@@ -699,10 +697,10 @@ plotPartitionTree <- function(x){
 
     # Make plot
     ggplot() +
-      geom_segment(data=ggdendro::segment(dendr), aes_string(x = 'x', y = 'y',
-                                                             xend = 'xend',
-                                                             yend = 'yend',
-                                                             color = 'cluster'),
+      geom_segment(data = ggdendro::segment(dendr), aes_string(x = 'x', y = 'y',
+                                                               xend = 'xend',
+                                                               yend = 'yend',
+                                                               color = 'cluster'),
                    size = 1.25) +
       scale_color_manual(values = PARTCOL(),
                          name = "Haplotype",

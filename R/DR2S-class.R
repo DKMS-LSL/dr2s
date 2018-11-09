@@ -27,13 +27,13 @@ clear.DR2S <- function(x, ...) {
 #' @docType class
 #' @usage InitDR2S(config, createOutdir = TRUE)
 #' @field InitDR2S Initialize DR2S from a config.
-#' @field mapInit \code{[mapInit]}; the mapping of long reads to
+#' @field mapInit \code{[MapList]}; the mapping of long reads to
 #' \code{reference}.
 #' @field partition \code{[PartList]}; the partitioning of full-length
 #'   mapped long reads into different haplotypes.
-#' @field mapIter \code{[mapIter]}; the mapping of A and B reads to
+#' @field mapIter \code{[MapList]}; the mapping of A and B reads to
 #' consensus sequences produced in the previous step.
-#' @field mapFinal \code{[mapFinal]}; the mapping of A, B, and short reads
+#' @field mapFinal \code{[MapList]}; the mapping of A, B, and short reads
 #' to consensus sequences produced in the previous step.
 #' @field consensus \code{[ConsList]}; final consensus sequences for A and
 #' B.
@@ -66,12 +66,12 @@ DR2S_ <- R6::R6Class(
   classname = "DR2S",
   public = list(
     ## Public fields
-    mapInit     = list(),
-    partition   = list(),
-    mapIter     = list(),
-    srpartition = list(),
-    mapFinal    = list(),
-    consensus   = list(), ## <ConsList> Final consensus sequences for A and B
+    mapInit     = list(), ## <MapList>;
+    partition   = list(), ## <PartList>;
+    mapIter     = list(), ## <MapList>;
+    srpartition = list(), ## <PartList>;
+    mapFinal    = list(), ## <MapList>;
+    consensus   = list(), ## <ConsList>; Final consensus sequences for A and B
     ## Public functions
     initialize  = function(conf, createOutdir = TRUE) {
       private$conf = initialiseDR2S(conf, createOutdir = createOutdir)
@@ -79,7 +79,7 @@ DR2S_ <- R6::R6Class(
       private$reportStatus = FALSE
       if (file.exists(refPath <- private$conf$reference)) {
         private$conf$extref = normalizePath(refPath, mustWork = TRUE)
-        private$conf$reference = basename(refPath)
+        private$conf$reference = sub("\\.fa(s|sta)?$", "", basename(refPath))
         private$runstats$refPath = file.path("mapInit", basename(refPath))
         cPath <- .dirCreateIfNotExists(normalizePath(
           file.path(private$conf$outdir, "mapInit"), mustWork = FALSE))
@@ -111,11 +111,11 @@ DR2S_ <- R6::R6Class(
       .dirCreateIfNotExists(file.path(self$getOutdir()))
       if (!is.null(private$conf$extref) &&
           file.exists(refPath <- private$conf$extref)) {
-        private$conf$reference = basename(refPath)
+        private$conf$reference = sub("\\.fa(s|sta)?$", "", basename(refPath))
         private$runstats$refPath = file.path("mapInit", basename(refPath))
         cPath <- .dirCreateIfNotExists(normalizePath(
           file.path(private$conf$outdir, "mapInit"), mustWork = FALSE))
-        file.copy(refPath, file.path(cPath,  basename(refPath)))
+        file.copy(refPath, file.path(cPath, basename(refPath)))
       } else {
         private$conf$reference = .expandAllele(private$conf$reference,
                                                private$conf$locus)
@@ -131,8 +131,8 @@ DR2S_ <- R6::R6Class(
       invisible(self)
     },
     cleanup = function() {
-      unlink(self$absPath(self$mapInit$bamfile))
-      unlink(self$absPath(self$mapInit$bamfile) %<<% ".bai")
+      unlink(self$absPath(bampath(self$mapInit)))
+      unlink(self$absPath(bampath(self$mapInit)) %<<% ".bai")
       foreach(hpt = self$getHapTypes()) %do% {
         unlink(self$absPath(hpt), recursive = TRUE)
       }
@@ -488,8 +488,11 @@ DR2S_ <- R6::R6Class(
       }
     },
     ##
-    getPileup = function() {
-      self$mapInit$pileup
+    getPileup = function(useSR = FALSE) {
+      if (useSR)
+        meta(self$mapInit, "SR2")$pileup
+      else
+        self$mapInit$pileup
     },
     ##
     getSnpMatrix = function() {
@@ -568,9 +571,9 @@ DR2S_ <- R6::R6Class(
       if (iter == "init") {
         ref <- match.arg(ref, c("LR", "SR"))
         if (ref == "SR") {
-          return(self$mapInit$SR1$tag)
+          return(tag(meta(self$mapInit, "SR1")))
         }
-        return(self$mapInit$tag)
+        return(tag(self$mapInit))
       }
       if (iter == "final") {
         group = match.arg(group, self$getHapTypes())
@@ -595,11 +598,11 @@ DR2S_ <- R6::R6Class(
       invisible(self)
     },
     ##
-    getLrMapFun = function() {
+    getLrdMapFun = function() {
       match.fun("run" %<<% self$getLrdMapper())
     },
     ##
-    getSrMapFun = function() {
+    getSrdMapFun = function() {
       match.fun("run" %<<% self$getSrdMapper())
     },
     ## Get the absolut path
@@ -677,8 +680,8 @@ DR2S_ <- R6::R6Class(
       }
       pileup <- switch(
         readtype,
-        LR = self$getPileup(),
-        SR = self$mapInit$SR2$pileup
+        LR = self$getPileup(useSR = FALSE),
+        SR = self$getPileup(useSR = TRUE)
       )
       plotPileupCoverage(
         pileup,
@@ -780,11 +783,7 @@ DR2S_ <- R6::R6Class(
       if (missing(threshold)) {
         threshold <- self$getThreshold()
       }
-      if (useSR) {
-        pileup <- self$mapInit$SR2$pileup
-      } else {
-        pileup <- self$getPileup()
-      }
+      pileup <- self$getPileup(useSR = useSR)
       polymorphicPositions(pileup, threshold)
     },
     ##

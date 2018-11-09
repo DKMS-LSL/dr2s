@@ -1,17 +1,19 @@
 ## mapping wrapper functions
 ##
 mapReads <- function(
-  mapFun, maptag, reffile, allele, readfile, readtype, opts = NULL,
-  refname = "", includeDeletions, includeInsertions, callInsertions = FALSE,
-  clip = FALSE, distributeGaps = FALSE, removeError = TRUE, topx = 0,
-  outdir, force, clean, ...) {
+  mapfun, maplabel, reffile, refname, readfile, readtype, opts = NULL, outdir,
+  includeDeletions, includeInsertions, callInsertions = FALSE,
+  callInsertionThreshold = 0.15, clip = FALSE, distributeGaps = FALSE,
+  removeError = TRUE, topx = 0, force, clean, ...) {
 
   indent <- list(...)$indent %||% indentation()
   flog.info("%sMap <%s> reads <%s> to reference <%s>", indent(),
             readtype, comma(names(readfile)), names(reffile), name = "info")
 
   ## Run mapper
-  samfile <- mapFun(reffile, readfile, readtype, allele, refname, force, outdir, opts)
+  samfile <- mapfun(reffile, refname, readfile, readtype, outdir, maplabel,
+                    opts, force)
+
   ## collect minMapq for use in .bamSortIndex
   # minMapq = 0
   minMapq <- list(...)$min_mapq %||% list(...)$minMapq %||% 0
@@ -27,13 +29,14 @@ mapReads <- function(
     fq <- .trimPolymorphicEnds(fq)
     ## Write new shortread file to disc
     fqdir  <- .dirCreateIfNotExists(file.path(outdir, "trimmed"))
-    fqfile <- gsub(".fastq(.gz)?", ".trimmed.fastq", basename(readfile[1]))
-    fqout  <- .fileDeleteIfExists(file.path(fqdir, fqfile))
-    ShortRead::writeFastq(fq, fqout, compress = TRUE)
+    fqfile <- gsub(".fastq(.gz)?", ".trimmed.fastq.gz", basename(readfile[1]))
+    readfile <- .fileDeleteIfExists(file.path(fqdir, fqfile))
+    ShortRead::writeFastq(fq, readfile, compress = TRUE)
     .fileDeleteIfExists(bamfile)
     ## Rerun mapper
     flog.info("%sRemap trimmed reads <%s> to reference <%s>", indent(), fqfile, names(reffile), name = "info")
-    samfile <- mapFun(reffile, fqout, readtype, allele, refname, force, outdir, opts = list(A = 1, B = 4, O = 2))
+    samfile <- mapfun(reffile, refname, readfile, readtype, outdir, maplabel,
+                      opts = list(A = 1, B = 4, O = 2), force)
     # cleanup
     .fileDeleteIfExists(fqout)
     .fileDeleteIfExists(fqdir)
@@ -59,17 +62,18 @@ mapReads <- function(
 
   ## Calculate pileup from graphmap produced SAM file
   ## pParam = .collectPileupParams(includeDeletion = includeDeletions, includeInsertions = includeInsertions)
-  ## pileup <- pileup(bamfile, reffile, readtype, pParam = pParam)
+  ## x <- pileup <- pileup(bamfile, reffile, readtype, pParam = pParam)
   flog.info("%sPile up", indent(), name = "info")
   pileup <- pileup(bamfile, reffile, readtype, indent = incr(indent),
                    pParam = .collectPileupParams(
                      includeDeletion = includeDeletions,
                      includeInsertions = includeInsertions,
                      ...))
+
   if (distributeGaps) {
     flog.info("%sDistribute gaps", indent(), name = "info")
     consmat(pileup) <- .distributeGaps(mat = consmat(pileup),
-                                       bamfile = path(pileup),
+                                       bamfile = bampath(pileup),
                                        removeError = removeError,
                                        indent = incr(indent))
   }
@@ -78,7 +82,7 @@ mapReads <- function(
     flog.info("%sCall insertions", indent(), name = "info")
     ## TODO check threshold
     pileup <- .pileupIncludeInsertions(x = pileup,
-                                       threshold = 0.15,
+                                       threshold = callInsertionThreshold,
                                        indent = incr(indent))
   }
 

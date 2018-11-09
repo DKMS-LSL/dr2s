@@ -323,16 +323,16 @@ refineAlignment <- function(x, hptype, report = FALSE, createIgv = TRUE, ...) {
   mapgroupLR <- "LR" %<<% hptype
   maptagLR <- paste("refine", mapgroupLR, x$getLrdType(), x$getLrdMapper(), sep = ".")
   pileup <- mapReads(
-    mapFun = x$getLrMapFun(), maptag = maptagLR, reffile = refpath,
-    readfile = readpathLR, allele = mapgroupLR, readtype = x$getLrdType(),
+    mapfun = self$getLrdMapFun(), reffile = refpath, refname = mapgroupLR,
+    readfile = readpathLR, readtype = x$getLrdType(), opts = opts,
     outdir = outdir, force = TRUE, clean = TRUE, includeDeletions = FALSE,
-    includeInsertions = FALSE, refname = hptype, indent = incr(indent))
+    includeInsertions = FALSE, indent = incr(indent))
 
-  x$consensus$refine$bamfile[[mapgroupLR]] = x$relPath(path(pileup))
+  x$consensus$refine$bamfile[[mapgroupLR]] = x$relPath(bampath(pileup))
 
   if (createIgv)
     x$consensus$refine$igv[[mapgroupLR]] <- createIgvJsFiles(
-      refpath(pileup), path(pileup), x$getOutdir(), sampleSize = 100,
+      refpath(pileup), bampath(pileup), x$getOutdir(), sampleSize = 100,
       fragmentReads = TRUE)
 
   ## Map short reads
@@ -342,15 +342,14 @@ refineAlignment <- function(x, hptype, report = FALSE, createIgv = TRUE, ...) {
     readfiles <- readpathSR
     ## Mapper
     pileup <- mapReads(
-      mapFun = x$getSrMapFun(), maptag = maptagSR, reffile = refpath,
-      readfile = readfiles, allele = mapgroupSR, readtype = x$getSrdType(),
+      mapfun = self$getSrdMapFun(), reffile = refpath, refname = mapgroupSR,
+      readfile = readpathSR, readtype = x$getSrdType(), opts = opts,
       outdir = outdir, force = TRUE, clean = TRUE, includeDeletions = FALSE,
-      includeInsertions = FALSE, refname = hptype, clip = TRUE,
-      indent = incr(indent))
+      includeInsertions = FALSE, clip = TRUE, indent = incr(indent))
 
-    x$consensus$refine$bamfile[[mapgroupSR]] = x$relPath(path(pileup))
+    x$consensus$refine$bamfile[[mapgroupSR]] = x$relPath(bampath(pileup))
     x$consensus$refine$igv[[mapgroupSR]] <- createIgvJsFiles(
-      refpath(pileup), path(pileup), x$getOutdir(), sampleSize = 100)
+      refpath(pileup), bampath(pileup), x$getOutdir(), sampleSize = 100)
   }
 
   # calc new consensus

@@ -2,12 +2,12 @@
 % Please edit documentation in R/all-generics.R
 \name{readtype}
 \alias{readtype}
-\title{Access the readtype path of an object}
+\title{Access the readtype.}
 \usage{
 readtype(x, ...)
 }
 \arguments{
-\item{x}{An object containing readtypes.}
+\item{x}{An object containing readtype information.}
 
 \item{...}{Additional arguments.}
 }
@@ -15,7 +15,7 @@ readtype(x, ...)
 A character vector.
 }
 \description{
-Access the readtype path of an object
+Access the readtype.
 }
 \examples{
 ###

@@ -1,17 +1,17 @@
 ## Commands for minimap2
-runminimap <- function(reffile,
-                       readfile,
-                       readtype,
-                       allele,
-                       refname = "",
+runminimap <- function(reffile,       ## <character>; file path to reference sequence
+                       refname,       ## <character>; allele/reference identifier
+                       readfile,      ## <character>; file path to read sequences
+                       readtype,      ## <character>; "illumina", "pacbio", "nanopore"
+                       outdir,        ## <character>; dir path to output directory
+                       label = "",    ## <character>; prefix to output file
+                       opts = list(), ## <named list>;
                        force = FALSE,
-                       outdir,
-                       opts = list(),
                        cores = "auto",
                        ...) {
   assert_that(.hasCommand("minimap2"))
-  if (missing(allele)) {
-    allele <- ""
+  if (missing(refname)) {
+    refname <- "ref"
   }
   if (missing(readtype)) {
     readtype <- "illumina"
@@ -23,8 +23,9 @@ runminimap <- function(reffile,
   opts <- mergeList(opts, list(t = cores))
 
   cmd  <- normalizePath(Sys.which("minimap2"), mustWork = TRUE)
-  args <- .generateMappingCommands("minimap", readtype, reffile, readfile,
-                                   allele, refname, outdir, opts)
+  args <- .generateMappingCommands("minimap", reffile, refname,
+                                   readfile, readtype, outdir,
+                                   label, opts)
   ## Don't execute if file exists and force is false
   if (force || !file.exists(args$outfile)) {
     system2(cmd, args$args)
@@ -43,19 +44,19 @@ minimapCmd <- function(paths, opts) {
 }
 
 ## Commands for bwamem
-runbwamem <- function(reffile,
-                      readfile,
-                      readtype,
-                      allele,
-                      refname = "",
+runbwamem <- function(reffile,       ## <character>; file path to reference sequence
+                      refname,       ## <character>; allele/reference identifier
+                      readfile,      ## <character>; file path to read sequences
+                      readtype,      ## <character>; "illumina", "pacbio", "nanopore"
+                      outdir,        ## <character>; dir path to output directory
+                      label = "",    ## <character>; prefix to output file
+                      opts = list(), ## <named list>;
                       force = FALSE,
-                      outdir,
-                      opts = list(),
                       cores = "auto",
                       ...) {
   assert_that(.hasCommand("bwa"))
-  if (missing(allele)) {
-    allele <- ""
+  if (missing(refname)) {
+    refname <- "ref"
   }
   if (missing(readtype)) {
     readtype <- "illumina"
@@ -73,8 +74,9 @@ runbwamem <- function(reffile,
   # outdir <- self$getOutdir()
 
   cmd  <- normalizePath(Sys.which("bwa"), mustWork = TRUE)
-  args <- .generateMappingCommands("bwamem", readtype, reffile, readfile,
-                                   allele, refname, outdir, opts)
+  args <- .generateMappingCommands("bwamem", reffile, refname,
+                                   readfile, readtype, outdir,
+                                   label, opts)
   ## Don't execute if file exists and force is false
   if (force || !file.exists(args$outfile)) {
     system2(cmd, args$args$idx)
@@ -112,12 +114,12 @@ bwamemCmd <- function(paths, opts) {
 }
 
 .generateMappingCommands <- function(mapper,
-                                     readtype,
                                      reffile,
+                                     refname,
                                      readfile,
-                                     allele,
-                                     refname = "",
+                                     readtype,
                                      outdir = "./output",
+                                     label,
                                      opts = list()) {
   mapper   <- match.arg(mapper, c("minimap", "bwamem"))
   readtype <- match.arg(readtype, c("pacbio", "nanopore", "illumina"))
@@ -254,19 +256,18 @@ bwamemCmd <- function(paths, opts) {
   }
 
   ## mappers need generally three files: reffile, readfile, outfile
-  ## reffile and outfile format
-  ## [prefix.]allele.readtype.mapper.[refname.][optsname.][suffix.]ext
-  # workaround for these damn windows filename conventions
-  alleleNm  <- gsub("[*]", "_", gsub("[:]", "_", paste0(allele, collapse = "~")))
-  allelename <- sprintf("%s%s.%s.", alleleNm %<<% ".", readtype, mapper)
-  refname <- if (nzchar(refname)) refname %<<% "." else ""
+  ## reffile and outfile format:
+  ##   [label.]refname.readtype.mapper.[optsname.][suffix.]ext
+  # if refname is a HLA allele, e.g., HLA-A*01:01:01:01, make it compliant with
+  # windos filesystem conventions
+  filename <- sprintf("%s.%s.%s.", gsub("[*:]", "_", refname), readtype, mapper)
+  label    <- if (nzchar(label)) label %<<% "." else ""
   optsname <- if (nzchar(optsname)) optsname %<<% "." else ""
-
   paths <- list(
     reffile  = ref,
     readfile = reads,
     outfile  = normalizePath(file.path(
-      outdir, sprintf("%s%s%ssam%s", allelename, refname, optsname, zip)
+      outdir, sprintf("%s%s%ssam%s", label, filename, optsname, zip)
     ), mustWork = FALSE)
   )
 

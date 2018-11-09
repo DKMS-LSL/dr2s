@@ -2,12 +2,12 @@
 % Please edit documentation in R/all-generics.R
 \name{refname}
 \alias{refname}
-\title{Access the reference name of an object}
+\title{Access the reference name.}
 \usage{
 refname(x, ...)
 }
 \arguments{
-\item{x}{An object containing paths.}
+\item{x}{An object containing reference name information.}
 
 \item{...}{Additional arguments.}
 }
@@ -15,7 +15,7 @@ refname(x, ...)
 A character vector.
 }
 \description{
-Access the reference name of an object
+Access the reference name.
 }
 \examples{
 ###

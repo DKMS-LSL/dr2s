@@ -79,6 +79,9 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
   if (is.null(threshold)) {
     threshold <- self$getThreshold()
   }
+  if (!exists("callInsertionThreshold")) {
+    callInsertionThreshold <- 0.15
+  }
 
   ## Get options and prepare mapping
   outdir <- .dirCreateIfNotExists(self$absPath("mapInit"))
@@ -90,40 +93,35 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
   if (self$hasShortreads()) {
     SR <- mapInitSR(
       self = self, threshold = threshold, opts = opts, includeDeletions = includeDeletions,
-      includeInsertions = includeInsertions, callInsertions = TRUE, clip = FALSE,
+      includeInsertions = includeInsertions, callInsertions = TRUE,
+      callInsertionThreshold = callInsertionThreshold, clip = FALSE,
       distributeGaps = FALSE, removeError = TRUE, topx = 0, outdir = outdir,
       force = force, clean = clean, minMapq = 50, indent = indent, ...)
 
     ### TODO wrap this command up
     if (createIgv)
       igv[["SR"]] <- createIgvJsFiles(
-        reference = refpath(SR$mapInitSR2$pileup),
-        bamfile = path(SR$mapInitSR2$pileup),
+        reference = self$absPath(refpath(SR$SR2)),
+        bamfile = self$absPath(bampath(SR$SR2)),
         outdir = outdir,
         sampleSize = 100)
 
-    readfile <- self$getLongreads()
-    reffile  <- self$absPath(SR$mapInitSR1$seqpath)
-    allele   <- SR$mapInitSR1$ref
+    reffile  <- self$absPath(conspath(SR$SR1))
+    refname  <- consname(SR$SR1)
   }
   else {
-    mapLabel <- "mapInit"
-    reffile  <- self$getRefPath()
-    allele   <- self$getReference()
-    readfile <- self$getLongreads()
+    maplabel <- "mapInit1"
+    mapfun   <- self$getLrdMapFun()
     readtype <- self$getLrdType()
-    mapFun   <- self$getLrMapFun()
-    maptag   <- paste(mapLabel, paste0(litArrows(c(allele, readtype,
-                                                   self$getLrdMapper(),
-                                                   optstring(opts))),
-                                       collapse = " "))
-    pileup <- mapReads(
-      mapFun = mapFun, maptag = maptag, reffile = reffile,
-      allele = allele, readfile = readfile, readtype = readtype, opts = opts,
-      refname = "",  includeDeletions = TRUE, includeInsertions = TRUE,
-      callInsertions = TRUE, clip = FALSE, distributeGaps = TRUE,
-      removeError = TRUE, topx = topx, outdir = outdir, force = force,
-      clean = clean, indent, ...)
+    readfile <- self$getLongreads()
+    reffile  <- self$getRefPath()
+    refname  <- self$getReference()
+    pileup   <- mapReads(
+      mapfun = mapfun, maplabel = maplabel, reffile = reffile, refname = refname,
+      readfile = readfile, readtype = readtype, opts = opts, outdir = outdir,
+      includeDeletions = TRUE, includeInsertions = TRUE, callInsertions = TRUE,
+      clip = FALSE, distributeGaps = TRUE, removeError = TRUE, topx = topx,
+      force = force, clean = clean, indent = indent, ...)
 
     if (!is.null(reads(pileup))) {
       file <- paste(
@@ -131,58 +129,56 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
         "fastq", "gz", sep = ".")
       readfile <- .fileDeleteIfExists(file.path(outdir, file))
       names(readfile) <- self$relPath(readfile)
-      fq <- .extractFastq(path(pileup), reads(pileup))
+      fq <- .extractFastq(bampath(pileup), reads(pileup))
       ShortRead::writeFastq(fq, readfile, compress = TRUE)
     }
 
     ## Construct initial longread consensus sequence
-    allele <- "Init.LRconsensus." %<<% sub(".bam", "", basename(path(pileup)))
-    self$setRefPath(file.path(basename(outdir), allele %<<% ".fa"))
+    refname <- refname %<<% ".consensus"
+    self$setRefPath(file.path(outdir, maplabel %<<% "." %<<% refname %<<% ".fa"))
     reffile <- self$getRefPath()
     flog.info("%sConstruct consensus <%s>", indent(), names(reffile), name = "info")
-    conseq <- .getWriteConseq(pileup = pileup, name = "mapInitLR", type = "prob",
+    conseq <- .getWriteConseq(pileup = pileup, name = refname, type = "prob",
                               threshold = threshold, suppressAllGaps = TRUE,
-                              conseqPath = reffile)
+                              conspath = reffile)
   }
 
-  mapLabel <- "mapInit"
+  maplabel <- "mapInit2"
+  mapfun   <- self$getLrdMapFun()
   readtype <- self$getLrdType()
-  mapFun   <- self$getLrMapFun()
-  maptag   <- paste(mapLabel, paste0(litArrows(c(allele, readtype,
-                                                 self$getLrdMapper(),
-                                                 optstring(opts))),
-                                     collapse = " "))
+  readfile <- self$getLongreads()
   pileup <- mapReads(
-    mapFun = mapFun, maptag = maptag, reffile = reffile,
-    allele = allele, readfile = readfile, readtype = readtype, opts = opts,
-    refname = "", includeDeletions = TRUE, includeInsertions = FALSE,
-    callInsertions = FALSE, clip = FALSE, distributeGaps = TRUE,
-    removeError = TRUE, topx = topx, outdir = outdir, force = force,
-    clean = clean, indent, ...)
+    mapfun = mapfun, maplabel = maplabel, reffile = reffile, refname = refname,
+    readfile = readfile, readtype = readtype, opts = opts, outdir = outdir,
+    includeDeletions = TRUE, includeInsertions = FALSE, callInsertions = FALSE,
+    clip = FALSE, distributeGaps = TRUE, removeError = TRUE, topx = topx,
+    force = force, clean = clean, indent = indent, ...)
 
   if (createIgv)
     igv[["LR"]] <- createIgvJsFiles(
       reference = refpath(pileup),
-      bamfile = path(pileup),
+      bamfile = bampath(pileup),
       outdir = outdir,
       sampleSize = 100,
       fragmentReads = TRUE)
 
-  self$mapInit = structure(
-    list(
-      ## mandatory fields
-      reads   = self$relPath(readfile),
-      bamfile = self$relPath(path(pileup)),
-      pileup  = pileup,
-      tag     = maptag,
-      stats   = list(coverage = .coverage(pileup)),
-      ## additional fields
-      SR1     = SR$mapInitSR1,
-      SR2     = SR$mapInitSR2,
-      igv     = igv
-    ),
-    class  = c("mapInit", "list")
-  )
+  self$mapInit = MapList_(
+    ## mapdata
+    readpath  = self$relPath(readfile),
+    refpath   = self$relPath(reffile),
+    bampath   = self$relPath(bampath(pileup)),
+    conspath  = NULL,
+    pileup    = pileup,
+    stats     = list(coverage = .coverage(pileup)),
+    ## metadata
+    maplabel = maplabel,
+    refname  = refname,
+    mapper    = self$getLrdMapper(),
+    opts      = opts,
+    ## additional metadata
+    SR1       = SR$SR1,
+    SR2       = SR$SR2,
+    igv       = igv)
 
   createIgvConfigs(x = self, map = "mapInit", open = "FALSE")
 
@@ -204,29 +200,21 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
   }
 
   ## set mapInit runstats
-  .setRunstats(self, "mapInit",
-               list(Runtime = format(Sys.time() - start.time),
-                    SRcoverage = self$mapInit$SR2$stats$coverage[["50%"]],
-                    LRcoverage = self$mapInit$stats$coverage[["50%"]]))
+  if (is(meta(self$mapInit, "SR2"), "MapList")) {
+    .setRunstats(self, "mapInit",
+                 list(Runtime = format(Sys.time() - start.time),
+                      SRcoverage = stats(meta(self$mapInit, "SR2"), "coverage")[["50%"]],
+                      LRcoverage = stats(self$mapInit, "coverage")[["50%"]]))
+  } else {
+    .setRunstats(self, "mapInit",
+                 list(Runtime = format(Sys.time() - start.time),
+                      LRcoverage = stats(self$mapInit, "coverage")[["50%"]]))
+  }
 
   return(invisible(self))
 })
 
-#' @export
-print.mapInit <- function(x, ...) {
-  msg <- sprintf("An object of class '%s'\n", class(x)[1])
-  msg <- sprintf(
-    "%s [Tag]      %s\n [Reads]    %s\n [Bamfile]  %s\n [Coverage] %s\n",
-    msg,
-    x$tag,
-    paste(basename(x$reads), collapse = "\n            "),
-    basename(x$bamfile),
-    x$stats$coverage[["50%"]]
-  )
-  cat(msg)
-}
-
-## Method: partitionLongReads ####
+# Method: partitionLongReads ####
 #' @export
 partitionLongReads.DR2S <- function(x,
                                     threshold         = NULL,
@@ -307,7 +295,7 @@ DR2S_$set("public",
     )
 
     ## Get the reference sequence
-    if (!is.null(self$mapInit$SR1)) {
+    if (is(meta(self$mapInit, "SR1"), "MapList")) {
       useSR  <- TRUE
       flog.info("%sConstruct SNP matrix from shortreads", indent(), name = "info")
     } else {
@@ -333,20 +321,9 @@ DR2S_$set("public",
       return(invisible(.finishCn1(self)))
     }
 
-    mat <- if (tryCatch(
-      !is(self$partition, "PartList"),
-      error = function(e)
-        TRUE
-    ) ||
-    !(all(ppos$position %in% colnames(self$partition$mat)) &&
-      all(colnames(self$partition$mat) %in% ppos$position))) {
-      SNPmatrix(bamfile = self$absPath(self$mapInit$bamfile), polymorphicPositions = ppos)
-    } else {
-      self$partition$mat
-    }
+    mat <- SNPmatrix(self$absPath(bampath(self$mapInit)), ppos)
 
     flog.info("%sPartition %s longreads over %s SNPs", indent(), NROW(mat), NCOL(mat), name = "info")
-
     prt <- partitionReads(x = mat,
                           skipGapFreq = skipGapFreq,
                           deepSplit = 1,
@@ -537,7 +514,7 @@ DR2S_$set("public", "runExtractLongReads", function() {
     dir <- .dirCreateIfNotExists(
       normalizePath(file.path(self$getOutdir(), "mapIter", (hptype)), mustWork = FALSE))
     qnames <- self$getHapList(hptype)
-    fq  <- .extractFastq(self$absPath(self$mapInit$bamfile), qnames = qnames)
+    fq  <- .extractFastq(self$absPath(bampath(self$mapInit)), qnames = qnames)
     file <- paste(
       "hap", hptype, self$getLrdType(), self$getLrdMapper(),
       "lim" %<<% as.character(floor(abs(attr(self$getHapList(hptype), "limit")))),
@@ -573,7 +550,7 @@ DR2S_$set(
     if (.checkReportStatus(self)) return(invisible(self))
     ## Initiate indenter
     indent <- indentation(1)
-    bamfile <- self$absPath(self$mapInit$bamfile)
+    bamfile <- self$absPath(bampath(self$mapInit))
     ## Construct consensus from initial mapping with the clustered reads
     flog.info("%sConstruct consensus sequences based on <%s>", indent(), names(bamfile), name = "info")
     mat <- .msaFromBam(Rsamtools::BamFile(bamfile), paddingLetter = ".")
@@ -668,7 +645,7 @@ DR2S_$set(
     callInsertions <- ifelse(self$hasShortreads(), FALSE, TRUE)
 
     ## Mapper
-    mapFun <- self$getLrMapFun()
+    mapFun <- self$getLrdMapFun()
 
     # iteration <- 1
     # iteration <- 2
@@ -693,12 +670,12 @@ DR2S_$set(
                                              readtype, self$getLrdMapper())),
                                  collapse = " "))
         pileup <- mapReads(
-          mapFun = mapFun, maptag = maptag, reffile = reffile, allele = allele,
-          readfile = readfile, readtype = readtype, opts = opts, refname = refname,
+          mapfun = mapfun, reffile = reffile, refname = allele,
+          readfile = readfile, readtype = readtype, opts = opts, outdir = outdir,
           includeDeletions = TRUE, includeInsertions = includeInsertions,
           callInsertions = callInsertions, clip = FALSE, distributeGaps = TRUE,
-          removeError = TRUE, topx = 0, outdir = outdir, force = force,
-          clean = clean, indent = incr(indent2), ...)
+          removeError = TRUE, topx = 0, force = force, clean = clean,
+          indent = incr(indent2), ...)
 
         ## Construct consensus sequence
         conseqName <- "consensus.mapIter." %<<% iteration %<<% "." %<<% hptype
@@ -715,7 +692,7 @@ DR2S_$set(
             dir     = self$relPath(outdir),
             reads   = self$relPath(readfile),
             ref     = "mapIter" %<<% iteration,
-            bamfile = self$relPath(path(pileup)),
+            bamfile = self$relPath(bampath(pileup)),
             pileup  = pileup,
             conseq  = conseq,
             seqpath = self$relPath(conseqPath),
@@ -802,7 +779,7 @@ DR2S_$set("public", "runPartitionShortReads", function(opts = list(),
   }
 
   ## exit savely if initial SR mapping not performed
-  if (is.null(self$mapInit$SR2)) {
+  if (is.null(meta(self$mapInit, "SR2"))) {
     flog.warn("%sCannot partition shortreads. Run 'mapInit()' first", indent(), name = "info")
     return(invisible(self))
   }
@@ -820,7 +797,7 @@ DR2S_$set("public", "runPartitionShortReads", function(opts = list(),
     list2env(args, envir = env)
   }
 
-  bamfile <- self$absPath(self$mapInit$SR2$bamfile)
+  bamfile <- self$absPath(bampath(meta(self$mapInit, "SR2")))
   hptypes <- self$getHapTypes()
   prtMat  <- self$partition$mat
   seqs <- lapply(self$partition$hpl, function(x) .getSeqsFromMat(
@@ -979,19 +956,18 @@ DR2S_$set("public", "runMapFinal", function(opts = list(),
     maptag   <- paste("mapFinal", mapgroup, readtype, self$getLrdMapper(), optstring(opts), sep = ".")
     readfile <- readfilesLR[[hptype]]
     pileup <- mapReads(
-      mapFun = self$getLrMapFun(), maptag = maptag, reffile = reffile,
-      allele = mapgroup, readfile = readfile, readtype = readtype,
-      opts = opts, refname = hptype, includeDeletions = includeDeletions,
-      includeInsertions = includeInsertions, callInsertions = FALSE,
-      clip = FALSE, distributeGaps = TRUE, removeError = TRUE, topx = 0,
-      outdir = outdir, force = force, clean = TRUE, max_depth = 1e4,
-      min_mapq = 50, indent = incr(indent2), ...)
-    self$mapFinal$bamfile[[mapgroup]] = self$relPath(path(pileup))
+      mapfun = self$getLrdMapFun(), reffile = reffile, refname = mapgroup,
+      readfile = readfile, readtype = readtype, opts = opts, outdir = outdir,
+      includeDeletions = includeDeletions, includeInsertions = includeInsertions,
+      callInsertions = FALSE, clip = FALSE, distributeGaps = TRUE, removeError = TRUE,
+      topx = 0, force = force, clean = TRUE, max_depth = 1e4, min_mapq = 50,
+      indent = incr(indent2), ...)
+    self$mapFinal$bamfile[[mapgroup]] = self$relPath(bampath(pileup))
     self$mapFinal$pileup[[mapgroup]] = pileup
     self$mapFinal$tag[[mapgroup]] = maptag
     if (createIgv) {
       self$mapFinal$igv[[mapgroup]] = createIgvJsFiles(
-        refpath(pileup), path(pileup), self$getOutdir(), sampleSize = 100,
+        refpath(pileup), bampath(pileup), self$getOutdir(), sampleSize = 100,
         fragmentReads = TRUE)
     }
 
@@ -1002,19 +978,18 @@ DR2S_$set("public", "runMapFinal", function(opts = list(),
     maptag   <- paste("mapFinal", mapgroup, readtype, self$getSrdMapper(), optstring(opts), sep = ".")
     readfile <- readfilesSR[[hptype]]
     pileup <- mapReads(
-      mapFun = self$getSrMapFun(), maptag = maptag, reffile = reffile,
-      allele = mapgroup, readfile = readfile, readtype = readtype,
-      opts = opts, refname = hptype, includeDeletions = includeDeletions,
-      includeInsertions = includeInsertions, callInsertions = TRUE,
-      clip = FALSE, distributeGaps = TRUE, removeError = TRUE, topx = 0,
-      outdir = outdir, force = force, clean = TRUE, max_depth = 1e5,
-      min_mapq = 50, min_base_quality = 13, indent = incr(indent2), ...)
-    self$mapFinal$bamfile[[mapgroup]] = self$relPath(path(pileup))
+      mapfun = self$getSrdMapFun(), reffile = reffile, refname = mapgroup,
+      readfile = readfile, readtype = readtype, opts = opts, outdir = outdir,
+      includeDeletions = includeDeletions, includeInsertions = includeInsertions,
+      callInsertions = TRUE, clip = FALSE, distributeGaps = TRUE, removeError = TRUE,
+      topx = 0, force = force, clean = TRUE, max_depth = 1e5, min_mapq = 50,
+      min_base_quality = 13, indent = incr(indent2), ...)
+    self$mapFinal$bamfile[[mapgroup]] = self$relPath(bampath(pileup))
     self$mapFinal$pileup[[mapgroup]] = pileup
     self$mapFinal$tag[[mapgroup]] = maptag
     if (createIgv) {
       self$mapFinal$igv[[mapgroup]] = createIgvJsFiles(
-        refpath(pileup), path(pileup), self$getOutdir(), sampleSize = 100)
+        refpath(pileup), bampath(pileup), self$getOutdir(), sampleSize = 100)
     }
 
     ## Construct consensus sequence

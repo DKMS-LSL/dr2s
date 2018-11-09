@@ -19,16 +19,16 @@ Class \code{"DR2S"}
 \describe{
 \item{\code{InitDR2S}}{Initialize DR2S from a config.}
 
-\item{\code{mapInit}}{\code{[mapInit]}; the mapping of long reads to
+\item{\code{mapInit}}{\code{[MapList]}; the mapping of long reads to
 \code{reference}.}
 
 \item{\code{partition}}{\code{[PartList]}; the partitioning of full-length
 mapped long reads into different haplotypes.}
 
-\item{\code{mapIter}}{\code{[mapIter]}; the mapping of A and B reads to
+\item{\code{mapIter}}{\code{[MapList]}; the mapping of A and B reads to
 consensus sequences produced in the previous step.}
 
-\item{\code{mapFinal}}{\code{[mapFinal]}; the mapping of A, B, and short reads
+\item{\code{mapFinal}}{\code{[MapList]}; the mapping of A, B, and short reads
 to consensus sequences produced in the previous step.}
 
 \item{\code{consensus}}{\code{[ConsList]}; final consensus sequences for A and

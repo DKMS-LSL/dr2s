@@ -495,21 +495,33 @@ cache <- function(x, ...) {
   UseMethod("cache")
 }
 
-#' Access the path of an object
+#' Access the name tag of an object.
 #'
-#' @param x An object containing paths.
+#' @param x An object containing name tags.
 #' @param ... Additional arguments.
 #' @return A character vector.
 #' @export
 #' @examples
 #' ###
-path <- function(x, ...) {
-  UseMethod("path")
+tag <- function(x, ...) {
+  UseMethod("tag")
 }
 
-#' Access the reference path of an object
+#' Access the path to a bam alignment file.
 #'
-#' @param x An object containing paths
+#' @param x An object containing paths to bam files.
+#' @param ... Additional arguments.
+#' @return A character vector.
+#' @export
+#' @examples
+#' ###
+bampath <- function(x, ...) {
+  UseMethod("bampath")
+}
+
+#' Access the path to a reference sequence file.
+#'
+#' @param x An object containing paths to reference files.
 #' @param ... Additional arguments.
 #' @return A character vector.
 #' @export
@@ -519,9 +531,33 @@ refpath <- function(x, ...) {
   UseMethod("refpath")
 }
 
-#' Access the reference name of an object
+#' Access the path to a read sequence file.
 #'
-#' @param x An object containing paths.
+#' @param x An object containing paths to read files.
+#' @param ... Additional arguments.
+#' @return A character vector.
+#' @export
+#' @examples
+#' ###
+readpath <- function(x, ...) {
+  UseMethod("readpath")
+}
+
+#' Access the path to a consensus sequence file.
+#'
+#' @param x An object containing paths to consensus files.
+#' @param ... Additional arguments.
+#' @return A character vector.
+#' @export
+#' @examples
+#' ###
+conspath <- function(x, ...) {
+  UseMethod("conspath")
+}
+
+#' Access the reference name.
+#'
+#' @param x An object containing reference name information.
 #' @param ... Additional arguments.
 #' @return A character vector.
 #' @export
@@ -531,9 +567,9 @@ refname <- function(x, ...) {
   UseMethod("refname")
 }
 
-#' Access the readtype path of an object
+#' Access the readtype.
 #'
-#' @param x An object containing readtypes.
+#' @param x An object containing readtype information.
 #' @param ... Additional arguments.
 #' @return A character vector.
 #' @export
@@ -543,15 +579,28 @@ readtype <- function(x, ...) {
   UseMethod("readtype")
 }
 
-#' Access the stats path of an object
+#' Access the stats of an object.
 #'
 #' @param x An object containing stats
+#' @param name (Optional); slotname.
 #' @param ... Additional arguments.
 #' @return A named list.
 #' @export
 #' @examples
 #' ###
-stats <- function(x, ...) {
+stats <- function(x, name = NULL, ...) {
   UseMethod("stats")
 }
 
+#' Access the metadata of an object.
+#'
+#' @param x An object containing metadata
+#' @param name (Optional); slotname.
+#' @param ... Additional arguments.
+#' @return A named list.
+#' @export
+#' @examples
+#' ###
+meta <- function(x, name = NULL, ...) {
+  UseMethod("meta")
+}

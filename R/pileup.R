@@ -1,24 +1,5 @@
 
-# Class: Pileup -----------------------------------------------------------
-
-## Internal onstructor class "pileup"
-Pileup_ <- function(...) {
-  dots <- list(...)
-  structure(
-    list(
-      bamfile   = dots$bamfile,  # <character>; path to bamfile.
-      reffile   = dots$reffile,  # <character>; path to reference.
-      refname   = dots$refname,  # <character>; name of reference.
-      readtype  = dots$readtype, # <character>; "illumina", "pacbio", "nanopore".
-      param     = dots$param,    # <PileupParam>
-      pileup    = dots$pileup,   # <tbl_df> with columns: "seqnames", "pos", "nucleotide", "count".
-      consmat   = consmat(dots$pileup, freq = FALSE), # <consmat>
-      reads     = NULL,          # <character>; names of n top-scoring reads.
-      stats     = list()         # <named list>
-    ),
-    class = c("pileup", "list")
-  )
-}
+# Constructor -------------------------------------------------------------
 
 #' Calculate pileup for a BAM file.
 #'
@@ -62,8 +43,8 @@ pileup <- function(bamfile,
                    readtype,
                    ...,
                    pParam) {
-  bamfile <- normalizePath(bamfile, mustWork = TRUE)
-  reffile <- normalizePath(reffile, mustWork = TRUE)
+  bampath <- normalizePath(bamfile, mustWork = TRUE)
+  refpath <- normalizePath(reffile, mustWork = TRUE)
   indent <- list(...)$indent %||% indentation()
   if (missing(pParam)) {
     param <- list(...)
@@ -73,7 +54,7 @@ pileup <- function(bamfile,
   }
   assert_that(is(pParam, "PileupParam"))
 
-  bam <- Rsamtools::BamFile(bamfile)
+  bam <- Rsamtools::BamFile(bampath)
   Rsamtools::open.BamFile(bam)
   on.exit(Rsamtools::close.BamFile(bam))
 
@@ -94,94 +75,11 @@ pileup <- function(bamfile,
     scanBamParam = sParam,
     pileupParam = pParam))
   refname <- GenomeInfoDb::seqnames(Rsamtools::seqinfo(bam))
-  Pileup_(bamfile = bamfile, reffile = reffile, refname = refname,
-          readtype = readtype, param = pParam, pileup = pileup)
+  Pileup_(refpath = refpath, bampath = bampath, param = pParam,
+          pileup = pileup, refname = refname, readtype = readtype)
 }
-
-
-# Methods: pileup ---------------------------------------------------------
-
-
-#' @export
-print.pileup <- function(x, asString = FALSE, ...) {
-  params <- methods::slotNames(x$param)
-  names(params) <- params
-  values <- lapply(params, methods::slot, object = x$param)
-  info <- paste(methods::slotNames(x$param), values,
-                sep = ": ", collapse = "; ")
-  msg <- if (asString) "" else
-    sprintf("An object of class '%s'.\n", class(x)[1])
-  msg <- sprintf("%s Bamfile: %s\n Reference: %s\n Readtype: %s\n %s\n",
-                 msg, basename(path(x)), basename(refpath(x)), readtype(x),
-                 paste0(strwrap(info, initial = "Params: ", exdent = 4),
-                        collapse = "\n"))
-  if (asString)
-    return(msg)
-  else {
-    cat(msg)
-    print(consmat(x), n = 4)
-  }
-}
-
-#' @export
-path.pileup <- function(x, ...) {
-  x$bamfile
-}
-
-#' @export
-refpath.pileup <- function(x, ...) {
-  x$reffile
-}
-
-#' @export
-refname.pileup <- function(x, ...) {
-  x$refname
-}
-
-#' @export
-readtype.pileup <- function(x, ...) {
-  x$readtype
-}
-
-#' @export
-stats.pileup <- function(x, ...) {
-  x$stats
-}
-
-#' @export
-consmat.pileup <- function(x, freq = FALSE, ...) {
-  cm <- if (is(x$consmat, "consmat")) x$consmat else consmat(x$pileup)
-  consmat(cm, freq = freq)
-}
-
-#' @export
-`consmat<-.pileup` <- function(x, value) {
-  assert_that(is(value, "consmat"))
-  x$consmat <- value
-  x
-}
-
-#' @rdname pileup
-#' @export
-reads <- function(x, ...) UseMethod("reads")
-#' @export
-reads.pileup <- function(x, ..) {
-  x$reads
-}
-
-#' @rdname pileup
-#' @export
-`reads<-` <- function(x, value) UseMethod("reads<-")
-#' @export
-`reads<-.pileup` <- function(x, value) {
-  assert_that(is.character(value))
-  x$reads <- value
-  x
-}
-
 
 # Helpers -----------------------------------------------------------------
-
 
 .pileupFindInsertionPositions_ <- function(x, threshold = 0.20) {
   cm  <- consmat(x, freq = TRUE)
@@ -197,7 +95,7 @@ reads.pileup <- function(x, ..) {
   inpos <- inpos[!inpos %in% 1:5]
   inpos <- inpos[!inpos %in% (NROW(consmat(x)) - 5):NROW(consmat(x))]
   if (length(inpos) > 0) {
-    inseqs <- .getInsertions(bamfile = path(x), inpos = inpos, readtype = readtype(x), indent = indent)
+    inseqs <- .getInsertions(bamfile = bampath(x), inpos = inpos, readtype = readtype(x), indent = indent)
     inseqs <- inseqs[order(as.integer(names(inseqs)))]
     for (inseq in inseqs) {
       if (length(inseq) < 100) {
@@ -405,7 +303,6 @@ plotPileupCoverage <- function(x, threshold = 0.2, range = NULL, thin = 0.1,
     )
   p
 }
-
 
 #' Plot basecall frequency
 #'

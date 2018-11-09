@@ -92,14 +92,8 @@ readDR2S <- function(path) {
 #' @param open whether to open an IGV instance now.
 #' @export
 createIgvConfigs <- function(x, position, map = "mapFinal", open = TRUE) {
-  assert_that(
-    is(x, "DR2S")
-  )
-  map <- match.arg(map, c("mapInit",
-                          "mapFinal",
-                          "mapIter",
-                          "refine"))
-
+  assert_that(is(x, "DR2S"))
+  map <- match.arg(map, c("mapInit", "mapFinal", "mapIter", "refine"))
   basedir <- normalizePath(x$getOutdir(), mustWork = TRUE)
   igvdir <- file.path(basedir, ".pplib")
   .dirCreateIfNotExists(igvdir)
@@ -115,13 +109,13 @@ createIgvConfigs <- function(x, position, map = "mapFinal", open = TRUE) {
                        as.integer(x$consensus$variants[1, "pos"]))
   }
   igvConfigs <- list()
-  # hp = "A"
-  haptypes <- if(map == "mapInit") {
+  # hp = "init"
+  haptypes <- if (map == "mapInit") {
     "Init"
   } else {
     x$getHapTypes()
   }
-  for (hp in haptypes){
+  for (hp in haptypes) {
     igv <- file.path(igvdir, "igv" %<<% hp %<<% map %<<% ".xml")
     if (map == "mapFinal") {
       ref   <- x$mapIter[[as.character(x$getIterations())]][[hp]]$seqpath
@@ -130,7 +124,8 @@ createIgvConfigs <- function(x, position, map = "mapFinal", open = TRUE) {
       if (!is.null(x$mapFinal$sreads[[hp]]))
         bamSR <- file.path("mapFinal",
                            basename(x$mapFinal$bamfile[["SR" %<<% hp]]))
-    } else if (map == "refine") {
+    }
+    else if (map == "refine") {
       if (!is.null(x$consensus$refine$ref[[hp]])) {
         ref   <- x$consensus$refine$ref[[hp]]
         bamLR <- x$consensus$refine$bamfile[["LR" %<<% hp]]
@@ -144,22 +139,23 @@ createIgvConfigs <- function(x, position, map = "mapFinal", open = TRUE) {
           bamSR <- file.path("mapFinal",
                              basename(x$mapFinal$bamfile[["SR" %<<% hp]]))
       }
-    } else if (map == "mapInit") {
+    }
+    else if (map == "mapInit") {
       if (x$hasShortreads()) {
-        ref <- unname(x$mapInit$SR2$seqpath)
-        bamSR <- x$mapInit$SR2$bamfile
+        ref <- refpath(meta(x$mapInit, "SR2"))
+        bamSR <- bampath(meta(x$mapInit, "SR2"))
       } else {
         ref <- x$getRefSeq()
       }
-      bamLR <- x$mapInit$bamfile
-
-    } else if (map == "mapIter") {
+      bamLR <- bampath(x$mapInit)
+    }
+    else if (map == "mapIter") {
       ref <- x$mapIter[[as.character(x$getIterations() - 1)]][[hp]]$seqpath
       bamLR <- x$mapIter[[as.character(x$getIterations())]][[hp]]$bamfile
     }
+
     if (!is(ref, "DNAStringSet")) {
-      chr <- strsplit1(sub(">", "",
-                           readLines(file.path(basedir, ref), 1)), "\\s+")[1]
+      chr <- strsplit1(sub(">", "", readLines(file.path(basedir, ref), 1)), "\\s+")[1]
     } else {
       chr <- names(ref)
     }
