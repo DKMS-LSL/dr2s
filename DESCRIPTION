@@ -63,7 +63,7 @@ Imports:
 SystemRequirements: bwa (>= 0.7.11) and/or minimap2; optional: samtools (faster, 
   but RSamtools do also work)
 VignetteBuilder: knitr
-RoxygenNote: 6.1.0
+RoxygenNote: 6.1.1
 Collate: 
     'DR2S-class.R'
     'DR2S-methods.R'
@@ -82,8 +82,8 @@ Collate:
     'mapInitSR.R'
     'mapWrap.R'
     'mapper.R'
-    'partitionLongReads.R'
-    'partitionShortReads.R'
+    'partitionLongreads.R'
+    'partitionShortreads.R'
     'pileup.R'
     'polish.R'
     'polymorphic-positions.R'

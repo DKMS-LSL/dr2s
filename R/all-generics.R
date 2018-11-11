@@ -59,9 +59,9 @@
 #'   reference = "04:01:01:01"
 #'   )) %>%
 #'   mapInit() %>%
-#'   partitionLongReads() %>%
+#'   partitionLongreads() %>%
 #'   mapIter() %>%
-#'   partitionShortReads() %>%
+#'   partitionShortreads() %>%
 #'   mapFinal() %>%
 #'   polish() %>%
 #'   report(blockWidth = 60)
@@ -136,9 +136,9 @@ InitDR2S <- function(config, createOutdir = TRUE) {
 #'   reference = "04:01:01:01"
 #'   ) %>%
 #'   mapInit() %>%
-#'   partitionLongReads() %>%
+#'   partitionLongreads() %>%
 #'   mapIter() %>%
-#'   partitionShortReads() %>%
+#'   partitionShortreads() %>%
 #'   mapFinal() %>%
 #'   polish() %>%
 #'   report(blockWidth = 60)
@@ -188,9 +188,9 @@ mapInit <- function(x,
 #'   reference = "04:01:01:01"
 #'   ) %>%
 #'   mapInit() %>%
-#'   partitionLongReads() %>%
+#'   partitionLongreads() %>%
 #'   mapIter() %>%
-#'   partitionShortReads() %>%
+#'   partitionShortreads() %>%
 #'   mapFinal() %>%
 #'   polish() %>%
 #'   report(blockwidth = 60)
@@ -236,9 +236,9 @@ mapIter <- function(x,
 #'   reference = "04:01:01:01"
 #'   ) %>%
 #'   mapInit() %>%
-#'   partitionLongReads() %>%
+#'   partitionLongreads() %>%
 #'   mapIter() %>%
-#'   partitionShortReads() %>%
+#'   partitionShortreads() %>%
 #'   mapFinal() %>%
 #'   polish() %>%
 #'   report(blockWidth = 60)
@@ -288,14 +288,14 @@ mapFinal <- function(x,
 #'   reference = "04:01:01:01"
 #'   ) %>%
 #'   mapInit() %>%
-#'   partitionLongReads() %>%
+#'   partitionLongreads() %>%
 #'   mapIter() %>%
-#'   partitionShortReads() %>%
+#'   partitionShortreads() %>%
 #'   mapFinal() %>%
 #'   polish() %>%
 #'   report(blockWidth = 60)
 #' }
-partitionLongReads <- function(x,
+partitionLongreads <- function(x,
                                threshold         = NULL,
                                skipGapFreq       = 2/3,
                                distAlleles       = NULL,
@@ -303,7 +303,7 @@ partitionLongReads <- function(x,
                                selectAllelesBy   = "count",
                                plot              = TRUE,
                                ...) {
-  UseMethod("partitionLongReads")
+  UseMethod("partitionLongreads")
 }
 
 #' Assign short reads from mapInit to haplotypes
@@ -326,18 +326,18 @@ partitionLongReads <- function(x,
 #'   ) %>%
 #'   clear() %>%
 #'   mapInit() %>%
-#'   partitionLongReads() %>%
+#'   partitionLongreads() %>%
 #'   mapIter() %>%
-#'   partitionShortReads() %>%
+#'   partitionShortreads() %>%
 #'   mapFinal() %>%
 #'   polish() %>%
 #'   report(blockWidth = 60)
 #' }
-partitionShortReads <- function(x,
+partitionShortreads <- function(x,
                                 opts = list(),
                                 force = TRUE,
                                 ...) {
-  UseMethod("partitionShortReads")
+  UseMethod("partitionShortreads")
 }
 
 
@@ -367,9 +367,9 @@ partitionShortReads <- function(x,
 #'   reference = "04:01:01:01"
 #'   ) %>%
 #'   mapInit() %>%
-#'   partitionLongReads() %>%
+#'   partitionLongreads() %>%
 #'   mapIter() %>%
-#'   partitionShortReads() %>%
+#'   partitionShortreads() %>%
 #'   mapFinal() %>%
 #'   polish() %>%
 #'   report(blockwidth = 60)
@@ -420,9 +420,9 @@ polish <- function(x,
 #'   reference = "04:01:01:01"
 #'   ) %>%
 #'   mapInit() %>%
-#'   partitionLongReads() %>%
+#'   partitionLongreads() %>%
 #'   mapIter() %>%
-#'   partitionShortReads() %>%
+#'   partitionShortreads() %>%
 #'   mapFinal() %>%
 #'   polish() %>%
 #'   report(blockWidth = 60)
@@ -454,9 +454,9 @@ report <- function(x, which, blockWidth = 80, ...) {
 #'   ) %>%
 #'   clear() %>%
 #'   mapInit() %>%
-#'   partitionLongReads() %>%
+#'   partitionLongreads() %>%
 #'   mapIter() %>%
-#'   partitionShortReads() %>%
+#'   partitionShortreads() %>%
 #'   mapFinal() %>%
 #'   polish() %>%
 #'   report(blockWidth = 60)
@@ -484,9 +484,9 @@ clear <- function(x, ...) {
 #'   ) %>%
 #'   clear() %>%
 #'   mapInit() %>%
-#'   partitionLongReads() %>%
+#'   partitionLongreads() %>%
 #'   mapIter() %>%
-#'   partitionShortReads() %>%
+#'   partitionShortreads() %>%
 #'   mapFinal() %>%
 #'   polish() %>%
 #'   report(blockWidth = 60)

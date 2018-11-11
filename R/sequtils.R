@@ -144,8 +144,8 @@
     sref
   }
   assert_that(is(sref, "DNAStringSet"))
-  # workaround for these damn windows filename conventions
-  alleleNm <- gsub("[*]", "_", gsub("[:]", "_", paste0(allele, collapse = "~")))
+  # Strip illegal characters from filenames
+  alleleNm <- strip(allele, "_")
   filename <- ifelse(is.null(dirtag), alleleNm %<<% ".ref.fa",
                      file.path(dirtag, alleleNm %<<% ".ref.fa"))
   outpath <- normalizePath(file.path(outdir, filename), mustWork = FALSE)
@@ -236,12 +236,11 @@
 
 .getSeqsFromMat <- function(mat){
   seqs <- apply(mat, 1, function(t) c(unlist(paste(t, collapse = ""))))
-  seqs <- seqs[nchar(gsub("-", "",seqs))>0]
+  seqs <- seqs[nchar(stripIndel(seqs)) > 0]
   Biostrings::DNAStringSet(seqs)
 }
 
 .collapseHomopolymers <- function(path, n = 5) {
-
   path <- normalizePath(path, mustWork = TRUE)
   assert_that(is.count(n))
 
@@ -251,7 +250,7 @@
   seq <- rle(seq)
   seq$lengths[seq$lengths > n] <- n
   seq <- paste(inverse.rle(seq), collapse = "")
-  seq <- Biostrings::DNAStringSet(gsub("[-+]", "", seq))
+  seq <- Biostrings::DNAStringSet(stripIndel(seq))
   names(seq) <- seqname
   Biostrings::writeXStringSet(seq, path)
   path

@@ -103,9 +103,9 @@ KIR_LOCI <- function(ipd = NULL) {
 SR_PIPELINE <- function() {
   c("clear",
     "mapInit",
-    "partitionLongReads",
+    "partitionLongreads",
     "mapIter",
-    "partitionShortReads",
+    "partitionShortreads",
     "mapFinal",
     "polish",
     "report"
@@ -115,7 +115,7 @@ SR_PIPELINE <- function() {
 LR_PIPELINE <- function() {
   c("clear",
     "mapInit",
-    "partitionLongReads",
+    "partitionLongreads",
     "mapIter",
     "report",
     "cache"

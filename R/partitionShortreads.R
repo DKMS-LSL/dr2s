@@ -1,5 +1,5 @@
 
-# Partition ShortReads ---------------------------------------------------------
+# Partition Shortreads ---------------------------------------------------------
 
 #' Get a score for each shortread in a bam file on specific positions.
 #' Scores based on a consensus matrix of longreads.

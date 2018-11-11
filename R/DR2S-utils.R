@@ -93,7 +93,7 @@ readDR2S <- function(path) {
 #' @export
 createIgvConfigs <- function(x, position, map = "mapFinal", open = TRUE) {
   assert_that(is(x, "DR2S"))
-  map <- match.arg(map, c("mapInit", "mapFinal", "mapIter", "refine"))
+  map <- match.arg(map, c("mapInit", "mapIter", "mapFinal", "refine"))
   basedir <- normalizePath(x$getOutdir(), mustWork = TRUE)
   igvdir <- file.path(basedir, ".pplib")
   .dirCreateIfNotExists(igvdir)
@@ -109,23 +109,31 @@ createIgvConfigs <- function(x, position, map = "mapFinal", open = TRUE) {
                        as.integer(x$consensus$variants[1, "pos"]))
   }
   igvConfigs <- list()
-  # hp = "init"
-  haptypes <- if (map == "mapInit") {
-    "Init"
-  } else {
-    x$getHapTypes()
-  }
-  for (hp in haptypes) {
+  # hp = "Init"
+  # hp = "A"
+  hptypes <- if (map == "mapInit") "Init" else x$getHapTypes()
+  for (hp in hptypes) {
     igv <- file.path(igvdir, "igv" %<<% hp %<<% map %<<% ".xml")
-    if (map == "mapFinal") {
+    ##
+    if (map == "mapInit") {
+      if (x$hasShortreads()) {
+        ref <- refpath(meta(x$mapInit, "SR2"))
+        bamSR <- bampath(meta(x$mapInit, "SR2"))
+      } else {
+        ref <- refpath(x$mapInit)
+      }
+      bamLR <- bampath(x$mapInit)
+    } else if (map == "mapIter") {
+      ref <- refpath(x$mapIter[[max(names(x$mapIter))]][[hp]])
+      bamLR <- bampath(x$mapIter[[max(names(x$mapIter))]][[hp]])
+    } else if (map == "mapFinal") {
       ref   <- x$mapIter[[as.character(x$getIterations())]][[hp]]$seqpath
       bamLR <- file.path("mapFinal",
                          basename(x$mapFinal$bamfile[["LR" %<<% hp]]))
       if (!is.null(x$mapFinal$sreads[[hp]]))
         bamSR <- file.path("mapFinal",
                            basename(x$mapFinal$bamfile[["SR" %<<% hp]]))
-    }
-    else if (map == "refine") {
+    } else if (map == "refine") {
       if (!is.null(x$consensus$refine$ref[[hp]])) {
         ref   <- x$consensus$refine$ref[[hp]]
         bamLR <- x$consensus$refine$bamfile[["LR" %<<% hp]]
@@ -140,20 +148,7 @@ createIgvConfigs <- function(x, position, map = "mapFinal", open = TRUE) {
                              basename(x$mapFinal$bamfile[["SR" %<<% hp]]))
       }
     }
-    else if (map == "mapInit") {
-      if (x$hasShortreads()) {
-        ref <- refpath(meta(x$mapInit, "SR2"))
-        bamSR <- bampath(meta(x$mapInit, "SR2"))
-      } else {
-        ref <- x$getRefSeq()
-      }
-      bamLR <- bampath(x$mapInit)
-    }
-    else if (map == "mapIter") {
-      ref <- x$mapIter[[as.character(x$getIterations() - 1)]][[hp]]$seqpath
-      bamLR <- x$mapIter[[as.character(x$getIterations())]][[hp]]$bamfile
-    }
-
+    ##
     if (!is(ref, "DNAStringSet")) {
       chr <- strsplit1(sub(">", "", readLines(file.path(basedir, ref), 1)), "\\s+")[1]
     } else {
@@ -172,8 +167,6 @@ createIgvConfigs <- function(x, position, map = "mapFinal", open = TRUE) {
     xml$closeTag()
     xml$closeTag()
     XML::saveXML(xml, file = igv)
-
-
     xml <- XML::xmlTree()
     suppressWarnings(xml$addTag("Global",
                                 c(genome = file.path("..",
@@ -192,8 +185,6 @@ createIgvConfigs <- function(x, position, map = "mapFinal", open = TRUE) {
     xml$closeTag()
     xml$closeTag()
     XML::saveXML(xml, file = gsub(".xml", ".win.xml", igv))
-
-
     igvConfigs[[hp]] <- x$relPath(igv)
   }
   igvCommand <- file.path(basedir, "runIGV_" %<<% map %<<% ".sh")

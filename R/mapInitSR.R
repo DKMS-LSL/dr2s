@@ -37,12 +37,12 @@ mapInitSR <- function(self, threshold = 0.2, opts = list(), includeDeletions = T
 
   ## Construct primary initial consensus sequence
   consname <- refname %<<% ".consensus"
-  conspath <- file.path(outdir, maplabel %<<% "." %<<% consname %<<% ".fa")
+  conspath <- file.path(outdir, strip(maplabel %<<% "." %<<% consname %<<% ".fa", "_"))
   names(conspath) <- self$relPath(conspath)
   flog.info("%sConstruct consensus <%s>", indent(), names(conspath), name = "info")
-  conseq <- .getWriteConseq(pileup = pileup, name = consname, type = "prob",
-                            threshold = threshold, suppressAllGaps = TRUE,
-                            conspath = conspath)
+  conseq <- .writeConseq(x = pileup, name = consname, type = "prob",
+                         threshold = threshold, suppressAllGaps = TRUE,
+                         replaceIndel = "N", conspath = conspath)
 
   if (microsat) {
     flog.info("%sRemap shortreads to extended reference", indent(), name = "info")
@@ -56,12 +56,12 @@ mapInitSR <- function(self, threshold = 0.2, opts = list(), includeDeletions = T
 
     # Construct secondary initial consensus sequence
     consname <- consname %<<% ".2"
-    conspath <- file.path(outdir, maplabel %<<% "." %<<% consname %<<% ".fa")
+    conspath <- file.path(outdir, strip(maplabel %<<% "." %<<% consname %<<% ".fa", "_"))
     names(conspath) <- self$relPath(conspath)
     flog.info("%sConstruct consensus <%s>", indent(), names(conspath), name = "info")
-    conseq <- .getWriteConseq(pileup = pileup, name = consname, type = "prob",
-                              threshold = threshold, suppressAllGaps = TRUE,
-                              conspath = conspath)
+    conseq <- .writeConseq(x = pileup, name = consname, type = "prob",
+                           threshold = threshold, suppressAllGaps = TRUE,
+                           replaceIndel = "N", conspath = conspath)
   }
 
   SR1 = MapList_(

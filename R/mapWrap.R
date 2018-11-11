@@ -12,11 +12,11 @@ mapReads <- function(
 
   ## Run mapper
   samfile <- mapfun(reffile, refname, readfile, readtype, outdir, maplabel,
-                    opts, force)
+                    opts, force, clean = FALSE)
 
   ## collect minMapq for use in .bamSortIndex
-  # minMapq = 0
-  minMapq <- list(...)$min_mapq %||% list(...)$minMapq %||% 0
+  # minMapq = 25
+  minMapq <- list(...)$min_mapq %||% list(...)$minMapq %||% 25
 
   if (clip) {
     flog.info("%sTrim softclips and polymorphic ends", indent(), name = "info")
@@ -47,8 +47,8 @@ mapReads <- function(
   bamfile <- .bamSortIndex(samfile = samfile, reffile = reffile,
                            minMapq = minMapq, force = force)
 
+  ## NOTE: "auto" > 0 evaluates to TRUE
   if (topx > 0 && readtype != "illumina") {
-    flog.info("%sExtract the top-scoring %s reads", indent(), topx, name = "info")
     reads <- .topXReads(bamfile, n = topx, indent = incr(indent))
     alignmentBam <- GenomicAlignments::readGAlignments(
       file = Rsamtools::BamFile(bamfile),

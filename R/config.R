@@ -334,7 +334,7 @@ validateDR2SConf <- function(conf) {
 
   ## Assert pipeline
   pipesteps <- c("clear", "cache", "mapInit", "mapIter", "mapFinal",
-                 "partitionLongReads", "partitionShortReads", "polish",
+                 "partitionLongreads", "partitionShortreads", "polish",
                  "report")
   assert_that(all(conf$pipeline %in% pipesteps),
               msg = paste(

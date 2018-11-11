@@ -120,7 +120,15 @@ incr.indenter <- function(x, i = 1) {
   indentation(lvl(x) + i)
 }
 
-usc <- function(x) gsub("[*:?<>|]", "_", x)
+# Strip illegal characters from filenames a
+strip <- function(x, replace = "") {
+  gsub("[\\*:?<>|/]", replace, as.character(x))
+}
+
+# Strip insertion and deletion character from sequence
+stripIndel <- function(x, replace = "") {
+  gsub("[+-]", replace, as.character(x))
+}
 
 underscore <- function(x) gsub("\\s+", "_", x)
 

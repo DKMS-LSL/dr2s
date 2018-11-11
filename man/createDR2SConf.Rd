@@ -88,9 +88,9 @@ x <- InitDR2S(createDR2SConf(
   reference = "04:01:01:01"
   )) \%>\%
   mapInit() \%>\%
-  partitionLongReads() \%>\%
+  partitionLongreads() \%>\%
   mapIter() \%>\%
-  partitionShortReads() \%>\%
+  partitionShortreads() \%>\%
   mapFinal() \%>\%
   polish() \%>\%
   report(blockWidth = 60)
@@ -100,7 +100,7 @@ x <- InitDR2S(createDR2SConf(
 Other DR2S mapper functions: \code{\link{cache}},
   \code{\link{clear}}, \code{\link{mapFinal}},
   \code{\link{mapInit}}, \code{\link{mapIter}},
-  \code{\link{partitionLongReads}}, \code{\link{polish}},
+  \code{\link{partitionLongreads}}, \code{\link{polish}},
   \code{\link{refineAlignment}},
   \code{\link{reportCheckedConsensus}},
   \code{\link{report}}

@@ -25,13 +25,14 @@ report.DR2S <- function(x, which, blockWidth = 80, noRemap = FALSE, createIgv = 
   if (missing(which)) {
     ## if `which` is unspecified choose `mapFinal` if available,
     ## otherwise try `mapIter`
-    if (is(x$mapFinal, "mapFinal")) {
+    if (x$hasMapFinal()) {
       .reportMap_(x, map = "mapFinal", outdir = outdir, blockWidth = blockWidth,
                   noRemap = noRemap, createIgv = createIgv, ...)
-    } else if (is(x$mapIter$`0`$A, "mapIter")) {
+    }
+    else if (x$hasMapIter()) {
       .reportMap_(x, map = "mapIter", outdir = outdir, blockWidth = blockWidth, ...)
-    } else
-      stop("Nothing to report")
+    }
+    else stop("Nothing to report")
   } else {
     which <- match.arg(tolower(which), c("mapFinal", "mapIter"))
     .reportMap_(x, which, outdir, blockWidth = blockWidth, ...)
@@ -62,18 +63,18 @@ report.DR2S <- function(x, which, blockWidth = 80, noRemap = FALSE, createIgv = 
   .browseAlign(seqs, file = file.path(outdir, alnFile), openURL = FALSE)
 
   ## Write consensus FASTA files
-  # hptype = "A"
-  for (hptype in x$getHapTypes()) {
-    hapFile <- paste(map, hptype, x$getLrdType(), x$getLrdMapper(), "unchecked.fa", sep = ".")
-    seq <- haps[[hptype]]
-    seqname <- paste(x$getSampleId(), hptype, sep = "_")
+  # hp = "A"
+  for (hp in x$getHapTypes()) {
+    hapFile <- paste(map, hp, x$getLrdType(), x$getLrdMapper(), "unchecked.fa", sep = ".")
+    seq <- haps[endsWith(names(haps), hp)]
+    seqname <- paste(x$getSampleId(), hp, sep = "_")
     sampleDetails <- x$getSampleDetails()
-    names(seq) <-  paste(seqname,
-                         paste("haplotype=" %<<% litQuote(hptype),
-                               sampleDetails,
-                               "date=" %<<% litQuote(Sys.Date()),
-                               "status=" %<<% litQuote("unchecked"),
-                               sep = ";"))
+    names(seq) <- paste(seqname,
+                        paste("haplotype=" %<<% litQuote(hp),
+                              sampleDetails,
+                              "date=" %<<% litQuote(Sys.Date()),
+                              "status=" %<<% litQuote("unchecked"),
+                              sep = ";"))
 
     Biostrings::writeXStringSet(
       seq,
@@ -85,21 +86,19 @@ report.DR2S <- function(x, which, blockWidth = 80, noRemap = FALSE, createIgv = 
   ## Write Pairwise or Multiple Alignment
   if (length(x$getHapTypes()) == 1) {
     alnFile <- paste(map, "aln", x$getLrdType(), x$getLrdMapper(), "unchecked", "fa", sep = ".")
-    Biostrings::writeXStringSet(haps[[1]], filepath = file.path(outdir,alnFile), format = "fasta")
-  } else if (length(x$getHapTypes()) == 2) {
-    pairFile <- paste(map, "aln", x$getLrdType(), x$getLrdMapper(), "unchecked", "psa", sep = ".")
-    aln <- Biostrings::pairwiseAlignment(pattern = haps[[x$getHapTypes()[[1]]]],
-                                         subject = haps[[x$getHapTypes()[[2]]]],
-                                         type = "global")
-    Biostrings::writePairwiseAlignments(aln, file.path(outdir, pairFile), block.width = blockWidth)
-  } else if (length(x$getHapTypes()) > 2) {
+    Biostrings::writeXStringSet(haps[[1]], filepath = file.path(outdir, alnFile), format = "fasta")
+  }
+  else if (length(x$getHapTypes()) == 2) {
+    alnFile <- paste(map, "aln", x$getLrdType(), x$getLrdMapper(), "unchecked", "psa", sep = ".")
+    aln <- Biostrings::pairwiseAlignment(pattern = haps[[1]], subject = haps[[2]], type = "global")
+    Biostrings::writePairwiseAlignments(aln, file.path(outdir, alnFile), block.width = blockWidth)
+  }
+  else if (length(x$getHapTypes()) > 2) {
     alnFile <- paste(map, "aln", x$getLrdType(), x$getLrdMapper(), "unchecked", "msa", sep = ".")
     aln <- DECIPHER::AlignSeqs(Biostrings::DNAStringSet(
       foreach(h = haps, .combine = c) %do% h
     ), verbose = FALSE)
     writeMSA(aln, file = file.path(outdir, alnFile))
-    # Biostrings::write.phylip(Biostrings::DNAMultipleAlignment(aln),
-    # file.path(outdir, alnFile))
   }
 
   if (map == "mapfinal") {
@@ -162,7 +161,7 @@ reportCheckedConsensus <- function(x, which = "mapFinal") {
   outdir <- .dirCreateIfNotExists(x$absPath("checked"))
   rs <- readPairFile(pairfileChecked)
   seqs <- Biostrings::DNAStringSet(
-    lapply(rs, function(s) Biostrings::DNAString(gsub("-", "", s))))
+    lapply(rs, function(s) Biostrings::DNAString(stripIndel(s))))
 
   ## Alignment
   ref <- x$getRefSeq()
@@ -376,7 +375,7 @@ refineAlignment <- function(x, hptype, report = FALSE, createIgv = TRUE, ...) {
                                       mustWork = FALSE)
   rs <- readPairFile(pairfileChecked)
   seqs <- Biostrings::DNAStringSet(
-    lapply(rs, function(s) Biostrings::DNAString(gsub("-", "", s))))
+    lapply(rs, function(s) Biostrings::DNAString(stripIndel(s))))
 
   ## Export FASTA
   seq <- seqs["hap" %<<% hptype]

@@ -28,9 +28,9 @@ x <- DR2Smap(
   ) \%>\%
   clear() \%>\%
   mapInit() \%>\%
-  partitionLongReads() \%>\%
+  partitionLongreads() \%>\%
   mapIter() \%>\%
-  partitionShortReads() \%>\%
+  partitionShortreads() \%>\%
   mapFinal() \%>\%
   polish() \%>\%
   report(blockWidth = 60)
@@ -40,7 +40,7 @@ x <- DR2Smap(
 Other DR2S mapper functions: \code{\link{clear}},
   \code{\link{createDR2SConf}}, \code{\link{mapFinal}},
   \code{\link{mapInit}}, \code{\link{mapIter}},
-  \code{\link{partitionLongReads}}, \code{\link{polish}},
+  \code{\link{partitionLongreads}}, \code{\link{polish}},
   \code{\link{refineAlignment}},
   \code{\link{reportCheckedConsensus}},
   \code{\link{report}}

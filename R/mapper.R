@@ -260,7 +260,7 @@ bwamemCmd <- function(paths, opts) {
   ##   [label.]refname.readtype.mapper.[optsname.][suffix.]ext
   # if refname is a HLA allele, e.g., HLA-A*01:01:01:01, make it compliant with
   # windos filesystem conventions
-  filename <- sprintf("%s.%s.%s.", gsub("[*:]", "_", refname), readtype, mapper)
+  filename <- sprintf("%s.%s.%s.", strip(refname, "_"), readtype, mapper)
   label    <- if (nzchar(label)) label %<<% "." else ""
   optsname <- if (nzchar(optsname)) optsname %<<% "." else ""
   paths <- list(

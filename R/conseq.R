@@ -238,11 +238,10 @@ conseq.matrix <- function(x,
   x
 }
 
-.getWriteConseq <- function(pileup, name, type, threshold, suppressAllGaps, conspath) {
-  conseq <- conseq(consmat(pileup), name = name, type = type,
-                   threshold = threshold, suppressAllGaps = suppressAllGaps)
-  Biostrings::writeXStringSet(
-    Biostrings::DNAStringSet(gsub("[-+]", "N", conseq)),
-    conspath)
-  return(invisible(conseq))
+.writeConseq <- function(x, name, type, threshold, suppressAllGaps, replaceIndel = "", conspath, ...) {
+  conseq0 <- conseq(consmat(x, freq = FALSE), name = name, type = type,
+                   threshold = threshold, suppressAllGaps = suppressAllGaps, ...)
+  conseq1 <- Biostrings::DNAStringSet(stripIndel(conseq0, replace = replaceIndel))
+  Biostrings::writeXStringSet(conseq1, conspath, append = FALSE, compress = FALSE)
+  return(invisible(conseq1))
 }

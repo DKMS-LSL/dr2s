@@ -140,14 +140,14 @@ DR2S_ <- R6::R6Class(
       invisible(self)
     },
     print = function() {
-      fmt0 <- "DR2S mapper for sample <%s> locus <%s>\n"
+      fmt0 <- "DR2S driver for sample <%s> locus <%s>\n"
       cat(sprintf(fmt0, self$getSampleId(), self$getLocus()))
-      fmt1 <- "Reference alleles: <%s>\n" %<<%
+      fmt1 <- "Reference: <%s>\n" %<<%
               "Longreads: <%s> Shortreads: <%s>\n" %<<%
               "Mapper: <%s>\nDatadir: <%s>\nOutdir: <%s>\n"
       cat(sprintf(fmt1,
-                  self$getReference(),
-                  self$getLrdType(), self$getSrdType(), self$getLrdMapper(),
+                  self$getReference(), self$getLrdType(),
+                  self$getSrdType() %||% "", self$getLrdMapper(),
                   self$getDatadir(), self$getOutdir()
       ))
       invisible(self)
@@ -155,20 +155,21 @@ DR2S_ <- R6::R6Class(
     run_ = function(step) {
       switch(
         step,
-        clear          = self$clear(),
-        cache          = self$cache(),
-        partitionLongReads = {
-          self$runPartitionLongReads()
-          self$runSplitLongReadsByHaplotype()
-          self$runExtractLongReads()
-          self$runGetPartitionedConsensus()
+        clear    = self$clear(),
+        cache    = self$cache(),
+        partitionLongreads = {
+          self$runPartitionLongreads()
+          self$runSplitLongreadsByHaplotype()
+          self$runExtractPartitionedLongreads()
         },
-        partitionShortReads = self$runPartitionShortReads(),
-        mapInit        = self$runMapInit(),
-        mapIter        = self$runMapIter(),
-        mapFinal       = self$runMapFinal(),
-        polish         = DR2S::polish(self),
-        report         = DR2S::report(self),
+        partitionShortreads = {
+          self$runPartitionShortreads()
+        },
+        mapInit  = self$runMapInit(),
+        mapIter  = self$runMapIter(),
+        mapFinal = self$runMapFinal(),
+        polish   = DR2S::polish(self),
+        report   = DR2S::report(self),
         stop("<", step, "> is not a valid step in the mapping pipeline")
       )
     },
@@ -432,23 +433,23 @@ DR2S_ <- R6::R6Class(
     },
     ##
     getLimits = function() {
-      self$getStats("partitionLongReads")$limits
+      self$getStats("partitionLongreads")$limits
     },
     ##
     setLimits = function(lmts) {
       # stopifnot(is.null(lmts) || all(lmts >=0 && lmts <=1))
       x <- list()
-      private$runstats$partitionLongReads$limits = lmts
+      private$runstats$partitionLongreads$limits = lmts
       invisible(self)
     },
     ##
     getHapTypes = function() {
-      self$getStats("partitionLongReads")$haplotypes
+      self$getStats("partitionLongreads")$haplotypes
     },
     ##
     setHapTypes = function(x) {
       ## Todo: add test for data consistency!
-      private$runstats$partitionLongReads$haplotypes = x
+      private$runstats$partitionLongreads$haplotypes = x
       invisible(self)
     },
     ##
@@ -512,30 +513,35 @@ DR2S_ <- R6::R6Class(
     },
     ##
     getLatestRefPath = function() {
-      if (length(self$mapFinal) > 0) {
+      ##
+      if (self$hasMapFinal()) {
         return(self$absPath(self$mapFinal$seq))
-      } else if (length(self$mapIter) > 0) {
-        latest <- self$mapIter[[
-          toString(max(names(self$mapIter)))]][self$getHapTypes()]
-        return(vapply(latest, function(x) self$absPath(x$seqpath),
-                      character(1)))
-      } else {
-        return(self$getRefPath())
       }
+      ##
+      if (self$hasMapIter()) {
+        latest <- self$mapIter[[
+          max(names(self$mapIter))]][self$getHapTypes()]
+        return(vapply(latest, function(x) self$absPath(conspath(x)),
+                      FUN.VALUE = character(1)))
+      }
+      ##
+      return(self$getRefPath())
     },
     ##
     getLatestRef = function() {
-      if (!is.null(self$consensus$seq)) {
-        return(self$consensus$seq)
-      } else if (length(self$mapFinal) > 0) {
-        return(self$mapFinal$seq)
-      } else if (length(self$mapIter) > 0) {
-        latest <- self$mapIter[[
-          toString(max(names(self$mapIter)))]][self$getHapTypes()]
-        return(lapply(latest, function(x) x$conseq))
-      } else {
-        return(self$getRefSeq())
-      }
+      filepath <- self$getLatestRefPath()
+      Biostrings::readDNAStringSet(filepath, use.names = TRUE)
+      # if (!is.null(self$consensus$seq)) {
+      #   return(self$consensus$seq)
+      # } else if (length(self$mapFinal) > 0) {
+      #   return(self$mapFinal$seq)
+      # } else if (length(self$mapIter) > 0) {
+      #   latest <- self$mapIter[[
+      #     max(names(self$mapIter))]][self$getHapTypes()]
+      #   return(lapply(latest, function(x) x$conseq))
+      # } else {
+      #   return(self$getRefSeq())
+      # }
     },
     ##
     getConseqs = function(group = NULL, mapn = 1) {
@@ -551,7 +557,7 @@ DR2S_ <- R6::R6Class(
         Biostrings::DNAStringSet(ref)
       }, error = function(e) {
         warning("Possibly indels in consensus")
-        Biostrings::DNAStringSet(gsub("[-+]", "", ref ))
+        Biostrings::DNAStringSet(stripIndel(ref))
       })
       metadata(seqs) <- compact(list(
         ref = tryCatch(
@@ -566,7 +572,7 @@ DR2S_ <- R6::R6Class(
     getMapTag = function(iter = "init", group = NULL, ref = "LR") {
       if (is.numeric(iter)) {
         group <- match.arg(group, self$getHapTypes())
-        return(self$mapIter[[as.character(iter)]][[group]]$tag)
+        return(tag(self$mapIter[[as.character(iter)]][[group]]))
       }
       if (iter == "init") {
         ref <- match.arg(ref, c("LR", "SR"))
@@ -630,9 +636,9 @@ DR2S_ <- R6::R6Class(
     ##
     ## Predicate methods ####
     ##
-    hasPileup = function() {
+    hasMapInit = function() {
       tryCatch(
-        is(self$mapInit$pileup, "pileup"),
+        is(self$mapInit, "MapList"),
         error = function(e)
           FALSE
       )
@@ -649,6 +655,23 @@ DR2S_ <- R6::R6Class(
     hasHapList = function() {
       tryCatch(
         is(self$partition$hpl, "HapList"),
+        error = function(e)
+          FALSE
+      )
+    },
+    ##
+    hasMapIter = function() {
+      tryCatch(
+        all(vapply(self$mapIter[[self$getIterations() + 1]],
+                   is, "MapList", FUN.VALUE = logical(1))),
+        error = function(e)
+          FALSE
+      )
+    },
+    ##
+    hasMapFinal = function() {
+      tryCatch(
+        is(self$mapFinal, "mapFinal"),
         error = function(e)
           FALSE
       )
@@ -772,10 +795,10 @@ DR2S_ <- R6::R6Class(
       plotRadarPartition(x = self$getPartition())
     },
     ##
-    plotPartitionHaplotypes = function(thin = 1, label = "") {
-      tag <- self$getMapTag()
-      plotPartitionHaplotypes(x = self$getPartition(), thin, label %|ch|% tag)
-    },
+    # plotPartitionHaplotypes = function(thin = 1, label = "") {
+    #   tag <- self$getMapTag()
+    #   plotPartitionHaplotypes(x = self$getPartition(), thin, label %|ch|% tag)
+    # },
     ##
     ## Summary methods ####
     ##
@@ -827,9 +850,9 @@ DR2S_ <- R6::R6Class(
         drop.indels <- FALSE
         width <- 10
       }
-      plotlist <- foreach(hp = hptypes) %do% {
-        tag <- self$getMapTag(iteration, hp)
-        self$plotGroupCoverage(hp, ref = NULL, iteration = iteration,
+      plotlist <- foreach(hptype = hptypes) %do% {
+        tag <- self$getMapTag(iteration, hptype)
+        self$plotGroupCoverage(hptype, ref = NULL, iteration = iteration,
                                threshold = NULL, range = NULL, thin, width,
                                label = tag, drop.indels = drop.indels)
       }

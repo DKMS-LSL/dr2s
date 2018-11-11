@@ -207,12 +207,11 @@ pileup <- function(bamfile,
     use.names = TRUE)
 }
 
-.topXReads <- function(bamfile, n = 2000, ...) {
+.topXReads <- function(bamfile, n = "auto", ...) {
   indent <- list(...)$indent %||% indentation()
   msa <- .msaFromBam(Rsamtools::BamFile(bamfile))
-  flog.info("%sSample from %s longreads", indent(), length(msa), name = "info")
   ## there is no point in sampling if
-  if (length(msa) <= n) {
+  if (is.numeric(n) && length(msa) <= n) {
     return(names(msa))
   }
   mat <- createPWM(msa)
@@ -223,12 +222,38 @@ pileup <- function(bamfile,
       seq <- as.character(aln[[s]])
       seq <- unlist(strsplit(seq, split = ""))
       read <- names(aln[s])
-      ## Make this CPP
+      ## TODO: Make this CPP
       b <- sum(vapply(seq_along(seq), function(x, mat, seq) mat[seq[x], x],
                        mat = mat, seq = seq, FUN.VALUE = numeric(1)))
       tibble::tibble(read = read, score = b/length(seq))
   }, aln = msa, mat = mat, BPPARAM = bpparam)))
-  dplyr::top_n(res, n, score)$read
+  reads <- if (n == "auto") {
+    .pickTopReads(res, f = 3/5)
+  } else dplyr::top_n(res, n, score)$read
+
+  flog.info("%sFrom %s mapping longreads extract the %0.3g%% (%s) top-scoring reads",
+            indent(), length(msa), 100*length(reads)/length(msa), length(reads),
+            name = "info")
+
+  reads
+}
+
+## TODO: think about this more carefully
+.pickTopReads <- function(x, f = 1) {
+  score_rng <- range(x$score)
+  scorecut <- seq(score_rng[1], score_rng[2], length.out = 100)
+  readsum <- vapply(scorecut, function(cutoff)
+    sum(x$score >= cutoff), FUN.VALUE = double(1))
+  optcoef <- scorecut[which.max((readsum^f)*scorecut)]
+  # df <- tibble::tibble(
+  #   x = seq_along(res$score),
+  #   score = sort(res$score),
+  #   pick = sort(res$score) >= optcoef
+  # )
+  # p <- ggplot(df, aes(x, score, colour = pick)) +
+  #   geom_point()
+  #sum(res$score >= optcoef)
+  dplyr::filter(x, score >= optcoef)$read
 }
 
 
