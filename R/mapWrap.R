@@ -7,16 +7,16 @@ mapReads <- function(
   removeError = TRUE, topx = 0, force, clean, ...) {
 
   indent <- list(...)$indent %||% indentation()
-  flog.info("%sMap <%s> reads <%s> to reference <%s>", indent(),
-            readtype, comma(names(readfile)), names(reffile), name = "info")
 
   ## Run mapper
+  flog.info("%sMap <%s> reads <%s> to reference <%s>", indent(),
+            readtype, comma(names(readfile)), names(reffile), name = "info")
   samfile <- mapfun(reffile, refname, readfile, readtype, outdir, maplabel,
                     opts, force, clean = FALSE)
 
   ## collect minMapq for use in .bamSortIndex
   # minMapq = 25
-  minMapq <- list(...)$min_mapq %||% list(...)$minMapq %||% 25
+  minMapq <- list(...)$min_mapq %||% list(...)$minMapq %||% 0
 
   if (clip) {
     flog.info("%sTrim softclips and polymorphic ends", indent(), name = "info")
@@ -43,7 +43,7 @@ mapReads <- function(
   }
 
   ## Run bam - sort - index pipeline
-  flog.info("%sSort and index", indent(), name = "info")
+  #flog.info("%sSort and index", indent(), name = "info")
   bamfile <- .bamSortIndex(samfile = samfile, reffile = reffile,
                            minMapq = minMapq, force = force)
 
@@ -63,7 +63,7 @@ mapReads <- function(
   ## Calculate pileup from graphmap produced SAM file
   ## pParam = .collectPileupParams(includeDeletion = includeDeletions, includeInsertions = includeInsertions)
   ## x <- pileup <- pileup(bamfile, reffile, readtype, pParam = pParam)
-  flog.info("%sPile up", indent(), name = "info")
+  #flog.info("%sPile up", indent(), name = "info")
   pileup <- pileup(bamfile, reffile, readtype, indent = incr(indent),
                    pParam = .collectPileupParams(
                      includeDeletion = includeDeletions,
@@ -71,7 +71,7 @@ mapReads <- function(
                      ...))
 
   if (distributeGaps) {
-    flog.info("%sDistribute gaps", indent(), name = "info")
+    #flog.info("%sDistribute gaps", indent(), name = "info")
     consmat(pileup) <- .distributeGaps(mat = consmat(pileup),
                                        bamfile = bampath(pileup),
                                        removeError = removeError,
@@ -79,7 +79,7 @@ mapReads <- function(
   }
 
   if (callInsertions && is.null(ins(consmat(pileup)))) {
-    flog.info("%sCall insertions", indent(), name = "info")
+    #flog.info("%sCall insertions", indent(), name = "info")
     ## TODO check threshold
     pileup <- .pileupIncludeInsertions(x = pileup,
                                        threshold = callInsertionThreshold,

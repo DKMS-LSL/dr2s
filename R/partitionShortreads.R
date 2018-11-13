@@ -135,24 +135,23 @@ scoreHighestSR <- function(srpartition, diffThreshold = 0.001, ...) {
   dtplyr::tbl_dt(sr2)
 }
 
-.writePartFq <- function(fq, srFastqHap, dontUseReads = NULL, useReads = NULL, ...) {
+.writePartFq <- function(fq, fqPart, dontUse = NULL, doUse = NULL, ...) {
   indent <- list(...)$indent %||% indentation()
-  fqstream = ShortRead::FastqStreamer(fq)
-  .fileDeleteIfExists(srFastqHap)
+  fqstream <- ShortRead::FastqStreamer(fq)
+  .fileDeleteIfExists(fqPart)
   repeat {
-    sr = ShortRead::yield(fqstream)
+    sr <- ShortRead::yield(fqstream)
     if (length(sr) == 0) break
     fqnames <- as.character(ShortRead::id(sr))
     fqnames <- sub(" .*$", "", fqnames)
-    if (is.null(dontUseReads)) {
-      useReads <- which(fqnames %in% useReads)
+    if (is.null(dontUse)) {
+      doUse <- which(fqnames %in% doUse)
     } else {
       # useReads = qnames
-      useReads <- which(!fqnames %in% dontUseReads)
+      doUse <- which(!fqnames %in% dontUse)
     }
-    flog.info("%sUsing %s of %s reads", indent(), length(useReads), length(fqnames), name = "info")
-    sr <- sr[useReads]
-    ShortRead::writeFastq(sr, srFastqHap, mode = "a", compress = TRUE)
+    flog.info("%sUsing %s of %s reads", indent(), length(doUse), length(fqnames), name = "info")
+    ShortRead::writeFastq(sr[doUse], fqPart, mode = "a", compress = TRUE)
   }
   close(fqstream)
 }

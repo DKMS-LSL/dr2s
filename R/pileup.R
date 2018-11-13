@@ -207,35 +207,53 @@ pileup <- function(bamfile,
     use.names = TRUE)
 }
 
-.topXReads <- function(bamfile, n = "auto", ...) {
+.topXReads <- function(bamfile, topx = "auto", ...) {
   indent <- list(...)$indent %||% indentation()
   msa <- .msaFromBam(Rsamtools::BamFile(bamfile))
   ## there is no point in sampling if
-  if (is.numeric(n) && length(msa) <= n) {
+  if (is.numeric(topx) && length(msa) <= topx) {
+    flog.info("%sNothing to extract from %s mapped longreads", indent(), length(msa), name = "info")
     return(names(msa))
   }
-  mat <- createPWM(msa)
-  mat["+", ] <- 0
+  pwm <- createPWM(msa)
   bpparam <- BiocParallel::MulticoreParam(workers = .getIdleCores())
   res <- do.call(dplyr::bind_rows, suppressWarnings(BiocParallel::bplapply(seq_along(msa),
-    function(s, aln, mat) {
-      seq <- as.character(aln[[s]])
-      seq <- unlist(strsplit(seq, split = ""))
-      read <- names(aln[s])
-      ## TODO: Make this CPP
-      b <- sum(vapply(seq_along(seq), function(x, mat, seq) mat[seq[x], x],
-                       mat = mat, seq = seq, FUN.VALUE = numeric(1)))
-      tibble::tibble(read = read, score = b/length(seq))
-  }, aln = msa, mat = mat, BPPARAM = bpparam)))
-  reads <- if (n == "auto") {
-    .pickTopReads(res, f = 3/5)
-  } else dplyr::top_n(res, n, score)$read
+    function(i, msa, pwm) {
+      tibble::tibble(read = names(msa[i]), score = .PWMscore(msa[[i]], pwm))
+    }, msa = msa, pwm = pwm, BPPARAM = bpparam)))
 
-  flog.info("%sFrom %s mapping longreads extract the %0.3g%% (%s) top-scoring reads",
+  # res <- do.call(dplyr::bind_rows, suppressWarnings(BiocParallel::bplapply(seq_along(msa),
+  #   function(s, msa, pwm) {
+  #     ## TODO: Make this CPP
+  #     read     <- strsplit1(as.character(msa[[s]]), split = "")
+  #     readname <- names(msa[s])
+  #     b <- sum(vapply(seq_along(read), function(i, pwm, read) pwm[read[i], i],
+  #                     pwm = pwm, read = read, FUN.VALUE = numeric(1)))/length(read)
+  #     tibble::tibble(read = readname, score = b)
+  #   }, msa = msa, pwm = pwm, BPPARAM = bpparam)))
+
+  reads <- if (topx == "auto") {
+    .pickTopReads(res, f = 3/5)
+  } else {
+    dplyr::top_n(res, topx, score)$read
+  }
+
+  flog.info("%sFrom %s mapped longreads extract the %0.3g%% (%s) top-scoring reads",
             indent(), length(msa), 100*length(reads)/length(msa), length(reads),
             name = "info")
 
   reads
+}
+
+.PWMscore <- function(read, pwm) {
+  ## expect read to be a DNAString or DNAStringSet instance
+  ## this is 25x faster than the vapply loop
+  ## nxm
+  n <- NROW(pwm)
+  m <- NCOL(pwm)
+  read <- strsplit(as.character(read), split = "")[[1L]]
+  i <- match(read, rownames(pwm)) + ((0:(m - 1))*n)
+  sum(pwm[i])/m
 }
 
 ## TODO: think about this more carefully
@@ -373,7 +391,7 @@ plotPileupBasecallFrequency <- function(x, threshold = 0.20, label = "",
   assert_that(is.numeric(inpos))
   inpos <- sort(inpos)
   indent <- list(...)$indent %||% indentation()
-  flog.info("%sExtract insertions at positions <%s>", indent(), comma(inpos), name = "info")
+  flog.info("%sCall insertions at positions <%s>", indent(), comma(inpos), name = "info")
   ## Get the actual position of the first insertion character, not the last
   ##  matching position, so +1
   inpos   <- inpos + 1

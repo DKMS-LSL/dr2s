@@ -51,26 +51,38 @@ report.DR2S <- function(x, which, blockWidth = 80, noRemap = FALSE, createIgv = 
 .reportMap_ <- function(x, map, outdir, blockWidth, noRemap = FALSE, createIgv = TRUE, ...) {
   map <- match.arg(tolower(map), c("mapfinal", "mapiter"))
   ref <- Biostrings::BStringSet(x$getRefSeq())
-  haps <- x$getLatestRef()
+  if (x$hasShortreads()) {
+    haplotypes <- "SR" %<<% x$getHapTypes()
+    readtype <- x$getSrdType()
+    mapper <-  x$getSrdMapper()
+  } else {
+    haplotypes <- "LR" %<<% x$getHapTypes()
+    readtype <- x$getLrdType()
+    mapper <-  x$getLrdMapper()
+  }
+
   ## Initiate indenter
   indent <- indentation(1)
   ## Write html alignment file
-  alnFile <- paste(map, "aln", x$getLrdType(), x$getLrdMapper(), "unchecked", sep = ".")
+  alnFile <- paste(map, "aln", readtype, mapper, "unchecked", sep = ".")
   # get all seqs as stringset
-  seqs <- unlist(Biostrings::BStringSetList(haps))
-  names(seqs) <- names(haps)
-  seqs <- c(ref, seqs)
-  .browseAlign(seqs, file = file.path(outdir, alnFile), openURL = FALSE)
+
+  haps <- x$getLatestRef()
+  seqs <- Biostrings::BStringSet(haps[grepl(paste0(haplotypes, collapse = "|"), names(haps))])
+  refseqs <- c(ref, seqs)
+  .browseAlign(refseqs, file = file.path(outdir, alnFile), openURL = FALSE)
 
   ## Write consensus FASTA files
-  # hp = "A"
-  for (hp in x$getHapTypes()) {
-    hapFile <- paste(map, hp, x$getLrdType(), x$getLrdMapper(), "unchecked.fa", sep = ".")
-    seq <- haps[endsWith(names(haps), hp)]
-    seqname <- paste(x$getSampleId(), hp, sep = "_")
+  # hp = "SRA"
+  # hp = "LRA
+  for (hp in haplotypes) {
+    hp0 <- substr(hp, 3, 3)
+    hpFile <- dot(c(map, hp, readtype, mapper, "unchecked.fa"))
+    seq <- seqs[endsWith(names(seqs), hp)]
+    seqname <- paste(x$getSampleId(), hp0, sep = "_")
     sampleDetails <- x$getSampleDetails()
     names(seq) <- paste(seqname,
-                        paste("haplotype=" %<<% litQuote(hp),
+                        paste("haplotype=" %<<% litQuote(hp0),
                               sampleDetails,
                               "date=" %<<% litQuote(Sys.Date()),
                               "status=" %<<% litQuote("unchecked"),
@@ -78,32 +90,30 @@ report.DR2S <- function(x, which, blockWidth = 80, noRemap = FALSE, createIgv = 
 
     Biostrings::writeXStringSet(
       seq,
-      filepath = file.path(outdir, hapFile),
+      filepath = file.path(outdir, hpFile),
       format = "fasta"
     )
   }
 
   ## Write Pairwise or Multiple Alignment
   if (length(x$getHapTypes()) == 1) {
-    alnFile <- paste(map, "aln", x$getLrdType(), x$getLrdMapper(), "unchecked", "fa", sep = ".")
-    Biostrings::writeXStringSet(haps[[1]], filepath = file.path(outdir, alnFile), format = "fasta")
+    alnFile <- dot(c(map, "aln", readtype, mapper, "unchecked", "fa"))
+    Biostrings::writeXStringSet(seqs[1], filepath = file.path(outdir, alnFile), format = "fasta")
   }
   else if (length(x$getHapTypes()) == 2) {
-    alnFile <- paste(map, "aln", x$getLrdType(), x$getLrdMapper(), "unchecked", "psa", sep = ".")
-    aln <- Biostrings::pairwiseAlignment(pattern = haps[[1]], subject = haps[[2]], type = "global")
+    alnFile <- dot(c(map, "aln", readtype, mapper, "unchecked", "psa"))
+    aln <- Biostrings::pairwiseAlignment(pattern = seqs[1], subject = seqs[2], type = "global")
     Biostrings::writePairwiseAlignments(aln, file.path(outdir, alnFile), block.width = blockWidth)
   }
   else if (length(x$getHapTypes()) > 2) {
-    alnFile <- paste(map, "aln", x$getLrdType(), x$getLrdMapper(), "unchecked", "msa", sep = ".")
-    aln <- DECIPHER::AlignSeqs(Biostrings::DNAStringSet(
-      foreach(h = haps, .combine = c) %do% h
-    ), verbose = FALSE)
+    alnFile <- dot(c(map, "aln", readtype, mapper, "unchecked", "msa"))
+    aln <- DECIPHER::AlignSeqs(Biostrings::DNAStringSet(seqs), verbose = FALSE)
     writeMSA(aln, file = file.path(outdir, alnFile))
   }
 
   if (map == "mapfinal") {
     ## Report problematic Variants
-    probvarFile <- paste("problems", x$getLrdType(), x$getLrdMapper(), "tsv", sep = ".")
+    probvarFile <- paste("problems", readtype, mapper, "tsv", sep = ".")
     vars <- x$consensus$variants %>%
       dplyr::arrange(as.numeric(.data$pos), .data$haplotype)
     readr::write_tsv(vars, path = file.path(outdir, probvarFile),
@@ -248,7 +258,7 @@ checkAlignmentFile <- function(x, which = "mapFinal", where = 0,
   if (x$getReportStatus()) {
     currentCall <- strsplit1(strsplit1(deparse(sys.call()), "\\$")[2], "\\(")[1]
     flog.info("%s: Reporting already done! Nothing to do." %<<%
-                "Exit safely for downstream analysis ...",
+                " Exit safely for downstream analysis",
               currentCall, name = "info")
   }
   return(x$getReportStatus())
@@ -293,15 +303,15 @@ refineAlignment <- function(x, hptype, report = FALSE, createIgv = TRUE, ...) {
   reftag <- "refine"
   outdir <- .dirCreateIfNotExists(x$absPath(reftag))
   if (length(x$getHapTypes()) == 1) {
-    readpathLR  <- "/" %<<% x$mapInit$reads
+    readpathLR  <- x$absPath(eadpath(x$mapInit))
     if (x$getFilterScores()) {
       readpathSR <- x$absPath(x$mapInit$SR1$reads)
     } else {
       readpathSR <- x$getShortreads()
     }
   } else {
-    readpathLR <- x$absPath(x$mapFinal$lreads[[hptype]])
-    readpathSR <- x$absPath(x$mapFinal$sreads[[hptype]])
+    readpathLR <- x$absPath(readpath(x$mapFinal$LR[[hptype]]))
+    readpathSR <- x$absPath(readpath(x$mapFinal$SR[[hptype]]))
   }
   refpath <- ifelse(report, {
     seq <- x$consensus$noAmbig[[hptype]]

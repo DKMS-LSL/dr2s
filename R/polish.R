@@ -11,7 +11,8 @@
 polish.DR2S <- function(x,
                         threshold = NULL,
                         checkHpCount = TRUE,
-                        cache = TRUE) {
+                        hpCount = 10,
+                        ...) {
   flog.info("# polish", name = "info")
 
   ## Collect start time for polish runstats
@@ -31,26 +32,22 @@ polish.DR2S <- function(x,
               currentCall, name = "info")
     return(invisible(x))
   }
-  assert_that(
-    is(x$mapFinal, "mapFinal"),
-    all(unlist(foreach(i = x$mapFinal$pileup) %do% {
-      is(i$consmat, "consmat")
-    }))
-  )
+
+  assert_that(x$hasMapFinal())
 
   args <- x$getOpts("polish")
   if (!is.null(args)) {
     env  <- environment()
     list2env(args, envir = env)
   }
-
   # get read types and haplotypes
-  rtypes  <- names(x$mapFinal$pileup)
-  hptypes <- x$getHapTypes()
+  # rdtypes <- names(x$mapFinal) ## LR, SR
+  hptypes <- x$getHapTypes() ## A, B, C, ...
   menv <- MergeEnv(x, threshold)
-  for (hptype in hptypes) {
-    menv$init(hptype)
-    menv$walk(hptype)
+  ## hp = "A"
+  for (hp in hptypes) {
+    menv$init(hp)
+    menv$walk(hp)
   }
   rs <- menv$export()
   ## Get variants
@@ -58,20 +55,20 @@ polish.DR2S <- function(x,
 
   ## Check homopolymer count; Only check if the count is found in both
   if (checkHpCount) {
-    checkHomoPolymerCount(rs)
-    vars <- rbind(vars, foreach(hptype = hptypes, .combine = rbind) %do% {
-      if (hptype %in% names(rs$mapFinal$homopolymers)) {
-        seq <- rs$consensus$seq[[hptype]]
+    checkHomoPolymerCount(rs, hpCount = hpCount)
+    vars <- rbind(vars, foreach(hp = hptypes, .combine = rbind) %do% {
+      if (hp %in% names(rs$consensus$homopolymers)) {
+        seq <- rs$consensus$seq[[hp]]
         seqrle <- .seq2rle(seq)
         # n <- seqrle$length[seqrle$length >= 10] %||% 0
         n <- which(seqrle$length > 8)
         nCount <- seqrle$length[n]
         origPosition <- vapply(n, function(ni) sum(seqrle$lengths[1:((ni) - 1)]), FUN.VALUE = integer(1))
-        modeN <- sort(rs$mapFinal$homopolymers[[hptype]])
+        modeN <- sort(rs$consensus$homopolymers[[hp]])
         #names(n) <- names(modeN)
         if (!all(names(modeN) %in% vapply(origPosition, function(ni) (ni - 5):(ni + 5), FUN.VALUE = integer(11)))) {
           missingN <- modeN[which(!n %in% modeN)]
-          varsHP <- tibble::tibble(haplotype = hptype,
+          varsHP <- tibble::tibble(haplotype = hp,
                                    pos       = names(missingN),
                                    ref       = "",
                                    alt       = "",
@@ -101,9 +98,6 @@ polish.DR2S <- function(x,
 
   rs$consensus$variants = dplyr::arrange(vars, .data$pos, .data$haplotype)
 
-  if (cache)
-    rs$cache()
-
   ## set polish runstats
   .setRunstats(x, "polish",
                list(Runtime = format(Sys.time() - start.time)))
@@ -113,7 +107,6 @@ polish.DR2S <- function(x,
 
 
 # Helpers -----------------------------------------------------------------
-
 
 
 .getVariants <- function(x) {
@@ -137,6 +130,8 @@ polish.DR2S <- function(x,
                                           .extractVariant_, h = h))))
   df
 }
+
+
 .extractVariant_ <- function(v, h) {
   data.frame(
     haplotype = h,

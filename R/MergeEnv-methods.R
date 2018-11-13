@@ -56,18 +56,18 @@ print.variantList <- function(x, threshold = 0.2, ...) {
 #'
 disambiguateVariant <- function(x,
                                  threshold) {
-  stopifnot(is(x, "variantList"))
+  assert_that(is(x, "variantList"))
 
   warningMsg <- ""
-  
+
   ## Start with long reads. They have to be there
   lr <- as.matrix(x$lr)
   varl <- .filterVariant(cm = lr, threshold)
-  
+
   ## Look if its ambiguous
   if (length(varl) > 1) {
     ## Look for deletions
-    if ("-" %in% names(varl)) { 
+    if ("-" %in% names(varl)) {
       if (lr[varl["-"]]/sum(lr[varl]) > max(threshold/(2/3), 0.3)) {
         warningMsg <- warningMsg %<<% "|Gap overrepresented in long reads"
       }
@@ -80,62 +80,62 @@ disambiguateVariant <- function(x,
       srBasel <- names(varl)[1:2]
     }
     ## Set the ambiguous bases
-    lrBases <- names(varl) 
+    lrBases <- names(varl)
   } else {
     warningMsg <- warningMsg %<<% "|Variant only in short reads"
     lrBases <- c(names(varl), NA)
   }
-  
-  if (!is.null(x$sr)){
+
+  if (!is.null(x$sr)) {
     sr <- as.matrix(x$sr)
     vars <- .filterVariant(cm = sr, threshold)
-    
+
     ## State which reads are ambiguous
     if (length(vars) > 1 ){
       srBases <- names(vars)
       ## Check for deletions
-      if ("-" %in% names(vars)) { 
+      if ("-" %in% names(vars)) {
         if ((sr[vars["-"]]/sum(sr[vars])) %|na|% 0  > max(threshold/2*3, 0.3)) {
           warningMsg <- warningMsg %<<% "|Gap in short reads"
         }
       } else {
         warningMsg <- warningMsg %<<% "|Ambiguous position in short reads"
-        
+
         ## Spurious insertion in short reads that should have been set to zero.
         if ("+" %in% names(vars)) {
           warningMsg <- warningMsg %<<% "|Insertion signal in short reads"
         }
-        
+
         ## Mismatch in variant bases between long and short reads
         ## not the same order or base
         if (length(varl) == length(vars)) {
           if (any(!varl == vars)) {
             ## No base matches
             if (length(intersect(names(varl), names(vars))) == 0) {
-              warningMsg <- warningMsg %<<% 
+              warningMsg <- warningMsg %<<%
                 "|No intersect between long and short read variants"
             } else if (any(!sort(varl) == sort(vars))) { # different order
-                warningMsg <- warningMsg %<<% 
+                warningMsg <- warningMsg %<<%
                   "|Major/minor variant different in long and short reads"
-            } else if (length(varl) > length(vars)) { 
-                warningMsg <- warningMsg %<<% 
+            } else if (length(varl) > length(vars)) {
+                warningMsg <- warningMsg %<<%
                   "|Variant in long but not in short reads"
-            } else if (length(vars) > length(varl)) { 
-                warningMsg <- warningMsg %<<% 
+            } else if (length(vars) > length(varl)) {
+                warningMsg <- warningMsg %<<%
                   "|Variant in short but not in long reads"
             } else {
-              warningMsg <- warningMsg %<<% 
+              warningMsg <- warningMsg %<<%
                 "|Mismatch between long and short read variants"
             }
           }
         }
-        
+
         ## Check for more than two alleles
         if (length(vars) > 2) {
           warningMsg <- warningMsg %<<% "|More than two short read variants"
           srBases <- names(vars)[1:2]
         }
-      } 
+      }
     } else {
       ## Use only non-gap variants from only longreads.
       warningMsg <- ifelse("-" %in% names(varl),
@@ -146,12 +146,12 @@ disambiguateVariant <- function(x,
   } else {
     srBases <- c(NA, NA)
   }
-  
+
   # names(bases) <- c("ref", "alt")
   warningMsg <- sub("|", "", trimws(warningMsg), fixed = TRUE)
   #  IGNORE IF ONLY GAPS????
   if (nzchar(warningMsg))
-    x$variant <- .variant(lrBases = lrBases, srBases = srBases, 
+    x$variant <- .variant(lrBases = lrBases, srBases = srBases,
                           warning = warningMsg, vlist = x)
   x
 }
@@ -173,7 +173,7 @@ disambiguateVariant <- function(x,
     cm <- as.matrix(vlist$lr)
     rownames(cm) <- "LR"
   }
-  
+
   structure(
     c(refbase, altbase),
     class = "variant",
@@ -198,21 +198,21 @@ disambiguateVariant <- function(x,
 
 #' @export
 print.variant <- function(x, ...) {
-  cat(sprintf("Variant at position [%s]\n", 
-              paste0(attr(x, "position") - attr(x, "offsetBases"), 
+  cat(sprintf("Variant at position [%s]\n",
+              paste0(attr(x, "position") - attr(x, "offsetBases"),
                      collapse = "~")), sep = "")
 
   m <- attr(x, "cm")
   cat("\nConsensus matrix:\n")
   print(m, right = TRUE, quote = FALSE)
 
-  cat("\nReference: ", sQuote(x[[1]]), 
-      "; #Sreads: ", attr(x, "readsRefSr"), 
-      "; #Lreads: ", attr(x, "readsRefLr"), 
+  cat("\nReference: ", sQuote(x[[1]]),
+      "; #Sreads: ", attr(x, "readsRefSr"),
+      "; #Lreads: ", attr(x, "readsRefLr"),
       "\n", sep = "")
-  cat("\nAlternate: ", sQuote(x[[2]]), 
-      "; #Sreads: ", attr(x, "readsAltSr"), 
-      "; #Lreads: ", attr(x, "readsAltLr"), 
+  cat("\nAlternate: ", sQuote(x[[2]]),
+      "; #Sreads: ", attr(x, "readsAltSr"),
+      "; #Lreads: ", attr(x, "readsAltLr"),
       "\n", sep = "")
 
   if (nzchar(attr(x, "warning"))) {

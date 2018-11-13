@@ -29,54 +29,82 @@ readDR2S <- function(path) {
 }
 
 
-.finishCn1 <- function(x) {
-  flog.info("Set only allele to A", name = "info")
+.finishCn1 <- function(x, plot = TRUE) {
+  ## Initiate indenter
+  indent <- indentation(1)
+  indent2 <- incr(indent)
+
+  flog.info("%sSet single allele to <A>", indent(), name = "info")
+
   x$setHapTypes("A")
+  hp <- x$getHapTypes()
+  maplabel <- "mapFinal"
+  outdir   <- .dirCreateIfNotExists(self$absPath(maplabel))
 
-  flog.info("Write mapInit data to mapFinal", name = "info")
-  x$mapFinal = structure(
-    list(
-      dir     = x$getOutdir(),
-      sreads  = list(A = x$getSrdDir()),
-      lreads  = list(A = x$getLrdDir()),
-      ref     = list(A = x$mapInit$SR2$ref),
-      bamfile = list(),
-      pileup  = list(),
-      tag     = list(),
-      seqpath = list()
-    ), class = c("mapFinal", "list")
-  )
+  flog.info("%sWrite mapInit LR data into mapFinal LR", indent(), name = "info")
+  x$mapFinal$LR[[hp]] = x$mapInit
+  x$mapFinal$LR[[hp]]$meta$maplabel <- maplabel
+  ##
+  ## Construct consensus sequence
+  ##
+  refname  <- "LR" %<<% hp
+  consname <- maplabel %<<% ".consensus." %<<% refname
+  conspath <- file.path(outdir, consname %<<% ".fa")
+  names(conspath) <- self$relPath(conspath)
+  pileupLR <- x$mapFinal$LR[[hp]]$pileup
+  flog.info("%sConstruct consensus <%s>", indent2(), names(conspath), name = "info")
+  conseq <- .writeConseq(x = pileupLR, name = consname, type = "ambig",
+                         threshold = 1/4, suppressAllGaps = TRUE,
+                         replaceIndel = "", conspath = conspath)
+  x$mapFinal$LR[[hp]]$conspath <- x$relPath(conspath)
 
-  if (!is.null(x$mapInit$SR1)) {
-    # Write shortread data to mapFinal
-    mapgroupSR <- "SRA"
-    x$mapFinal$pileup[[mapgroupSR]] = x$mapInit$SR2$pileup
-    x$mapFinal$tag[[mapgroupSR]] = x$mapInit$SR2$tag
+  if (x$hasShortreads()) {
+    flog.info("%sWrite mapInit SR data into mapFinal SR", indent(), name = "info")
+    x$mapFinal$SR[[hp]] = meta(x$mapInit, "SR2")
+    x$mapFinal$SR[[hp]]$meta$maplabel <- maplabel
+    ##
+    ## Construct consensus sequence
+    ##
+    refname  <- "SR" %<<% hp
+    consname <- maplabel %<<% ".consensus." %<<% refname
+    conspath <- file.path(outdir, consname %<<% ".fa")
+    names(conspath) <- self$relPath(conspath)
+    pileupSR <- x$mapFinal$SR[[hp]]$pileup
+    flog.info("%sConstruct consensus <%s>", indent2(), names(conspath), name = "info")
+    conseq <- .writeConseq(x = pileupSR, name = consname, type = "ambig",
+                           threshold = 1/4, suppressAllGaps = TRUE,
+                           replaceIndel = "", conspath = conspath)
+    x$mapFinal$SR[[hp]]$conspath <- x$relPath(conspath)
   }
 
-  # Write longread data to mapFinal
-  mapgroupLR <- "LRA"
-  x$mapFinal$pileup[[mapgroupLR]] = x$mapInit$pileup
-  x$mapFinal$tag[[mapgroupLR]] = x$mapInit$tag
-
-  flog.info("Get consensus from final mapping ...", name = "info")
-
-  if (!is.null(x$mapInit$SR1)) {
-    cseq <- conseq(consmat(x$mapInit$SR2$pileup), "mapFinalA", "ambig",
-                   suppressAllGaps = TRUE, threshold = x$getThreshold())
-  } else {
-    cseq <- conseq(consmat(x$mapInit$pileup), "mapFinalA", "ambig",
-                   suppressAllGaps = TRUE, threshold = x$getThreshold())
+  if (plot) {
+    flog.info("%sPlot MapFinal summary", indent(), name = "info")
+    ## Coverage and base frequency
+    readtypes <- if (self$hasShortreads()) c("LR", "SR") else "LR"
+    ## readtype = "LR"
+    plotlist <- foreach(readtype = readtypes) %do% {
+      suppressWarnings(self$plotMapFinalSummary(iteration = "final",
+                                                readtype = readtype, thin = 0.25, width = 20))
+    }
+    plotRows <- 1
+    hptypes  <- hp
+    p <- cowplot::plot_grid(plotlist = plotlist, nrow = plotRows, labels = readtypes)
+    cowplot::save_plot(p, filename = self$absPath("plot.MapFinal.pdf"),
+                       base_width = 12*length(hptypes),
+                       title = paste(self$getLocus(), self$getSampleId(),
+                                     sep = "." ),
+                       base_height = 3*length(readtypes))
+    cowplot::save_plot(p, filename = self$absPath(".plots/plot.MapFinal.svg"),
+                       base_width = 12*length(hptypes),
+                       base_height = 3*length(readtypes))
   }
-  x$mapFinal$seq$A <- cseq
 
   flog.info(
-    "Polish and look for inconsistencies between shortreads and longreads ...",
-    name = "info")
+    "Polish and check for inconsistencies between shortreads and longreads", name = "info")
   polish(x)
 
-  flog.info("Report consensus sequence and potential problematic variants",
-            name = "info")
+  flog.info(
+    "Report consensus sequence and potential problematic variants", name = "info")
   report(x)
 
   return(invisible(x))
@@ -123,37 +151,34 @@ createIgvConfigs <- function(x, position, map = "mapFinal", open = TRUE) {
         ref <- refpath(x$mapInit)
       }
       bamLR <- bampath(x$mapInit)
-    } else if (map == "mapIter") {
+    }
+    else if (map == "mapIter") {
       ref <- refpath(x$mapIter[[max(names(x$mapIter))]][[hp]])
       bamLR <- bampath(x$mapIter[[max(names(x$mapIter))]][[hp]])
-    } else if (map == "mapFinal") {
-      ref   <- x$mapIter[[as.character(x$getIterations())]][[hp]]$seqpath
-      bamLR <- file.path("mapFinal",
-                         basename(x$mapFinal$bamfile[["LR" %<<% hp]]))
-      if (!is.null(x$mapFinal$sreads[[hp]]))
-        bamSR <- file.path("mapFinal",
-                           basename(x$mapFinal$bamfile[["SR" %<<% hp]]))
-    } else if (map == "refine") {
+    }
+    else if (map == "mapFinal") {
+      ref   <- refpath(x$mapIter[[max(names(x$mapIter))]][[hp]])
+      bamLR <- bampath(x$mapFinal$LR[[hp]])
+      if (x$hasShortreads()) {
+        bamSR <- bampath(x$mapFinal$SR[[hp]])
+      }
+    }
+    else if (map == "refine") {
       if (!is.null(x$consensus$refine$ref[[hp]])) {
         ref   <- x$consensus$refine$ref[[hp]]
         bamLR <- x$consensus$refine$bamfile[["LR" %<<% hp]]
-        if (!is.null(x$mapFinal$sreads[[hp]]))
+        if (x$hasShortreads())
           bamSR <- x$consensus$refine$bamfile[["SR" %<<% hp]]
       } else {
-        ref   <- x$mapIter[[as.character(x$getIterations())]][[hp]]$seqpath
-        bamLR <- file.path("mapFinal",
-                           basename(x$mapFinal$bamfile[["LR" %<<% hp]]))
-        if (!is.null(x$mapFinal$sreads[[hp]]))
-          bamSR <- file.path("mapFinal",
-                             basename(x$mapFinal$bamfile[["SR" %<<% hp]]))
+        ref   <- refpath(x$mapIter[[max(names(x$mapIter))]][[hp]])
+        bamLR <- bampath(x$mapFinal$LR[[hp]])
+        if (x$hasShortreads()) {
+          bamSR <- bampath(x$mapFinal$SR[[hp]])
+        }
       }
     }
     ##
-    if (!is(ref, "DNAStringSet")) {
-      chr <- strsplit1(sub(">", "", readLines(file.path(basedir, ref), 1)), "\\s+")[1]
-    } else {
-      chr <- names(ref)
-    }
+    chr <- strsplit1(sub(">", "", readLines(file.path(basedir, ref), 1)), "\\s+")[1]
     locus <- paste0(chr, ":", min(c((abs(position - 50)),0)), "-", position + 50)
     xml <- XML::xmlTree()
     suppressWarnings(xml$addTag("Global",

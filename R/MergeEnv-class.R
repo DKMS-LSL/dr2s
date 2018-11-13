@@ -72,8 +72,8 @@ MergeEnv_ <- R6::R6Class(
       } else NULL
     },
     print = function(left = 3, right = left, ...) {
-      for (hptype in self$hptypes){
-        self$showMatrix(hptype, left = left, right = right)
+      for (hp in self$hptypes) {
+        self$showMatrix(hp, left = left, right = right)
         cat("\n")
       }
     }
@@ -85,27 +85,26 @@ MergeEnv_$set("public", "init", function(hapEnv) {
   hapEnv <- match.arg(hapEnv, self$x$getHapTypes())
   envir <- self$hptypes[[hapEnv]]
 
-  readtype <- ifelse(!is.null(self$x$mapFinal$sreads[[hapEnv]]), "SR", "LR")
-
+  readtype <- ifelse(self$x$hasShortreads(), "SR", "LR")
   if (readtype == "SR") {
-    lr <- self$x$mapFinal$pileup[["LR" %<<% hapEnv]]$consmat
-    sr <- self$x$mapFinal$pileup[["SR" %<<% hapEnv]]$consmat
+    lr <- consmat(self$x$mapFinal$LR[[hapEnv]]$pileup, prob = FALSE)
+    sr <- consmat(self$x$mapFinal$SR[[hapEnv]]$pileup, prob = FALSE)
     rs <- .equaliseConsmat(lrm = lr, srm = sr)
     envir$LR <- rs$lrm
     envir$SR <- rs$srm
-  } else {
-    envir$LR <- self$x$mapFinal$pileup[["LR" %<<% hapEnv]]$consmat
+  }
+  else if (readtype == "LR") {
+    envir$LR <- consmat(self$x$mapFinal$LR[[hapEnv]]$pileup, prob = FALSE)
     envir$SR <- NULL
   }
 
   apos <- foreach(rt = c("LR", "SR"), .combine = c) %do% {
     # threshold <- ifelse(rt == "LR", max(c(threshold, 0.2)), threshold)
+    # rt = "LR"
     .ambiguousPositions(envir[[rt]], self$threshold)
   }
   apos <- unique(sort(apos))
-
-  envir$POSit = itertools::ihasNext(
-    iter(apos))
+  envir$POSit = itertools::ihasNext(iter(apos))
   envir$variants = list()
   envir$pos = 1L
   envir$currentVariant = NULL
@@ -159,7 +158,7 @@ MergeEnv_$set("private", "stepThrough", function(envir) {
                       iterators::nextElem(envir$POSit) + offsetBases(envir$LR))
   # p  <- envir$pos
   # x  <- yield(envir)
-  rs <- disambiguateVariant(yield(envir), threshold = self$threshold)
+  rs <- disambiguateVariant(x = yield(envir), threshold = self$threshold)
 
   .update(envir) <- rs
   TRUE
@@ -225,38 +224,37 @@ MergeEnv_$set("public", "showMatrix", function(envir, pos, left = 6,
 MergeEnv_$set("public", "export", function() {
   cons <- structure(
     c(
-      foreach(hptype = self$x$getHapTypes(),
+      foreach(hp = self$x$getHapTypes(),
               .final = function(x) setNames(x, self$x$getHapTypes())) %do% {
-                envir <- self$hptypes[[hptype]]
+                envir <- self$hptypes[[hp]]
                 list(
-                  matrix = ifelse(!is.null(envir$SR), envir$SR, envir$LR),
+                  matrix = if (!is.null(envir$SR)) envir$SR else envir$LR,
                   variants = compact(envir$variants)
                 )
               },
       ## consensus for checking with ambigs
-      seq = list(foreach(hptype = self$x$getHapTypes(),
+      seq = list(foreach(hp = self$x$getHapTypes(),
                          .final = function(x)
                            setNames(x, self$x$getHapTypes())) %do% {
-                           self$x$mapFinal$pileup
-                             reads <- if (!is.null(self$hptypes[[hptype]]$SR)){
-                             self$hptypes[[hptype]]$SR
-                           } else {
-                             self$x$mapFinal$pileup[["LR"%<<%hptype]]$consmat
-                           }
-                           cseq <- conseq(reads, "hap"%<<%hptype, "ambig", suppressAllGaps = TRUE, threshold = self$threshold)
-                           metadata(cseq) <- list()
-                           cseq
-                         }),
+                             cmat <- if (!is.null(self$hptypes[[hp]]$SR)) {
+                               self$hptypes[[hp]][["SR"]]
+                             } else {
+                               consmat(self$x$mapFinal$LR[[hp]]$pileup)
+                             }
+                             cseq <- conseq(cmat, "hap" %<<% hp, "ambig", suppressAllGaps = TRUE, threshold = self$threshold)
+                             metadata(cseq) <- list()
+                             cseq
+                           }),
       ## consensus for remapping without ambigs
-      noAmbig = list(foreach(hptype = self$x$getHapTypes(),
+      noAmbig = list(foreach(hp = self$x$getHapTypes(),
                              .final = function(x)
                                setNames(x, self$x$getHapTypes())) %do% {
-                                 reads <- if (!is.null(self$hptypes[[hptype]]$SR)) {
-                                   self$hptypes[[hptype]]$SR
+                                 cmat <- if (!is.null(self$hptypes[[hp]]$SR)) {
+                                   self$hptypes[[hp]]$SR
                                  } else {
-                                   self$x$mapFinal$pileup[["LR"%<<%hptype]]$consmat
+                                   consmat(self$x$mapFinal$LR[[hp]]$pileup)
                                  }
-                                 cseq <- conseq(reads, "hap"%<<%hptype, "prob", suppressAllGaps = TRUE)
+                                 cseq <- conseq(cmat, "hap" %<<% hp, "prob", suppressAllGaps = TRUE)
                                  metadata(cseq) <- list()
                                  cseq
                                })

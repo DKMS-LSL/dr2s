@@ -108,7 +108,8 @@ SR_PIPELINE <- function() {
     "partitionShortreads",
     "mapFinal",
     "polish",
-    "report"
+    "report",
+    "cache"
   )
 }
 
@@ -117,6 +118,8 @@ LR_PIPELINE <- function() {
     "mapInit",
     "partitionLongreads",
     "mapIter",
+    "mapFinal",
+    "polish",
     "report",
     "cache"
   )

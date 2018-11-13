@@ -38,6 +38,10 @@ polymorphicPositions.pileup <- function(x, threshold = NULL) {
 .ambiguousPositions <- function(x, threshold)
   UseMethod(".ambiguousPositions")
 
+.ambiguousPositions.NULL <- function(x, threshold) {
+  integer(0)
+}
+
 .ambiguousPositions.consmat <- function(x, threshold) {
   f_ <- function(row) {
     sum(row > threshold) > 1L

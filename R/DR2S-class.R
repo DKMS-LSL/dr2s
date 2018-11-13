@@ -67,11 +67,11 @@ DR2S_ <- R6::R6Class(
   public = list(
     ## Public fields
     mapInit     = list(), ## <MapList>;
-    partition   = list(), ## <PartList>;
+    lrpartition = list(), ## <PartList>;
     mapIter     = list(), ## <MapList>;
     srpartition = list(), ## <PartList>;
     mapFinal    = list(), ## <MapList>;
-    consensus   = list(), ## <ConsList>; Final consensus sequences for A and B
+    consensus   = list(), ## <ConsList>;
     ## Public functions
     initialize  = function(conf, createOutdir = TRUE) {
       private$conf = initialiseDR2S(conf, createOutdir = createOutdir)
@@ -93,6 +93,8 @@ DR2S_ <- R6::R6Class(
           "mapInit")
       }
       .confLog(outdir = private$conf$outdir, logName = "info")
+      private$srStatus = self$checkGetShortreads()
+      private$lrStatus = self$checkGetLongreads()
       writeDR2SConf(self)
       flog.info("Creating DR2S Object", name = "info")
     },
@@ -127,6 +129,9 @@ DR2S_ <- R6::R6Class(
           private$conf$outdir,
           "mapInit")
       }
+      .confLog(outdir = private$conf$outdir, logName = "info")
+      private$srStatus = self$checkGetShortreads()
+      private$lrStatus = self$checkGetLongreads()
       writeDR2SConf(self)
       invisible(self)
     },
@@ -346,10 +351,6 @@ DR2S_ <- R6::R6Class(
       self$getConfig("reference")
     },
     ##
-    getHPC = function() {
-      self$getConfig("longreads")$hpc
-    },
-    ##
     getPlatform = function() {
       self$getDetails("platform") %||%
         self$getConfig("longreads")$platform  %||%
@@ -398,16 +399,10 @@ DR2S_ <- R6::R6Class(
                  self$getDetails()[item]),
                  underscore(litQuote(self$getDetails()[item])),
                  sep = "="), FUN.VALUE = character(1)))
-
-      sr <- try(self$getShortreads(), silent = TRUE)
-      sr <- !(is(sr, "try-error") || is.null(sr))
-
-      lr <- try(self$getLongreads(), silent = TRUE)
-      lr <- !(is(lr, "try-error") || is.null(lr))
-
+      sr <- self$hasShortreads()
+      lr <- self$hasLongreads()
       paste("locus=" %<<% litQuote(self$getLocus()),
             "ref=" %<<% litQuote(self$getReference()),
-            "hpc=" %<<% litQuote(self$getHPC()),
             details,
             "short_read_data=" %<<% litQuote(ifelse(sr, "yes", "no")),
             "short_read_type=" %<<% litQuote(ifelse(sr, self$getSrdType(), "")),
@@ -497,25 +492,31 @@ DR2S_ <- R6::R6Class(
     },
     ##
     getSnpMatrix = function() {
-      self$partition$mat
+      self$lrpartition$mat
     },
     ##
     getPartition = function() {
-      self$partition$prt
+      self$lrpartition$prt
     },
     ##
     getHapList = function(group) {
       if (missing(group)) {
-        self$partition$hpl
+        self$lrpartition$hpl
       } else {
-        self$partition$hpl[[group]]
+        self$lrpartition$hpl[[group]]
       }
     },
     ##
     getLatestRefPath = function() {
       ##
-      if (self$hasMapFinal()) {
-        return(self$absPath(self$mapFinal$seq))
+      if (self$hasMapFinal() && self$hasShortreads()) {
+        return(vapply(self$mapFinal$SR, function(x) self$absPath(conspath(x)),
+                      FUN.VALUE = character(1)))
+      }
+      ##
+      if (self$hasMapFinal() && self$hasLongreads()) {
+        return(vapply(self$mapFinal$LR, function(x) self$absPath(conspath(x)),
+                      FUN.VALUE = character(1)))
       }
       ##
       if (self$hasMapIter()) {
@@ -531,42 +532,6 @@ DR2S_ <- R6::R6Class(
     getLatestRef = function() {
       filepath <- self$getLatestRefPath()
       Biostrings::readDNAStringSet(filepath, use.names = TRUE)
-      # if (!is.null(self$consensus$seq)) {
-      #   return(self$consensus$seq)
-      # } else if (length(self$mapFinal) > 0) {
-      #   return(self$mapFinal$seq)
-      # } else if (length(self$mapIter) > 0) {
-      #   latest <- self$mapIter[[
-      #     max(names(self$mapIter))]][self$getHapTypes()]
-      #   return(lapply(latest, function(x) x$conseq))
-      # } else {
-      #   return(self$getRefSeq())
-      # }
-    },
-    ##
-    getConseqs = function(group = NULL, mapn = 1) {
-      group <- match.arg(group, self$getHapTypes)
-      if (mapn == 1) {
-        ref <- self$mapIter[["0"]][[group]]$conseq$reference %||%
-          Biostrings::BStringSet()
-        Biostrings::BStringSet()
-      } else if (mapn == 2) {
-        ref <- Biostrings::BStringSet()
-      }
-      seqs <- tryCatch({
-        Biostrings::DNAStringSet(ref)
-      }, error = function(e) {
-        warning("Possibly indels in consensus")
-        Biostrings::DNAStringSet(stripIndel(ref))
-      })
-      metadata(seqs) <- compact(list(
-        ref = tryCatch(
-          metadata(ref)$zscore,
-          error = function(e)
-            NULL
-        )
-      ))
-      seqs
     },
     ##
     getMapTag = function(iter = "init", group = NULL, ref = "LR") {
@@ -582,9 +547,9 @@ DR2S_ <- R6::R6Class(
         return(tag(self$mapInit))
       }
       if (iter == "final") {
-        group = match.arg(group, self$getHapTypes())
-        ref = match.arg(ref, c("LR", "SR"))
-        return(self$mapFinal$tag[[ref %<<% group]])
+        group <- match.arg(group, self$getHapTypes())
+        ref <- match.arg(ref, c("LR", "SR"))
+        return(tag(self$mapFinal[[ref]][[group]]))
       }
     },
     ##
@@ -594,7 +559,7 @@ DR2S_ <- R6::R6Class(
       if (is.numeric(iteration)) {
         self$mapIter[[as.character(iteration)]][[group]]$pileup
       } else {
-        self$mapFinal$pileup[[ref %<<% group]]
+        self$mapFinal[[ref]][[group]]$pileup
       }
     },
     ##
@@ -644,9 +609,9 @@ DR2S_ <- R6::R6Class(
       )
     },
     ##
-    hasPartition = function() {
+    hasLrdPartition = function() {
       tryCatch(
-        is(self$partition$prt, "HapPart"),
+        is(self$lrpartition$prt, "HapPart"),
         error = function(e)
           FALSE
       )
@@ -654,7 +619,7 @@ DR2S_ <- R6::R6Class(
     ##
     hasHapList = function() {
       tryCatch(
-        is(self$partition$hpl, "HapList"),
+        is(self$lrpartition$hpl, "HapList"),
         error = function(e)
           FALSE
       )
@@ -671,20 +636,28 @@ DR2S_ <- R6::R6Class(
     ##
     hasMapFinal = function() {
       tryCatch(
-        is(self$mapFinal, "mapFinal"),
+        all(vapply(self$mapFinal$LR, is, "MapList", FUN.VALUE = logical(1))),
         error = function(e)
           FALSE
       )
     },
     ##
-    hasShortreads = function() {
+    checkGetShortreads = function() {
       sr <- try(self$getShortreads(), silent = TRUE)
       !(is(sr, "try-error") || is.null(sr))
     },
     ##
-    hasLongreads = function() {
+    hasShortreads = function() {
+      private$srStatus
+    },
+    ##
+    checkGetLongreads = function() {
       lr <- try(self$getLongreads(), silent = TRUE)
       !(is(lr, "try-error") || is.null(lr))
+    },
+    ##
+    hasLongreads = function() {
+      private$lrStatus
     },
     ##
     ## Plotting methods ####
@@ -810,7 +783,7 @@ DR2S_ <- R6::R6Class(
       polymorphicPositions(pileup, threshold)
     },
     ##
-    plotmapInitSummary = function(thin = 0.2, width = 4, label = "") {
+    plotMapInitSummary = function(thin = 0.2, width = 4, label = "") {
       readtypes <- if (self$hasShortreads()) {
         c("SR", "LR")
       } else {
@@ -843,7 +816,7 @@ DR2S_ <- R6::R6Class(
       }
     },
     ##
-    plotmapIterSummary = function(thin = 0.2, width = 10, iteration = 0,
+    plotMapIterSummary = function(thin = 0.2, width = 10, iteration = 0,
                                   drop.indels = TRUE) {
       hptypes <- self$getHapTypes()
       if (iteration == self$getIterations()) {
@@ -856,6 +829,22 @@ DR2S_ <- R6::R6Class(
                                threshold = NULL, range = NULL, thin, width,
                                label = tag, drop.indels = drop.indels)
       }
+      cowplot::plot_grid(plotlist = plotlist, labels = hptypes)
+    },
+    ##
+    plotMapFinalSummary = function(readtype, thin = 0.2, width = 10,
+                                   iteration = "final") {
+      hptypes <- self$getHapTypes()
+      ## hp = "A"
+      plotlist <- foreach(hp = hptypes) %do% {
+        tag <- self$getMapTag(iter = iteration, group = hp, ref = readtype)
+        ref <- readtype %<<% hp
+        self$plotGroupCoverage(group = hp, ref = readtype,
+                               iteration = iteration, threshold = NULL,
+                               range = NULL, thin = thin,
+                               width = width, label = tag)
+      }
+
       cowplot::plot_grid(plotlist = plotlist, labels = hptypes)
     },
     ##
@@ -881,37 +870,6 @@ DR2S_ <- R6::R6Class(
               axis.ticks.y = ggplot2::element_blank(),
               strip.text.y = ggplot2::element_text(face = "bold",
                                                    size = 42, angle = 180))
-    },
-    ##
-    plotmapFinalSummary = function(readtype, thin = 0.2, width = 10,
-                                   iteration = "final") {
-      hptypes <- self$getHapTypes()
-      plotlist <- foreach(hp = hptypes) %do% {
-        tag <- self$getMapTag(iteration, hp, readtype)
-        ref <- readtype %<<% hp
-        self$plotGroupCoverage(group = hp, ref = readtype,
-                               iteration = iteration, threshold = NULL,
-                               range = NULL, thin = thin,
-                               width = width, label = tag)
-      }
-
-      cowplot::plot_grid(plotlist = plotlist, labels = hptypes)
-    },
-    ##
-    getmapIterConseqPileup = function(group) {
-      conseq <- self$getConseqs(group, 2)
-      pileup <- self$getGroupPileup(group, reads = "pacbio2")
-      cutoff <- self$mapIter[[group]]$params$pruningCutoff
-      cm <- consmat.pileup(pileup, freq = FALSE)
-      cm <- cm[, which(.colSums(cm, NROW(cm), NCOL(cm)) > 0)]
-      cm <- .pruneConsensusMatrix(cm, cutoff = cutoff, verbose = FALSE)
-      if (!is.null(attr(cm, "pruningPosition"))) {
-        cm <- cm[-attr(cm, "pruningPosition"), ]
-      }
-      dplyr::bind_cols(dplyr::data_frame(
-        seq = strsplit1(toString(conseq), "")
-      ),
-      as.data.frame(cm))
     }
   ),
   ##
@@ -920,7 +878,9 @@ DR2S_ <- R6::R6Class(
   private = list(
     conf         = NULL,
     runstats     = NULL,
-    reportStatus = NULL
+    srStatus     = FALSE,
+    lrStatus     = FALSE,
+    reportStatus = FALSE
   )
 )
 

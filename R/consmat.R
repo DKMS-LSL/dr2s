@@ -248,12 +248,12 @@ createPWM <- function(msa){
   # Need to calc first a count based consensus matrix, while removing "+".
   # Prob is calculated afterwards.
   cmat <- as.matrix(Biostrings::consensusMatrix(msa, as.prob = FALSE))
-  cmat <- as.matrix(cmat[VALID_DNA("del"),])
+  cmat <- cmat[VALID_DNA("del"), ]
   cmat <- sweep(cmat, 2, colSums(cmat), "/")
   ## Add pseudocount
   cmat <- cmat + 1/length(msa)
   ## Divide by DNA_PROBABILITIES
-  cmat <- cmat / DNA_PROB(include = "del")
+  cmat <- cmat/DNA_PROB(include = "del")
   ## Get log2likelihood ratio
   cmat <- log2(cmat)
   cmat <- rbind(cmat, "+" = 0)
@@ -267,11 +267,13 @@ createPWM <- function(msa){
   seq <- .mat2rle(mat)
   if (removeError) {
     gapError <- .getGapErrorBackground(mat, n = 5)
+    flog.info("%sEstimate indel noise <%0.4g> to suppress spurious gaps", indent(),
+              gapError, name = "info")
   }
   workers <- min(sum(idx <- seq$length > 5), .getIdleCores())
   bpparam <- BiocParallel::MulticoreParam(workers = workers, log = FALSE)
-  flog.info("%sUse %s workers to distribute gaps at positions <%s>",
-            indent(), workers, comma(which(idx)), name = "info")
+  flog.info("%sUse %s workers to shift gaps at positions <%s>", indent(),
+            workers, comma(which(idx)), name = "info")
   bam <- Rsamtools::BamFile(bamfile)
   if (workers > 1) {
     Rsamtools::open.BamFile(bam)

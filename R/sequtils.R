@@ -276,21 +276,20 @@
 #' @examples
 #' ###
 #' @export
-checkHomoPolymerCount <- function(x, count = 10, map = "mapFinal") {
+checkHomoPolymerCount <- function(x, hpCount = 8, map = "mapFinal") {
   assert_that(is(x, "DR2S"))
   map <- match.arg(map, c("mapFinal", "refine"))
   hptypes <- x$getHapTypes()
   if (map == "mapFinal") {
-    if (length(hptypes) > 1) {
-      lastIter <- x$mapIter[[max(names(x$mapIter))]]
-      refseqs <- set_names(lapply(hptypes, function(x) lastIter[[x]]$conseq),
-                           hptypes)
-      bambase <- x$mapFinal$bamfile
+    refseqs <- stats::setNames(x$getLatestRef(), hptypes)
+    bambase <- if (x$hasShortreads()) {
+      stats::setNames(lapply(hptypes, function(hp)
+        x$absPath(bampath(x$mapFinal[["SR"]][[hp]]))), hptypes)
     } else {
-      refseqs <- list(A = x$mapInit$SR1$conseq)
-      bambase <- x$mapInit$SR2$bamfile
+      stats::setNames(lapply(hptypes, function(hp)
+        x$absPath(bampath(x$mapFinal[["LR"]][[hp]]))), hptypes)
     }
-    x$mapFinal$homopolymers <- list()
+    x$consensus$homopolymers <- list()
     plotname <- "plot.homopolymers.pdf"
   } else if (map == "refine") {
     refseqs <- lapply(x$consensus$refine$ref, function(hp) {
@@ -306,35 +305,32 @@ checkHomoPolymerCount <- function(x, count = 10, map = "mapFinal") {
   p <- foreach(hp = hptypes) %do% {
     seq <- refseqs[[hp]]
     seqrle <- .seq2rle(seq)
-    n <- which(seqrle$lengths > count)
+    n <- which(seqrle$lengths > hpCount)
     if (length(n) == 0) {
       return(NULL)
     }
-
-    bamfile <- file.path(
-      x$getOutdir(), ifelse(length(hptypes) == 1, bambase, bambase["SR" %<<% hp]))
-
+    bamfile <- bambase[[hp]]
     bam <- Rsamtools::BamFile(bamfile)
-    Rsamtools::open.BamFile(bam)
-    on.exit(Rsamtools::close.BamFile(bam))
-
+    #pos = n[1]
     homopolymersHP <- foreach(pos = n, .combine = rbind) %do% {
       positionHP <- sum(seqrle$length[seq_len(pos - 1)])#+1
       lenHP <- seqrle$lengths[pos]
       range <- c(positionHP - 10, positionHP + lenHP + 10)
+      Rsamtools::open.BamFile(bam)
       msa <- .msaFromBam(bam, range)
+      Rsamtools::close.BamFile(bam)
       covering <- vapply(msa, function(a, lenHP) {
         nchar(gsub(pattern = "\\+", "", toString(a))) == lenHP + 21
         }, lenHP = lenHP, FUN.VALUE = logical(1), USE.NAMES = TRUE)
       msa <- msa[covering]
       readsOI <- names(msa)
       ins <- .getInsertions(bamfile,
-                            inpos = c(positionHP-1, positionHP, positionHP - 2),
+                            inpos = c(positionHP - 1, positionHP, positionHP - 2),
                             reads = readsOI,
                             readtype = "illumina")
       if (length(ins) > 0) {
         ins <- ins[[1]]
-        msa <- unlist( Biostrings::DNAStringSetList(
+        msa <- unlist(Biostrings::DNAStringSetList(
           set_names(lapply(names(msa), function(a) {
               if (a %in% names(ins)) {
                 firstSeq <- unlist(Biostrings::subseq(msa[a], start = 1,
@@ -356,12 +352,13 @@ checkHomoPolymerCount <- function(x, count = 10, map = "mapFinal") {
     modes <- homopolymersHP %>%
       dplyr::group_by(.data$position) %>%
       dplyr::summarise(mode = .getModeValue(length))
+
     for (i in seq_len(NROW(modes))) {
       modeHP <- modes[i,]
       flog.info("%s: Mode for homopolymer at position %s: %s",
                 hp, modeHP$position, modeHP$mode)
       if (map == "mapFinal") {
-        x$mapFinal$homopolymers[[hp]][[
+        x$consensus$homopolymers[[hp]][[
           as.character(modeHP$position)]] <- modeHP$mode
       } else if (map == "refine") {
         x$consensus$homopolymers[[hp]][[
@@ -377,6 +374,7 @@ checkHomoPolymerCount <- function(x, count = 10, map = "mapFinal") {
       theme_minimal()
     list(n = n, plot = plots)
   }
+
   if (!all(is.null(unlist(p)))) {
     plots <- lapply(p, function(x) x$plot)
     n <- max(vapply(p, function(x) length(x$n), FUN.VALUE = integer(1)))
@@ -389,5 +387,6 @@ checkHomoPolymerCount <- function(x, count = 10, map = "mapFinal") {
               base_width = 7*length(hptypes),
               base_height = 7*length(n))
   }
+
   return(invisible(x))
 }
