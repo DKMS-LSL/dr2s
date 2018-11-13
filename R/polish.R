@@ -55,7 +55,7 @@ polish.DR2S <- function(x,
 
   ## Check homopolymer count; Only check if the count is found in both
   if (checkHpCount) {
-    checkHomoPolymerCount(rs, hpCount = hpCount)
+    checkHomopolymerCount(rs, hpCount = hpCount)
     vars <- rbind(vars, foreach(hp = hptypes, .combine = rbind) %do% {
       if (hp %in% names(rs$consensus$homopolymers)) {
         seq <- rs$consensus$seq[[hp]]

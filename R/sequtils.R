@@ -266,17 +266,16 @@
 }
 
 
-#' Get a distribution of homopolymer count in alleles;
+#' Get a distribution of homopolymer counts in alleles
 #'
-#' @param x a DR2S object
-#' @param count the minimal length of a homopolymer to be found (10)
-#' @param map Which result to use. Either "mapFinal" or "refine"
-#'
+#' @param x a DR2S object.
+#' @param hpCount the minimal length of a homopolymer to be checked (10).
+#' @param map Which result to use. Either "mapFinal" or "refine".
 #' @return plot a pdf with length histogram and write mode to log
 #' @examples
 #' ###
 #' @export
-checkHomoPolymerCount <- function(x, hpCount = 8, map = "mapFinal") {
+checkHomopolymerCount <- function(x, hpCount = 10, map = "mapFinal") {
   assert_that(is(x, "DR2S"))
   map <- match.arg(map, c("mapFinal", "refine"))
   hptypes <- x$getHapTypes()
@@ -305,7 +304,7 @@ checkHomoPolymerCount <- function(x, hpCount = 8, map = "mapFinal") {
   p <- foreach(hp = hptypes) %do% {
     seq <- refseqs[[hp]]
     seqrle <- .seq2rle(seq)
-    n <- which(seqrle$lengths > hpCount)
+    n <- which(seqrle$lengths >= hpCount)
     if (length(n) == 0) {
       return(NULL)
     }

@@ -797,11 +797,7 @@ DR2S_$set("public", "runPartitionShortreads", function(opts = list(),
     srfilenames <- c()
     flog.info("%sWrite shortread fastq for haplotype <%s>", indent2(), hp, name = "info")
     fqs <- self$getShortreads()
-    # dontUseReads <- srpartition$haplotypes$read[
-    #   !srpartition$haplotypes$read %in% dplyr::filter(
-    #     srpartition$haplotypes, haplotype == hptype)$read]
     dontUse <- dplyr::filter(srpartition$haplotypes, haplotype != hp)$read
-    # write fastq's
     # fq <- fqs[1]
     foreach(fq = fqs) %do% {
       fqPart <- self$absPath(
@@ -895,12 +891,6 @@ DR2S_$set("public", "runMapFinal", function(opts = list(),
     columnOccupancy <- 2/5
   }
 
-  ## stop if no shortreads provided
-  # if (!self$hasShortreads()) {
-  #   flog.warn("%sCannot run mapFinal. No shortreads provided", indent(), name = "info")
-  #   return(invisible(self))
-  # }
-
   igv <- list()
   maplabel <- "mapFinal"
   outdir   <- .dirCreateIfNotExists(self$absPath(maplabel))
@@ -916,14 +906,12 @@ DR2S_$set("public", "runMapFinal", function(opts = list(),
   }
   ## hp = "A"
   ## hp = "B"
-  indent2 <- incr(indent)
   for (hp in hptypes) {
     flog.info("%sFor haplotype <%s>", indent(), hp, name = "info" )
     reffile <- reffiles[[hp]]
     ##
     ## [1] Map longreads
     ##
-    flog.info("%sMap longreads", indent2(), name = "info")
     refname  <- "LR" %<<% hp
     mapfun   <- self$getLrdMapFun()
     readfile <- readfilesLR[[hp]]
@@ -935,7 +923,7 @@ DR2S_$set("public", "runMapFinal", function(opts = list(),
       callInsertions = FALSE, callInsertionThreshold = callInsertionThreshold,
       clip = FALSE, distributeGaps = TRUE, removeError = TRUE, topx = 0,
       force = force, clean = TRUE,  max_depth = 1e4, min_mapq = 0,
-      indent = incr(indent2))#, ...)
+      indent = incr(indent), ...)
     ## Create igv
     if (createIgv) {
       igv <- createIgvJsFiles(
@@ -946,7 +934,7 @@ DR2S_$set("public", "runMapFinal", function(opts = list(),
     consname <- maplabel %<<% ".consensus." %<<% refname
     conspath <- file.path(outdir, consname %<<% ".fa")
     names(conspath) <- self$relPath(conspath)
-    flog.info("%sConstruct consensus <%s>", indent2(), names(conspath), name = "info")
+    flog.info("%sConstruct consensus <%s>", indent(), names(conspath), name = "info")
     conseq <- .writeConseq(x = pileup, name = consname, type = "ambig",
                            threshold = 1/4, suppressAllGaps = TRUE,
                            replaceIndel = "", conspath = conspath)
@@ -972,7 +960,6 @@ DR2S_$set("public", "runMapFinal", function(opts = list(),
       ##
       ## [2] Map shortreads
       ##
-      flog.info("%sMap shortreads", indent2(), name = "info")
       refname  <- "SR" %<<% hp
       mapfun   <- self$getSrdMapFun()
       readfile <- readfilesSR[[hp]]
@@ -984,7 +971,7 @@ DR2S_$set("public", "runMapFinal", function(opts = list(),
         callInsertions = TRUE, callInsertionThreshold = callInsertionThreshold,
         clip = FALSE, distributeGaps = TRUE, removeError = TRUE, topx = 0,
         force = force, clean = TRUE, max_depth = 1e5, min_mapq = 50,
-        min_base_quality = 13, indent = incr(indent2))#, ...)
+        min_base_quality = 13, indent = incr(indent), ...)
       ## Create igv
       if (createIgv) {
         igv <- createIgvJsFiles(
@@ -994,7 +981,7 @@ DR2S_$set("public", "runMapFinal", function(opts = list(),
       consname <- maplabel %<<% ".consensus." %<<% refname
       conspath <- file.path(outdir, consname %<<% ".fa")
       names(conspath) <- self$relPath(conspath)
-      flog.info("%sConstruct consensus <%s>", indent2(), names(conspath), name = "info")
+      flog.info("%sConstruct consensus <%s>", indent(), names(conspath), name = "info")
       conseq <- .writeConseq(x = pileup, name = consname, type = "ambig",
                              threshold = 1/4, suppressAllGaps = TRUE,
                              replaceIndel = "", conspath = conspath)
@@ -1031,8 +1018,7 @@ DR2S_$set("public", "runMapFinal", function(opts = list(),
     p <- cowplot::plot_grid(plotlist = plotlist, nrow = plotRows, labels = readtypes)
     cowplot::save_plot(p, filename = self$absPath("plot.MapFinal.pdf"),
                        base_width = 12*length(hptypes),
-                       title = paste(self$getLocus(), self$getSampleId(),
-                                         sep = "." ),
+                       title = paste(self$getLocus(), self$getSampleId(), sep = "." ),
                        base_height = 3*length(readtypes))
     cowplot::save_plot(p, filename = self$absPath(".plots/plot.MapFinal.svg"),
                        base_width = 12*length(hptypes),

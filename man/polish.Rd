@@ -5,15 +5,17 @@
 \title{Polish final haplotype sequences.}
 \usage{
 polish(x, threshold = x$getThreshold(), checkHpCount = TRUE,
-  cache = TRUE, ...)
+  hpCount = 10, cache = TRUE, ...)
 }
 \arguments{
 \item{x}{A \code{\link[=DR2S_]{DR2S}} object.}
 
 \item{threshold}{When do we call a variant a variant.}
 
-\item{checkHpCount}{Check the number of homopolymer counts in shortreads.
+\item{checkHpCount}{Check the number of homopolymer counts.
 Compare the resulting sequence with the mode value and report differences.}
+
+\item{hpCount}{The minimal length of a homopolymer to be checked.}
 
 \item{cache}{Cache the updated \code{DR2S} object after assembling the
 haplotypes.}

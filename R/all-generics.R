@@ -348,8 +348,9 @@ partitionShortreads <- function(x,
 #'
 #' @param x A \code{\link[=DR2S_]{DR2S}} object.
 #' @param threshold When do we call a variant a variant.
-#' @param checkHpCount Check the number of homopolymer counts in shortreads.
+#' @param checkHpCount Check the number of homopolymer counts.
 #' Compare the resulting sequence with the mode value and report differences.
+#' @param hpCount The minimal length of a homopolymer to be checked.
 #' @param cache Cache the updated \code{DR2S} object after assembling the
 #' haplotypes.
 #' @param ... Additional arguments passed to methods.
@@ -377,6 +378,7 @@ partitionShortreads <- function(x,
 polish <- function(x,
                    threshold = x$getThreshold(),
                    checkHpCount = TRUE,
+                   hpCount = 10,
                    cache = TRUE,
                    ...) {
   UseMethod("polish")

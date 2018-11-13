@@ -222,16 +222,6 @@ pileup <- function(bamfile,
       tibble::tibble(read = names(msa[i]), score = .PWMscore(msa[[i]], pwm))
     }, msa = msa, pwm = pwm, BPPARAM = bpparam)))
 
-  # res <- do.call(dplyr::bind_rows, suppressWarnings(BiocParallel::bplapply(seq_along(msa),
-  #   function(s, msa, pwm) {
-  #     ## TODO: Make this CPP
-  #     read     <- strsplit1(as.character(msa[[s]]), split = "")
-  #     readname <- names(msa[s])
-  #     b <- sum(vapply(seq_along(read), function(i, pwm, read) pwm[read[i], i],
-  #                     pwm = pwm, read = read, FUN.VALUE = numeric(1)))/length(read)
-  #     tibble::tibble(read = readname, score = b)
-  #   }, msa = msa, pwm = pwm, BPPARAM = bpparam)))
-
   reads <- if (topx == "auto") {
     .pickTopReads(res, f = 3/5)
   } else {
@@ -263,14 +253,6 @@ pileup <- function(bamfile,
   readsum <- vapply(scorecut, function(cutoff)
     sum(x$score >= cutoff), FUN.VALUE = double(1))
   optcoef <- scorecut[which.max((readsum^f)*scorecut)]
-  # df <- tibble::tibble(
-  #   x = seq_along(res$score),
-  #   score = sort(res$score),
-  #   pick = sort(res$score) >= optcoef
-  # )
-  # p <- ggplot(df, aes(x, score, colour = pick)) +
-  #   geom_point()
-  #sum(res$score >= optcoef)
   dplyr::filter(x, score >= optcoef)$read
 }
 
