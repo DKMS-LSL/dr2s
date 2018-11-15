@@ -236,7 +236,7 @@
 
 .getSeqsFromMat <- function(mat){
   seqs <- apply(mat, 1, function(t) c(unlist(paste(t, collapse = ""))))
-  seqs <- seqs[nchar(stripIndel(seqs)) > 0]
+  seqs <- seqs[nchar(stripIndel(seqs, replace = "")) > 0]
   Biostrings::DNAStringSet(seqs)
 }
 

@@ -165,6 +165,13 @@ wrap <- function(x, wrap = "\"") {
   sprintf("%s%s%s", wrap, x, wrap)
 }
 
+rescale <- function(x, lower, upper) {
+  min <- min(x)
+  max <- max(x)
+  (((upper - lower)*(x - min))/(max - min)) + lower
+}
+
+
 `%||%` <- function(a, b) {
   if (length(a) == 0) b else a
 }

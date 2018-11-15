@@ -244,7 +244,7 @@ is.freq.consmat <- function(consmat) attr(consmat, "freq")
 #' @examples
 #' print("TODO: Add examples")
 #' ###
-createPWM <- function(msa){
+createPWM <- function(msa) {
   # Need to calc first a count based consensus matrix, while removing "+".
   # Prob is calculated afterwards.
   cmat <- as.matrix(Biostrings::consensusMatrix(msa, as.prob = FALSE))

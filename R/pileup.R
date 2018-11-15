@@ -207,25 +207,23 @@ pileup <- function(bamfile,
     use.names = TRUE)
 }
 
-.topXReads <- function(bamfile, topx = "auto", ...) {
+.pickTopXReads <- function(bamfile,
+                           topx = "auto",
+                           pickiness = 1,
+                           lower_limit = 200,
+                           ...) {
   indent <- list(...)$indent %||% indentation()
   msa <- .msaFromBam(Rsamtools::BamFile(bamfile))
   ## there is no point in sampling if
   if (is.numeric(topx) && length(msa) <= topx) {
-    flog.info("%sNothing to extract from %s mapped longreads", indent(), length(msa), name = "info")
+    flog.info("%sNothing to pick from %s mapped longreads", indent(), length(msa), name = "info")
     return(names(msa))
   }
-  pwm <- createPWM(msa)
-  bpparam <- BiocParallel::MulticoreParam(workers = .getIdleCores())
-  res <- do.call(dplyr::bind_rows, suppressWarnings(BiocParallel::bplapply(seq_along(msa),
-    function(i, msa, pwm) {
-      tibble::tibble(read = names(msa[i]), score = .PWMscore(msa[[i]], pwm))
-    }, msa = msa, pwm = pwm, BPPARAM = bpparam)))
-
+  scores <- .PWMscore(msa)
   reads <- if (topx == "auto") {
-    .pickTopReads(res, f = 3/5)
+    .pickReads(scores, pickiness, lower_limit)
   } else {
-    dplyr::top_n(res, topx, score)$read
+    dplyr::top_n(scores, topx, score)$read
   }
 
   flog.info("%sFrom %s mapped longreads extract the %0.3g%% (%s) top-scoring reads",
@@ -235,10 +233,22 @@ pileup <- function(bamfile,
   reads
 }
 
-.PWMscore <- function(read, pwm) {
+# Score multiple sequence alignment
+# @param msa A DNAStringset
+# @return A tibble with columns <read, score>
+.PWMscore <- function(msa) {
+  assert_that(is(msa, "XStringSet"))
+  pwm <- createPWM(msa)
+  bpparam <- BiocParallel::MulticoreParam(workers = .getIdleCores())
+  do.call(dplyr::bind_rows, suppressWarnings(
+    BiocParallel::bplapply(seq_along(msa),
+     function(i, msa, pwm) {
+       tibble::tibble(read = names(msa[i]), score = .read_score(msa[[i]], pwm))
+   }, msa = msa, pwm = pwm, BPPARAM = bpparam)))
+}
+
+.read_score <- function(read, pwm) {
   ## expect read to be a DNAString or DNAStringSet instance
-  ## this is 25x faster than the vapply loop
-  ## nxm
   n <- NROW(pwm)
   m <- NCOL(pwm)
   read <- strsplit(as.character(read), split = "")[[1L]]
@@ -247,13 +257,37 @@ pileup <- function(bamfile,
 }
 
 ## TODO: think about this more carefully
-.pickTopReads <- function(x, f = 1) {
-  score_rng <- range(x$score)
-  scorecut <- seq(score_rng[1], score_rng[2], length.out = 100)
-  readsum <- vapply(scorecut, function(cutoff)
+.pickReads <- function(x, pickiness = 1, lower_limit = 200) {
+  ## pickiness > 1: pick more reads
+  ## pickiness < 1: pick less reads
+  score_range <- range(x$score)
+  score_bins <- seq(score_range[1], score_range[2], length.out = 100)
+  read_sums <- vapply(score_bins, function(cutoff)
     sum(x$score >= cutoff), FUN.VALUE = double(1))
-  optcoef <- scorecut[which.max((readsum^f)*scorecut)]
-  dplyr::filter(x, score >= optcoef)$read
+  benefit <- (read_sums^pickiness)*score_bins
+  opt_cut <- score_bins[which.max(benefit)]
+  ##
+  df <- tibble::tibble(
+    nreads = read_sums,
+    score  = score_bins,
+    benefit = rescale(benefit, score_range[1], score_range[2]),
+    pick = ifelse(score_bins < opt_cut, "no", "yes")
+  )
+  p0 <- ggplot(df, aes(nreads, score, colour = pick)) +
+    geom_point() +
+    geom_line(aes(y = benefit))
+  ##
+  if (sum(x$score >= opt_cut) < lower_limit) {
+    picked_reads <-  dplyr::top_n(x, lower_limit, score)$read
+  } else {
+    picked_reads <-  dplyr::filter(x, score >= opt_cut)$read
+  }
+  ##
+  attr(picked_reads, "pickiness") <- pickiness
+  attr(picked_reads, "lower_limit") <- lower_limit
+  attr(picked_reads, "plot") <- p0
+  ##
+  picked_reads
 }
 
 

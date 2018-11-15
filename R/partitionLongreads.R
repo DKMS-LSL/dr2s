@@ -34,19 +34,20 @@ partitionReads <- function(x, distAlleles = 2, sortBy = "count", threshold = 0.2
   ## if there is only one SNP for clustering, use it! If it does not match both
   ## sequencing types it will be reported
   if (length(ppos) > 1) {
-    badPpos <- apply(xm, 2, function(x) {
-      NROW(x[x == "+" | x == "-"])/NROW(x) > skipGapFreq
+    badPpos <- apply(xm, 2, function(col) {
+      sum(col == "+" | col == "-")/NROW(col) > skipGapFreq
     })
     xm <- as.matrix(xm[, !badPpos])
     badPpos <- ppos[badPpos]
-    flog.info("%s%s SNPs occupy less than %g%% of reads and are" %<<%
-              " discarded. Using the remaining %s SNPs for clustering,",
-              indent(), length(badPpos), 100*(1 - skipGapFreq), NCOL(xm), name = "info")
+    flog.info("%s%s polymorphisms occupy less than %0.3g%% of the reads and are discarded",
+              indent(), length(badPpos), 100*(1 - skipGapFreq), name = "info")
+    flog.info("%sUsing the remaining %s polymorphisms for clustering",
+              indent(), NCOL(xm), name = "info")
     if (NCOL(xm) == 0) {
-      flog.error("%sAborting. No SNP remain for clustering!" %<<%
-                 " Check your reads and reference and have a look" %<<%
-                 " at the mapInit plot!", indent(), name = "info")
-      stop("No SNPs remain for clustering. Check mapInit plots!")
+      flog.error("%s No polymorphisms remain. Aborting clustering." %<<%
+                 " Check reads and reference and inspect the mapInit plot",
+                 indent(), name = "info")
+      stop("No polymorphisms remain for clustering. Check mapInit plot.")
     }
   }
 
@@ -75,19 +76,16 @@ partitionReads <- function(x, distAlleles = 2, sortBy = "count", threshold = 0.2
   ## Get scores and assign clades by freq mat
   ## Position Weight Matrix: Use frequency plus pseudocount/ basefrequency
   ## (here 0.25 for each).
-  msa <- lapply(levels(subclades), function(x) {
+  msa <- stats::setNames(lapply(levels(subclades), function(x) {
     xseqs[names(subclades[subclades == x])]
-  })
-  names(msa) <- hptypes
+  }), hptypes)
   mats <- lapply(msa, function(x) createPWM(x))
   hpseqs <- Biostrings::DNAStringSet(vapply(msa, function(x) {
-    unlist(conseq(
-      t(Biostrings::consensusMatrix(x)[c(VALID_DNA(), "+"), ]),
-      type = "simple"))
+    conseq(t(Biostrings::consensusMatrix(x)[c(VALID_DNA(), "+"), ]), type = "simple")
   }, FUN.VALUE = character(1)))
-  names(hpseqs) <- vapply(hptypes, function(hptype)
-    paste(hptype, sum(subclades == hptype), sep = ":"),
-    FUN.VALUE = character(1))
+  names(hpseqs) <- vapply(hptypes, function(hptype) {
+    colon(c(hptype, sum(subclades == hptype)))
+  }, FUN.VALUE = character(1))
 
   if (length(hptypes) > distAlleles) {
     flog.info("%sIdentify chimeric reads/haplotypes", indent(), name = "info")
@@ -100,12 +98,9 @@ partitionReads <- function(x, distAlleles = 2, sortBy = "count", threshold = 0.2
     flog.info("%sUse only clusters <%s>", indent(), comma(rC), name = "info")
     mats <- mats[rC]
   }
-  hptypes <- names(mats)
-  bpparam <- BiocParallel::MulticoreParam(workers = .getIdleCores())
-  scores  <- tibble::as_tibble(dplyr::bind_rows(
-    suppressWarnings(BiocParallel::bplapply(seq_along(xseqs), function(s)
-      .getScores(s, xseqs, mats), BPPARAM = bpparam))))
 
+  hptypes <- names(mats)
+  scores <- .getScores(xseqs, mats)
   clades <- scores %>%
     dplyr::group_by(.data$read) %>%
     dplyr::slice(which.max(.data$score)) %>%
@@ -117,9 +112,10 @@ partitionReads <- function(x, distAlleles = 2, sortBy = "count", threshold = 0.2
     dplyr::mutate(
       correct = dplyr::if_else(.data$clustclade == .data$clade, TRUE, FALSE))
 
+
+
   ## Correctly classified clades in the initial clustering
-  falseClassified <- NROW(dplyr::filter(clades, .data$correct == FALSE)) /
-    NROW(dplyr::filter(clades, .data$correct == TRUE))
+  falseClassified <- sum(!clades$correct, na.rm = TRUE)/sum(clades$correct, na.rm = TRUE)
   flog.info("%sCorrected classification of %.2f%% of reads", indent(), 100*falseClassified, name = "info")
   lapply(hptypes, function(hp, clades) {
     invisible(flog.info("%s%s reads in haplotype <%s>", indent(), table(clades$clade)[hp], hp, name = "info"))
@@ -157,10 +153,9 @@ partitionReads <- function(x, distAlleles = 2, sortBy = "count", threshold = 0.2
 
   # heuristic for how many reads should be used
   minLen <- .getMinLenClust(minReadsFrac, minLen, xseqs, indent = indent)
-  flog.info("%sUse only longreads containing at least %s%% of all SNPs",
+  flog.info("%sUse only longreads containing at least %s%% of all polymorphisms",
             indent(), minLen*100, name = "info")
-  xSub <- xseqs[Biostrings::width(gsub("\\+", "", xseqs)) >
-                   minLen*Biostrings::width(xseqs[1])]
+  xSub <- xseqs[Biostrings::width(gsub("\\+", "", xseqs)) > minLen*unique(Biostrings::width(xseqs))]
 
   ## Consensus matrix with pseudocount
   flog.info("%sConstruct a Position Specific Distance Matrix" %<<%
@@ -207,7 +202,7 @@ partitionReads <- function(x, distAlleles = 2, sortBy = "count", threshold = 0.2
     (0.03*Biostrings::width(xseqs[1])/50) * 1500^2/length(xseqs)^2
   adjustedMinReadsFrac <- min(0.5, adjustedMinReadsFrac)
   flog.info("%sAdjust the minimal fraction of reads used for clustering" %<<%
-            " from %g%% to %g%%", indent(), minReadsFrac*100,
+            " from %0.4g%% to %0.4g%%", indent(), minReadsFrac*100,
             adjustedMinReadsFrac*100, name = "info")
   # get long reads containing sufficient number of SNPs
   minLens <- seq(1, 0, -0.01)
@@ -223,17 +218,18 @@ partitionReads <- function(x, distAlleles = 2, sortBy = "count", threshold = 0.2
     lenCounts[which(lenCounts > adjustedMinReadsFrac)][1])), minLen)
 }
 
-.getScores <- function(s, xseqs, mats) {
-  seq <- as.character(xseqs[[s]])
-  seq <- unlist(strsplit(seq, split = ""))
-  read <- names(xseqs[s])
-  b <- vapply(mats, function(t) {
-    sum(vapply(seq_along(seq), function(x) t[seq[x],x], FUN.VALUE = numeric(1)))
-  }, numeric(1))
-  t <- data.frame(read, b, names(b))
-  t$read <- as.character(t$read)
-  names(t) <- c("read", "score", "clade")
-  t
+.getScores <- function(reads, pwmlist) {
+  assert_that(
+    is(reads, "XStringSet"),
+    is.list(pwmlist),
+    !is.null(names(pwmlist))
+  )
+  rs <- do.call(dplyr::bind_rows, Map(function(pwm, hp) {
+    b <- vapply(reads, function(read) .read_score(read, pwm), FUN.VALUE = double(1))
+    tibble::tibble(read = names(b), score = b, clade = hp)
+  }, pwm = pwmlist, hp = names(pwmlist))) %>%
+    dplyr::arrange(.data$read, dplyr::desc(.data$score))
+  rs
 }
 
 ## Identify chimeric clusters
@@ -744,30 +740,37 @@ getCl <- function(n, cluster, change) {
 
 # Optimal partitioning ----------------------------------------------------
 
-.optimalPartitionLimits <- function(scores, f = 0.8) {
-  coeffCuts <- seq(0, max(unlist(scores)), length.out = 100)
-  rHap <- lapply(scores, function(x, coeffCuts) {
-      vapply(coeffCuts, function(cutoff) sum(x >= cutoff),
-             FUN.VALUE = double(1))
-    },
-    coeffCuts = coeffCuts)
-  df <- data.frame()
-  for(hapType in names(rHap)) {
-    l <- f * length(unlist(
-      scores[!names(rHap) == hapType])) / length(scores[[hapType]])
-    df <- dplyr::bind_rows(df,
-                           dplyr::data_frame(c = coeffCuts,
-                                             r = unlist(rHap[hapType])) %>%
-                             dplyr::mutate(haplotype = hapType,
-                                           score = ((.data$r^l)*c)) %>%
-                             dplyr::mutate(max.score = .data$score ==
-                                             max(.data$score)))
+
+.optimalPartitionLimits <- function(scores, pickiness = 0.8, lower_limit = 60) {
+  ## pickiness > 1: pick more reads
+  ## pickiness < 1: pick less reads
+  score_range <- range(unlist(scores))
+  score_bins <- seq(score_range[1], score_range[2], length.out = 100)
+  #coeffCuts <- seq(0, max(unlist(scores)), length.out = 100)
+  rHap <- lapply(scores, function(x, score_bins) {
+      vapply(score_bins, function(cutoff) sum(x >= cutoff), FUN.VALUE = double(1))
+    }, score_bins = score_bins)
+  #hp <- "A"
+  df <- do.call(dplyr::bind_rows, Map(function(hp) {
+    l <- pickiness*length(unlist(scores[names(rHap) != hp]))/length(scores[[hp]])
+    tibble::tibble(haplotype = hp, nreads = rHap[[hp]], score = score_bins) %>%
+      dplyr::mutate(benefit = ((.data$nreads^l)*.data$score))
+  }, hp = names(rHap)))
+  dfmax <- df %>%
+    dplyr::group_by(haplotype) %>%
+    dplyr::filter(.data$benefit == max(.data$benefit))
+
+  if (any(dfmax$nreads < lower_limit)) {
+    hp <- dfmax$haplotype[which(dfmax$nreads < lower_limit)]
+    dfmax2 <- dplyr::filter(df, .data$haplotype %in% hp & .data$nreads >= lower_limit) %>%
+      dplyr::group_by(.data$haplotype) %>%
+      dplyr::top_n(1, dplyr::desc(nreads))
+    dfmax[dfmax$haplotype %in% hp, ] <- dfmax2
   }
-  dfmax <- dplyr::filter(df, .data$max.score) %>%
-    dplyr::select(.data$haplotype, .data$c, .data$r, .data$score)
+
   list(
     limits = dfmax,
-    plt = ggplot(df, aes_(x =~ r, y =~ c, colour =~ haplotype)) +
+    plt = ggplot(df, aes_(x = ~nreads, y = ~score, colour = ~haplotype)) +
       geom_line() +
       geom_point(data = dfmax, size = 3) +
       ylab("Cluster similarity coefficient") +

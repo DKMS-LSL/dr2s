@@ -12,7 +12,7 @@ mapReads <- function(
   flog.info("%sMap <%s> reads <%s> to reference <%s>", indent(),
             readtype, comma(names(readfile)), names(reffile), name = "info")
   samfile <- mapfun(reffile, refname, readfile, readtype, outdir, maplabel,
-                    opts, force, clean = FALSE)
+                    opts, force)
 
   ## collect minMapq for use in .bamSortIndex
   # minMapq = 25
@@ -22,7 +22,7 @@ mapReads <- function(
     flog.info("%sTrim softclips and polymorphic ends", indent(), name = "info")
     ## Run bam - sort - index pipeline
     bamfile <- .bamSortIndex(samfile = samfile, reffile = reffile,
-                             minMapq = minMapq, force = force, clean = TRUE)
+                             minMapq = minMapq, force = force, clean = clean)
     ## Trim softclips
     fq <- .trimSoftclippedEnds(bam = scanBam(bamfile)[[1]], preserveRefEnds = TRUE)
     ## Trim polymorphic ends
@@ -49,7 +49,9 @@ mapReads <- function(
 
   ## NOTE: "auto" > 0 evaluates to TRUE
   if (topx > 0 && readtype != "illumina") {
-    reads <- .topXReads(bamfile, n = topx, indent = incr(indent))
+    pickiness <- list(...)$pickiness %||% 1
+    lower_limit <- list(...)$lower_limit %||% 1
+    reads <- .pickTopXReads(bamfile, topx, pickiness, lower_limit, indent = incr(indent))
     alignmentBam <- GenomicAlignments::readGAlignments(
       file = Rsamtools::BamFile(bamfile),
       param = Rsamtools::ScanBamParam(

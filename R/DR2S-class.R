@@ -768,11 +768,6 @@ DR2S_ <- R6::R6Class(
       plotRadarPartition(x = self$getPartition())
     },
     ##
-    # plotPartitionHaplotypes = function(thin = 1, label = "") {
-    #   tag <- self$getMapTag()
-    #   plotPartitionHaplotypes(x = self$getPartition(), thin, label %|ch|% tag)
-    # },
-    ##
     ## Summary methods ####
     ##
     polymorphicPositions = function(threshold, useSR = FALSE) {

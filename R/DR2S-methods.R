@@ -88,6 +88,17 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
     ## for <shortreads> we hardcode <minMapq = 50>
     minMapq <- 0
   }
+  if (!exists("pickiness")) {
+    ## when picking top-scoring reads:
+    ## pickiness < 1: bias towards higher scores/less reads
+    ## pickiness > 1: bias towards lower scores/more reads
+    pickiness <- 1
+  }
+  if (!exists("lower_limit")) {
+    ## when picking top-scoring reads the minimum number of
+    ## reads to pick if available
+    lower_limit <- 200
+  }
 
   ## Get options and prepare mapping
   outdir <- .dirCreateIfNotExists(self$absPath("mapInit"))
@@ -128,16 +139,18 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
       includeDeletions = TRUE, includeInsertions = TRUE, callInsertions = TRUE,
       callInsertionThreshold = callInsertionThreshold, clip = FALSE,
       distributeGaps = TRUE, removeError = TRUE, topx = topx, force = force,
-      clean = clean, minMapq = minMapq, indent = indent, ...)
+      clean = clean, minMapq = minMapq, pickiness = pickiness,
+      lower_limit = lower_limit, indent = indent)#, ...)
 
-    if (!is.null(reads(pileup))) {
-      fqfile <- paste(
-        self$getSampleId(), self$getLrdType(), paste0("n", length(reads(pileup))),
-        "fastq", "gz", sep = ".")
+    if (!is.null(picked <- reads(pileup))) {
+      fqfile <- dot(c(self$getSampleId(), readtype, "n" %<<% length(picked), "fastq", "gz"))
       topx_fqpath <- .fileDeleteIfExists(file.path(outdir, strip(fqfile, "_")))
       names(topx_fqpath) <- self$relPath(topx_fqpath)
-      fq <- .extractFastq(bampath(pileup), reads(pileup))
+      fq <- .extractFastq(bampath(pileup), picked)
       ShortRead::writeFastq(fq, topx_fqpath, compress = TRUE)
+      ## picking plot
+      # plotpath <- file.path(outdir, "plot.readpicking.pdf")
+      # cowplot::save_plot(plotpath, attr(picked, "plot"), base_width = 5)
     }
 
     ## Construct initial longread consensus sequence
@@ -153,13 +166,23 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
   maplabel <- "mapInit2"
   mapfun   <- self$getLrdMapFun()
   readtype <- self$getLrdType()
-  readfile <- if (exists("topx_fqpath")) topx_fqpath else self$getLongreads()
+  if (exists("topx_fqpath")) {
+    readfile <- topx_fqpath
+    topx <- 0
+  } else {
+    readfile <- self$getLongreads()
+  }
   pileup <- mapReads(
     mapfun = mapfun, maplabel = maplabel, reffile = reffile, refname = refname,
     readfile = readfile, readtype = readtype, opts = opts, outdir = outdir,
     includeDeletions = TRUE, includeInsertions = FALSE, callInsertions = FALSE,
     clip = FALSE, distributeGaps = TRUE, removeError = TRUE, topx = topx,
-    force = force, clean = clean, minMapq = minMapq, indent = indent, ...)
+    force = force, clean = clean, minMapq = minMapq, pickiness = pickiness,
+    lower_limit = lower_limit, indent = indent, ...)
+
+  if (exists("topx_fqpath")) {
+    reads(pileup) <- picked
+  }
 
   if (createIgv)
     igv[["LR"]] <- createIgvJsFiles(
@@ -300,7 +323,7 @@ DR2S_$set("public",
     )
 
     ## Get the reference sequence
-    if (is(meta(self$mapInit, "SR1"), "MapList")) {
+    if (self$hasShortreads()) {
       useSR  <- TRUE
       flog.info("%sConstruct SNP matrix from shortreads", indent(), name = "info")
     } else {
@@ -345,7 +368,8 @@ DR2S_$set("public",
                  list(nLongreads = NROW(mat),
                       foundPolymorphicPositions = NCOL(mat),
                       usedPolymorphicPositions = K(prt),
-                      foundClades = as.list(table(PRT(prt)))))
+                      foundClades = OC(prt),
+                      usedClades = as.list(table(PRT(prt)))))
 
     ## Set sample haplotypes
     self$setHapTypes(levels(as.factor(PRT(prt))))
@@ -396,6 +420,17 @@ DR2S_$set("public", "runSplitLongreadsByHaplotype", function(plot = TRUE) {
     env  <- environment()
     list2env(args, envir = env)
   }
+  if (!exists("pickiness")) {
+    ## when picking top-scoring reads:
+    ## pickiness < 1: bias towards higher scores/less reads
+    ## pickiness > 1: bias towards lower scores/more reads
+    pickiness <- 0.8
+  }
+  if (!exists("lower_limit")) {
+    ## when picking top-scoring reads the minimum number of
+    ## reads to pick if available
+    lower_limit <- 50
+  }
 
   prt <- partition(self$getPartition())
   haplotypes <- levels(prt$haplotype)
@@ -403,16 +438,16 @@ DR2S_$set("public", "runSplitLongreadsByHaplotype", function(plot = TRUE) {
 
   # Set all limits to NULL
   self$setLimits(rep(NA, length(haplotypes)))
-  prts <- lapply(haplotypes, function(x) prt[prt$haplotype == x,])
+  prts <- lapply(haplotypes, function(hp) dplyr::filter(prt, .data$haplotype == hp))
   names(prts) <- haplotypes
   scores <- lapply(prts, function(x) x$mcoef)
-  lmts <- .optimalPartitionLimits(scores)
-  self$setLimits(setNames(as.list(lmts$limits$c), haplotypes))
+  lmts <- .optimalPartitionLimits(scores, pickiness, lower_limit)
+  self$setLimits(setNames(as.list(lmts$limits$score), haplotypes))
   self$lrpartition$lmt <- lmts$plt
 
   # Get only reads within the limit
-  reads <- setNames(lapply(names(self$getLimits()), function(x) {
-    dplyr::filter(prt, haplotype == x, mcoef >= self$getLimits()[x])
+  reads <- stats::setNames(lapply(names(self$getLimits()), function(x) {
+    dplyr::filter(prt, .data$haplotype == x, .data$mcoef >= self$getLimits()[x])
   }), names(self$getLimits()))
 
   ## Initiate indenter
@@ -425,7 +460,7 @@ DR2S_$set("public", "runSplitLongreadsByHaplotype", function(plot = TRUE) {
 
   ## set runstats
   .setRunstats(self, "partitionLongreads",
-               list(reads = setNames(as.list(as.integer(lmts$limits$r)), haplotypes)))
+               list(reads = setNames(as.list(as.integer(lmts$limits$nreads)), haplotypes)))
 
   # results structure
   self$lrpartition$hpl <- structure(
@@ -536,7 +571,6 @@ DR2S_$set("public", "runExtractPartitionedLongreads", function() {
     fq <- .extractFastq(bamfile, qnames = readIds)
     fqfile <- paste(
       "hap" %<<% hptype, self$getLrdType(), self$getLrdMapper(),
-      "lim" %<<% as.character(floor(self$getLimits()[[hptype]])),
       "n" %<<% length(fq), "fastq", "gz", sep = ".")
     fqout <- .fileDeleteIfExists(file.path(fqdir, fqfile))
     nfq <- ShortRead::writeFastq(fq, file = fqout, full = FALSE, compress = TRUE)
