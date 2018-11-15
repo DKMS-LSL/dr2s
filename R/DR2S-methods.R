@@ -94,6 +94,10 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
     ## pickiness > 1: bias towards lower scores/more reads
     pickiness <- 1
   }
+  if (!exists("increase_pickiness")) {
+    ## increase pickiness for the second iteration of LR mapping
+    increase_pickiness <- 1
+  }
   if (!exists("lower_limit")) {
     ## when picking top-scoring reads the minimum number of
     ## reads to pick if available
@@ -140,17 +144,17 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
       callInsertionThreshold = callInsertionThreshold, clip = FALSE,
       distributeGaps = TRUE, removeError = TRUE, topx = topx, force = force,
       clean = clean, minMapq = minMapq, pickiness = pickiness,
-      lower_limit = lower_limit, indent = indent)#, ...)
+      lower_limit = lower_limit, indent = indent, ...)
 
-    if (!is.null(picked <- reads(pileup))) {
-      fqfile <- dot(c(self$getSampleId(), readtype, "n" %<<% length(picked), "fastq", "gz"))
+    if (!is.null(picked1 <- reads(pileup))) {
+      fqfile <- dot(c(self$getSampleId(), readtype, "n" %<<% length(picked1), "fastq", "gz"))
       topx_fqpath <- .fileDeleteIfExists(file.path(outdir, strip(fqfile, "_")))
       names(topx_fqpath) <- self$relPath(topx_fqpath)
-      fq <- .extractFastq(bampath(pileup), picked)
+      fq <- .extractFastq(bampath(pileup), picked1)
       ShortRead::writeFastq(fq, topx_fqpath, compress = TRUE)
-      ## picking plot
-      # plotpath <- file.path(outdir, "plot.readpicking.pdf")
-      # cowplot::save_plot(plotpath, attr(picked, "plot"), base_width = 5)
+      ## picking plot 1
+      plotpath <- file.path(outdir, "plot.readpicking1.pdf")
+      cowplot::save_plot(plotpath, attr(picked1, "plot"))
     }
 
     ## Construct initial longread consensus sequence
@@ -168,7 +172,7 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
   readtype <- self$getLrdType()
   if (exists("topx_fqpath")) {
     readfile <- topx_fqpath
-    topx <- 0
+    pickiness <- pickiness/increase_pickiness
   } else {
     readfile <- self$getLongreads()
   }
@@ -180,8 +184,10 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
     force = force, clean = clean, minMapq = minMapq, pickiness = pickiness,
     lower_limit = lower_limit, indent = indent, ...)
 
-  if (exists("topx_fqpath")) {
-    reads(pileup) <- picked
+  if (!is.null(picked2 <- reads(pileup))) {
+    ## picking plot 2
+    plotpath <- file.path(outdir, "plot.readpicking2.pdf")
+    cowplot::save_plot(plotpath, attr(picked2, "plot"))
   }
 
   if (createIgv)
