@@ -60,7 +60,8 @@ partitionReads <- function(x, distAlleles = 2, sortBy = "count", threshold = 0.2
   ## Get only the fraction of reads that contain at least minLen of total SNPs
   clusters <- .getClusts(xseqs, clMethod = clMethod, minLen = minLen,
                          deepSplit = deepSplit, threshold = threshold,
-                         minClusterSize = minClusterSize, indent = indent)
+                         minClusterSize = minClusterSize, suppressGaps = FALSE,
+                         indent = indent)
   subclades <- factor(clusters$clades[!clusters$clades == "@"])
   tree <- clusters$tree
   hptypes <- levels(subclades)
@@ -141,40 +142,36 @@ partitionReads <- function(x, distAlleles = 2, sortBy = "count", threshold = 0.2
 
 .getClusts <- function(xseqs, minLen = 0.80, clMethod = "ward.D",
                        deepSplit = 1, minReadsFrac = 1/3, threshold = 0.2,
-                       minClusterSize = 15, ...) {
-
+                       minClusterSize = 15, suppressGaps = TRUE, ...) {
   assert_that(
     is.double(minLen),
     is.double(minReadsFrac),
     is.double(threshold)
   )
-
   indent <- list(...)$indent %||% indentation()
-
   # heuristic for how many reads should be used
   minLen <- .getMinLenClust(minReadsFrac, minLen, xseqs, indent = indent)
   flog.info("%sUse only longreads containing at least %s%% of all polymorphisms",
             indent(), minLen*100, name = "info")
   xSub <- xseqs[Biostrings::width(gsub("\\+", "", xseqs)) > minLen*unique(Biostrings::width(xseqs))]
-
   ## Consensus matrix with pseudocount
   flog.info("%sConstruct a Position Specific Distance Matrix" %<<%
             " from the remaining %s sequences", indent(), length(xSub), name = "info")
   consmat <- as.matrix(
     Biostrings::consensusMatrix(xSub, as.prob = TRUE, baseOnly = FALSE)[c(VALID_DNA(), "+" ), ] +
-      1/length(xSub)
-  )
-
-  # Remove gaps below a threshold as they are probably sequencing artifacts
-  con <- apply(consmat, 2, function(a) {
-    a["-"] <- ifelse(a["-"] < threshold, min(a), a["-"])
-    a
-  })
-
+      1/length(xSub))
+  if (suppressGaps) {
+    # Remove gaps below a threshold as they are probably sequencing artifacts
+    consmat <- apply(consmat, 2, function(a) {
+      a["-"] <- ifelse(a["-"] < threshold, min(a), a["-"])
+      a
+    })
+  }
+  ## normalise to sum to 1
+  consmat <- consmat/colSums(consmat)
   ## Get Position Specific Distance Matrix
-  dist <- PSDM(xSub, as.matrix(consmat))
+  dist <- PSDM(x = xSub, consmat = as.matrix(consmat))
   dist <- stats::as.dist(dist)
-
   ## replace "na" with mean for a being able to cluster
   dist[is.na(dist)] <- mean(dist, na.rm = TRUE)
 

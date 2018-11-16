@@ -25,7 +25,6 @@ hammingDist <- function(x) {
   xMat <- plyr::revalue(xTmp, dnaBaseMapping, warn_missing = FALSE)
   xMat <- vapply(xMat, as.numeric, FUN.VALUE = double(1))
   dim(xMat) <- dim(xTmp)
-  rm(xTmp)
   dist <- cpp_hamming(xMat)
   colnames(dist) <- names(x)
   rownames(dist) <- names(x)
@@ -35,16 +34,12 @@ hammingDist <- function(x) {
 # Todo Export and write man entry
 PSDM <- function(x, consmat){
   assert_that(is(x, "DNAStringSet"))
-
   ## Create seq matrix as input for cpp_PSDM
   xTmp <- as.matrix(x)
   dnaBaseMapping <- c("G" = 1, "A" = 2, "T" = 3, "C" = 4, "-" = 5, "+" = 6)
   xMat <- plyr::revalue(xTmp, dnaBaseMapping, warn_missing = FALSE)
   xMat <- as.numeric(xMat)
-
   dim(xMat) <- dim(xTmp)
-  rm(xTmp)
-
   ## Get Position Specific Distance Matrix
   dist <- cpp_PSDM(consmat, xMat)
   colnames(dist) <- names(x)

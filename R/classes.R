@@ -111,6 +111,25 @@ reads.pileup <- function(x, ..) {
   x
 }
 
+#' @rdname pileup
+#' @export
+indelRate <- function(x, ...) UseMethod("indelRate")
+#' @export
+indelRate.pileup <- function(x, ..) {
+  meta(x, "indelRate")
+}
+
+#' @rdname pileup
+#' @export
+`indelRate<-` <- function(x, value) UseMethod("indelRate<-")
+#' @export
+`indelRate<-.pileup` <- function(x, value) {
+  assert_that(is.numeric(value))
+  x$meta$indelRate <- value
+  x
+}
+
+
 # Class: MapList ----------------------------------------------------------
 
 ## Internal onstructor class "MapList"

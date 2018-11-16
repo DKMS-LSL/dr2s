@@ -3,12 +3,18 @@
 \name{reads}
 \alias{reads}
 \alias{reads<-}
+\alias{indelRate}
+\alias{indelRate<-}
 \alias{pileup}
 \title{Calculate pileup for a BAM file.}
 \usage{
 reads(x, ...)
 
 reads(x) <- value
+
+indelRate(x, ...)
+
+indelRate(x) <- value
 
 pileup(bamfile, reffile, readtype, ..., pParam)
 }

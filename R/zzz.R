@@ -41,11 +41,12 @@ CODE_MAP <- function() {
   )
 }
 
-DNA_PROB <- function(del = NULL, include = "indels") {
-  if (!is.null(del)) {
-    assert_that(is.numeric(del))
-    nuc <- (1 - del)/4
-    return(c("A" = nuc, "C" = nuc, "G" = nuc, "T" = nuc, `-` = del))
+DNA_PROB <- function(gapfreq = NULL, include = "indels") {
+  if (!is.null(gapfreq)) {
+    assert_that(is.numeric(gapfreq))
+    gapfreq <- unname(gapfreq)
+    nucfreq <- (1 - gapfreq)/4
+    return(c("A" = nucfreq, "C" = nucfreq, "G" = nucfreq, "T" = nucfreq, `-` = gapfreq))
   }
   if (include == "indels") {
     return(c("A" = 0.2, "C" = 0.2, "G" = 0.2, "T" = 0.2, `-` = 0.2, `+` = 0.01))

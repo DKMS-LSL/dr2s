@@ -4,7 +4,7 @@ mapReads <- function(
   mapfun, maplabel, reffile, refname, readfile, readtype, opts = NULL, outdir,
   includeDeletions, includeInsertions, callInsertions = FALSE,
   callInsertionThreshold = 0.15, clip = FALSE, distributeGaps = FALSE,
-  removeError = TRUE, update_background_model = FALSE, topx = 0, force, clean,
+  removeError = TRUE, updateBackgroundModel = FALSE, topx = 0, force, clean,
   ...) {
 
   dots   <- list(...)
@@ -18,7 +18,7 @@ mapReads <- function(
 
   ## collect minMapq for use in .bamSortIndex
   # minMapq = 25
-  minMapq <- dots$min_mapq %||% dots$minMapq %||% 0
+  minMapq <- dots$minMapq %||% dots$min_mapq %||% 0
 
   if (clip) {
     flog.info("%sTrim softclips and polymorphic ends", indent(), name = "info")
@@ -52,11 +52,10 @@ mapReads <- function(
   ## NOTE: "auto" > 0 evaluates to TRUE
   ## dots <- list()
   if (topx > 0 && readtype != "illumina") {
-    pickiness      <- dots$pickiness %||% 1
-    lower_limit    <- dots$lower_limit %||% 1
-    del_error_rate <- dots$del_error_rate
-    reads <- .pickTopXReads(bamfile, topx, pickiness, lower_limit,
-                            del_error_rate, indent = incr(indent))
+    pickiness  <- dots$pickiness  %||% 1
+    lowerLimit <- dots$lowerLimit %||% dots$lower_limit %||% 20
+    indelRate  <- dots$indelRate  %||% dots$indel_rate
+    reads <- .pickTopXReads(bamfile, topx, pickiness, lowerLimit, indelRate, indent = incr(indent))
     alignmentBam <- GenomicAlignments::readGAlignments(
       file = Rsamtools::BamFile(bamfile),
       param = Rsamtools::ScanBamParam(
@@ -93,11 +92,11 @@ mapReads <- function(
                                        indent = incr(indent))
   }
 
-  if (update_background_model) {
-    delError <- .getGapErrorBackground(consmat(pileup), n = 5)
+  if (updateBackgroundModel) {
+    noise <- .getGapErrorBackground(consmat(pileup), n = 5)
     flog.info("%sEstimate indel noise <%0.3g> to update background model",
-              incr(indent)(), delError, name = "info")
-    pileup$meta$del_error_rate <- delError
+              incr(indent)(), noise, name = "info")
+    indelRate(pileup) <- noise
   }
 
   if (topx > 0 ) {

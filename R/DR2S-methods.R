@@ -78,6 +78,10 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
   if (is.null(threshold)) {
     threshold <- self$getThreshold()
   }
+
+  ## Set defaults for a number of options that can only be set in the config
+  ## TODO: Maybe we want to autogenerate these defaults in the config when
+  ##       it is initialised?
   if (!exists("callInsertionThreshold")) {
     ## an insertion needs to be at frequency <callInsertionThreshold> for it
     ## to be included in the pileup.
@@ -94,23 +98,26 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
     ## pickiness > 1: bias towards lower scores/more reads
     pickiness <- 1
   }
-  if (!exists("increase_pickiness")) {
+  if (!exists("increasePickiness")) {
     ## increase pickiness for the second iteration of LR mapping
-    increase_pickiness <- 1
+    increasePickiness <- 1
   }
-  if (!exists("lower_limit")) {
+  if (!exists("lowerLimit")) {
     ## when picking top-scoring reads the minimum number of
     ## reads to pick if available
-    lower_limit <- 200
+    lowerLimit <- 200
   }
-  if (!exists("update_background_model")) {
-    update_background_model <- FALSE
+  if (!exists("updateBackgroundModel")) {
+    ## estimate the indel noise in a pileup and use this information to
+    ## update the background model for PWM scoring
+    updateBackgroundModel <- FALSE
   }
 
   ## Get options and prepare mapping
   outdir <- .dirCreateIfNotExists(self$absPath("mapInit"))
   .dirCreateIfNotExists(file.path(self$absPath(".plots")))
   clean <- TRUE
+  pickedTopX <- FALSE
   igv <- list()
   SR <- list()
 
@@ -146,19 +153,23 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
       includeDeletions = TRUE, includeInsertions = TRUE, callInsertions = TRUE,
       callInsertionThreshold = callInsertionThreshold, clip = FALSE,
       distributeGaps = TRUE, removeError = TRUE, topx = topx, force = force,
-      update_background_model = update_background_model, clean = clean,
-      minMapq = minMapq, pickiness = pickiness, lower_limit = lower_limit,
-      indent = indent)#, ...)
+      updateBackgroundModel = updateBackgroundModel, clean = clean,
+      minMapq = minMapq, pickiness = pickiness, lowerLimit = lowerLimit,
+      indent = indent, ...)
 
+    ## If topx = "auto" or set to non-zero generate a new subsampled
+    ## read file
     if (!is.null(picked1 <- reads(pileup))) {
-      fqfile <- dot(c(self$getSampleId(), readtype, "n" %<<% length(picked1), "fastq", "gz"))
-      topx_fqpath <- .fileDeleteIfExists(file.path(outdir, strip(fqfile, "_")))
-      names(topx_fqpath) <- self$relPath(topx_fqpath)
-      fq <- .extractFastq(bampath(pileup), picked1)
-      ShortRead::writeFastq(fq, topx_fqpath, compress = TRUE)
+      fqFile <- dot(c(self$getSampleId(), readtype, "n" %<<% length(picked1), "fastq", "gz"))
+      topxFqPath <- .fileDeleteIfExists(file.path(outdir, strip(fqFile, "_")))
+      names(topxFqPath) <- self$relPath(topxFqPath)
+      fqReads <- .extractFastq(bampath(pileup), picked1)
+      ShortRead::writeFastq(fqReads, topxFqPath, compress = TRUE)
       ## picking plot 1
       plotpath <- file.path(outdir, "plot.readpicking1.pdf")
       cowplot::save_plot(plotpath, attr(picked1, "plot"))
+      ## set flag
+      pickedTopX <- TRUE
     }
 
     ## Construct initial longread consensus sequence
@@ -171,13 +182,13 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
                            replaceIndel = "N", conspath = reffile)
   }
 
-  maplabel <- "mapInit2"
-  mapfun   <- self$getLrdMapFun()
-  readtype <- self$getLrdType()
-  if (exists("topx_fqpath")) {
-    readfile       <- topx_fqpath
-    pickiness      <- pickiness/increase_pickiness
-    del_error_rate <- meta(pileup, "del_error_rate")
+  maplabel  <- "mapInit2"
+  mapfun    <- self$getLrdMapFun()
+  readtype  <- self$getLrdType()
+  indelRate <- indelRate(pileup)
+  if (pickedTopX) {
+    readfile  <- topxFqPath
+    pickiness <- pickiness/increasePickiness
   } else {
     readfile <- self$getLongreads()
   }
@@ -186,9 +197,9 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
     readfile = readfile, readtype = readtype, opts = opts, outdir = outdir,
     includeDeletions = TRUE, includeInsertions = FALSE, callInsertions = FALSE,
     clip = FALSE, distributeGaps = TRUE, removeError = TRUE, topx = topx,
-    force = force, clean = clean, minMapq = minMapq, pickiness = pickiness,
-    lower_limit = lower_limit, indent = indent, del_error_rate = del_error_rate,
-    ...)
+    updateBackgroundModel = updateBackgroundModel, force = force, clean = clean,
+    minMapq = minMapq, pickiness = pickiness, lowerLimit = lowerLimit,
+    indent = indent, indelRate = indelRate, ...)
 
   if (!is.null(picked2 <- reads(pileup))) {
     ## picking plot 2

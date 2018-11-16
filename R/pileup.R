@@ -210,8 +210,8 @@ pileup <- function(bamfile,
 .pickTopXReads <- function(bamfile,
                            topx = "auto",
                            pickiness = 1,
-                           lower_limit = 200,
-                           del_error_rate = NULL,
+                           lowerLimit = 200,
+                           indelRate = NULL,
                            ...) {
   indent <- list(...)$indent %||% indentation()
   msa <- .msaFromBam(Rsamtools::BamFile(bamfile))
@@ -220,9 +220,9 @@ pileup <- function(bamfile,
     flog.info("%sNothing to pick from %s mapped longreads", indent(), length(msa), name = "info")
     return(names(msa))
   }
-  scores <- .PWMscore(msa, del_error_rate)
+  scores <- .PWMscore(msa, indelRate)
   reads <- if (topx == "auto") {
-    .pickReads(scores, pickiness, lower_limit)
+    .pickReads(scores, pickiness, lowerLimit)
   } else {
     dplyr::top_n(scores, topx, score)$read
   }
@@ -236,10 +236,11 @@ pileup <- function(bamfile,
 
 # Score multiple sequence alignment
 # @param msa A DNAStringset
+# @indelRate The estimated background rate of Indels
 # @return A tibble with columns <read, score>
-.PWMscore <- function(msa, del_error_rate = NULL) {
+.PWMscore <- function(msa, indelRate = NULL) {
   assert_that(is(msa, "XStringSet"))
-  pwm <- createPWM(msa, del_error_rate)
+  pwm <- createPWM(msa, indelRate)
   bpparam <- BiocParallel::MulticoreParam(workers = .getIdleCores())
   do.call(dplyr::bind_rows, suppressWarnings(
     BiocParallel::bplapply(seq_along(msa),
@@ -258,7 +259,7 @@ pileup <- function(bamfile,
 }
 
 ## TODO: think about this more carefully
-.pickReads <- function(x, pickiness = 1, lower_limit = 200) {
+.pickReads <- function(x, pickiness = 1, lowerLimit = 200) {
   ## pickiness > 1: pick more reads
   ## pickiness < 1: pick less reads
   score_range <- range(x$score)
@@ -278,14 +279,14 @@ pileup <- function(bamfile,
     geom_point() +
     geom_line(aes(y = benefit))
   ##
-  if (sum(x$score >= opt_cut) < lower_limit) {
-    picked_reads <-  dplyr::top_n(x, lower_limit, score)$read
+  if (sum(x$score >= opt_cut) < lowerLimit) {
+    picked_reads <-  dplyr::top_n(x, lowerLimit, score)$read
   } else {
     picked_reads <-  dplyr::filter(x, score >= opt_cut)$read
   }
   ##
   attr(picked_reads, "pickiness") <- pickiness
-  attr(picked_reads, "lower_limit") <- lower_limit
+  attr(picked_reads, "lowerLimit") <- lowerLimit
   attr(picked_reads, "plot") <- p0
   ##
   picked_reads
