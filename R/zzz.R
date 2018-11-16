@@ -41,15 +41,22 @@ CODE_MAP <- function() {
   )
 }
 
-DNA_PROB <- function(include = "indels") {
-  if (include == "indels") {
-    return(c(A = 0.2, C = 0.2, G = 0.2, T = 0.2, `-` = 0.2, `+` = 0.01))
-  } else if (include == "ins") {
-    return(c(A = 0.2, C = 0.2, G = 0.2, T = 0.2, `+` = 0.01))
-  } else if (include == "del") {
-    return(c(A = 0.2, C = 0.2, G = 0.2, T = 0.2, `-` = 0.2))
+DNA_PROB <- function(del = NULL, include = "indels") {
+  if (!is.null(del)) {
+    assert_that(is.numeric(del))
+    nuc <- (1 - del)/4
+    return(c("A" = nuc, "C" = nuc, "G" = nuc, "T" = nuc, `-` = del))
   }
-  return(c(A = 0.25, C = 0.25, G = 0.25, T = 0.25))
+  if (include == "indels") {
+    return(c("A" = 0.2, "C" = 0.2, "G" = 0.2, "T" = 0.2, `-` = 0.2, `+` = 0.01))
+  }
+  if (include == "ins") {
+    return(c("A" = 0.2, "C" = 0.2, "G" = 0.2, "T" = 0.2, `+` = 0.01))
+  }
+  if (include == "del") {
+    return(c("A" = 0.2, "C" = 0.2, "G" = 0.2, "T" = 0.2, `-` = 0.2))
+  }
+  return(c("A" = 0.25, "C" = 0.25, "G" = 0.25, "T" = 0.25))
 }
 
 PARTCOL <- function() {

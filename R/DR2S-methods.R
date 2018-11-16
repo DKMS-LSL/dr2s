@@ -103,6 +103,9 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
     ## reads to pick if available
     lower_limit <- 200
   }
+  if (!exists("update_background_model")) {
+    update_background_model <- FALSE
+  }
 
   ## Get options and prepare mapping
   outdir <- .dirCreateIfNotExists(self$absPath("mapInit"))
@@ -143,8 +146,9 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
       includeDeletions = TRUE, includeInsertions = TRUE, callInsertions = TRUE,
       callInsertionThreshold = callInsertionThreshold, clip = FALSE,
       distributeGaps = TRUE, removeError = TRUE, topx = topx, force = force,
-      clean = clean, minMapq = minMapq, pickiness = pickiness,
-      lower_limit = lower_limit, indent = indent, ...)
+      update_background_model = update_background_model, clean = clean,
+      minMapq = minMapq, pickiness = pickiness, lower_limit = lower_limit,
+      indent = indent)#, ...)
 
     if (!is.null(picked1 <- reads(pileup))) {
       fqfile <- dot(c(self$getSampleId(), readtype, "n" %<<% length(picked1), "fastq", "gz"))
@@ -171,8 +175,9 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
   mapfun   <- self$getLrdMapFun()
   readtype <- self$getLrdType()
   if (exists("topx_fqpath")) {
-    readfile <- topx_fqpath
-    pickiness <- pickiness/increase_pickiness
+    readfile       <- topx_fqpath
+    pickiness      <- pickiness/increase_pickiness
+    del_error_rate <- meta(pileup, "del_error_rate")
   } else {
     readfile <- self$getLongreads()
   }
@@ -182,7 +187,8 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
     includeDeletions = TRUE, includeInsertions = FALSE, callInsertions = FALSE,
     clip = FALSE, distributeGaps = TRUE, removeError = TRUE, topx = topx,
     force = force, clean = clean, minMapq = minMapq, pickiness = pickiness,
-    lower_limit = lower_limit, indent = indent, ...)
+    lower_limit = lower_limit, indent = indent, del_error_rate = del_error_rate,
+    ...)
 
   if (!is.null(picked2 <- reads(pileup))) {
     ## picking plot 2

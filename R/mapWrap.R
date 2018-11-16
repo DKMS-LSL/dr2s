@@ -4,9 +4,11 @@ mapReads <- function(
   mapfun, maplabel, reffile, refname, readfile, readtype, opts = NULL, outdir,
   includeDeletions, includeInsertions, callInsertions = FALSE,
   callInsertionThreshold = 0.15, clip = FALSE, distributeGaps = FALSE,
-  removeError = TRUE, topx = 0, force, clean, ...) {
+  removeError = TRUE, update_background_model = FALSE, topx = 0, force, clean,
+  ...) {
 
-  indent <- list(...)$indent %||% indentation()
+  dots   <- list(...)
+  indent <- dots$indent %||% indentation()
 
   ## Run mapper
   flog.info("%sMap <%s> reads <%s> to reference <%s>", indent(),
@@ -16,7 +18,7 @@ mapReads <- function(
 
   ## collect minMapq for use in .bamSortIndex
   # minMapq = 25
-  minMapq <- list(...)$min_mapq %||% list(...)$minMapq %||% 0
+  minMapq <- dots$min_mapq %||% dots$minMapq %||% 0
 
   if (clip) {
     flog.info("%sTrim softclips and polymorphic ends", indent(), name = "info")
@@ -48,10 +50,13 @@ mapReads <- function(
                            minMapq = minMapq, force = force)
 
   ## NOTE: "auto" > 0 evaluates to TRUE
+  ## dots <- list()
   if (topx > 0 && readtype != "illumina") {
-    pickiness <- list(...)$pickiness %||% 1
-    lower_limit <- list(...)$lower_limit %||% 1
-    reads <- .pickTopXReads(bamfile, topx, pickiness, lower_limit, indent = incr(indent))
+    pickiness      <- dots$pickiness %||% 1
+    lower_limit    <- dots$lower_limit %||% 1
+    del_error_rate <- dots$del_error_rate
+    reads <- .pickTopXReads(bamfile, topx, pickiness, lower_limit,
+                            del_error_rate, indent = incr(indent))
     alignmentBam <- GenomicAlignments::readGAlignments(
       file = Rsamtools::BamFile(bamfile),
       param = Rsamtools::ScanBamParam(
@@ -64,7 +69,7 @@ mapReads <- function(
 
   ## Calculate pileup from graphmap produced SAM file
   ## pParam = .collectPileupParams(includeDeletion = includeDeletions, includeInsertions = includeInsertions)
-  ## x <- pileup <- pileup(bamfile, reffile, readtype, pParam = pParam)
+  ## pileup <- pileup(bamfile, reffile, readtype, pParam = pParam)
   #flog.info("%sPile up", indent(), name = "info")
   pileup <- pileup(bamfile, reffile, readtype, indent = incr(indent),
                    pParam = .collectPileupParams(
@@ -88,7 +93,14 @@ mapReads <- function(
                                        indent = incr(indent))
   }
 
-  if (topx > 0) {
+  if (update_background_model) {
+    delError <- .getGapErrorBackground(consmat(pileup), n = 5)
+    flog.info("%sEstimate indel noise <%0.3g> to update background model",
+              incr(indent)(), delError, name = "info")
+    pileup$meta$del_error_rate <- delError
+  }
+
+  if (topx > 0 ) {
     reads(pileup) <- reads
   }
 

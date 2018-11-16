@@ -4,10 +4,12 @@
 \alias{createPWM}
 \title{Create position weight matrix from multiple sequence alignment}
 \usage{
-createPWM(msa)
+createPWM(msa, del_error_rate = NULL)
 }
 \arguments{
 \item{msa}{A \code{DNAStringSet} object of aligned sequences.}
+
+\item{del_error_rate}{<numeric>; The estimated rate of spurious deletions.}
 }
 \value{
 A \code{PWM} matrix.

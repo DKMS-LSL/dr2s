@@ -211,6 +211,7 @@ pileup <- function(bamfile,
                            topx = "auto",
                            pickiness = 1,
                            lower_limit = 200,
+                           del_error_rate = NULL,
                            ...) {
   indent <- list(...)$indent %||% indentation()
   msa <- .msaFromBam(Rsamtools::BamFile(bamfile))
@@ -219,7 +220,7 @@ pileup <- function(bamfile,
     flog.info("%sNothing to pick from %s mapped longreads", indent(), length(msa), name = "info")
     return(names(msa))
   }
-  scores <- .PWMscore(msa)
+  scores <- .PWMscore(msa, del_error_rate)
   reads <- if (topx == "auto") {
     .pickReads(scores, pickiness, lower_limit)
   } else {
@@ -236,9 +237,9 @@ pileup <- function(bamfile,
 # Score multiple sequence alignment
 # @param msa A DNAStringset
 # @return A tibble with columns <read, score>
-.PWMscore <- function(msa) {
+.PWMscore <- function(msa, del_error_rate = NULL) {
   assert_that(is(msa, "XStringSet"))
-  pwm <- createPWM(msa)
+  pwm <- createPWM(msa, del_error_rate)
   bpparam <- BiocParallel::MulticoreParam(workers = .getIdleCores())
   do.call(dplyr::bind_rows, suppressWarnings(
     BiocParallel::bplapply(seq_along(msa),

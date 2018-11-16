@@ -231,6 +231,7 @@ is.freq.consmat <- function(consmat) attr(consmat, "freq")
 #' Create position weight matrix from multiple sequence alignment
 #'
 #' @param msa A \code{DNAStringSet} object of aligned sequences.
+#' @param del_error_rate <numeric>; The estimated rate of spurious deletions.
 #' @details
 #' \code{PWM}: a \code{matrix} with position as row names and nucleotides as
 #' column manes. Values are nucleotide weights at a position
@@ -244,16 +245,22 @@ is.freq.consmat <- function(consmat) attr(consmat, "freq")
 #' @examples
 #' print("TODO: Add examples")
 #' ###
-createPWM <- function(msa) {
+createPWM <- function(msa, del_error_rate = NULL) {
   # Need to calc first a count based consensus matrix, while removing "+".
   # Prob is calculated afterwards.
+  indent2 <- indentation(2)
   cmat <- as.matrix(Biostrings::consensusMatrix(msa, as.prob = FALSE))
   cmat <- cmat[VALID_DNA("del"), ]
   cmat <- sweep(cmat, 2, colSums(cmat), "/")
   ## Add pseudocount
   cmat <- cmat + 1/length(msa)
   ## Divide by DNA_PROBABILITIES
-  cmat <- cmat/DNA_PROB(include = "del")
+  b <- DNA_PROB(del_error_rate, include = "del")
+  if (!is.null(del_error_rate))
+    flog.info("%sUsing background model <%s> to create PWM", indent2(),
+              comma(sprintf("%s=%s", dQuote(names(b)), round(b, 4))),
+              name = "info")
+  cmat <- cmat/b
   ## Get log2likelihood ratio
   cmat <- log2(cmat)
   cmat <- rbind(cmat, "+" = 0)
@@ -267,7 +274,7 @@ createPWM <- function(msa) {
   seq <- .mat2rle(mat)
   if (removeError) {
     gapError <- .getGapErrorBackground(mat, n = 5)
-    flog.info("%sEstimate indel noise <%0.4g> to suppress spurious gaps", indent(),
+    flog.info("%sEstimate indel noise <%0.3g> to suppress spurious gaps", indent(),
               gapError, name = "info")
   }
   workers <- min(sum(idx <- seq$length > 5), .getIdleCores())
