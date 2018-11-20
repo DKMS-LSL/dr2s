@@ -255,7 +255,7 @@ pileup <- function(bamfile,
   m <- NCOL(pwm)
   read <- strsplit(as.character(read), split = "")[[1L]]
   i <- match(read, rownames(pwm)) + ((0:(m - 1))*n)
-  sum(pwm[i])/m
+  sum(pwm[i], na.rm = TRUE)/m
 }
 
 ## TODO: think about this more carefully

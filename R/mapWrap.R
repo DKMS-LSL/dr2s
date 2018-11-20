@@ -51,6 +51,7 @@ mapReads <- function(
 
   ## NOTE: "auto" > 0 evaluates to TRUE
   ## dots <- list()
+  ## indelRate <- NULL
   if (topx > 0 && readtype != "illumina") {
     pickiness  <- dots$pickiness  %||% 1
     lowerLimit <- dots$lowerLimit %||% dots$lower_limit %||% 20
