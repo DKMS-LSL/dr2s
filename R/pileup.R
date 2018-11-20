@@ -263,31 +263,34 @@ pileup <- function(bamfile,
   ## pickiness > 1: pick more reads
   ## pickiness < 1: pick less reads
   score_range <- range(x$score)
-  score_bins <- seq(score_range[1], score_range[2], length.out = 100)
-  read_sums <- vapply(score_bins, function(cutoff)
-    sum(x$score >= cutoff), FUN.VALUE = double(1))
-  benefit <- (read_sums^pickiness)*score_bins
-  opt_cut <- score_bins[which.max(benefit)]
+  score_bin_lows <- seq(score_range[1], score_range[2], length.out = 100)[-100]
+  cum_read_distr <- vapply(score_bin_lows, function(bin_low)
+    sum(x$score >= bin_low), FUN.VALUE = double(1L))
+  value <- (cum_read_distr^pickiness)*score_bin_lows
+  opt_cut <- score_bin_lows[which.max(value)]
   ##
   df <- tibble::tibble(
-    nreads = read_sums,
-    score  = score_bins,
-    benefit = rescale(benefit, score_range[1], score_range[2]),
-    pick = ifelse(score_bins < opt_cut, "no", "yes")
+    nreads = cum_read_distr,
+    score  = score_bin_lows,
+    value = rescale(value, score_range[1], score_range[2]),
+    pick = ifelse(score_bin_lows >= opt_cut, "yes", "no")
   )
-  p0 <- ggplot(df, aes(nreads, score, colour = pick)) +
+  plt0 <- ggplot(df, aes(x = nreads, y = score, colour = pick)) +
     geom_point() +
-    geom_line(aes(y = benefit))
+    geom_line(aes(y = value)) +
+    labs(x = "cumulative #reads [r]", y = "Minimum PWM sequence score [c]") +
+    theme_bw() +
+    theme(legend.position = "bottom")
   ##
   if (sum(x$score >= opt_cut) < lowerLimit) {
-    picked_reads <-  dplyr::top_n(x, lowerLimit, score)$read
+    picked_reads <-  dplyr::top_n(x, lowerLimit, .data$score)$read
   } else {
-    picked_reads <-  dplyr::filter(x, score >= opt_cut)$read
+    picked_reads <-  dplyr::filter(x, .data$score >= opt_cut)$read
   }
   ##
   attr(picked_reads, "pickiness") <- pickiness
   attr(picked_reads, "lowerLimit") <- lowerLimit
-  attr(picked_reads, "plot") <- p0
+  attr(picked_reads, "plot") <- plt0
   ##
   picked_reads
 }

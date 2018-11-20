@@ -257,8 +257,8 @@
 }
 
 .mat2rle <- function(mat) {
-  seq <- conseq(mat, type = "prob", suppressAllGaps = TRUE)
-  .seq2rle(seq)
+  assert_that(is(mat, "consmat"))
+  .makeProbConsensus_(x = mat, suppressAllGaps = TRUE, asRle = TRUE)
 }
 
 .seq2rle <- function(seq) {

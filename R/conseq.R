@@ -94,52 +94,56 @@ conseq.matrix <- function(x,
                                 suppressAllGaps = FALSE,
                                 suppressInsGaps = TRUE,
                                 columnOccupancy = 0.4,
-                                asString = FALSE,
+                                asRle = FALSE,
                                 ...) {
   xOri <- x
-  if (suppressAllGaps) {
-    x[, "-"] <- 0
-  } else if (suppressInsGaps && length(ins_ <- as.character(ins(x))) > 0) {
-    x <- .suppressGaps_(x, ins = ins_, columnOccupancy = columnOccupancy)
-  }
-  # don't allow gaps at beginning and end
-  maxbases <- names(unlist(unname(apply(x, 1, function(a)
-    list(which(a == max(a))[1])))))
-  maxbase  <- which(maxbases != "-")
-  maxgap   <- which(maxbases == "-")
-  # remove insertions for the consensus
+  ## always suppress insertions for consensus call!
   x[, "+"] <- 0
-
-  if (!length(maxgap) == 0) {
-    if (min(maxgap) < min(maxbase)) {
-      excludeFromStart <- min(
-        which(maxbases == "-")):(min(which(maxbases != "-")) - 1)
-      x[excludeFromStart, "-"] <- 0
-    }
-    if (max(maxgap) > max(maxbase)) {
-      excludeFromEnd <- (max(
-        which(maxbases != "-")) + 1):max(which(maxbases == "-"))
-      x[excludeFromEnd, "-"] <- 0
-    }
-  }
-
   ## remove rows which have been set to zero
   if (length(i <- which(n(x) == 0L)) > 0) {
     x <- x[-i, ]
   }
-  rowsd <- mean(n(x))/2
+  ## suppress all deletions
+  if (suppressAllGaps) {
+    x[, "-"] <- 0
+  }
+  ## or suppress deletions specifically at insertion positions
+  else if (suppressInsGaps && length(ins_ <- as.character(ins(x))) > 0) {
+    x <- .suppressGaps_(x, ins = ins_, columnOccupancy = columnOccupancy)
+  }
+  ## never allow gaps at the beginning and end of a sequence
+  if (!suppressAllGaps) {
+    maxbases <- colnames(x)[apply(x, 1, which.max)]
+    maxbase  <- which(maxbases != "-")
+    maxgap   <- which(maxbases == "-")
+    if (length(maxgap) > 0) {
+      if (min(maxgap) < min(maxbase)) {
+        excludeFromStart <- min(
+          which(maxbases == "-")):(min(which(maxbases != "-")) - 1)
+        x[excludeFromStart, "-"] <- 0
+      }
+      if (max(maxgap) > max(maxbase)) {
+        excludeFromEnd <- (max(
+          which(maxbases != "-")) + 1):max(which(maxbases == "-"))
+        x[excludeFromEnd, "-"] <- 0
+      }
+    }
+  }
+
+  rowsd <- mean(.rowSums(x, NROW(x), NCOL(x)))/2 ## WHY?
   z <- sweep(sweep(x, 1, .rowMeans(x, NROW(x), NCOL(x)), `-`), 1, rowsd, `/`)
   bases <- colnames(x)[apply(z, 1, which.max)]
-  if (asString) {
-    return(paste0(bases, collapse = ""))
+
+  if (asRle) {
+    return(rle(bases))
   }
+
   dels <- bases == "-"
   seq  <- Biostrings::BStringSet(paste0(bases[!dels], collapse = ""))
-
   # fix zscore; rm del positions
   z <- z[!dels, ]
 
-  metadata(seq) <- list(
+  S4Vectors::metadata(seq) <- list(
     zscore     = unname(apply(z, 1, max)),
     freq       = NULL,
     ambigs     = NULL,
@@ -161,12 +165,18 @@ conseq.matrix <- function(x,
                                  suppressAllGaps = FALSE,
                                  asString = FALSE,
                                  ...) {
+  ## always suppress insertions for consensus call!
+  x[, "+"] <- 0
+  ## remove rows which have been set to zero
+  if (length(i <- which(n(x) == 0L)) > 0) {
+    x <- x[-i, ]
+  }
+  ## suppress all deletions
+  if (suppressAllGaps) {
+    x[, "-"] <- 0
+  }
   ## Filter all bases with a frequency > threshold
   cmf <- consmat(x, freq = TRUE)
-  ## remove rows which have been set to zero
-  if (length(i <- which(n(cmf) == 0L)) > 0) {
-    cmf <- cmf[-i, ]
-  }
   baselist <- apply(cmf, 1, function(m) {
     rs <- m[i <- m > threshold]
     names(rs) <- names(m)[i]
@@ -174,24 +184,25 @@ conseq.matrix <- function(x,
   })
   s <- lapply(baselist, function(b) {
     b <- unlist(b)
-    if (length(b) == 1) {
+    if (length(b) == 0) {
+      ## this arises if all bases are below threshold
+      ## we've seen this with promethION data:
+      # Consensus Matrix: 3 x 6
+      # nucleotide
+      # pos            G          A T         C         -          +
+      #   3055 0.1166667 0.28333333 0 0.2500000 0.1888889 0.16111111
+      list(base = "N", freq = b)
+    }
+    else if (length(b) == 1) {
       list(base = names(b), freq = unname(b))
     }
     else if (length(b) > 1) {
       ## sort by name
-      b <- b[order(names(b))]
-      ## if we have a gap and suppressAllGaps == TRUE
-      if (suppressAllGaps && any(gap <- names(b) == "-")) {
-        b <- b[!gap]
-      }
-      NUC <- paste0(names(b), collapse = "")
+      NUC <- paste0(names(b[order(names(b))]), collapse = "")
       list(
         base = names(CODE_MAP())[charmatch(NUC, CODE_MAP())] %|na|% "N",
         freq = b
       )
-    }
-    else {
-      stop("No bases?")
     }
   })
   bases <- vapply(s, `[[`, "base", FUN.VALUE = "")

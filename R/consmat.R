@@ -42,24 +42,28 @@ Consmat_ <- function(x, n, freq, offsetBases = 0L, insertions = NULL) {
 
 #' @export
 consmat.matrix <- function(x, freq = TRUE, ...) {
-  stopifnot(all(c("A", "C", "G", "T", "-", "+") %in% colnames(x)))
-  n <- .rowSums(x, NROW(x), NCOL(x))
+  assert_that(all(VALID_DNA("indel") %in% colnames(x)))
+  n <- .rowSums(x[, VALID_DNA("del")], NROW(x), 5L)
   x <- if (freq) sweep(x, 1, n, `/`) else x
   Consmat_(x, n, freq, ...)
 }
 
+
 #' @export
 consmat.tbl_df <- function(x, freq = TRUE, drop.unused.levels = FALSE, ...) {
-  stopifnot(all(c("pos", "nucleotide", "count") %in% colnames(x)))
-  x <- stats::xtabs(formula = count ~ pos + nucleotide, data = x,
-             drop.unused.levels = drop.unused.levels)
-  rs <- matrix(x, NROW(x),  NCOL(x))
-  dimnames(rs) <- dimnames(x)
-  n <- .rowSums(rs, NROW(rs), NCOL(rs))
-  rs <- if (freq) sweep(rs, 1, n, `/`) else x
-  rs <- rs[,VALID_DNA("indel")]
-  Consmat_(rs, n, freq, ...)
+  assert_that(all(c("pos", "nucleotide", "count") %in% colnames(x)))
+  ctab <- stats::xtabs(formula = count ~ pos + nucleotide, data = x,
+                       drop.unused.levels = drop.unused.levels)
+  cmat <- matrix(ctab, NROW(ctab), NCOL(ctab))
+  dimnames(cmat) <- dimnames(ctab)
+  ## restrict matrix cols to GATC-+ and reorder accordingly
+  cmat <- cmat[, VALID_DNA("indel")]
+  ## calc number of reads at a position (only using GATC-)
+  n <- .rowSums(cmat[, VALID_DNA("del")], NROW(cmat), 5L)
+  cmat <- if (freq) sweep(cmat, 1, n, `/`) else cmat
+  Consmat_(cmat, n, freq, ...)
 }
+
 
 #' @export
 consmat.consmat <- function(x, freq = TRUE, ...) {
@@ -72,15 +76,16 @@ consmat.consmat <- function(x, freq = TRUE, ...) {
         offsetBases = offsetBases(x), insertions = ins(x)
       )
     }
-  } else if (!freq) {
-    ## recalibrate n
-    n(x) <- .rowSums(x, NROW(x), NCOL(x))
+  }
+  else if (!freq) {
     if (is.freq(x)) {
       Consmat_(
         sweep(x, 1, n(x), `*`), n = n(x), freq = freq,
         offsetBases = offsetBases(x), insertions = ins(x)
       )
     } else {
+      ## recalibrate n
+      n(x) <- .rowSums(x[, VALID_DNA("del")], NROW(x), 5L)
       x
     }
   }
@@ -110,7 +115,7 @@ print.consmat <- function(x, n = 25, noHead = FALSE, transpose = FALSE,  ...) {
   rs <- NextMethod(drop = drop)
   if (missing(j)) {
     ## recalibrate n
-    n <- .rowSums(rs, NROW(rs), NCOL(rs))
+    n <- .rowSums(rs[, VALID_DNA("del")], NROW(rs), 5L)
     Consmat_(
       rs, n, freq = is.freq(x), offsetBases = offsetBases(x),
       insertions = ins(x))
@@ -121,7 +126,7 @@ print.consmat <- function(x, n = 25, noHead = FALSE, transpose = FALSE,  ...) {
 `[<-.consmat` <- function(x, i, j, ..., value) {
   rs <- NextMethod()
   ## recalibrate n
-  n <- .rowSums(rs, NROW(rs), NCOL(rs))
+  n <- .rowSums(rs[, VALID_DNA("del")], NROW(rs), 5L)
   Consmat_(
     rs, n, freq = is.freq(x), offsetBases = offsetBases(x), insertions = ins(x)
   )
@@ -184,7 +189,6 @@ ins.consmat <- function(consmat) attr(consmat, "insertions")
   consmat
 }
 
-
 #' @rdname consmat
 #' @export
 offsetBases <- function(consmat) UseMethod("offsetBases")
@@ -205,28 +209,6 @@ offsetBases.consmat <- function(consmat) attr(consmat, "offsetBases")
 is.freq <- function(consmat) UseMethod("is.freq")
 #' @export
 is.freq.consmat <- function(consmat) attr(consmat, "freq")
-
-## Note for me: flattens the matrix; compare rowsum to rowsums upstream of pos;
-## if > t set all to 0
-.pruneConsensusMatrix <- function(cm, nLookBehind = 36, cutoff = 0.6,
-                                  verbose = TRUE) {
-  ## Use names; by helper function
-  rowsum <- rowSums(cm[, 1:4]) ## only consider bases
-  m0 <- do.call(cbind, Map(function(n) dplyr::lag(rowsum, n), nLookBehind:1))
-  wquant <- suppressWarnings(apply(m0, 1,
-                                   stats::quantile,
-                                   probs = 0.75, na.rm = TRUE))
-  devi <- (wquant - rowsum)/wquant
-  i <- which(devi > cutoff)
-  if (length(i) > 0) {
-    if (verbose) {
-      message("  Pruning positions ", comma(i))
-    }
-    cm[i, ] <- 0L
-    attr(cm, "pruningPositions") <- unname(i)
-  }
-  cm
-}
 
 #' Create position weight matrix from multiple sequence alignment
 #'
@@ -267,22 +249,23 @@ createPWM <- function(msa, indelRate = NULL) {
   ## Get log2likelihood ratio
   cmat <- log2(cmat)
   cmat <- rbind(cmat, "+" = 0)
-  cmat
+  structure(cmat, class = c("pwm", "matrix"))
 }
 
 # mat <- consmat(pileup)
 #removeError = TRUE
 .distributeGaps <- function(mat, bamfile, removeError = FALSE, ...) {
   indent <- list(...)$indent %||% indentation()
+  maxHomopolymerLength <- list(...)$maxHomopolymerLength %||% 5
   seq <- .mat2rle(mat)
   if (removeError) {
-    gapError <- .getGapErrorBackground(mat, n = 5)
+    gapError <- .getGapErrorBackground(mat, n = maxHomopolymerLength)
     flog.info("%sEstimate indel noise <%0.3g> to suppress spurious gaps", indent(),
               gapError, name = "info")
   }
-  workers <- min(sum(idx <- seq$length > 5), .getIdleCores())
+  workers <- min(sum(idx <- seq$length > maxHomopolymerLength), .getIdleCores())
   bpparam <- BiocParallel::MulticoreParam(workers = workers, log = FALSE)
-  flog.info("%sUse %s workers to shift gaps at positions <%s>", indent(),
+  flog.info("%sUse %s workers to rightshift gaps at homopolymer positions <%s>", indent(),
             workers, comma(which(idx)), name = "info")
   bam <- Rsamtools::BamFile(bamfile)
   if (workers > 1) {
@@ -293,8 +276,8 @@ createPWM <- function(msa, indelRate = NULL) {
   ## TODO: bplapply throws warning in serialize(data, node$con, xdr = FALSE)
   ## 'package:stats' may not be available when loading
   ## For the time being we suppress this warning
-  changeMat <- suppressWarnings(BiocParallel::bplapply(which(idx), function(i, bfl) {
-    #  i <- which(seq$length > 5)[2]
+  changeMat <- suppressWarnings(BiocParallel::bplapply(which(idx), function(i, bfl, seq) {
+    #  i <- which(seq$length > 5)[1]
     ## Assign new gap numbers to each position starting from left
     #  meanCoverage <- mean(rowSums(mat[(seqStart-2):(seqEnd+2),1:4]))
     seqStart <- sum(seq$lengths[seq_len(i - 1)]) + 1
@@ -305,45 +288,42 @@ createPWM <- function(msa, indelRate = NULL) {
     if (length(msa) == 0) {
       NULL
     } else {
-      ## Use only sequences spanning the complete region! Every other sequence
-      ## gives no Info
+      ## Use only reads spanning the complete region; every other read
+      ## gives no info
       msa <- msa[vapply(msa, function(x) !"+" %in% Biostrings::uniqueLetters(x),
                         FUN.VALUE = logical(1))]
       if (removeError) {
-        aFreq <- Biostrings::alphabetFrequency(msa[1])
-        nt <- colnames(aFreq)[which.max(aFreq)]
-        nucs <- sum(Biostrings::nchar(msa))
-        falseGaps <- round(nucs * gapError)
+        aFreq <- colSums(Biostrings::letterFrequency(msa, VALID_DNA("none")))
+        nt <- names(aFreq)[which.max(aFreq)]
+        nucs <- length(msa)*unique(Biostrings::width(msa))
+        falseGaps <- floor(nucs*gapError)
         while (falseGaps > 0) {
-          seqsWithGap <- which(vapply(msa, function(x)
-            "-" %in% Biostrings::uniqueLetters(x), FUN.VALUE = logical(1)))
-          if (length(seqsWithGap) > 1) {
+          seqsWithGap <- which(Biostrings::letterFrequency(msa, "-") > 0)
+          seqsToUpdate <- if (length(seqsWithGap) > 1) {
             set.seed(3)
-            seqsToChange <- sample(seqsWithGap,
-                                   min(falseGaps,
-                                       length(seqsWithGap)))
-            s1 <- seqsToChange
+            sample(seqsWithGap, min(falseGaps, length(seqsWithGap)))
           } else {
-            seqsToChange <- seqsWithGap
+            seqsWithGap
           }
-          if (length(seqsToChange) == 0)
+          if (length(seqsToUpdate) == 0)
             break
-          msaChanged <- Biostrings::DNAStringSet(
-            lapply(msa[seqsToChange], function(x) {
-              # x <- msa[seqsToChange][[1]]
-              pos <- Biostrings::matchPattern("-", x)[1]
-              Biostrings::replaceLetterAt(x,
-                                          Biostrings::start(
-                                            Biostrings::matchPattern("-", x)[1]),
-                                          nt)
-            }))
-          msa[seqsToChange] <- msaChanged
-          falseGaps <- falseGaps - length(seqsToChange)
+          at  <- matrix(FALSE, nrow = length(msa), ncol = Biostrings::width(msa)[1])
+          vm  <- Biostrings::vmatchPattern("-", msa[seqsToUpdate])
+          vmi <- vapply(Biostrings::startIndex(vm), `[`, 1, FUN.VALUE = integer(1))
+          replace_at <- matrix(nrow = length(vmi), c(seqsToUpdate, vmi))
+          at[replace_at] <- TRUE
+          nts <- Biostrings::DNAStringSet(ifelse(rowSums(at) == 1, nt, ""))
+          msa <- Biostrings::replaceLetterAt(msa, at, nts)
+          falseGaps <- falseGaps - length(seqsToUpdate)
         }
       }
 
-      msa <- Biostrings::DNAStringSet(vapply(msa, function(x) {
-        gapless <- gsub(pattern = "-", "", x)
+      gapI <- Biostrings::startIndex(Biostrings::vmatchPattern("-", msa, fixed = TRUE))
+      g0   <- which(!vapply(gapI, function(g) {
+        is.null(g) || (g[1L] == 1 && all(diff(g) == 1))
+      }, FUN.VALUE = logical(1)))
+      msa[g0] <- Biostrings::DNAStringSet(vapply(msa[g0], function(x) {
+        gapless <- gsub("-", "", x, fixed = TRUE)
         nGaps <- Biostrings::nchar(x) - Biostrings::nchar(gapless)
         paste0(rep("-", nGaps), collapse = "") %<<% gapless
       }, FUN.VALUE = character(1)))
@@ -355,8 +335,7 @@ createPWM <- function(msa, indelRate = NULL) {
           , VALID_DNA(include = "indel")]
       )
     }
-    #}, bamfile = bamfile, BPPARAM = bpparam))
-  }, bfl = bam, BPPARAM = bpparam))
+  }, bfl = bam, seq = seq, BPPARAM = bpparam))
   ##
   assert_that(!any(vapply(changeMat, is.null, FUN.VALUE = logical(1))))
   ## Change the matrix
@@ -366,22 +345,20 @@ createPWM <- function(msa, indelRate = NULL) {
   mat
 }
 
-.getGapErrorBackground <- function(mat, n = 5){
+.getGapErrorBackground <- function(mat, n = 5) {
   seq <- .mat2rle(mat)
-  consecutiveRegions <- rle((seq$lengths > n))
+  consecutiveRegions <- rle(seq$lengths > n)
   longestRegion <- which.max(consecutiveRegions$lengths)
   startSeq <- ifelse(longestRegion == 1,
                      1,
-                     sum(consecutiveRegions$lengths[
-                       seq_len(longestRegion - 1)]))
+                     sum(consecutiveRegions$lengths[seq_len(longestRegion - 1)]))
   endSeq <- startSeq + consecutiveRegions$lengths[longestRegion] - 1
   ## Add an offset of 10 to acknowledge bad quality after homopolymer regions
   startSeq <- startSeq + 10
-  background <- mat[startSeq:endSeq,]
+  background <- mat[startSeq:endSeq, VALID_DNA("del")]
   backgroundSums <- colSums(background)
-  backgroundSums["-"] / sum(backgroundSums)
+  backgroundSums["-"]/sum(backgroundSums)
 }
-
 
 .extractIdsFromMat <- function(mat, readIds) {
   consmat(t(

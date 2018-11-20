@@ -72,8 +72,8 @@ MergeEnv_ <- R6::R6Class(
       } else NULL
     },
     print = function(left = 3, right = left, ...) {
-      for (hp in self$hptypes) {
-        self$showMatrix(hp, left = left, right = right)
+      for (hapEnv in self$hptypes) {
+        self$showMatrix(envir = hapEnv, left = left, right = right)
         cat("\n")
       }
     }
@@ -97,7 +97,6 @@ MergeEnv_$set("public", "init", function(hapEnv) {
     envir$LR <- consmat(self$x$mapFinal$LR[[hapEnv]]$pileup, prob = FALSE)
     envir$SR <- NULL
   }
-
   apos <- foreach(rt = c("LR", "SR"), .combine = c) %do% {
     # threshold <- ifelse(rt == "LR", max(c(threshold, 0.2)), threshold)
     # rt = "LR"
@@ -129,12 +128,12 @@ MergeEnv_$set("public", "walkOne", function(hapEnv, verbose = FALSE) {
 })
 
 ## self$walk() ####
-MergeEnv_$set("public", "walk", function(hapEnv, verbose = FALSE) {
-  hapEnv <- match.arg(hapEnv, self$x$getHapTypes())
-  if (!self$isInitialised(hapEnv)) {
-    self$init(hapEnv)
+MergeEnv_$set("public", "walk", function(hp, verbose = FALSE) {
+  hp <- match.arg(hp, self$x$getHapTypes())
+  if (!self$isInitialised(hp)) {
+    self$init(hp)
   }
-  envir <- self$getHapEnv(hapEnv)
+  envir <- self$getHapEnv(hp)
   # while (stepThrough(envir)) {
   while (private$stepThrough(envir)) {
     if (verbose) {
@@ -156,10 +155,11 @@ MergeEnv_$set("private", "stepThrough", function(envir) {
   envir$pos <- ifelse(!is.null(envir$SR),
                       iterators::nextElem(envir$POSit) + offsetBases(envir$SR),
                       iterators::nextElem(envir$POSit) + offsetBases(envir$LR))
+  # message(envir$pos)
+  # envir$pos <- 962
   # p  <- envir$pos
   # x  <- yield(envir)
   rs <- disambiguateVariant(x = yield(envir), threshold = self$threshold)
-
   .update(envir) <- rs
   TRUE
 })
@@ -204,20 +204,24 @@ MergeEnv_$set("public", "showMatrix", function(envir, pos, left = 6,
   if (missing(pos)) {
     pos <- envir$pos
   }
-  min <- min(pos + offsetBases - left, 1)
+  min <- min(max(pos + offsetBases - left, 1), 1)
   lr <- envir$LR[min:(pos + offsetBases + right), , drop = FALSE]
   sr <- envir$SR[min:(pos + offsetBases + right), , drop = FALSE]
   lcs <- .makeAmbigConsensus_(lr, threshold = self$threshold,
                               suppressAllGaps = FALSE, asString = TRUE)
-  scs <- .makeAmbigConsensus_(sr, threshold = self$threshold,
-                              suppressAllGaps = FALSE, asString = TRUE)
+  if (!is.null(sr)) {
+    scs <- .makeAmbigConsensus_(sr, threshold = self$threshold,
+                                suppressAllGaps = FALSE, asString = TRUE)
+  }
   cat("Haplotype ", envir$haplotype,
       "\nLong read map position [", pos + offsetBases,
       "] Consensus [", lcs, "]\n")
   print(lr, n = NROW(lr), noHead = TRUE, transpose = TRUE)
-  cat("Short read map position [", pos + offsetBases, "] Consensus [",
-      scs, "]\n")
-  print(sr, n = NROW(sr), noHead = TRUE, transpose = TRUE)
+  if (!is.null(sr)) {
+    cat("Short read map position [", pos + offsetBases, "] Consensus [",
+        scs, "]\n")
+    print(sr, n = NROW(sr), noHead = TRUE, transpose = TRUE)
+  }
 })
 
 ## self$export() ####
@@ -225,7 +229,7 @@ MergeEnv_$set("public", "export", function() {
   cons <- structure(
     c(
       foreach(hp = self$x$getHapTypes(),
-              .final = function(x) setNames(x, self$x$getHapTypes())) %do% {
+              .final = function(x) stats::setNames(x, self$x$getHapTypes())) %do% {
                 envir <- self$hptypes[[hp]]
                 list(
                   matrix = if (!is.null(envir$SR)) envir$SR else envir$LR,
@@ -235,13 +239,13 @@ MergeEnv_$set("public", "export", function() {
       ## consensus for checking with ambigs
       seq = list(foreach(hp = self$x$getHapTypes(),
                          .final = function(x)
-                           setNames(x, self$x$getHapTypes())) %do% {
+                           stats::setNames(x, self$x$getHapTypes())) %do% {
                              cmat <- if (!is.null(self$hptypes[[hp]]$SR)) {
                                self$hptypes[[hp]][["SR"]]
                              } else {
                                consmat(self$x$mapFinal$LR[[hp]]$pileup)
                              }
-                             cseq <- conseq(cmat, "hap" %<<% hp, "ambig", suppressAllGaps = TRUE, threshold = self$threshold)
+                             cseq <- conseq(x = cmat, name = "hap" %<<% hp, type = "ambig", suppressAllGaps = TRUE, threshold = self$threshold)
                              metadata(cseq) <- list()
                              cseq
                            }),

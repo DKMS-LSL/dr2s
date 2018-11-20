@@ -7,7 +7,8 @@
 readDR2SConf(configFile, format = "auto")
 }
 \arguments{
-\item{configFile}{The path to the valid DR2S config file.}
+\item{configFile}{The path to the valid DR2S config file or to a DR2S project
+directrory containing a \file{config.json} or \file{config.yaml} file.}
 
 \item{format}{Input format ("auto", "yaml" or "json")}
 }

@@ -44,7 +44,7 @@ polish.DR2S <- function(x,
   # rdtypes <- names(x$mapFinal) ## LR, SR
   hptypes <- x$getHapTypes() ## A, B, C, ...
   menv <- MergeEnv(x, threshold)
-  ## hp = "A"
+  ## hp = "D"
   for (hp in hptypes) {
     menv$init(hp)
     menv$walk(hp)

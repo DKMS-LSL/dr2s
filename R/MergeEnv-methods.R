@@ -54,8 +54,7 @@ print.variantList <- function(x, threshold = 0.2, ...) {
 #' @examples
 #' ###
 #'
-disambiguateVariant <- function(x,
-                                 threshold) {
+disambiguateVariant <- function(x, threshold) {
   assert_that(is(x, "variantList"))
 
   warningMsg <- ""
@@ -91,7 +90,7 @@ disambiguateVariant <- function(x,
     vars <- .filterVariant(cm = sr, threshold)
 
     ## State which reads are ambiguous
-    if (length(vars) > 1 ){
+    if (length(vars) > 1 ) {
       srBases <- names(vars)
       ## Check for deletions
       if ("-" %in% names(vars)) {
@@ -157,6 +156,8 @@ disambiguateVariant <- function(x,
 }
 
 .filterVariant <- function(cm, threshold) {
+  ## ignore insertions
+  cm <- cm[, VALID_DNA("del"), drop = FALSE]
   cmf <- sweep(cm, 1, .rowSums(cm, NROW(cm), NCOL(cm)), `/`)
   which(apply(cmf, 2, function(col) all(col > threshold)))
 }
@@ -164,7 +165,7 @@ disambiguateVariant <- function(x,
 .variant <- function(lrBases, srBases, warning, vlist) {
   refbase <- ifelse(any(is.na(srBases)), lrBases[[1]], srBases[[1]])
   altbase <- ifelse(any(is.na(srBases)), lrBases[[2]], srBases[[2]])
-  if (!is.null(vlist$sr)){
+  if (!is.null(vlist$sr)) {
     pos <- as.integer(row.names(vlist$sr))
     cm <- rbind(as.matrix(vlist$lr), as.matrix(vlist$sr))
     rownames(cm) <- c("LR", "SR")

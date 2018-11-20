@@ -43,7 +43,8 @@ createDR2SConf <- function(sample,
 }
 
 #' Read a DR2S config file in yaml or json format
-#' @param configFile The path to the valid DR2S config file.
+#' @param configFile The path to the valid DR2S config file or to a DR2S project
+#' directrory containing a \file{config.json} or \file{config.yaml} file.
 #' @param format Input format ("auto", "yaml" or "json")
 #' @details DR2S config files can be created manually or by the
 #' \code{\link{writeDR2SConf}} function.
@@ -51,10 +52,17 @@ createDR2SConf <- function(sample,
 #' @export
 readDR2SConf <- function(configFile, format = "auto") {
   format0 <- match.arg(format, c("auto", "yaml", "json"))
+  conf0 <- configFile
   if (format0 == "auto") {
     if (endsWith(tolower(configFile), ".yaml")) {
       format0 <- "yaml"
     } else if (endsWith(tolower(configFile), ".json")) {
+      format0 <- "json"
+    } else if (length(dir(configFile, pattern = "config\\.yaml")) == 1) {
+      conf0 <- file.path(configFile, "config.yaml")
+      format0 <- "yaml"
+    } else if (length(conf0 <- dir(configFile, pattern = "config\\.json")) == 1) {
+      conf0 <- file.path(configFile, "config.json")
       format0 <- "json"
     } else {
       stop("Config file format not recognised")
@@ -62,8 +70,8 @@ readDR2SConf <- function(configFile, format = "auto") {
   }
   conf <- switch(
     format0,
-    yaml = yaml::yaml.load_file(configFile),
-    json = jsonlite::fromJSON(configFile)
+    yaml = yaml::yaml.load_file(con0),
+    json = jsonlite::fromJSON(conf0)
   )
   ## set eferenc if extref exists
   if (!is.null(conf$extref)) {

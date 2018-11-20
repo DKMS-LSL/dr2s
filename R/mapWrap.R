@@ -17,7 +17,7 @@ mapReads <- function(
                     opts, force)
 
   ## collect minMapq for use in .bamSortIndex
-  # minMapq = 25
+  # minMapq = 0
   minMapq <- dots$minMapq %||% dots$min_mapq %||% 0
 
   if (clip) {

@@ -12,6 +12,8 @@ polymorphicPositions <- function(x, threshold)
   UseMethod("polymorphicPositions")
 #' @export
 polymorphicPositions.consmat <- function(x, threshold = 0.20) {
+  ## make sure to ignore insertions!
+  x[, "+"] <- 0
   if (!is.freq(x)) {
     x <- consmat(x, freq = TRUE)
   }
@@ -46,6 +48,8 @@ polymorphicPositions.pileup <- function(x, threshold = NULL) {
   f_ <- function(row) {
     sum(row > threshold) > 1L
   }
+  ## make sure to ignore insertions!
+  x[, "+"] <- 0
   x <- if (!is.freq(x)) {
     sweep(x, 1, n(x), `/`)
   } else x
@@ -57,18 +61,4 @@ polymorphicPositions.pileup <- function(x, threshold = NULL) {
     threshold <- x$threshold
   }
   .ambiguousPositions(consmat(x, freq = TRUE), threshold = threshold)
-}
-
-consensusBases <- function(x) UseMethod("consensusBases")
-
-consensusBases.consmat <- function(x) {
-  nucs <- x[, c("A", "C", "G", "T")]
-  f <- sweep(nucs, 1, .rowSums(nucs, NROW(nucs), NCOL(nucs)), `/`)
-  colnames(nucs)[apply(f, 1, which.max)]
-}
-
-nPolymorphicPositions <- function(cm, threshold = 0.2) {
-  cm[, "-"] <- 0
-  cm <- cm[rowSums(cm) != 0, ]
-  length(cpp_polymorphicPositions(consmat(cm, freq = TRUE),threshold))
 }
