@@ -4,39 +4,17 @@
 \alias{mapInit}
 \title{Initial mapping.}
 \usage{
-mapInit(x, opts = list(), threshold = NULL, includeDeletions = TRUE,
-  includeInsertions = TRUE, microsatellite = FALSE,
-  filterScores = TRUE, forceMapping = FALSE, topx = 0,
-  createIgv = TRUE, force = FALSE, plot = TRUE, ...)
+mapInit(x, opts = list(), createIgv = TRUE, plot = TRUE, ...)
 }
 \arguments{
 \item{x}{A \code{\link[=DR2S_]{DR2S}} object.}
 
-\item{opts}{Mapper options.}
+\item{opts}{List with options passed to the mapper.}
 
-\item{threshold}{Threshold to call a variant.}
+\item{createIgv}{Subsample bam files for visualisation with IgvJs in the
+DR2S shiny app.}
 
-\item{includeDeletions}{If \code{TRUE}, include deletions in pileup.}
-
-\item{includeInsertions}{If \code{TRUE}, include insertions in pileup.}
-
-\item{microsatellite}{If \code{TRUE} remap the shortreads again to expand
-the reference to a maximum length. Works better for larger insertions and
-repeats like microsatellites.}
-
-\item{filterScores}{Apply a harsh filtering on the reads. Filters for mapping
-quality and removes all softclipping reads. Usually not necessary.}
-
-\item{forceMapping}{if \code{FALSE} the program throws an error in case the
-coverage of shortreads is too different at different parts of the sequence.}
-
-\item{topx}{Select the x best-scoring reads.}
-
-\item{createIgv}{Subsample for looking with IgvJs in the shiny app.}
-
-\item{force}{If \code{TRUE}, overwrite existing bam files.}
-
-\item{plot}{Produce diagnostic plots.}
+\item{plot}{Generate diagnostic plots.}
 
 \item{...}{Additional parameters passed to \code{\link[Rsamtools]{PileupParam}}.}
 }

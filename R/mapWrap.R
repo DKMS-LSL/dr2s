@@ -4,8 +4,7 @@ mapReads <- function(
   mapfun, maplabel, reffile, refname, readfile, readtype, opts = NULL, outdir,
   includeDeletions, includeInsertions, callInsertions = FALSE,
   callInsertionThreshold = 0.15, clip = FALSE, distributeGaps = FALSE,
-  removeError = TRUE, updateBackgroundModel = FALSE, topx = 0, force, clean,
-  ...) {
+  removeError = TRUE, updateBackgroundModel = FALSE, topx = 0, clean, ...) {
 
   dots   <- list(...)
   indent <- dots$indent %||% indentation()
@@ -13,8 +12,7 @@ mapReads <- function(
   ## Run mapper
   flog.info("%sMap <%s> reads <%s> to reference <%s>", indent(),
             readtype, comma(names(readfile)), names(reffile), name = "info")
-  samfile <- mapfun(reffile, refname, readfile, readtype, outdir, maplabel,
-                    opts, force)
+  samfile <- mapfun(reffile, refname, readfile, readtype, outdir, maplabel, opts)
 
   ## collect minMapq for use in .bamSortIndex
   # minMapq = 0
@@ -24,7 +22,7 @@ mapReads <- function(
     flog.info("%sTrim softclips and polymorphic ends", indent(), name = "info")
     ## Run bam - sort - index pipeline
     bamfile <- .bamSortIndex(samfile = samfile, reffile = reffile,
-                             minMapq = minMapq, force = force, clean = clean)
+                             minMapq = minMapq, clean = clean)
     ## Trim softclips
     fq <- .trimSoftclippedEnds(bam = scanBam(bamfile)[[1]], preserveRefEnds = TRUE)
     ## Trim polymorphic ends
@@ -38,7 +36,7 @@ mapReads <- function(
     ## Rerun mapper
     flog.info("%sRemap trimmed reads <%s> to reference <%s>", indent(), fqfile, names(reffile), name = "info")
     samfile <- mapfun(reffile, refname, readfile, readtype, outdir, maplabel,
-                      opts = list(A = 1, B = 4, O = 2), force)
+                      opts = list(A = 1, B = 4, O = 2))
     # cleanup
     .fileDeleteIfExists(fqout)
     .fileDeleteIfExists(fqdir)
@@ -46,16 +44,15 @@ mapReads <- function(
 
   ## Run bam - sort - index pipeline
   #flog.info("%sSort and index", indent(), name = "info")
-  bamfile <- .bamSortIndex(samfile = samfile, reffile = reffile,
-                           minMapq = minMapq, force = force)
+  bamfile <- .bamSortIndex(samfile = samfile, reffile = reffile, minMapq = minMapq)
 
   ## NOTE: "auto" > 0 evaluates to TRUE
   ## dots <- list()
   ## indelRate <- NULL
   if (topx > 0 && readtype != "illumina") {
     pickiness  <- dots$pickiness  %||% 1
-    lowerLimit <- dots$lowerLimit %||% dots$lower_limit %||% 20
-    indelRate  <- dots$indelRate  %||% dots$indel_rate
+    lowerLimit <- dots$lowerLimit %||% 20
+    indelRate  <- dots$indelRate
     reads <- .pickTopXReads(bamfile, topx, pickiness, lowerLimit, indelRate, indent = incr(indent))
     alignmentBam <- GenomicAlignments::readGAlignments(
       file = Rsamtools::BamFile(bamfile),

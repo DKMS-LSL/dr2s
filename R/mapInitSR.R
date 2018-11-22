@@ -1,8 +1,8 @@
-mapInitSR <- function(self, threshold = 0.2, opts = list(), includeDeletions = TRUE,
+mapInitSR <- function(self, opts = list(), includeDeletions = TRUE,
                       includeInsertions = TRUE, callInsertions = TRUE,
                       callInsertionThreshold = 0.15, clip = FALSE,
                       distributeGaps = FALSE, removeError = TRUE, topx = 0,
-                      outdir, force, clean, ...) {
+                      outdir, clean, ...) {
 
   ## get indenter
   indent <- list(...)$indent %||% indentation()
@@ -26,7 +26,7 @@ mapInitSR <- function(self, threshold = 0.2, opts = list(), includeDeletions = T
     includeDeletions = includeDeletions, includeInsertions = includeInsertions,
     callInsertions = TRUE, callInsertionThreshold = callInsertionThreshold,
     clip = FALSE, distributeGaps = FALSE, removeError = TRUE, topx = 0,
-    force = force, clean = clean, indent = indent, ...)#minMapq = 50)
+    clean = clean, indent = indent, ...)#minMapq = 50)
 
   ## Check if the coverage is somewhat equally distributed
   if (max(rowSums(consmat(pileup, freq = FALSE))) /
@@ -41,7 +41,7 @@ mapInitSR <- function(self, threshold = 0.2, opts = list(), includeDeletions = T
   names(conspath) <- self$relPath(conspath)
   flog.info("%sConstruct consensus <%s>", indent(), names(conspath), name = "info")
   conseq <- .writeConseq(x = pileup, name = consname, type = "prob",
-                         threshold = threshold, suppressAllGaps = TRUE,
+                         threshold = NULL, suppressAllGaps = TRUE,
                          replaceIndel = "N", conspath = conspath)
 
   if (microsat) {
@@ -52,7 +52,7 @@ mapInitSR <- function(self, threshold = 0.2, opts = list(), includeDeletions = T
       includeDeletions = includeDeletions, includeInsertions = includeInsertions,
       callInsertions = TRUE, callInsertionThreshold = callInsertionThreshold,
       clip = FALSE, distributeGaps = FALSE, removeError = TRUE, topx = 0,
-      force = force, clean = clean, indent = indent, ...)#minMapq = 50)
+      clean = clean, indent = indent, ...)#minMapq = 50)
 
     # Construct secondary initial consensus sequence
     consname <- consname %<<% ".2"
@@ -60,7 +60,7 @@ mapInitSR <- function(self, threshold = 0.2, opts = list(), includeDeletions = T
     names(conspath) <- self$relPath(conspath)
     flog.info("%sConstruct consensus <%s>", indent(), names(conspath), name = "info")
     conseq <- .writeConseq(x = pileup, name = consname, type = "prob",
-                           threshold = threshold, suppressAllGaps = TRUE,
+                           threshold = NULL, suppressAllGaps = TRUE,
                            replaceIndel = "N", conspath = conspath)
   }
 
@@ -87,8 +87,8 @@ mapInitSR <- function(self, threshold = 0.2, opts = list(), includeDeletions = T
     readfile = readfile, readtype = readtype, opts = opts, outdir = outdir,
     includeDeletions = TRUE, includeInsertions = FALSE, callInsertions = FALSE,
     callInsertionThreshold = callInsertionThreshold, clip = FALSE,
-    distributeGaps = FALSE, removeError = TRUE, topx = 0, force = force,
-    clean = clean, indent = indent, ...)#minMapq = 50)
+    distributeGaps = FALSE, removeError = TRUE, topx = 0, clean = clean,
+    indent = indent, ...)#minMapq = 50)
 
   SR2 = MapList_(
     ## mapdata

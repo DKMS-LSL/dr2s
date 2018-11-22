@@ -42,8 +42,6 @@ the reference to a maximum length and enables a better mapping.}
 \item{distAlleles}{Number of different alleles in the sample. Should be 2
 for heterozygous samples, 1 for homozygous samples and > 2 for some KIR loci.}
 
-\item{filterScores}{use only reads passing a strict filtering step. TODO}
-
 \item{forceMapping}{<\code{FALSE}>; set to TRUE if you want to force
 processing of "bad" shortreads, i.e. when the distribution of coverage is
 heavily unequal. Aborts the program if maximum coverage > 75 \% quantile * 5.}

@@ -249,7 +249,8 @@ conseq.matrix <- function(x,
   x
 }
 
-.writeConseq <- function(x, name, type, threshold, suppressAllGaps, replaceIndel = "", conspath, ...) {
+.writeConseq <- function(x, name, type, threshold = NULL, suppressAllGaps = TRUE,
+                         replaceIndel = "", conspath, ...) {
   conseq0 <- conseq(consmat(x, freq = FALSE), name = name, type = type,
                    threshold = threshold, suppressAllGaps = suppressAllGaps, ...)
   conseq1 <- Biostrings::DNAStringSet(stripIndel(conseq0, replace = replaceIndel))

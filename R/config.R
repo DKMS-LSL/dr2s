@@ -1,3 +1,6 @@
+#' @include configOpts.R
+NULL
+
 #' @export
 createDR2SConf <- function(sample,
                            locus,
@@ -380,6 +383,10 @@ validateDR2SConf <- function(conf) {
 
   ## Normalise locus
   conf$locus <- sub("^HLA-", "", .normaliseLocus(conf$locus))
+
+  ## Normalise options
+  pipeline <- if (!is.null(conf$shortreads)) "SR" else "LR"
+  conf$opts <- normaliseOpts(conf$opts, pipeline)
 
   conf
 }

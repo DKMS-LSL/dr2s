@@ -4,14 +4,12 @@
 \alias{partitionShortreads}
 \title{Assign short reads from mapInit to haplotypes}
 \usage{
-partitionShortreads(x, opts = list(), force = TRUE, ...)
+partitionShortreads(x, opts = list(), ...)
 }
 \arguments{
 \item{x}{A \code{\link[=DR2S_]{DR2S}} object.}
 
 \item{opts}{list with options passed to the mapper.}
-
-\item{force}{force the creation of new fastq files if they already exist.}
 
 \item{...}{Further arguments passed to methods.}
 }

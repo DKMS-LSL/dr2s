@@ -4,16 +4,13 @@
 \alias{report}
 \title{Report the final haplotype sequences.}
 \usage{
-report(x, which, blockWidth = 80, ...)
+report(x, whichMap, ...)
 }
 \arguments{
 \item{x}{A \code{\link[=DR2S_]{DR2S}} object.}
 
-\item{which}{Which mapping do we want to report. Will choose \code{mapFinal},
-\code{mapIter} in this order if available.}
-
-\item{blockWidth}{Maximum number of sequence letters per line in pairwise
-alignment.}
+\item{whichMap}{Which mapping do we want to report. Will choose
+\code{mapFinal} or \code{mapIter} in this order as available.}
 
 \item{...}{Additional arguments passed to methods.}
 }

@@ -2,32 +2,14 @@
 % Please edit documentation in R/all-generics.R
 \name{partitionLongreads}
 \alias{partitionLongreads}
-\title{Partition mapped long reads into haplotypes
-,}
+\title{Partition mapped long reads into haplotypes}
 \usage{
-partitionLongreads(x, threshold = NULL, skipGapFreq = 2/3,
-  distAlleles = NULL, noGapPartitioning = FALSE,
-  selectAllelesBy = "count", plot = TRUE, ...)
+partitionLongreads(x, plot = TRUE, ...)
 }
 \arguments{
 \item{x}{A \code{\link[=DR2S_]{DR2S}} object.}
 
-\item{threshold}{The threshold when a SNP is a SNP.}
-
-\item{skipGapFreq}{The gap frequenzy needed to call a gap position.}
-
-\item{distAlleles}{The number of distinct alleles in the sample.}
-
-\item{noGapPartitioning}{Don't partition based on gaps. Useful for samples
-with only few SNPs but with homopolymers. The falsely called gaps could
-mask the real variation.}
-
-\item{selectAllelesBy}{If more than \code{distAlleles} clusters are found
-select clusters based on: (1) "distance": The hamming distance of the
-resulting variant consensus sequences or (2) "count": Take the clusters
-with the most reads as the true alleles.}
-
-\item{plot}{Plot}
+\item{plot}{Generate diagnostic plots.}
 
 \item{...}{Further arguments passed to methods.}
 }
@@ -36,7 +18,6 @@ A \code{\link[=DR2S_]{DR2S}} object.
 }
 \description{
 Partition mapped long reads into haplotypes
-,
 }
 \examples{
 \dontrun{

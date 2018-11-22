@@ -1,5 +1,5 @@
 #' @export
-report.DR2S <- function(x, which, blockWidth = 80, noRemap = FALSE, createIgv = TRUE, ...) {
+report.DR2S <- function(x, whichMap, createIgv = TRUE, ...) {
 
   flog.info("# report", name = "info")
 
@@ -15,14 +15,17 @@ report.DR2S <- function(x, which, blockWidth = 80, noRemap = FALSE, createIgv = 
     return(invisible(x))
   }
 
+  ## Export report config to function environment
   args <- x$getOpts("report")
-  if (!is.null(args)) {
-    env  <- environment()
-    list2env(args, envir = env)
-  }
+  env <- environment()
+  list2env(args, envir = env)
+  assert_that(
+    exists("blockWidth") && is.numeric(blockWidth),
+    exists("noRemap") && is.logical(noRemap)
+  )
 
   outdir <- .dirCreateIfNotExists(x$absPath("report"))
-  if (missing(which)) {
+  if (missing(whichMap)) {
     ## if `which` is unspecified choose `mapFinal` if available,
     ## otherwise try `mapIter`
     if (x$hasMapFinal()) {
@@ -30,12 +33,14 @@ report.DR2S <- function(x, which, blockWidth = 80, noRemap = FALSE, createIgv = 
                   noRemap = noRemap, createIgv = createIgv, ...)
     }
     else if (x$hasMapIter()) {
-      .reportMap_(x, map = "mapIter", outdir = outdir, blockWidth = blockWidth, ...)
+      .reportMap_(x, map = "mapIter", outdir = outdir, blockWidth = blockWidth,
+                  noRemap = noRemap, createIgv = createIgv, ...)
     }
     else stop("Nothing to report")
   } else {
-    which <- match.arg(tolower(which), c("mapFinal", "mapIter"))
-    .reportMap_(x, which, outdir, blockWidth = blockWidth, ...)
+    whichMap <- match.arg(tolower(whichMap), c("mapFinal", "mapIter"))
+    .reportMap_(x, map = whichMap, outdir = outdir, blockWidth = blockWidth,
+                noRemap = noRemap, createIgv = createIgv, ...)
   }
 
   ## set report runstats
@@ -334,7 +339,7 @@ refineAlignment <- function(x, hptype, report = FALSE, createIgv = TRUE, ...) {
   pileup <- mapReads(
     mapfun = self$getLrdMapFun(), reffile = refpath, refname = mapgroupLR,
     readfile = readpathLR, readtype = x$getLrdType(), opts = opts,
-    outdir = outdir, force = TRUE, clean = TRUE, includeDeletions = FALSE,
+    outdir = outdir, clean = TRUE, includeDeletions = FALSE,
     includeInsertions = FALSE, indent = incr(indent))
 
   x$consensus$refine$bamfile[[mapgroupLR]] = x$relPath(bampath(pileup))
@@ -353,7 +358,7 @@ refineAlignment <- function(x, hptype, report = FALSE, createIgv = TRUE, ...) {
     pileup <- mapReads(
       mapfun = self$getSrdMapFun(), reffile = refpath, refname = mapgroupSR,
       readfile = readpathSR, readtype = x$getSrdType(), opts = opts,
-      outdir = outdir, force = TRUE, clean = TRUE, includeDeletions = FALSE,
+      outdir = outdir, clean = TRUE, includeDeletions = FALSE,
       includeInsertions = FALSE, clip = TRUE, indent = incr(indent))
 
     x$consensus$refine$bamfile[[mapgroupSR]] = x$relPath(bampath(pileup))

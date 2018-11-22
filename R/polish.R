@@ -18,12 +18,6 @@ polish.DR2S <- function(x,
   ## Collect start time for polish runstats
   start.time <- Sys.time()
 
-  ## Set this threshold to double the usual.
-  ## Probably better to do this only for lr
-  if (is.null(threshold)) {
-    threshold <- max(x$getThreshold(), 0.2)
-  }
-
   ## Check if reporting is finished and exit safely for downstream analysis
   if (x$getReportStatus()) {
     currentCall <- strsplit1(deparse(sys.call()), "\\.")[1]
@@ -33,13 +27,22 @@ polish.DR2S <- function(x,
     return(invisible(x))
   }
 
-  assert_that(x$hasMapFinal())
+  ## Get global arguments
+  ## Set this threshold to double the usual.
+  ## Probably better to do this only for lr
+  threshold <- max(x$getThreshold(), 0.2)
 
+  ## Export polish config to function environment
   args <- x$getOpts("polish")
-  if (!is.null(args)) {
-    env  <- environment()
-    list2env(args, envir = env)
-  }
+  env <- environment()
+  list2env(args, envir = env)
+  assert_that(
+    x$hasMapFinal(),
+    is.double(threshold),
+    exists("checkHpCount") && is.logical(checkHpCount),
+    exists("hpCount") && is.numeric(hpCount)
+  )
+
   # get read types and haplotypes
   # rdtypes <- names(x$mapFinal) ## LR, SR
   hptypes <- x$getHapTypes() ## A, B, C, ...

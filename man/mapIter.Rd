@@ -4,23 +4,14 @@
 \alias{mapIter}
 \title{Iterative mapping.}
 \usage{
-mapIter(x, opts = list(), iterations = 1, columnOccupancy = 0.4,
-  force = FALSE, plot = TRUE, ...)
+mapIter(x, opts = list(), plot = TRUE, ...)
 }
 \arguments{
 \item{x}{A \code{\link[=DR2S_]{DR2S}} object.}
 
-\item{opts}{Mapper options.}
+\item{opts}{List with options passed to the mapper.}
 
-\item{iterations}{Number of \code{mapIter} iterations. How often are the
-clustered reads remapped to updated reference sequences.}
-
-\item{columnOccupancy}{Minimum occupancy (1 - fraction of gap) below which
-bases at insertion position are excluded from from consensus calling.}
-
-\item{force}{If \code{TRUE}, overwrite existing bam file.}
-
-\item{plot}{Plot diagnostics.}
+\item{plot}{Generate diagnostic plots.}
 
 \item{...}{Additional parameters passed to \code{\link[Rsamtools]{PileupParam}}.}
 }

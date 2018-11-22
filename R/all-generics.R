@@ -38,7 +38,6 @@
 #' the reference to a maximum length and enables a better mapping.
 #' @param distAlleles Number of different alleles in the sample. Should be 2
 #' for heterozygous samples, 1 for homozygous samples and > 2 for some KIR loci.
-#' @param filterScores use only reads passing a strict filtering step. TODO
 #' @param forceMapping <\code{FALSE}>; set to TRUE if you want to force
 #' processing of "bad" shortreads, i.e. when the distribution of coverage is
 #' heavily unequal. Aborts the program if maximum coverage > 75 \% quantile * 5.
@@ -78,7 +77,6 @@ createDR2SConf <- function(
   iterations     = 1,
   microsatellite = FALSE,
   distAlleles    = 2,
-  filterScores   = TRUE,
   forceMapping   = FALSE,
   details        = NULL,
   ...) {
@@ -106,21 +104,10 @@ InitDR2S <- function(config, createOutdir = TRUE) {
 #' are mapped to a single reference sequence.
 #'
 #' @param x A \code{\link[=DR2S_]{DR2S}} object.
-#' @param opts Mapper options.
-#' @param threshold Threshold to call a variant.
-#' @param includeDeletions If \code{TRUE}, include deletions in pileup.
-#' @param includeInsertions If \code{TRUE}, include insertions in pileup.
-#' @param microsatellite If \code{TRUE} remap the shortreads again to expand
-#' the reference to a maximum length. Works better for larger insertions and
-#' repeats like microsatellites.
-#' @param filterScores Apply a harsh filtering on the reads. Filters for mapping
-#' quality and removes all softclipping reads. Usually not necessary.
-#' @param forceMapping if \code{FALSE} the program throws an error in case the
-#' coverage of shortreads is too different at different parts of the sequence.
-#' @param topx Select the x best-scoring reads.
-#' @param createIgv Subsample for looking with IgvJs in the shiny app.
-#' @param force If \code{TRUE}, overwrite existing bam files.
-#' @param plot Produce diagnostic plots.
+#' @param opts List with options passed to the mapper.
+#' @param createIgv Subsample bam files for visualisation with IgvJs in the
+#' DR2S shiny app.
+#' @param plot Generate diagnostic plots.
 #' @param ... Additional parameters passed to \code{\link[Rsamtools]{PileupParam}}.
 #' @inheritParams Rsamtools::PileupParam
 #' @return A \code{\link[=DR2S_]{DR2S}} object.
@@ -143,19 +130,7 @@ InitDR2S <- function(config, createOutdir = TRUE) {
 #'   polish() %>%
 #'   report(blockWidth = 60)
 #' }
-mapInit <- function(x,
-                    opts = list(),
-                    threshold = NULL,
-                    includeDeletions = TRUE,
-                    includeInsertions = TRUE,
-                    microsatellite = FALSE,
-                    filterScores = TRUE,
-                    forceMapping = FALSE,
-                    topx = 0,
-                    createIgv = TRUE,
-                    force = FALSE,
-                    plot = TRUE,
-                    ...) {
+mapInit <- function(x, opts = list(), createIgv = TRUE, plot = TRUE, ...) {
   UseMethod("mapInit")
 }
 
@@ -166,13 +141,8 @@ mapInit <- function(x,
 #' New reference consensus sequences for both alleles are inferred.
 #'
 #' @param x A \code{\link[=DR2S_]{DR2S}} object.
-#' @param opts Mapper options.
-#' @param iterations Number of \code{mapIter} iterations. How often are the
-#' clustered reads remapped to updated reference sequences.
-#' @param columnOccupancy Minimum occupancy (1 - fraction of gap) below which
-#' bases at insertion position are excluded from from consensus calling.
-#' @param force If \code{TRUE}, overwrite existing bam file.
-#' @param plot Plot diagnostics.
+#' @param opts List with options passed to the mapper.
+#' @param plot Generate diagnostic plots.
 #' @param ... Additional parameters passed to \code{\link[Rsamtools]{PileupParam}}.
 #' @inheritParams Rsamtools::PileupParam
 #' @return A \code{\link[=DR2S_]{DR2S}} object.
@@ -195,13 +165,7 @@ mapInit <- function(x,
 #'   polish() %>%
 #'   report(blockwidth = 60)
 #' }
-mapIter <- function(x,
-                    opts = list(),
-                    iterations = 1,
-                    columnOccupancy = 0.4,
-                    force = FALSE,
-                    plot = TRUE,
-                    ...) {
+mapIter <- function(x, opts = list(), plot = TRUE, ...) {
   UseMethod("mapIter")
 }
 
@@ -212,15 +176,10 @@ mapIter <- function(x,
 #' are \strong{included} in pileup.
 #'
 #' @param x A \code{\link[=DR2S_]{DR2S}} object.
-#' @param opts Mapper options.
-#' @param includeDeletions If \code{TRUE}, include deletions in pileup.
-#' @param includeInsertions If \code{TRUE}, include insertions in pileup.
-#' from bam files for
-#'  variants ar polymorphic positions.
-#' @param clip Clip homopolymeric read ends from shortreads.
-#' @param force If \code{TRUE}, overwrite existing bam file.
-#' @param createIgv Subsample for looking with IgvJs in the shiny app.
-#' @param plot Plot diagnostics.
+#' @param opts List with options passed to the mapper.
+#' @param createIgv Subsample bam files for visualisation with IgvJs in the
+#' DR2S shiny app.
+#' @param plot Generate diagnostic plots.
 #' @param ... Additional parameters passed to \code{\link[Rsamtools]{PileupParam}}.
 #' @inheritParams Rsamtools::PileupParam
 #' @return A \code{\link[=DR2S_]{DR2S}} object.
@@ -243,15 +202,7 @@ mapIter <- function(x,
 #'   polish() %>%
 #'   report(blockWidth = 60)
 #' }
-mapFinal <- function(x,
-                     opts = list(),
-                     includeDeletions = TRUE,
-                     includeInsertions = TRUE,
-                     clip = TRUE,
-                     force = FALSE,
-                     createIgv = TRUE,
-                     plot = TRUE,
-                     ...) {
+mapFinal <- function(x, opts = list(), createIgv = TRUE, plot = TRUE, ...) {
   UseMethod("mapFinal")
 }
 
@@ -260,20 +211,9 @@ mapFinal <- function(x,
 
 
 #' Partition mapped long reads into haplotypes
-#',
-
+#'
 #' @param x A \code{\link[=DR2S_]{DR2S}} object.
-#' @param threshold The threshold when a SNP is a SNP.
-#' @param skipGapFreq The gap frequenzy needed to call a gap position.
-#' @param distAlleles The number of distinct alleles in the sample.
-#' @param noGapPartitioning Don't partition based on gaps. Useful for samples
-#' with only few SNPs but with homopolymers. The falsely called gaps could
-#' mask the real variation.
-#' @param selectAllelesBy If more than \code{distAlleles} clusters are found
-#' select clusters based on: (1) "distance": The hamming distance of the
-#' resulting variant consensus sequences or (2) "count": Take the clusters
-#' with the most reads as the true alleles.
-#' @param plot Plot
+#' @param plot Generate diagnostic plots.
 #' @param ... Further arguments passed to methods.
 #' @return A \code{\link[=DR2S_]{DR2S}} object.
 #' @family DR2S mapper functions
@@ -295,14 +235,7 @@ mapFinal <- function(x,
 #'   polish() %>%
 #'   report(blockWidth = 60)
 #' }
-partitionLongreads <- function(x,
-                               threshold         = NULL,
-                               skipGapFreq       = 2/3,
-                               distAlleles       = NULL,
-                               noGapPartitioning = FALSE,
-                               selectAllelesBy   = "count",
-                               plot              = TRUE,
-                               ...) {
+partitionLongreads <- function(x, plot = TRUE, ...) {
   UseMethod("partitionLongreads")
 }
 
@@ -310,7 +243,6 @@ partitionLongreads <- function(x,
 #'
 #' @param x A \code{\link[=DR2S_]{DR2S}} object.
 #' @param opts list with options passed to the mapper.
-#' @param force force the creation of new fastq files if they already exist.
 #' @param ... Further arguments passed to methods.
 #' @return A \code{\link[=DR2S_]{DR2S}} object.
 #' @family DR2S partition functions
@@ -333,10 +265,7 @@ partitionLongreads <- function(x,
 #'   polish() %>%
 #'   report(blockWidth = 60)
 #' }
-partitionShortreads <- function(x,
-                                opts = list(),
-                                force = TRUE,
-                                ...) {
+partitionShortreads <- function(x, opts = list(), ...) {
   UseMethod("partitionShortreads")
 }
 
@@ -347,12 +276,6 @@ partitionShortreads <- function(x,
 #' Polish final haplotype sequences.
 #'
 #' @param x A \code{\link[=DR2S_]{DR2S}} object.
-#' @param threshold When do we call a variant a variant.
-#' @param checkHpCount Check the number of homopolymer counts.
-#' Compare the resulting sequence with the mode value and report differences.
-#' @param hpCount The minimal length of a homopolymer to be checked.
-#' @param cache Cache the updated \code{DR2S} object after assembling the
-#' haplotypes.
 #' @param ... Additional arguments passed to methods.
 #' @return A \code{\link[=DR2S_]{DR2S}} object with the \code{consensus} field
 #' populated.
@@ -375,12 +298,7 @@ partitionShortreads <- function(x,
 #'   polish() %>%
 #'   report(blockwidth = 60)
 #' }
-polish <- function(x,
-                   threshold = x$getThreshold(),
-                   checkHpCount = TRUE,
-                   hpCount = 10,
-                   cache = TRUE,
-                   ...) {
+polish <- function(x, ...) {
   UseMethod("polish")
 }
 
@@ -388,10 +306,8 @@ polish <- function(x,
 #' Report the final haplotype sequences.
 #'
 #' @param x A \code{\link[=DR2S_]{DR2S}} object.
-#' @param which Which mapping do we want to report. Will choose \code{mapFinal},
-#' \code{mapIter} in this order if available.
-#' @param blockWidth Maximum number of sequence letters per line in pairwise
-#' alignment.
+#' @param whichMap Which mapping do we want to report. Will choose
+#' \code{mapFinal} or \code{mapIter} in this order as available.
 #' @param ... Additional arguments passed to methods.
 #' @details
 #' \code{report} will create a \code{report} directory containing the consensus
@@ -429,7 +345,7 @@ polish <- function(x,
 #'   polish() %>%
 #'   report(blockWidth = 60)
 #' }
-report <- function(x, which, blockWidth = 80, ...) {
+report <- function(x, whichMap, ...) {
   UseMethod("report")
 }
 

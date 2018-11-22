@@ -3,8 +3,7 @@
                           minMapq = 0,
                           threads = "auto",
                           threadmem = "1G",
-                          clean = TRUE,
-                          force = FALSE) {
+                          clean = TRUE) {
   if (threads == "auto") {
     threads <- .getIdleCores()
   }
@@ -28,11 +27,13 @@
     sort <- sprintf("sort -m%s -@%s -o '%s' '%s'",
                     threadmem, threads, sorted, tmp)
     index <- sprintf("index %s", sorted)
-    ## Don't execute if file exists and force is false
-    if (force || !file.exists(sorted)) {
+    ## Don't execute if file exists
+    if (!file.exists(sorted)) {
       system2(samtoolsPath, view)
       system2(samtoolsPath, sort)
       system2(samtoolsPath, index)
+    } else {
+      warning(sprintf("file <%s> already exists", sorted))
     }
   } else {
     ## Sam to bam

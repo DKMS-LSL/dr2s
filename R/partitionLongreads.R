@@ -738,7 +738,7 @@ getCl <- function(n, cluster, change) {
 # Optimal partitioning ----------------------------------------------------
 
 
-.optimalPartitionLimits <- function(scores, pickiness = 0.8, lower_limit = 60) {
+.optimalPartitionLimits <- function(scores, pickiness = 0.8, lowerLimit = 60) {
   ## pickiness > 1: pick more reads
   ## pickiness < 1: pick less reads
   score_range <- range(unlist(scores))
@@ -757,9 +757,9 @@ getCl <- function(n, cluster, change) {
     dplyr::group_by(haplotype) %>%
     dplyr::filter(.data$benefit == max(.data$benefit))
 
-  if (any(dfmax$nreads < lower_limit)) {
-    hp <- dfmax$haplotype[which(dfmax$nreads < lower_limit)]
-    dfmax2 <- dplyr::filter(df, .data$haplotype %in% hp & .data$nreads >= lower_limit) %>%
+  if (any(dfmax$nreads < lowerLimit)) {
+    hp <- dfmax$haplotype[which(dfmax$nreads < lowerLimit)]
+    dfmax2 <- dplyr::filter(df, .data$haplotype %in% hp & .data$nreads >= lowerLimit) %>%
       dplyr::group_by(.data$haplotype) %>%
       dplyr::top_n(1, dplyr::desc(nreads))
     dfmax[dfmax$haplotype %in% hp, ] <- dfmax2

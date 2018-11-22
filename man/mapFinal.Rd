@@ -4,28 +4,17 @@
 \alias{mapFinal}
 \title{Final mapping (long reads and short reads).}
 \usage{
-mapFinal(x, opts = list(), includeDeletions = TRUE,
-  includeInsertions = TRUE, clip = TRUE, force = FALSE,
-  createIgv = TRUE, plot = TRUE, ...)
+mapFinal(x, opts = list(), createIgv = TRUE, plot = TRUE, ...)
 }
 \arguments{
 \item{x}{A \code{\link[=DR2S_]{DR2S}} object.}
 
-\item{opts}{Mapper options.}
+\item{opts}{List with options passed to the mapper.}
 
-\item{includeDeletions}{If \code{TRUE}, include deletions in pileup.}
+\item{createIgv}{Subsample bam files for visualisation with IgvJs in the
+DR2S shiny app.}
 
-\item{includeInsertions}{If \code{TRUE}, include insertions in pileup.
-from bam files for
- variants ar polymorphic positions.}
-
-\item{clip}{Clip homopolymeric read ends from shortreads.}
-
-\item{force}{If \code{TRUE}, overwrite existing bam file.}
-
-\item{createIgv}{Subsample for looking with IgvJs in the shiny app.}
-
-\item{plot}{Plot diagnostics.}
+\item{plot}{Generate diagnostic plots.}
 
 \item{...}{Additional parameters passed to \code{\link[Rsamtools]{PileupParam}}.}
 }

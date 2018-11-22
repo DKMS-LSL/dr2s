@@ -38,18 +38,13 @@ B.}
 \section{Public Methods}{
 
 \describe{
-\item{\code{x$runMapInit(opts = list(), optsname = "",  threshold = 0.20,
-iterations = 1, microsatellite = FALSE, distAlleles = 2, filterScores = TRUE,
-minBaseQuality = 3, minMapq = 0, maxDepth = 1e4, minNucleotideDepth = 3,
-includeDeletions = FALSE, includeInsertions = FALSE,
-force = FALSE, plot = TRUE)}}{Run the inital mapping step
-(long reads against the reference allele)}
-\item{\code{x$runHaplotypePartitioning(maxDepth = 1e4, shuffle = TRUE,
-skipGapFreq = 2/3, plot = TRUE)}}{
-Partition mapped long reads into haplotypes}
-\item{\code{x$splitReadsByHaplotype(limit = list(), #' plot = TRUE)}}{
-Partition mapped long reads into haplotypes}
-\item{\code{x$extractFastq()}}{
+\item{\code{x$runMapInit( opts = list(), createIgv = TRUE, plot = TRUE, ...)}}
+{Run the inital mapping step (long reads against the reference allele)}
+\item{\code{x$runPartitionLongreadsplot = TRUE, ...)}}
+{Partition mapped longreads into haplotypes}
+\item{\code{x$runSplitLongreadsByHaplotype((plot = TRUE)}}{
+Partition mapped longreads into haplotypes}
+\item{\code{x$runExtractPartitionedLongreads()}}{
 Extract FASTQs for partitioned reads.
 }}
 }

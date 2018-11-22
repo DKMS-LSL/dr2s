@@ -6,7 +6,6 @@ runminimap <- function(reffile,       ## <character>; file path to reference seq
                        outdir,        ## <character>; dir path to output directory
                        label = "",    ## <character>; prefix to output file
                        opts = list(), ## <named list>;
-                       force = FALSE,
                        cores = "auto",
                        ...) {
   assert_that(.hasCommand("minimap2"))
@@ -26,9 +25,11 @@ runminimap <- function(reffile,       ## <character>; file path to reference seq
   args <- .generateMappingCommands("minimap", reffile, refname,
                                    readfile, readtype, outdir,
                                    label, opts)
-  ## Don't execute if file exists and force is false
-  if (force || !file.exists(args$outfile)) {
+  ## Don't execute if file exists
+  if (!file.exists(args$outfile)) {
     system2(cmd, args$args)
+  } else {
+    warning(sprintf("file <$s> already exists", args$outfile))
   }
   args$outfile
 }
@@ -51,7 +52,6 @@ runbwamem <- function(reffile,       ## <character>; file path to reference sequ
                       outdir,        ## <character>; dir path to output directory
                       label = "",    ## <character>; prefix to output file
                       opts = list(), ## <named list>;
-                      force = FALSE,
                       cores = "auto",
                       ...) {
   assert_that(.hasCommand("bwa"))
@@ -77,10 +77,12 @@ runbwamem <- function(reffile,       ## <character>; file path to reference sequ
   args <- .generateMappingCommands("bwamem", reffile, refname,
                                    readfile, readtype, outdir,
                                    label, opts)
-  ## Don't execute if file exists and force is false
-  if (force || !file.exists(args$outfile)) {
+  ## Don't execute if file exists
+  if (!file.exists(args$outfile)) {
     system2(cmd, args$args$idx)
     system2(cmd, args$args$map)
+  } else {
+    warning(sprintf("file <$s> already exists", args$outfile))
   }
   ## cleanup
   .fileDeleteIfExists(args$reffile %<<% ".amb")
