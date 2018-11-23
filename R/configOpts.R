@@ -34,7 +34,10 @@ normaliseOpts <- function(opts, pipeline = "LR") {
     lowerLimit = 200,
     ## estimate the indel noise in a pileup and use this information to
     ## update the background model for PWM scoring
-    updateBackgroundModel = FALSE
+    updateBackgroundModel = FALSE,
+    ## Subsample bam files for visualisation with IgvJs in the
+    ## DR2S shiny app.
+    createIgv = TRUE
   ))
   ##
   ## set partitionLongreads defaults
@@ -99,9 +102,12 @@ normaliseOpts <- function(opts, pipeline = "LR") {
     ## an insertion needs to be at frequency <callInsertionThreshold> for it
     ## to be included in the pileup.
     callInsertionThreshold = 1/5,
-    ## (for shortreads only= trim softclips and polymorphic ends of reads before
+    ## (for shortreads only) trim softclips and polymorphic ends of reads before
     ## the final mapping
-    trimPolymorphicEnds = FALSE
+    trimPolymorphicEnds = FALSE,
+    ## Subsample bam files for visualisation with IgvJs in the
+    ## DR2S shiny app.
+    createIgv = TRUE
   ))
   ##
   ## set polish defaults
@@ -122,7 +128,10 @@ normaliseOpts <- function(opts, pipeline = "LR") {
     ## Maximum number of sequence letters per line in pairwise alignment.
     blockWidth = 80,
     ## Suppress remapping of reads against final consensus.
-    noRemap = FALSE
+    noRemap = FALSE,
+    ## Subsample bam files for visualisation with IgvJs in the
+    ## DR2S shiny app.
+    createIgv = TRUE
   ))
   opts0 <- compact(opts0)
   ## update default with config settings

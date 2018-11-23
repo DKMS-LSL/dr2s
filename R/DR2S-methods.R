@@ -1,16 +1,13 @@
 # Method: mapInit ####
 #' @export
-mapInit.DR2S <- function(x, opts = list(), createIgv = TRUE, plot = TRUE, ...) {
-  x$runMapInit(opts = opts, createIgv = createIgv, plot = plot, ...)
+mapInit.DR2S <- function(x, opts = list(), plot = TRUE, ...) {
+  x$runMapInit(opts = opts, plot = plot, ...)
   invisible(x)
 }
 
-DR2S_$set("public", "runMapInit", function(opts = list(),
-                                           createIgv = TRUE,
-                                           plot = TRUE, ...) {
+DR2S_$set("public", "runMapInit", function(opts = list(), plot = TRUE, ...) {
   # # debug
   # opts = list()
-  # createIgv = TRUE
   # plot = TRUE
   # library(assertthat)
   # library(ggplot2)
@@ -33,19 +30,18 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
 
   ## Export mapInit config to function environment
   args <- self$getOpts("mapInit")
-  env <- environment()
-  list2env(args, envir = env)
+  list2env(args, envir = environment())
   assert_that(
     exists("includeDeletions") && is.logical(includeDeletions),
     exists("includeInsertions") && is.logical(includeInsertions),
     exists("callInsertionThreshold") && is.numeric(callInsertionThreshold),
     exists("minMapq") && is.numeric(minMapq),
     exists("topx"),
-    exists("pickiness"),
-    exists("increasePickiness"),
-    exists("lowerLimit"),
-    exists("updateBackgroundModel"),
-    is.logical(createIgv),
+    exists("pickiness") && is.numeric(pickiness),
+    exists("increasePickiness") && is.numeric(increasePickiness),
+    exists("lowerLimit") && is.numeric(lowerLimit),
+    exists("updateBackgroundModel") && is.logical(updateBackgroundModel),
+    exists("createIgv") && is.logical(createIgv),
     is.logical(plot)
   )
 
@@ -59,11 +55,11 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
 
   if (self$hasShortreads()) {
     SR <- mapInitSR(
-      self = self, threshold = threshold, opts = opts, includeDeletions = includeDeletions,
+      self = self, opts = opts, includeDeletions = includeDeletions,
       includeInsertions = includeInsertions, callInsertions = TRUE,
       callInsertionThreshold = callInsertionThreshold, clip = FALSE,
-      distributeGaps = FALSE, removeError = TRUE, topx = 0, outdir = outdir,
-      clean = clean, minMapq = 50, indent = indent, ...)
+      distributeGaps = FALSE, removeError = TRUE, topx = 0,
+      outdir = outdir, clean = clean, minMapq = 50, indent = indent, ...)
 
     ### TODO wrap this command up
     if (createIgv)
@@ -121,7 +117,7 @@ DR2S_$set("public", "runMapInit", function(opts = list(),
   maplabel  <- "mapInit2"
   mapfun    <- self$getLrdMapFun()
   readtype  <- self$getLrdType()
-  indelRate <- indelRate(pileup)
+  indelRate <- if (self$hasShortreads()) indelRate(SR$SR2$pileup) else indelRate(pileup)
   if (pickedTopX) {
     readfile  <- topxFqPath
     pickiness <- pickiness/increasePickiness
@@ -235,8 +231,7 @@ DR2S_$set("public", "runPartitionLongreads", function(plot = TRUE, ...) {
 
     ## Export partitionLongreads config to function environment
     args <- self$getOpts("partitionLongreads")
-    env <- environment()
-    list2env(args, envir = env)
+    list2env(args, envir = environment())
     assert_that(
       self$hasMapInit(),
       is.double(threshold),
@@ -331,19 +326,18 @@ print.PartList <- function(x, ...) {
 }
 
 DR2S_$set("public", "runSplitLongreadsByHaplotype", function(plot = TRUE) {
+  ## If reporting is already done exit safely
+  if (.checkReportStatus(self)) return(invisible(self))
+
+  assert_that(self$hasLrdPartition())
 
   ## Initiate indenter
   indent <- indentation(1)
-
   flog.info("%sSplit partitioned longreads by score", indent(), name = "info")
-  ## Check if reporting is already finished and exit safely
-  if (.checkReportStatus(self)) return(invisible(self))
-  assert_that(self$hasLrdPartition())
 
   ## Export partitionLongreads config to function environment
   args <- self$getOpts("partitionLongreads")
-  env <- environment()
-  list2env(args, envir = env)
+  list2env(args, envir = environment())
   assert_that(
     exists("pickiness") && is.numeric(pickiness),
     exists("lowerLimit") && is.numeric(lowerLimit)
@@ -451,6 +445,7 @@ print.HapList <- function(x, ...) {
 DR2S_$set("public", "runExtractPartitionedLongreads", function() {
   ## Check if reporting has already been done and exit safely
   if (.checkReportStatus(self)) return(invisible(self))
+
   assert_that(self$hasHapList())
 
   ## Initiate indenter
@@ -458,8 +453,7 @@ DR2S_$set("public", "runExtractPartitionedLongreads", function() {
 
   ## Export PartitionLongreadsconfig to function environment
   args <- self$getOpts("partitionLongreads")
-  env <- environment()
-  list2env(args, envir = env)
+  list2env(args, envir = environment())
 
   ## extract msa from mapInit
   bamfile <- self$absPath(bampath(self$mapInit))
@@ -500,7 +494,7 @@ DR2S_$set("public", "runExtractPartitionedLongreads", function() {
     names(conspath) <- self$relPath(conspath)
     flog.info("%sConstruct consensus <%s>", indent2(), names(conspath), name = "info")
     conseq <- .writeConseq(x = cmat, name = consname, type = "prob",
-                           threshold = threshold, suppressAllGaps = TRUE,
+                           threshold = NULL, suppressAllGaps = TRUE,
                            replaceIndel = "", conspath = conspath)
     ##
     self$mapIter$`0`[[hptype]] = MapList_(
@@ -534,6 +528,11 @@ DR2S_$set("public", "runMapIter", function(opts = list(), plot = TRUE, ...) {
   # self <- dr2s
   # opts = list()
   # plot = TRUE
+  ## If reporting is already done exit safely
+  if (.checkReportStatus(self)) return(invisible(self))
+
+  ## Collect start time for mapIter runstats
+  start.time <- Sys.time()
 
   flog.info("# MapIter", name = "info")
 
@@ -541,19 +540,12 @@ DR2S_$set("public", "runMapIter", function(opts = list(), plot = TRUE, ...) {
   indent <- indentation(1)
   flog.info("%sIterative mapping of partitioned longreads", indent(), name = "info")
 
-  ## Collect star t time for mapIter runstats
-  start.time <- Sys.time()
-
-  ## Check if reporting is already finished and exit safely
-  if (.checkReportStatus(self)) return(invisible(self))
-
   ## Get global arguments
   iterations <- self$getIterations()
 
   ## Export mapIter config to function environment
   args <- self$getOpts("mapIter")
-  env <- environment()
-  list2env(args, envir = env)
+  list2env(args, envir = environment())
   assert_that(
     exists("columnOccupancy"),
     exists("callInsertionThreshold")
@@ -658,11 +650,13 @@ partitionShortreads.DR2S <- function(x, opts = list(), ...) {
 DR2S_$set("public", "runPartitionShortreads", function(opts = list(), ...) {
   ## debug
   # opts = list()
-
-  flog.info("# PartitionShortreads ...", name = "info")
+  ## If reporting is already done exit safely
+  if (.checkReportStatus(self)) return(invisible(self))
 
   ## Collect start time for partitionShortreads runstats
   start.time <- Sys.time()
+
+  flog.info("# PartitionShortreads ...", name = "info")
 
   ## Initiate indenter
   indent <- indentation(1)
@@ -679,16 +673,12 @@ DR2S_$set("public", "runPartitionShortreads", function(opts = list(), ...) {
     return(invisible(self))
   }
 
-  ## exit safely if reporting is already finished
-  if (.checkReportStatus(self)) return(invisible(self))
-
   flog.info("%sPartition shortreads based on initial mapping and " %<<%
               "longread clustering", indent(), name = "info")
 
   ## Export partitionShortreads config to function environment
   args <- self$getOpts("partitionShortreads")
-  env <- environment()
-  list2env(args, envir = env)
+  list2env(args, envir = environment())
 
   bamfile <- self$absPath(bampath(meta(self$mapInit, "SR2")))
   hptypes <- self$getHapTypes()
@@ -742,46 +732,39 @@ DR2S_$set("public", "runPartitionShortreads", function(opts = list(), ...) {
 
 ## Method: mapFinal ####
 #' @export
-mapFinal.DR2S <- function(x, opts = list(), createIgv = TRUE, plot = TRUE, ...) {
-  x$runMapFinal(opts = opts, createIgv = createIgv, plot = plot, ...)
+mapFinal.DR2S <- function(x, opts = list(), plot = TRUE, ...) {
+  x$runMapFinal(opts = opts, plot = plot, ...)
   invisible(x)
 }
 
-DR2S_$set("public", "runMapFinal", function(opts = list(),
-                                            createIgv = TRUE,
-                                            plot = TRUE, ...) {
+DR2S_$set("public", "runMapFinal", function(opts = list(), plot = TRUE, ...) {
   ## debug
   # opts = list()
-  # createIgv = TRUE
   # plot = TRUE
   # library(futile.logger)
   # library(foreach)
   # self <- dr2s
-
-  flog.info("# mapFinal", name = "info")
+  ## If reporting is already done exit safely
+  if (.checkReportStatus(self)) return(invisible(self))
 
   ## Collect start time for mapFinal runstats
   start.time <- Sys.time()
+
+  flog.info("# mapFinal", name = "info")
 
   ## Initiate indenter
   indent <- indentation(1)
   flog.info("%sMap longreads and shortreads against mapIter consensus sequences", indent(), name = "info")
 
-  ## Check if reporting is already finished and exit safely
-  if (.checkReportStatus(self)) return(invisible(self))
-
-  ## Get global arguments
-  iterations <- self$getIterations()
-
   ## Export mapFinal config to function environment
   args <- self$getOpts("mapFinal")
-  env <- environment()
-  list2env(args, envir = env)
+  list2env(args, envir = environment())
   assert_that(
     exists("includeDeletions") && is.logical(includeDeletions),
     exists("includeInsertions") && is.logical(includeInsertions),
     exists("callInsertionThreshold") && is.numeric(callInsertionThreshold),
-    exists("trimPolymorphicEnds") && is.logical(trimPolymorphicEnds)
+    exists("trimPolymorphicEnds") && is.logical(trimPolymorphicEnds),
+    exists("createIgv") && is.logical(createIgv)
   )
 
   igv <- list()

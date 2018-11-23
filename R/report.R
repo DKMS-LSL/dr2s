@@ -1,27 +1,20 @@
 #' @export
-report.DR2S <- function(x, whichMap, createIgv = TRUE, ...) {
-
-  flog.info("# report", name = "info")
+report.DR2S <- function(x, whichMap, ...) {
+  ## If reporting is already done exit safely
+  if (.checkReportStatus(x)) return(invisible(x))
 
   ## Collect start time for report runstats
   start.time <- Sys.time()
 
-  ## Check if reporting is finished and exit safely for downstream analysis
-  if (x$getReportStatus()) {
-    currentCall <- strsplit1(deparse(sys.call()), "\\.")[1]
-    flog.info(strwrap("%s: Reporting already done! Nothing to do.
-                      Exit safely for downstream analysis."),
-              currentCall, name = "info")
-    return(invisible(x))
-  }
+  flog.info("# report", name = "info")
 
   ## Export report config to function environment
   args <- x$getOpts("report")
-  env <- environment()
-  list2env(args, envir = env)
+  list2env(args, envir = environment())
   assert_that(
     exists("blockWidth") && is.numeric(blockWidth),
-    exists("noRemap") && is.logical(noRemap)
+    exists("noRemap") && is.logical(noRemap),
+    exists("createIgv") && is.logical(createIgv)
   )
 
   outdir <- .dirCreateIfNotExists(x$absPath("report"))

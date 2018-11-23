@@ -105,8 +105,6 @@ InitDR2S <- function(config, createOutdir = TRUE) {
 #'
 #' @param x A \code{\link[=DR2S_]{DR2S}} object.
 #' @param opts List with options passed to the mapper.
-#' @param createIgv Subsample bam files for visualisation with IgvJs in the
-#' DR2S shiny app.
 #' @param plot Generate diagnostic plots.
 #' @param ... Additional parameters passed to \code{\link[Rsamtools]{PileupParam}}.
 #' @inheritParams Rsamtools::PileupParam
@@ -130,7 +128,7 @@ InitDR2S <- function(config, createOutdir = TRUE) {
 #'   polish() %>%
 #'   report(blockWidth = 60)
 #' }
-mapInit <- function(x, opts = list(), createIgv = TRUE, plot = TRUE, ...) {
+mapInit <- function(x, opts = list(), plot = TRUE, ...) {
   UseMethod("mapInit")
 }
 
@@ -177,8 +175,6 @@ mapIter <- function(x, opts = list(), plot = TRUE, ...) {
 #'
 #' @param x A \code{\link[=DR2S_]{DR2S}} object.
 #' @param opts List with options passed to the mapper.
-#' @param createIgv Subsample bam files for visualisation with IgvJs in the
-#' DR2S shiny app.
 #' @param plot Generate diagnostic plots.
 #' @param ... Additional parameters passed to \code{\link[Rsamtools]{PileupParam}}.
 #' @inheritParams Rsamtools::PileupParam
@@ -202,7 +198,7 @@ mapIter <- function(x, opts = list(), plot = TRUE, ...) {
 #'   polish() %>%
 #'   report(blockWidth = 60)
 #' }
-mapFinal <- function(x, opts = list(), createIgv = TRUE, plot = TRUE, ...) {
+mapFinal <- function(x, opts = list(), plot = TRUE, ...) {
   UseMethod("mapFinal")
 }
 

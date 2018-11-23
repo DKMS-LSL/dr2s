@@ -4,15 +4,12 @@
 \alias{mapFinal}
 \title{Final mapping (long reads and short reads).}
 \usage{
-mapFinal(x, opts = list(), createIgv = TRUE, plot = TRUE, ...)
+mapFinal(x, opts = list(), plot = TRUE, ...)
 }
 \arguments{
 \item{x}{A \code{\link[=DR2S_]{DR2S}} object.}
 
 \item{opts}{List with options passed to the mapper.}
-
-\item{createIgv}{Subsample bam files for visualisation with IgvJs in the
-DR2S shiny app.}
 
 \item{plot}{Generate diagnostic plots.}
 

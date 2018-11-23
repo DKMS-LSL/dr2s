@@ -1,31 +1,13 @@
 #' @export
-#debug
-#x <- readDR2S("~/bioinf/DR2S/KIR/20171130/3DL3/out/7203477/")
-# x <- dr2s
-# threshold <- x$getThreshold()
-# x <- mapper
-# cache = TRUE
-# library(foreach)
-# library(futile.logger)
-#x <- dr2s
-polish.DR2S <- function(x,
-                        threshold = NULL,
-                        checkHpCount = TRUE,
-                        hpCount = 10,
-                        ...) {
-  flog.info("# polish", name = "info")
+polish.DR2S <- function(x, ...) {
+  ## If reporting is already done exit safely
+  if (.checkReportStatus(x)) return(invisible(x))
+  assert_that(x$hasMapFinal())
 
   ## Collect start time for polish runstats
   start.time <- Sys.time()
 
-  ## Check if reporting is finished and exit safely for downstream analysis
-  if (x$getReportStatus()) {
-    currentCall <- strsplit1(deparse(sys.call()), "\\.")[1]
-    flog.info("%s: Reporting already done! Nothing to do." %<<%
-                " Exit safely for downstream analysis.",
-              currentCall, name = "info")
-    return(invisible(x))
-  }
+  flog.info("# polish", name = "info")
 
   ## Get global arguments
   ## Set this threshold to double the usual.
@@ -34,10 +16,8 @@ polish.DR2S <- function(x,
 
   ## Export polish config to function environment
   args <- x$getOpts("polish")
-  env <- environment()
-  list2env(args, envir = env)
+  list2env(args, envir = environment())
   assert_that(
-    x$hasMapFinal(),
     is.double(threshold),
     exists("checkHpCount") && is.logical(checkHpCount),
     exists("hpCount") && is.numeric(hpCount)
