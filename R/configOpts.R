@@ -53,6 +53,11 @@ normaliseOpts <- function(opts, pipeline = "LR") {
     skipGapFreq = 2/3,
     ## The number of distinct alleles in the sample. Set to override global default.
     noGapPartitioning = TRUE,
+    ## Correlate polymorphic positions and cluster based on the absolute
+    ## correlation coefficient. Extract positions from the cluster with the
+    ## higher absolute mean correlation coefficient. This gets rid of positions
+    ## that are not well distributed across the two alleles.
+    restrictToCorrelatedPositions = FALSE,
     ## If more than <distAlleles> clusters are found select clusters based on:
     ## (1) "distance": The hamming distance of the resulting variant consensus
     ## sequences or (2) "count": Take the clusters with the most reads as the

@@ -62,3 +62,24 @@ polymorphicPositions.pileup <- function(x, threshold = NULL) {
   }
   .ambiguousPositions(consmat(x, freq = TRUE), threshold = threshold)
 }
+
+.selectCorrelatedPolymorphicPositions <- function(mat, cmethod = "pearson", method = "ward.D") {
+  assert_that(is(mat, "matrix"))
+  fmat <- as.numeric(factor(mat, levels = VALID_DNA("indel"), labels = VALID_DNA("indel")))
+  dim(fmat) <- dim(mat)
+  rownames(fmat) <- rownames(mat)
+  colnames(fmat) <- colnames(mat)
+  cmat <- abs(stats::cor(fmat, method = cmethod))
+  #heatmap(cmat)
+  cl <- stats::hclust(stats::as.dist(1 - cmat), method = method)
+  #plot(cl)
+  ctr <- stats::cutree(cl, 2)
+  cl1 <- names(ctr)[ctr == 1]
+  cl2 <- names(ctr)[ctr == 2]
+  i <- which.max(c(mean(cmat[cl1, cl1], na.rm = TRUE), mean(cmat[cl2, cl2], na.rm = TRUE)))
+  nm <- names(ctr)[ctr == i]
+  structure(mat[, nm], corr.matrix = cmat)
+}
+
+
+

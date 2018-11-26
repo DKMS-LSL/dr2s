@@ -273,6 +273,11 @@ DR2S_$set("public", "runPartitionLongreads", function(plot = TRUE, ...) {
     }
 
     mat <- SNPmatrix(self$absPath(bampath(self$mapInit)), ppos)
+    if (restrictToCorrelatedPositions) {
+      mat <- .selectCorrelatedPolymorphicPositions(mat)
+      flog.info("%sRestrict SNP matrix to %s high-information positions",
+                indent(), NCOL(mat), name = "info")
+    }
 
     flog.info("%sPartition %s longreads over %s SNPs", indent(), NROW(mat), NCOL(mat), name = "info")
     prt <- partitionReads(x = mat,
