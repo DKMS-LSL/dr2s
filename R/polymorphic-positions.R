@@ -77,21 +77,44 @@ polymorphicPositions.pileup <- function(x, threshold = NULL) {
   i <- which.max(c(mean(cmat[cl1, cl1], na.rm = TRUE), mean(cmat[cl2, cl2], na.rm = TRUE)))
   nm <- names(ctr)[ctr == i]
   ## get a nice plot
-  cDf <- as_data_frame(cmat[cl$order,cl$order]) 
+  cDf <- tibble::as_tibble(cmat[cl$order,cl$order])
   ppos <- colnames(cDf)
-  cDf[upper.tri(cDf)] <- NA 
+  cDf[upper.tri(cDf)] <- NA
   cDf$pos <- factor(as.factor(ppos), levels = ppos)
-  cDfLong <- tidyr::gather(cDf, pos1, corr, -pos, na.rm = TRUE) 
+  cDfLong <- tidyr::gather(cDf, pos1, corr, -pos, na.rm = TRUE)
   cDfLong$pos1 <- factor(as.factor(cDfLong$pos1), levels = ppos)
   p <- ggplot(cDfLong, aes(x = pos, y = pos1, fill = corr)) +
-  geom_tile() +
-    scale_fill_gradient2(low = "white", high = "red", 
-                         midpoint = 0, limit = c(0,1)) +
-    ylab("Polymorphic positions") + 
-    xlab("Polymorphic positions") + 
-    ggtitle("Correlation of Polymorphic positions")
+    geom_tile() +
+    scale_fill_gradient2(low = "white", high = "red", midpoint = 0, limit = c(0,1)) +
+    ylab("Polymorphic positions") +
+    xlab("Polymorphic positions") +
+    ggtitle("Correlation of polymorphic positions")
   structure(mat[, nm], snp.corr.mat = cmat, snp.clust = cl, snp.plot = p)
 }
 
-
+## alternative correlogram plot
+corrgram <- function(x, toFile = FALSE, width = 6, height = 6) {
+  assert_that(
+    is(x, "DR2S"),
+    requireNamespace("corrgram", quietly = TRUE))
+  outf <- file.path(x$getOutdir(), "corrgram.png")
+  cmat <- attr(x$lrpartition$prt, "snp.corr.mat")
+  cl <- attr(x$lrpartition$prt, "snp.clust")
+  if (!is.null(cmat)) {
+    mat <- cmat[cl$order, cl$order]
+    if (toFile) {
+      png(outf, width = width, height = height, units = "in", res = 150)
+      corrgram::corrgram(mat, order = FALSE,
+                         lower.panel = corrgram::panel.fill,
+                         upper.panel = NULL,
+                         text.panel = corrgram::panel.txt)
+      dev.off()
+    } else {
+      corrgram::corrgram(mat, order = FALSE,
+                         lower.panel = corrgram::panel.fill,
+                         upper.panel = NULL,
+                         text.panel = corrgram::panel.txt)
+    }
+  }
+}
 
