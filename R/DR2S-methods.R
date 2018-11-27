@@ -98,8 +98,8 @@ DR2S_$set("public", "runMapInit", function(opts = list(), plot = TRUE, ...) {
       fqReads <- .extractFastq(bampath(pileup), picked1)
       ShortRead::writeFastq(fqReads, topxFqPath, compress = TRUE)
       ## picking plot 1
-      plotpath <- file.path(outdir, "plot.readpicking1.pdf")
-      cowplot::save_plot(plotpath, attr(picked1, "plot"))
+      plotpath <- file.path(outdir, "plot.readpicking1.png")
+      cowplot::save_plot(plotpath, attr(picked1, "plot"), dpi = 150)
       ## set flag
       pickedTopX <- TRUE
     }
@@ -135,8 +135,8 @@ DR2S_$set("public", "runMapInit", function(opts = list(), plot = TRUE, ...) {
 
   if (!is.null(picked2 <- reads(pileup))) {
     ## picking plot 2
-    plotpath <- file.path(outdir, "plot.readpicking2.pdf")
-    cowplot::save_plot(plotpath, attr(picked2, "plot"))
+    plotpath <- file.path(outdir, "plot.readpicking2.png")
+    cowplot::save_plot(plotpath, attr(picked2, "plot"), dpi = 150)
   }
 
   if (createIgv)
@@ -273,10 +273,17 @@ DR2S_$set("public", "runPartitionLongreads", function(plot = TRUE, ...) {
     }
 
     mat <- SNPmatrix(self$absPath(bampath(self$mapInit)), ppos)
+    base_height <- max(6, floor(sqrt(NCOL(mat))))
     if (restrictToCorrelatedPositions) {
       mat <- .selectCorrelatedPolymorphicPositions(mat)
       flog.info("%sRestrict SNP matrix to %s high-information positions",
                 indent(), NCOL(mat), name = "info")
+      if (plot) {
+        ## correlogram
+        plotpath <- file.path(self$getOutdir(), "snp.correlogram.png")
+        cowplot::save_plot(plotpath, attr(mat, "snp.plot"),
+                           base_height = base_height, dpi = 150)
+      }
     }
 
     flog.info("%sPartition %s longreads over %s SNPs", indent(), NROW(mat), NCOL(mat), name = "info")
@@ -288,6 +295,28 @@ DR2S_$set("public", "runPartitionLongreads", function(plot = TRUE, ...) {
                           sortBy = selectAllelesBy,
                           minClusterSize = minClusterSize,
                           indent = incr(indent))
+
+    if (plot) {
+      ppos <- SNP(prt)
+      pwm <- lapply(PWM(prt), function(pwm) {
+        pwm[pwm < 0.1] <- 0
+        pwm
+      })
+      p <- suppressMessages(self$plotSeqLogo(ppos, pwm))
+      cowplot::save_plot(filename = self$absPath("plot.sequence.pdf"),
+                         plot        = p,
+                         base_width  = 0.4*length(ppos) + 1.4,
+                         base_height = 2.5*length(pwm),
+                         title       = paste(self$getLocus(), self$getSampleId(), sep = "." ),
+                         units       = "cm",
+                         limitsize   = FALSE)
+      cowplot::save_plot(filename = self$absPath(".plots/plot.sequence.svg"),
+                         plot        = p,
+                         base_width  = 0.4*length(ppos) + 1.4,
+                         base_height = 2.5*length(pwm),
+                         units       = "cm",
+                         limitsize   = FALSE)
+    }
 
     ## set runstats
     .setRunstats(self, "partitionLongreads",
@@ -403,30 +432,6 @@ DR2S_$set("public", "runSplitLongreadsByHaplotype", function(plot = TRUE) {
                        base_height = 12, base_width = 10)
     cowplot::save_plot(self$absPath(".plots/plot.Partition.svg"), plot = p,
                        base_aspect_ratio = 1.2)
-
-    outf  <- self$absPath("plot.Sequence")
-    ppos <- SNP(self$getPartition())
-    names(ppos) <- seq_along(ppos)
-    pwm <- lapply(PWM(self$getPartition()), function(pwm) {
-      pwm[pwm < 0.1] <- 0
-      pwm
-    })
-
-    p <- suppressMessages(self$plotSeqLogo(ppos, pwm))
-    cowplot::save_plot(filename = self$absPath("plot.Sequence.pdf"),
-                       plot        = p,
-                       base_width  = 0.4*length(ppos) + 1.4,
-                       base_height = 2.5*length(pwm),
-                       title       = paste(self$getLocus(), self$getSampleId(),
-                                           sep = "." ),
-                       units       = "cm",
-                       limitsize   = FALSE)
-    cowplot::save_plot(filename = self$absPath(".plots/plot.Sequence.svg"),
-                       plot        = p,
-                       base_width  = 0.4*length(ppos) + 1.4,
-                       base_height = 2.5*length(pwm),
-                       units       = "cm",
-                       limitsize   = FALSE)
 
   }
 

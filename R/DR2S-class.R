@@ -841,7 +841,6 @@ DR2S_ <- R6::R6Class(
     plotSeqLogo = function(ppos = NULL, pwm = NULL) {
       if (is.null(ppos)) {
         ppos <- SNP(self$getPartition())
-        names(ppos) <- seq_along(ppos)
       }
       if (is.null(pwm)) {
         pwm <- lapply(PWM(self$getPartition()), function(pwm) {
@@ -850,16 +849,17 @@ DR2S_ <- R6::R6Class(
         })
       }
       ggplot() +
-        scale_x_continuous(labels = ppos, breaks = seq_along(ppos)) +
         geom_logo(pwm, method = "bits", seq_type = "dna", stack_width = 0.9) +
-        facet_wrap(~seq_group, ncol = 1, strip.position = "left") +
+        scale_x_continuous(labels = ppos, breaks = seq_along(ppos)) +
+        facet_wrap(~ seq_group, ncol = 1, strip.position = "left") +
         theme_logo() +
-        theme(axis.text.x  = ggplot2::element_text(size = 10, angle = 60),
-              axis.title.y = ggplot2::element_blank(),
-              axis.text.y  = ggplot2::element_blank(),
-              axis.ticks.y = ggplot2::element_blank(),
-              strip.text.y = ggplot2::element_text(face = "bold",
-                                                   size = 42, angle = 180))
+        theme(
+          axis.text.x  = ggplot2::element_text(size = 10, angle = 45),
+          axis.title.y = ggplot2::element_blank(),
+          axis.text.y  = ggplot2::element_blank(),
+          axis.ticks.y = ggplot2::element_blank(),
+          strip.text.y = ggplot2::element_text(face = "bold", size = 42, angle = 180)
+        )
     }
   ),
   ##

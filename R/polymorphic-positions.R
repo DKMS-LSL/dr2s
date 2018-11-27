@@ -77,18 +77,23 @@ polymorphicPositions.pileup <- function(x, threshold = NULL) {
   i <- which.max(c(mean(cmat[cl1, cl1], na.rm = TRUE), mean(cmat[cl2, cl2], na.rm = TRUE)))
   nm <- names(ctr)[ctr == i]
   ## get a nice plot
-  cDf <- tibble::as_tibble(cmat[cl$order,cl$order])
+  ocmat <- cmat[cl$order, cl$order]
+  ## set diag and upper tri to zero
+  diag(ocmat) <- NA_real_
+  ocmat[upper.tri(ocmat)] <- NA_real_
+  cDf <- tibble::as_tibble(ocmat)
   ppos <- colnames(cDf)
-  cDf[upper.tri(cDf)] <- NA
-  cDf$pos <- factor(as.factor(ppos), levels = ppos)
-  cDfLong <- tidyr::gather(cDf, pos1, corr, -pos, na.rm = TRUE)
-  cDfLong$pos1 <- factor(as.factor(cDfLong$pos1), levels = ppos)
-  p <- ggplot(cDfLong, aes(x = pos, y = pos1, fill = corr)) +
-    geom_tile() +
-    scale_fill_gradient2(low = "white", high = "red", midpoint = 0, limit = c(0,1)) +
-    ylab("Polymorphic positions") +
-    xlab("Polymorphic positions") +
-    ggtitle("Correlation of polymorphic positions")
+  cDf$pos <- factor(ppos, levels = ppos, labels = ppos, ordered = TRUE)
+  cDfLong <- tidyr::gather(cDf, pos1, corr, -pos, na.rm = TRUE) %>%
+    dplyr::mutate(pos1 = factor(pos1, levels = ppos, labels = ppos, ordered = TRUE))
+  p <- ggplot(cDfLong, aes(x = reorder(pos, dplyr::desc(pos)), y = pos1, fill = corr)) +
+    geom_tile(aes(height = 0.95, width = 0.95)) + coord_flip() +
+    scale_fill_gradient2(mid = "#e1e7fa", high = "#13209d", midpoint = 0, limit = c(0, 1)) +
+    labs(x = "Polymorphic positions", y = "Polymorphic positions") +
+    theme_bw() +
+    theme(panel.grid = element_blank(),
+          axis.text.x = element_text(angle = 90))
+
   structure(mat[, nm], snp.corr.mat = cmat, snp.clust = cl, snp.plot = p)
 }
 
