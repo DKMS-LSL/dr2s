@@ -76,7 +76,21 @@ polymorphicPositions.pileup <- function(x, threshold = NULL) {
   cl2 <- names(ctr)[ctr == 2]
   i <- which.max(c(mean(cmat[cl1, cl1], na.rm = TRUE), mean(cmat[cl2, cl2], na.rm = TRUE)))
   nm <- names(ctr)[ctr == i]
-  structure(mat[, nm], snp.corr.mat = cmat, snp.clust = cl)
+  ## get a nice plot
+  cDf <- as_data_frame(cmat[cl$order,cl$order]) 
+  ppos <- colnames(cDf)
+  cDf[upper.tri(cDf)] <- NA 
+  cDf$pos <- factor(as.factor(ppos), levels = ppos)
+  cDfLong <- tidyr::gather(cDf, pos1, corr, -pos, na.rm = TRUE) 
+  cDfLong$pos1 <- factor(as.factor(cDfLong$pos1), levels = ppos)
+  p <- ggplot(cDfLong, aes(x = pos, y = pos1, fill = corr)) +
+  geom_tile() +
+    scale_fill_gradient2(low = "white", high = "red", 
+                         midpoint = 0, limit = c(0,1)) +
+    ylab("Polymorphic positions") + 
+    xlab("Polymorphic positions") + 
+    ggtitle("Correlation of Polymorphic positions")
+  structure(mat[, nm], snp.corr.mat = cmat, snp.clust = cl, snp.plot = p)
 }
 
 
