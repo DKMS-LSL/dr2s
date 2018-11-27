@@ -764,7 +764,8 @@ getCl <- function(n, cluster, change) {
     hp <- dfmax$haplotype[which(dfmax$nreads < lowerLimit)]
     dfmax2 <- dplyr::filter(df, .data$haplotype %in% hp & .data$nreads >= lowerLimit) %>%
       dplyr::group_by(.data$haplotype) %>%
-      dplyr::top_n(1, dplyr::desc(nreads))
+      dplyr::top_n(1, dplyr::desc(nreads)) %>%
+      dplyr::slice(1) ## in case of ties take only the top row
     dfmax[dfmax$haplotype %in% hp, ] <- dfmax2
   }
 
