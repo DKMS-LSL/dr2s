@@ -132,6 +132,9 @@ partitionReads <- function(x, distAlleles = 2, sortBy = "count", threshold = 0.2
   SCR(part_)    <- scores
   SQS(part_)    <- hpseqs
   PWM(part_)    <- mats
+  ##
+  attr(part_, "snp.corr.mat") <- attr(x, "snp.corr.mat")
+  attr(part_, "snp.clust") <- attr(x, "snp.clust")
 
   return(part_)
 }
