@@ -70,16 +70,17 @@ polymorphicPositions.pileup <- function(x, threshold = NULL) {
   rownames(fmat) <- rownames(mat)
   colnames(fmat) <- colnames(mat)
   cmat <- abs(stats::cor(fmat, method = corr.method))
+  ## set diag to NA to prevent self-correlation
+  diag(cmat) <- NA_real_
   cl <- stats::hclust(stats::as.dist(1 - cmat), method = clust.method)
   ctr <- stats::cutree(cl, 2)
   cl1 <- names(ctr)[ctr == 1]
   cl2 <- names(ctr)[ctr == 2]
   i <- which.max(c(mean(cmat[cl1, cl1], na.rm = TRUE), mean(cmat[cl2, cl2], na.rm = TRUE)))
   nm <- names(ctr)[ctr == i]
-  ## get a nice plot
+  ## Get correlogram
   ocmat <- cmat[cl$order, cl$order]
-  ## set diag and upper tri to zero
-  diag(ocmat) <- NA_real_
+  ## set upper tri to zero
   ocmat[upper.tri(ocmat)] <- NA_real_
   cDf <- tibble::as_tibble(ocmat)
   ppos <- colnames(cDf)

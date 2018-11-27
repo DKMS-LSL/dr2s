@@ -245,10 +245,10 @@ DR2S_$set("public", "runPartitionLongreads", function(plot = TRUE, ...) {
 
     ## Get the reference sequence
     if (self$hasShortreads()) {
-      useSR  <- TRUE
+      useSR <- TRUE
       flog.info("%sConstruct SNP matrix from shortreads", indent(), name = "info")
     } else {
-      useSR  <- FALSE
+      useSR <- FALSE
       flog.info("%sConstruct SNP matrix from longreads", indent(), name = "info")
     }
     ppos <- self$polymorphicPositions(useSR = useSR)
