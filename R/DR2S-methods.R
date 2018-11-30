@@ -1,14 +1,13 @@
 # Method: mapInit ####
 #' @export
-mapInit.DR2S <- function(x, opts = list(), plot = TRUE, ...) {
-  x$runMapInit(opts = opts, plot = plot, ...)
+mapInit.DR2S <- function(x, opts = list(), ...) {
+  x$runMapInit(opts = opts, ...)
   invisible(x)
 }
 
-DR2S_$set("public", "runMapInit", function(opts = list(), plot = TRUE, ...) {
+DR2S_$set("public", "runMapInit", function(opts = list(), ...) {
   # # debug
   # opts = list()
-  # plot = TRUE
   # library(assertthat)
   # library(ggplot2)
   # library(S4Vectors)
@@ -42,7 +41,7 @@ DR2S_$set("public", "runMapInit", function(opts = list(), plot = TRUE, ...) {
     exists("lowerLimit") && is.numeric(lowerLimit),
     exists("updateBackgroundModel") && is.logical(updateBackgroundModel),
     exists("createIgv") && is.logical(createIgv),
-    is.logical(plot)
+    exists("plot") && is.logical(plot)
   )
 
   ## Get options and prepare mapping
@@ -170,16 +169,13 @@ DR2S_$set("public", "runMapInit", function(opts = list(), plot = TRUE, ...) {
   if (plot) {
     flog.info("%sPlot MapInit summary", indent(), name = "info")
     ## Coverage and frequency of minor alleles
-    p <- self$plotMapInitSummary(
-      thin = 0.25,
-      width = 2
-    )
+    p <- self$plotMapInitSummary(thin = 0.25, width = 2)
     plotRows <- ifelse(self$hasShortreads(), 2, 1)
-    cowplot::save_plot(self$absPath("plot.MapInit.pdf"),
-                       plot = p, ncol = 1, nrow = plotRows,
+    cowplot::save_plot(self$absPath("plot.mapInit.png"),
+                       plot = p, ncol = 1, nrow = plotRows, dpi = 150,
                        base_aspect_ratio = as.numeric(paste(5, plotRows, sep = ".")),
                        title = paste(self$getLocus(), self$getSampleId(), sep = "." ))
-    cowplot::save_plot(self$absPath(".plots/plot.MapInit.svg"),
+    cowplot::save_plot(self$absPath(".plots/plot.mapInit.svg"),
                        plot = p, ncol = 1, nrow = plotRows,
                        base_aspect_ratio = as.numeric(paste(5, plotRows, sep = ".")))
   }
@@ -201,11 +197,11 @@ DR2S_$set("public", "runMapInit", function(opts = list(), plot = TRUE, ...) {
 
 # Method: partitionLongreads ####
 #' @export
-partitionLongreads.DR2S <- function(x, plot = TRUE, ...) {
+partitionLongreads.DR2S <- function(x) {
   ## Collect start time for partitionLongreads runstats
   start.time <- Sys.time()
-  x$runPartitionLongreads(plot = plot, ...)
-  x$runSplitLongreadsByHaplotype(plot = plot)
+  x$runPartitionLongreads()
+  x$runSplitLongreadsByHaplotype()
   x$runExtractPartitionedLongreads()
   ## set partitionLongreads runstats
   .setRunstats(x, "partitionLongreads",
@@ -213,9 +209,8 @@ partitionLongreads.DR2S <- function(x, plot = TRUE, ...) {
   return(invisible(x))
 }
 
-DR2S_$set("public", "runPartitionLongreads", function(plot = TRUE, ...) {
+DR2S_$set("public", "runPartitionLongreads", function() {
     ## debug
-    # plot = TRUE
     # library(futile.logger)
     # library(assertthat)
     # self <- dr2s
@@ -225,22 +220,19 @@ DR2S_$set("public", "runPartitionLongreads", function(plot = TRUE, ...) {
     ## Initiate indenter
     indent <- indentation(1)
 
-    ## Get global arguments
-    threshold <- self$getThreshold()
-    distAlleles <- self$getDistAlleles()
-
     ## Export partitionLongreads config to function environment
     args <- self$getOpts("partitionLongreads")
     list2env(args, envir = environment())
     assert_that(
       self$hasMapInit(),
-      is.double(threshold),
-      is.count(distAlleles),
+      exists("threshold") && is.double(threshold),
+      exists("distAlleles") && is.count(distAlleles),
       exists("skipGapFreq") && is.numeric(skipGapFreq),
       exists("noGapPartitioning") && is.logical(noGapPartitioning),
+      exists("restrictToCorrelatedPositions") && is.logical(restrictToCorrelatedPositions),
       exists("selectAllelesBy") && is.character(selectAllelesBy),
       exists("minClusterSize") && is.numeric(minClusterSize),
-      is.logical(plot)
+      exists("plot") && is.logical(plot)
     )
 
     ## Get the reference sequence
@@ -303,19 +295,15 @@ DR2S_$set("public", "runPartitionLongreads", function(plot = TRUE, ...) {
         pwm
       })
       p <- suppressMessages(self$plotSeqLogo(ppos, pwm))
-      cowplot::save_plot(filename = self$absPath("plot.sequence.pdf"),
-                         plot        = p,
-                         base_width  = 0.4*length(ppos) + 1.4,
+      cowplot::save_plot(filename = self$absPath("plot.sequence.png"),
+                         plot = p, dpi = 150, units = "cm", limitsize = FALSE,
+                         base_width = 0.4*length(ppos) + 1.4,
                          base_height = 2.5*length(pwm),
-                         title       = paste(self$getLocus(), self$getSampleId(), sep = "." ),
-                         units       = "cm",
-                         limitsize   = FALSE)
+                         title = paste(self$getLocus(), self$getSampleId(), sep = "." ))
       cowplot::save_plot(filename = self$absPath(".plots/plot.sequence.svg"),
-                         plot        = p,
+                         plot = p, units = "cm", limitsize = FALSE,
                          base_width  = 0.4*length(ppos) + 1.4,
-                         base_height = 2.5*length(pwm),
-                         units       = "cm",
-                         limitsize   = FALSE)
+                         base_height = 2.5*length(pwm))
     }
 
     ## set runstats
@@ -359,7 +347,7 @@ print.PartList <- function(x, ...) {
   print(x$hpl)
 }
 
-DR2S_$set("public", "runSplitLongreadsByHaplotype", function(plot = TRUE) {
+DR2S_$set("public", "runSplitLongreadsByHaplotype", function() {
   ## If reporting is already done exit safely
   if (.checkReportStatus(self)) return(invisible(self))
 
@@ -374,7 +362,8 @@ DR2S_$set("public", "runSplitLongreadsByHaplotype", function(plot = TRUE) {
   list2env(args, envir = environment())
   assert_that(
     exists("pickiness") && is.numeric(pickiness),
-    exists("lowerLimit") && is.numeric(lowerLimit)
+    exists("lowerLimit") && is.numeric(lowerLimit),
+    exists("plot") && is.logical(plot)
   )
 
   prt <- partition(self$getPartition())
@@ -427,10 +416,10 @@ DR2S_$set("public", "runSplitLongreadsByHaplotype", function(plot = TRUE) {
     p <- self$plotPartitionSummary(
       label = tag, limits = unlist(self$getLimits()))
 
-    cowplot::save_plot(self$absPath("plot.Partition.pdf"), plot = p,
+    cowplot::save_plot(self$absPath("plot.partition.png"), plot = p, dpi = 150,
                        title = paste(self$getLocus(), self$getSampleId(), sep = "."),
                        base_height = 12, base_width = 10)
-    cowplot::save_plot(self$absPath(".plots/plot.Partition.svg"), plot = p,
+    cowplot::save_plot(self$absPath(".plots/plot.partition.svg"), plot = p,
                        base_aspect_ratio = 1.2)
 
   }
@@ -528,12 +517,12 @@ DR2S_$set("public", "runExtractPartitionedLongreads", function() {
 
 ## Method: mapIter ####
 #' @export
-mapIter.DR2S <- function(x, opts = list(), plot = TRUE, ...) {
-  x$runMapIter(opts = opts, plot = plot, ...)
+mapIter.DR2S <- function(x, opts = list(), ...) {
+  x$runMapIter(opts = opts, ...)
   return(invisible(x))
 }
 
-DR2S_$set("public", "runMapIter", function(opts = list(), plot = TRUE, ...) {
+DR2S_$set("public", "runMapIter", function(opts = list(), ...) {
   # debug
   # self <- dr2s
   # opts = list()
@@ -550,15 +539,14 @@ DR2S_$set("public", "runMapIter", function(opts = list(), plot = TRUE, ...) {
   indent <- indentation(1)
   flog.info("%sIterative mapping of partitioned longreads", indent(), name = "info")
 
-  ## Get global arguments
-  iterations <- self$getIterations()
-
   ## Export mapIter config to function environment
   args <- self$getOpts("mapIter")
   list2env(args, envir = environment())
   assert_that(
-    exists("columnOccupancy"),
-    exists("callInsertionThreshold")
+    exists("iterations") && is.count(iterations),
+    exists("columnOccupancy") && is.double(columnOccupancy),
+    exists("callInsertionThreshold") && is.double(callInsertionThreshold),
+    exists("plot") && is.logical(plot)
   )
 
   baseoutdir <- self$absPath("mapIter")
@@ -630,11 +618,11 @@ DR2S_$set("public", "runMapIter", function(opts = list(), plot = TRUE, ...) {
                                                iteration = iteration, drop.indels = TRUE))
     }
     p <- cowplot::plot_grid(plotlist = plotlist, nrow = self$getIterations())
-    cowplot::save_plot(p, filename = self$absPath("plot.MapIter.pdf"),
+    cowplot::save_plot(p, dpi = 150, filename = self$absPath("plot.mapIter.png"),
                        base_width = 12*length(self$getHapTypes()),
                        base_height = 3*self$getIterations(),
                        title = paste(self$getLocus(), self$getSampleId(), sep = "." ))
-    cowplot::save_plot(p, filename = self$absPath(".plots/plot.MapIter.svg"),
+    cowplot::save_plot(p, filename = self$absPath(".plots/plot.mapIter.svg"),
                        base_width = 12*length(self$getHapTypes()),
                        base_height = 3*self$getIterations())
 
@@ -742,15 +730,14 @@ DR2S_$set("public", "runPartitionShortreads", function(opts = list(), ...) {
 
 ## Method: mapFinal ####
 #' @export
-mapFinal.DR2S <- function(x, opts = list(), plot = TRUE, ...) {
-  x$runMapFinal(opts = opts, plot = plot, ...)
+mapFinal.DR2S <- function(x, opts = list(), ...) {
+  x$runMapFinal(opts = opts, ...)
   invisible(x)
 }
 
-DR2S_$set("public", "runMapFinal", function(opts = list(), plot = TRUE, ...) {
+DR2S_$set("public", "runMapFinal", function(opts = list(), ...) {
   ## debug
   # opts = list()
-  # plot = TRUE
   # library(futile.logger)
   # library(foreach)
   # self <- dr2s
@@ -774,7 +761,8 @@ DR2S_$set("public", "runMapFinal", function(opts = list(), plot = TRUE, ...) {
     exists("includeInsertions") && is.logical(includeInsertions),
     exists("callInsertionThreshold") && is.numeric(callInsertionThreshold),
     exists("trimPolymorphicEnds") && is.logical(trimPolymorphicEnds),
-    exists("createIgv") && is.logical(createIgv)
+    exists("createIgv") && is.logical(createIgv),
+    exists("plot") && is.logical(plot)
   )
 
   igv <- list()
@@ -901,11 +889,11 @@ DR2S_$set("public", "runMapFinal", function(opts = list(), plot = TRUE, ...) {
                        readtype = readtype, thin = 0.25, width = 20))
     }
     p <- cowplot::plot_grid(plotlist = plotlist, nrow = plotRows, labels = readtypes)
-    cowplot::save_plot(p, filename = self$absPath("plot.MapFinal.pdf"),
+    cowplot::save_plot(p, dpi = 150, filename = self$absPath("plot.mapFinal.png"),
                        base_width = 12*length(hptypes),
                        title = paste(self$getLocus(), self$getSampleId(), sep = "." ),
                        base_height = 3*length(readtypes))
-    cowplot::save_plot(p, filename = self$absPath(".plots/plot.MapFinal.svg"),
+    cowplot::save_plot(p, filename = self$absPath(".plots/plot.mapFinal.svg"),
                        base_width = 12*length(hptypes),
                        base_height = 3*length(readtypes))
   }

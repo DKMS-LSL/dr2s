@@ -118,19 +118,30 @@
 #' @keywords internal
 #' @examples
 #' ###
-.generateReferenceSequence <- function(allele, locus, outdir, dirtag = NULL) {
+.generateReferenceSequence <- function(locus, allele, outdir, dirtag = NULL) {
   if (is.null(allele)) {
-    return(NULL)
+    ## fetch the generic reference for <locus>
+    allele <- .normaliseLocus(locus)
+    sref <- findRef(allele)
   }
-  locus <- .normaliseLocus(locus)
-  if (startsWith(locus, "HLA")) {
-    ipd <- .ipdHla()
-  } else {
-    ipd <- .ipdKir()
+  else {
+    ## fetch the allele-specific reference for <locus>
+    locus <- .normaliseLocus(locus)
+    if (startsWith(locus, "HLA")) {
+      ipd <- .ipdHla()
+    } else {
+      ipd <- .ipdKir()
+    }
+    if (!allele %in% ipd$getAlleles(locus))
+      stop(sprintf("Allele %s not found in database", allele))
+    sref <- foreach(i = allele, .combine = "c") %do% {
+      sref <- ipd$getClosestComplete(i, locus)
+      names(sref) <- gsub(" +", "_", names(sref))
+      sref
+    }
   }
-  if (!allele %in% ipd$getAlleles(locus))
-    stop(sprintf("Allele %s not found in database", allele))
 
+  assert_that(is(sref, "DNAStringSet"))
   .dirCreateIfNotExists(normalizePath(
     file.path(outdir, dirtag), mustWork = FALSE))
   assert_that(
@@ -138,24 +149,17 @@
     is.dir(outdir),
     is.writeable(outdir)
   )
-  sref <- foreach(i = allele, .combine = "c") %do% {
-    sref <- ipd$getClosestComplete(i, locus)
-    names(sref) <- gsub(" +", "_", names(sref))
-    sref
-  }
-  assert_that(is(sref, "DNAStringSet"))
+
   # Strip illegal characters from filenames
   alleleNm <- strip(allele, "_")
   filename <- ifelse(is.null(dirtag), alleleNm %<<% ".ref.fa",
                      file.path(dirtag, alleleNm %<<% ".ref.fa"))
   outpath <- normalizePath(file.path(outdir, filename), mustWork = FALSE)
-
   Biostrings::writeXStringSet(sref, outpath)
   filename
 }
 
 .multialignConsensus <- function(aln) {
-  aln
   n      <- length(aln)
   mat    <- t(Biostrings::consensusMatrix(aln))[, c(1:4, 16)]
   ## always accept the first and last base irrespective of how many gaps

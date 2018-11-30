@@ -22,10 +22,9 @@ Polish final haplotype sequences.
 \dontrun{
 x <- DR2Smap(
   sample = "ID12300527",
-  locus = "DPB1",
+  locus = "DPB1*04:01:01:01",
   datadir = "/path/to/data",
-  outdir = "/path/to/output",
-  reference = "04:01:01:01"
+  outdir = "/path/to/output"
   ) \%>\%
   mapInit() \%>\%
   partitionLongreads() \%>\%

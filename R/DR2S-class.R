@@ -70,16 +70,28 @@ DR2S_ <- R6::R6Class(
     ## Public functions
     initialize  = function(conf, createOutdir = TRUE) {
       private$conf = initialiseDR2S(conf, createOutdir = createOutdir)
-      private$runstats = NULL
-      private$reportStatus = FALSE
-      if (file.exists(refPath <- private$conf$reference)) {
+      private$runstats <- NULL
+      private$reportStatus <- FALSE
+      if (is.null(private$conf$reference)) {
+        ## fetch the generic reference for <locus>
+        private$conf$reference   <- .normaliseLocus(conf$locus)
+        private$runstats$refPath <- .generateReferenceSequence(
+          locus  = private$conf$locus,
+          allele = NULL,
+          outdir = private$conf$outdir,
+          dirtag = "mapInit")
+      }
+      else if (file.exists(refPath <- private$conf$reference)) {
+        ## use the user-provided reference for <locus>
         private$conf$extref = normalizePath(refPath, mustWork = TRUE)
         private$conf$reference = sub("\\.fa(s|sta)?$", "", basename(refPath))
         private$runstats$refPath = file.path("mapInit", basename(refPath))
         cPath <- .dirCreateIfNotExists(normalizePath(
           file.path(private$conf$outdir, "mapInit"), mustWork = FALSE))
         file.copy(refPath, file.path(cPath, basename(refPath)))
-      } else {
+      }
+      else {
+        ## fetch the allele-specific reference for <locus>
         private$conf$reference = .expandAllele(conf$reference, conf$locus)
         private$runstats$refPath = .generateReferenceSequence(
           private$conf$reference,
@@ -95,8 +107,7 @@ DR2S_ <- R6::R6Class(
     },
     cache = function(outname) {
       if (missing(outname)) {
-        outname <- paste("DR2S", self$getLrdType(), self$getLrdMapper(), "rds",
-                         sep = ".")
+        outname <- dot(c("DR2S", self$getLrdType(), self$getLrdMapper(), "rds"))
       }
       path <- file.path(self$getOutdir(), outname)
       flog.info("Caching <%s>", path, name = "info")
@@ -196,54 +207,24 @@ DR2S_ <- R6::R6Class(
       self$getConfig("outdir")
     },
     ##
-    getThreshold = function() {
-      self$getConfig("threshold")
-    },
-    ##
-    setThreshold = function(threshold) {
-      assert_that(threshold > 0 && threshold <= 1)
-      self$setConfig("threshold", threshold)
-      invisible(self)
-    },
-    ##
-    getIterations = function() {
-      self$getConfig("iterations")
-    },
-    ##
-    setIterations = function(iterations) {
-      assert_that(iterations < 10 && iterations > 0 && iterations %% 1 == 0)
-      self$setConfig("iterations", iterations)
-      invisible(self)
-    },
-    ##
     getMicrosatellite = function() {
-      self$getConfig("microsatellite")
-    },
-    ##
-    setMicrosatellite = function(microsatellite) {
-      assert_that(is.logical(microsatellite))
-      self$setConfig("microsatellite", microsatellite)
-      invisible(self)
-    },
-    ##
-    getFilterScores = function() {
-      self$getConfig("filterScores")
-    },
-    ##
-    setFilterScores = function(filterScores) {
-      assert_that(is.logical(filterScores))
-      self$setConfig("filterScores", filterScores)
-      invisible(self)
+      self$getOpts("mapInit")$microsatellite
     },
     ##
     getForceMapping = function() {
-      self$getConfig("forceMapping")
+      self$getOpts("mapInit")$forceMapping
     },
     ##
-    setForceMapping = function(forceMapping) {
-      assert_that(is.logical(forceMapping))
-      self$setConfig("forceMapping", forceMapping)
-      invisible(self)
+    getThreshold = function() {
+      self$getOpts("partitionLongreads")$threshold
+    },
+    ##
+    getDistAlleles = function() {
+      self$getOpts("partitionLongreads")$distAlleles
+    },
+    ##
+    getIterations = function() {
+      self$getOpts("mapIter")$iterations
     },
     ##
     getLrdMapper = function() {
@@ -318,20 +299,15 @@ DR2S_ <- R6::R6Class(
     },
     ##
     getPipeline = function() {
-      self$getConfig("pipeline")
+      switch(self$getConfig("pipeline"), LR = LR_PIPELINE(), SR = SR_PIPELINE())
     },
     ##
     getOpts = function(name = NULL) {
-      if (is.null(name))
-        mergeList(self$getConfig("opts"), self$getConfig("longreads")$opts, update = TRUE)
-      else {
-        opts <- mergeList(self$getConfig("opts"),
-                          self$getConfig("longreads")$opts, update = TRUE)
-        if (is.list(opts))
-          opts[[name]]
-        else
-          opts
-      }
+      opts <- self$getConfig("opts")
+      if (is.list(opts))
+        opts[[name]]
+      else
+        opts
     },
     ##
     getSampleId = function() {
@@ -350,16 +326,6 @@ DR2S_ <- R6::R6Class(
       self$getDetails("platform") %||%
         self$getConfig("longreads")$platform  %||%
         self$getConfig("longreads")$type
-    },
-    ##
-    getDistAlleles = function() {
-      self$getConfig("distAlleles")
-    },
-    ##
-    setDistAlleles = function(distAlleles) {
-      assert_that(is.numeric(distAlleles))
-      self$setConfig("distAlleles", distAlleles)
-      invisible(self)
     },
     ##
     getFormat = function() {
@@ -887,3 +853,22 @@ findReads <- function(datadir, sampleId, locus) {
     normalizePath(readPath, mustWork = TRUE)
   } else readPath
 }
+
+findRef <- function(locus) {
+  if (startsWith(locus, "HLA")) {
+    lnm <- sub("^HLA-", "", toupper(locus))
+    p <- system.file("extdata", "HLAREF.fa", package = "DR2S")
+    Biostrings::readDNAStringSet(p, format = "fasta")[lnm]
+  }
+  else if (startsWith(locus, "KIR")) {
+    stop("No generic KIR references available")
+  }
+  else {
+    stop("Unknown locus")
+  }
+}
+
+
+
+
+

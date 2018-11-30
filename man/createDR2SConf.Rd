@@ -14,7 +14,7 @@ createDR2SConf(sample, locus, longreads = list(dir = "pacbio", type =
 \item{sample}{A unique sample identifier used to locate the long and short
 read FASTQ/FASTA files.}
 
-\item{locus}{The HLA or KIR locus (e.g., "A", "DPB1", or "2DL1")}
+\item{locus}{The HLA or KIR locus (e.g., "A", "DPB1", or "2DL1"; see Note).}
 
 \item{longreads}{Location, type, and mapper for longreads as a named list
 with the fields \code{dir}, \code{type} ("pacbio" or "nanopore") and
@@ -28,28 +28,13 @@ as a named list with the fields \code{dir}, \code{type} ("illumina") and
 
 \item{outdir}{The output directory (See Note).}
 
-\item{reference}{The reference allele (See Note).}
+\item{reference}{(optional) Path to reference sequence (See Note).}
 
-\item{threshold}{Threshold frequency for detecting polymorphisms.}
+\item{details}{<named list> of sample metadata or \code{NULL}. Will be written
+into the fasta header of the final sequences and stored in the config json}
 
-\item{iterations}{Number of iterations of the mapIter step.}
-
-\item{microsatellite}{<\code{FALSE}>; Perform a second mapping of shortreads
-to the inferred reference in mapInit. Set to TRUE if you suspect
-microsatellites or other repetitive regions in your sequence. Usually extends
-the reference to a maximum length and enables a better mapping.}
-
-\item{distAlleles}{Number of different alleles in the sample. Should be 2
-for heterozygous samples, 1 for homozygous samples and > 2 for some KIR loci.}
-
-\item{forceMapping}{<\code{FALSE}>; set to TRUE if you want to force
-processing of "bad" shortreads, i.e. when the distribution of coverage is
-heavily unequal. Aborts the program if maximum coverage > 75 \% quantile * 5.}
-
-\item{details}{Named list of sample metadata or \code{NULL}. Will be written
-into the fasta header of the final sequences and stored in the config yaml.}
-
-\item{...}{Additional arguments.}
+\item{opts}{<named list> of arguments to the DR2S pipeline functions or
+\code{NULL}. Will be stored in the config json}
 }
 \value{
 A \code{\link[DR2S]{DR2S}} config object
@@ -57,6 +42,15 @@ A \code{\link[DR2S]{DR2S}} config object
 \description{
 Create a \code{\link[=DR2S_]{DR2S}} configuration object.
 }
+\section{locus}{
+
+The locus can be specified generically, e.g. "A", "B", or "2DL1". In this
+case a generic, locus-specific reference will initially be used.
+Alternatively a locus can be specified more specifically by including
+allele code information (if available), e.g. "DPB1*04:01:01:01". In this
+case the specified allele will be used as initial reference.
+}
+
 \section{datadir}{
 
 A \code{datadir} must contain subdirectories (default: "pacbio" and
@@ -72,18 +66,17 @@ All output will be placed in directory hierarchy \code{OUTDIR/SAMPLE/LOCUS}
 
 \section{Reference}{
 
-References can be specified as allele codes or a path to a fasta file
-containing the reference sequence.
+References can be specified as a path to a fasta file containing the
+reference sequence.
 }
 
 \examples{
 \dontrun{
 x <- InitDR2S(createDR2SConf(
   sample = "ID12300527",
-  locus = "DPB1",
+  locus = "DPB1*04:01:01:01",
   datadir = "/path/to/data",
-  outdir = "/path/to/output",
-  reference = "04:01:01:01"
+  outdir = "/path/to/output"
   )) \%>\%
   mapInit() \%>\%
   partitionLongreads() \%>\%

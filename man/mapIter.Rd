@@ -4,14 +4,12 @@
 \alias{mapIter}
 \title{Iterative mapping.}
 \usage{
-mapIter(x, opts = list(), plot = TRUE, ...)
+mapIter(x, opts = list(), ...)
 }
 \arguments{
 \item{x}{A \code{\link[=DR2S_]{DR2S}} object.}
 
-\item{opts}{List with options passed to the mapper.}
-
-\item{plot}{Generate diagnostic plots.}
+\item{opts}{Named list with options passed to the mapper.}
 
 \item{...}{Additional parameters passed to \code{\link[Rsamtools]{PileupParam}}.}
 }
@@ -27,10 +25,9 @@ New reference consensus sequences for both alleles are inferred.
 \dontrun{
 x <- DR2Smap(
   sample = "ID12300527",
-  locus = "DPB1",
+  locus = "DPB1*04:01:01:01",
   datadir = "/path/to/data",
-  outdir = "/path/to/output",
-  reference = "04:01:01:01"
+  outdir = "/path/to/output"
   ) \%>\%
   mapInit() \%>\%
   partitionLongreads() \%>\%

@@ -4,14 +4,12 @@
 \alias{mapFinal}
 \title{Final mapping (long reads and short reads).}
 \usage{
-mapFinal(x, opts = list(), plot = TRUE, ...)
+mapFinal(x, opts = list(), ...)
 }
 \arguments{
 \item{x}{A \code{\link[=DR2S_]{DR2S}} object.}
 
 \item{opts}{List with options passed to the mapper.}
-
-\item{plot}{Generate diagnostic plots.}
 
 \item{...}{Additional parameters passed to \code{\link[Rsamtools]{PileupParam}}.}
 }
@@ -27,10 +25,9 @@ are \strong{included} in pileup.
 \dontrun{
 x <- DR2Smap(
   sample = "ID12300527",
-  locus = "DPB1",
+  locus = "DPB1*04:01:01:01",
   datadir = "/path/to/data",
-  outdir = "/path/to/output",
-  reference = "04:01:01:01"
+  outdir = "/path/to/output"
   ) \%>\%
   mapInit() \%>\%
   partitionLongreads() \%>\%

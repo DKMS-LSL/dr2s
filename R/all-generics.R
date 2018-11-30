@@ -5,6 +5,13 @@
 
 #' Create a \code{\link[=DR2S_]{DR2S}} configuration object.
 #'
+#' @section locus:
+#' The locus can be specified generically, e.g. "A", "B", or "2DL1". In this
+#' case a generic, locus-specific reference will initially be used.
+#' Alternatively a locus can be specified more specifically by including
+#' allele code information (if available), e.g. "DPB1*04:01:01:01". In this
+#' case the specified allele will be used as initial reference.
+#'
 #' @section datadir:
 #' A \code{datadir} must contain subdirectories (default: "pacbio" and
 #' "illumina") containig long read FASTQs/FASTAs in the format
@@ -15,12 +22,12 @@
 #' All output will be placed in directory hierarchy \code{OUTDIR/SAMPLE/LOCUS}
 #'
 #' @section Reference:
-#' References can be specified as allele codes or a path to a fasta file
-#' containing the reference sequence.
+#' References can be specified as a path to a fasta file containing the
+#' reference sequence.
 #'
 #' @param sample A unique sample identifier used to locate the long and short
 #' read FASTQ/FASTA files.
-#' @param locus The HLA or KIR locus (e.g., "A", "DPB1", or "2DL1")
+#' @param locus The HLA or KIR locus (e.g., "A", "DPB1", or "2DL1"; see Note).
 #' @param longreads Location, type, and mapper for longreads as a named list
 #' with the fields \code{dir}, \code{type} ("pacbio" or "nanopore") and
 #' \code{mapper} ("bwamem" or "minimap").
@@ -29,21 +36,12 @@
 #' \code{mapper} ("bwamem" or "minimap").
 #' @param datadir The data directory (See Note).
 #' @param outdir The output directory (See Note).
-#' @param reference The reference allele (See Note).
-#' @param threshold Threshold frequency for detecting polymorphisms.
-#' @param iterations Number of iterations of the mapIter step.
-#' @param microsatellite <\code{FALSE}>; Perform a second mapping of shortreads
-#' to the inferred reference in mapInit. Set to TRUE if you suspect
-#' microsatellites or other repetitive regions in your sequence. Usually extends
-#' the reference to a maximum length and enables a better mapping.
-#' @param distAlleles Number of different alleles in the sample. Should be 2
-#' for heterozygous samples, 1 for homozygous samples and > 2 for some KIR loci.
-#' @param forceMapping <\code{FALSE}>; set to TRUE if you want to force
-#' processing of "bad" shortreads, i.e. when the distribution of coverage is
-#' heavily unequal. Aborts the program if maximum coverage > 75 \% quantile * 5.
-#' @param details Named list of sample metadata or \code{NULL}. Will be written
-#' into the fasta header of the final sequences and stored in the config yaml.
-#' @param ... Additional arguments.
+#' @param reference (optional) Path to reference sequence (See Note).
+#' @param details <named list> of sample metadata or \code{NULL}. Will be written
+#' into the fasta header of the final sequences and stored in the config json
+#' @param opts <named list> of arguments to the DR2S pipeline functions or
+#'  \code{NULL}. Will be stored in the config json
+#'
 #' @return A \code{\link[DR2S]{DR2S}} config object
 #' @family DR2S mapper functions
 #' @export
@@ -52,10 +50,9 @@
 #' \dontrun{
 #' x <- InitDR2S(createDR2SConf(
 #'   sample = "ID12300527",
-#'   locus = "DPB1",
+#'   locus = "DPB1*04:01:01:01",
 #'   datadir = "/path/to/data",
-#'   outdir = "/path/to/output",
-#'   reference = "04:01:01:01"
+#'   outdir = "/path/to/output"
 #'   )) %>%
 #'   mapInit() %>%
 #'   partitionLongreads() %>%
@@ -68,18 +65,13 @@
 createDR2SConf <- function(
   sample,
   locus,
-  longreads      = list(dir = "pacbio", type = "pacbio", mapper = "minimap"),
-  shortreads     = list(dir = "illumina", type = "illumina", mapper = "bwamem"),
-  datadir        = ".",
-  outdir         = "./output",
-  reference      = NULL,
-  threshold      = 0.20,
-  iterations     = 1,
-  microsatellite = FALSE,
-  distAlleles    = 2,
-  forceMapping   = FALSE,
-  details        = NULL,
-  ...) {
+  longreads  = list(dir = "pacbio", type = "pacbio", mapper = "minimap"),
+  shortreads = list(dir = "illumina", type = "illumina", mapper = "bwamem"),
+  datadir    = ".",
+  outdir     = "./output",
+  reference  = NULL,
+  details    = NULL,
+  opts       = NULL) {
   UseMethod("DR2SConf")
 }
 
@@ -105,7 +97,6 @@ InitDR2S <- function(config, createOutdir = TRUE) {
 #'
 #' @param x A \code{\link[=DR2S_]{DR2S}} object.
 #' @param opts List with options passed to the mapper.
-#' @param plot Generate diagnostic plots.
 #' @param ... Additional parameters passed to \code{\link[Rsamtools]{PileupParam}}.
 #' @inheritParams Rsamtools::PileupParam
 #' @return A \code{\link[=DR2S_]{DR2S}} object.
@@ -115,10 +106,9 @@ InitDR2S <- function(config, createOutdir = TRUE) {
 #' \dontrun{
 #' x <- DR2Smap(
 #'   sample = "ID12300527",
-#'   locus = "DPB1",
+#'   locus = "DPB1*04:01:01:01",
 #'   datadir = "/path/to/data",
-#'   outdir = "/path/to/output",
-#'   reference = "04:01:01:01"
+#'   outdir = "/path/to/output"
 #'   ) %>%
 #'   mapInit() %>%
 #'   partitionLongreads() %>%
@@ -128,7 +118,7 @@ InitDR2S <- function(config, createOutdir = TRUE) {
 #'   polish() %>%
 #'   report(blockWidth = 60)
 #' }
-mapInit <- function(x, opts = list(), plot = TRUE, ...) {
+mapInit <- function(x, opts = list(), ...) {
   UseMethod("mapInit")
 }
 
@@ -139,8 +129,7 @@ mapInit <- function(x, opts = list(), plot = TRUE, ...) {
 #' New reference consensus sequences for both alleles are inferred.
 #'
 #' @param x A \code{\link[=DR2S_]{DR2S}} object.
-#' @param opts List with options passed to the mapper.
-#' @param plot Generate diagnostic plots.
+#' @param opts Named list with options passed to the mapper.
 #' @param ... Additional parameters passed to \code{\link[Rsamtools]{PileupParam}}.
 #' @inheritParams Rsamtools::PileupParam
 #' @return A \code{\link[=DR2S_]{DR2S}} object.
@@ -150,10 +139,9 @@ mapInit <- function(x, opts = list(), plot = TRUE, ...) {
 #' \dontrun{
 #' x <- DR2Smap(
 #'   sample = "ID12300527",
-#'   locus = "DPB1",
+#'   locus = "DPB1*04:01:01:01",
 #'   datadir = "/path/to/data",
-#'   outdir = "/path/to/output",
-#'   reference = "04:01:01:01"
+#'   outdir = "/path/to/output"
 #'   ) %>%
 #'   mapInit() %>%
 #'   partitionLongreads() %>%
@@ -163,7 +151,7 @@ mapInit <- function(x, opts = list(), plot = TRUE, ...) {
 #'   polish() %>%
 #'   report(blockwidth = 60)
 #' }
-mapIter <- function(x, opts = list(), plot = TRUE, ...) {
+mapIter <- function(x, opts = list(), ...) {
   UseMethod("mapIter")
 }
 
@@ -175,7 +163,6 @@ mapIter <- function(x, opts = list(), plot = TRUE, ...) {
 #'
 #' @param x A \code{\link[=DR2S_]{DR2S}} object.
 #' @param opts List with options passed to the mapper.
-#' @param plot Generate diagnostic plots.
 #' @param ... Additional parameters passed to \code{\link[Rsamtools]{PileupParam}}.
 #' @inheritParams Rsamtools::PileupParam
 #' @return A \code{\link[=DR2S_]{DR2S}} object.
@@ -185,10 +172,9 @@ mapIter <- function(x, opts = list(), plot = TRUE, ...) {
 #' \dontrun{
 #' x <- DR2Smap(
 #'   sample = "ID12300527",
-#'   locus = "DPB1",
+#'   locus = "DPB1*04:01:01:01",
 #'   datadir = "/path/to/data",
-#'   outdir = "/path/to/output",
-#'   reference = "04:01:01:01"
+#'   outdir = "/path/to/output"
 #'   ) %>%
 #'   mapInit() %>%
 #'   partitionLongreads() %>%
@@ -198,7 +184,7 @@ mapIter <- function(x, opts = list(), plot = TRUE, ...) {
 #'   polish() %>%
 #'   report(blockWidth = 60)
 #' }
-mapFinal <- function(x, opts = list(), plot = TRUE, ...) {
+mapFinal <- function(x, opts = list(), ...) {
   UseMethod("mapFinal")
 }
 
@@ -218,10 +204,9 @@ mapFinal <- function(x, opts = list(), plot = TRUE, ...) {
 #' \dontrun{
 #' x <- DR2Smap(
 #'   sample = "ID12300527",
-#'   locus = "DPB1",
+#'   locus = "DPB1*04:01:01:01",
 #'   datadir = "/path/to/data",
-#'   outdir = "/path/to/output",
-#'   reference = "04:01:01:01"
+#'   outdir = "/path/to/output"
 #'   ) %>%
 #'   mapInit() %>%
 #'   partitionLongreads() %>%
@@ -247,10 +232,9 @@ partitionLongreads <- function(x, plot = TRUE, ...) {
 #' \dontrun{
 #' x <- DR2Smap(
 #'   sample = "ID12300527",
-#'   locus = "DPB1",
+#'   locus = "DPB1*04:01:01:01",
 #'   datadir = "/path/to/data",
-#'   outdir = "/path/to/output",
-#'   reference = "04:01:01:01"
+#'   outdir = "/path/to/output"
 #'   ) %>%
 #'   clear() %>%
 #'   mapInit() %>%
@@ -281,10 +265,9 @@ partitionShortreads <- function(x, opts = list(), ...) {
 #' \dontrun{
 #' x <- DR2Smap(
 #'   sample = "ID12300527",
-#'   locus = "DPB1",
+#'   locus = "DPB1*04:01:01:01",
 #'   datadir = "/path/to/data",
-#'   outdir = "/path/to/output",
-#'   reference = "04:01:01:01"
+#'   outdir = "/path/to/output"
 #'   ) %>%
 #'   mapInit() %>%
 #'   partitionLongreads() %>%
@@ -328,10 +311,9 @@ polish <- function(x, ...) {
 #' \dontrun{
 #' x <- DR2Smap(
 #'   sample = "ID12300527",
-#'   locus = "DPB1",
+#'   locus = "DPB1*04:01:01:01",
 #'   datadir = "/path/to/data",
-#'   outdir = "/path/to/output",
-#'   reference = "04:01:01:01"
+#'   outdir = "/path/to/output"
 #'   ) %>%
 #'   mapInit() %>%
 #'   partitionLongreads() %>%
@@ -361,10 +343,9 @@ report <- function(x, whichMap, ...) {
 #' \dontrun{
 #' x <- DR2Smap(
 #'   sample = "ID12300527",
-#'   locus = "DPB1",
+#'   locus = "DPB1*04:01:01:01",
 #'   datadir = "/path/to/data",
-#'   outdir = "/path/to/output",
-#'   reference = "04:01:01:01"
+#'   outdir = "/path/to/output"
 #'   ) %>%
 #'   clear() %>%
 #'   mapInit() %>%
@@ -391,10 +372,9 @@ clear <- function(x, ...) {
 #' \dontrun{
 #' x <- DR2Smap(
 #'   sample = "ID12300527",
-#'   locus = "DPB1",
+#'   locus = "DPB1*04:01:01:01",
 #'   datadir = "/path/to/data",
-#'   outdir = "/path/to/output",
-#'   reference = "04:01:01:01"
+#'   outdir = "/path/to/output"
 #'   ) %>%
 #'   clear() %>%
 #'   mapInit() %>%

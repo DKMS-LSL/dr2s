@@ -18,6 +18,15 @@ normaliseOpts <- function(opts, pipeline = "LR") {
     ## an insertion needs to be at frequency <callInsertionThreshold> for it
     ## to be included in the pileup.
     callInsertionThreshold = 1/5,
+    ## Perform a second mapping of shortreads to the inferred reference.
+    ## Set to TRUE if you suspect microsatellites or other repetitive regions
+    ## in your sequence. Usually extends the reference to a maximum length
+    ## and enables a better mapping.
+    microsatellite = FALSE,
+    ## set to TRUE if you want to force processing of "bad" shortreads, i.e.
+    ## when the distribution of coverage is heavily unequal. Aborts the program
+    ## if maximum coverage > 75 % quantile * 5.
+    forceMapping = FALSE,
     ## don't filter for mapping quality unless specified.
     ## for <shortreads> we hardcode <minMapq = 50>
     minMapq = 0,
@@ -37,21 +46,26 @@ normaliseOpts <- function(opts, pipeline = "LR") {
     updateBackgroundModel = FALSE,
     ## Subsample bam files for visualisation with IgvJs in the
     ## DR2S shiny app.
-    createIgv = TRUE
+    createIgv = TRUE,
+    ## Generate diagnostic plots.
+    plot = TRUE
   ))
   ##
   ## set partitionLongreads defaults
   ##
   opts0$partitionLongreads <- compact(list(
-    ## Threshold to call a polymorphic position. Set to override global default.
-    threshold = NULL,
+    ## Threshold to call a polymorphic position. A minority nucleotide frequency
+    ## below this threshold is considered noise rather than a valid polymorphism.
+    threshold = 1/5,
+    ## The expected number of distinct alleles in the sample. This should be 2
+    ## for heterozygous samples, 1 for homozygous samples may be >2 for some
+    ## KIR loci.
+    distAlleles = 2,
+    ## The minumum frequency of the gap character required to call a gap position.
+    skipGapFreq = 2/3,
     ## Don't partition based on gaps. Useful for samples with only few SNPs but
     ## with homopolymers. The falsely called gaps could mask the real variation.
     ## Set to override global default.
-    distAlleles = NULL,
-    ## The minumum frequency of the gap character required to call a gap position.
-    skipGapFreq = 2/3,
-    ## The number of distinct alleles in the sample. Set to override global default.
     noGapPartitioning = TRUE,
     ## Correlate polymorphic positions and cluster based on the absolute
     ## correlation coefficient. Extract positions from the cluster with the
@@ -71,7 +85,9 @@ normaliseOpts <- function(opts, pipeline = "LR") {
     pickiness = 1,
     ## When selecting reads from allele clusters the minimum number of
     ## reads to pick if available.
-    lowerLimit = 40
+    lowerLimit = 40,
+    ## Generate diagnostic plots.
+    plot = TRUE
   ))
   ##
   ## set mapIter defaults
@@ -79,14 +95,15 @@ normaliseOpts <- function(opts, pipeline = "LR") {
   opts0$mapIter <- compact(list(
     ## Number of <mapIter> iterations. How often are the
     ## clustered reads remapped to updated reference sequences.
-    ## Set to override global default.
-    iterations = NULL,
+    iterations = 1,
     ## Minimum occupancy (1 - fraction of gap) below which
     ## bases at insertion position are excluded from from consensus calling.
     columnOccupancy = 2/5,
     ## an insertion needs to be at frequency <callInsertionThreshold> for it
     ## to be included in the pileup.
-    callInsertionThreshold = 1/5
+    callInsertionThreshold = 1/5,
+    ## Generate diagnostic plots.
+    plot = TRUE
   ))
   ##
   ## set partitionShortreads defaults
@@ -112,7 +129,9 @@ normaliseOpts <- function(opts, pipeline = "LR") {
     trimPolymorphicEnds = FALSE,
     ## Subsample bam files for visualisation with IgvJs in the
     ## DR2S shiny app.
-    createIgv = TRUE
+    createIgv = TRUE,
+    ## Generate diagnostic plots.
+    plot = TRUE
   ))
   ##
   ## set polish defaults
@@ -157,7 +176,34 @@ normaliseOpts <- function(opts, pipeline = "LR") {
   }, FUN.VALUE = character(1))
 }
 
+validateOpts <- function(opts) {
+  # Assert mapInit() logicals
+  assert_that(
+    is.logical(opts$mapInit$microsatellite),
+    is.logical(opts$mapInit$forceMapping)
+  )
 
+  # Assert polymorphism threshold
+  assert_that(
+    is.numeric(opts$partitionLongreads$threshold),
+    opts$partitionLongreads$threshold >= 0,
+    opts$partitionLongreads$threshold <= 1,
+    msg = "The polymorphism threshold must be a number between 0 ans 1")
+
+  # Assert number of distinct alleles
+  assert_that(is.count(opts$partitionLongreads$distAlleles),
+              msg = "Number of distinct alleles (distAlleles) must be numeric")
+
+  # Assert number of mapIter iterations
+  assert_that(
+    is.count(opts$mapIter$iterations),
+    opts$mapIter$iterations > 0,
+    opts$mapIter$iterations < 10,
+    msg = "The number of mapIter() iterations must fall between 1 and 10"
+  )
+
+  return(invisible(TRUE))
+}
 
 
 

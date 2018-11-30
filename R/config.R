@@ -9,40 +9,34 @@ createDR2SConf <- function(sample,
                            datadir = ".",
                            outdir = "./output",
                            reference = NULL,
-                           threshold = 0.20,
-                           iterations = 1,
-                           microsatellite = FALSE,
-                           distAlleles = 2,
-                           filterScores = FALSE,
-                           forceMapping = FALSE,
-                           details = list(),
+                           details = NULL,
+                           opts = NULL,
                            ...) {
-  conf0 <- list(...)
-  datadir0 <- normalizePath(datadir, mustWork = TRUE)
-  conf1 <- list(
-    datadir = datadir0,
-    outdir = outdir,
-    threshold = threshold,
-    iterations = iterations,
-    microsatellite = microsatellite,
-    distAlleles = distAlleles,
-    filterScores = filterScores,
-    forceMapping = forceMapping,
-    pipeline = conf0$pipeline %||% if (is.null(shortreads)) {
-      LR_PIPELINE()
-    } else {
-      SR_PIPELINE()
-    },
-    longreads = longreads,
+  assert_that(
+    !missing(sample),
+    !missing(locus))
+  dots <- list(...)
+  locus_allele <- strsplit1(locus, "*", fixed = TRUE)
+  locus        <- sub("HLA-", "", .normaliseLocus(locus_allele[1]))
+  ref_allele   <- .expandAllele(locus_allele[2], locus)
+  pipeline     <- if (is.null(shortreads)) "LR" else "SR"
+  conf0 <- list(
+    ## Sample data
+    sampleId   = sample,
+    locus      = locus,
+    details    = lapply(details, gsub, pattern = ";", replacement = ",") %||% NULL,
+    ## Run data
+    datadir    = normalizePath(datadir, mustWork = TRUE),
+    outdir     = outdir,
+    longreads  = longreads,
+    reference  = reference %||% ref_allele,
     shortreads = shortreads,
-    opts = conf0$opts %||% NULL,
-    format = conf0$format %||% "yaml",
-    sampleId = sample,
-    locus = locus,
-    reference = reference,
-    details = lapply(details, gsub, pattern = ";", replacement = ",") %||% NULL
+    ## Run parametrisation
+    pipeline   = pipeline,
+    opts       = normaliseOpts(opts, pipeline),
+    format     = dots$format %||% "json"
   )
-  structure(conf1, class = c("DR2Sconf", "list"))
+  structure(conf0, class = c("DR2Sconf", "list"))
 }
 
 #' Read a DR2S config file in yaml or json format
@@ -76,7 +70,7 @@ readDR2SConf <- function(configFile, format = "auto") {
     yaml = yaml::yaml.load_file(con0),
     json = jsonlite::fromJSON(conf0)
   )
-  ## set eferenc if extref exists
+  ## set reference if extref exists
   if (!is.null(conf$extref)) {
     tryCatch(
       conf$reference <- normalizePath(conf$extref, mustWork = TRUE),
@@ -85,26 +79,18 @@ readDR2SConf <- function(configFile, format = "auto") {
         stop("External reference file <", conf$extref, "> not found")
       })
   }
-  ## set defaults if necessary
-  conf["threshold"] <- conf$threshold %||% 0.2
-  conf["iterations"] <- conf$iterations %||% 2
-  conf["microsatellite"] <- conf$microsatellite %||% FALSE
-  conf["filterScores"] <- conf$filterScores %||% TRUE
-  conf["forceMapping"] <- conf$forceMapping %||% FALSE
-  conf["distAlleles"] <- conf$distAlleles %||% 2
+  ## set defaults as necessary
   conf["datadir"] <- conf$datadir %||% normalizePath(".", mustWork = TRUE)
   conf["outdir"] <- .cropOutdir(conf)
   conf["format"] <- if (format == "auto") format0 else format
   conf$longreads <- conf$longreads %||% list(dir = "pacbio", type = "pacbio", mapper = "minimap")
-  conf$pipeline  <- conf$pipeline  %||% if (is.null(conf$shortreads)) {
-    LR_PIPELINE()
-  } else {
-    SR_PIPELINE()
-  }
-  if (is.null(conf$shortreads))
+  if (is.null(conf$shortreads)) {
     conf["shortreads"] <- list(NULL)
-  if (is.null(conf$opts))
-    conf["opts"] <- list(NULL)
+    conf$pipeline <- "LR"
+  } else {
+    conf$pipeline <- "SR"
+  }
+  conf$opts <- normaliseOpts(conf$opts, conf$pipeline)
   if (is.null(conf$details))
     conf["details"] <- list(NULL)
   conf$runstats <- NULL
@@ -197,7 +183,6 @@ updateDR2SConf <- function(conf0, lrd, sampleId, sample) {
   conf0$outdir  <- normalizePath(conf0$outdir, mustWork = FALSE)
   conf0$longreads <- lrd
   conf0$sampleId  <- sampleId
-  conf0$distAlleles <- conf0$distAlleles %||% sample$distAlleles
   sample$distAlleles <- NULL
   conf0["reference"] <- sample$reference %||% conf0$reference %||% list(NULL)
   sample$reference <- NULL
@@ -212,26 +197,22 @@ updateDR2SConf <- function(conf0, lrd, sampleId, sample) {
 
 MANDATORY_CONF_FIELDS <- function() {
   c(
-    # Sample
+    # Sample data
     "sampleId", "locus",
-    # Run parameters
-    "threshold", "iterations", "microsatellite", "filterScores", "forceMapping", "distAlleles",
     # Run data
     "datadir", "outdir", "reference", "longreads",
-    # Options
-    "pipeline", "format"
+    # Run parametrisation
+    "pipeline", "opts", "format"
   )
 }
 
 ORDERED_CONF_FIELDS <- function() {
   c(
-    # Sample
+    # Sample data
     "sampleId", "locus", "details",
-    # Run parameters
-    "threshold", "iterations", "microsatellite", "filterScores", "forceMapping", "distAlleles",
     # Run data
     "datadir", "outdir", "reference", "longreads", "shortreads",
-    # Options
+    # Run parametrisation
     "pipeline", "opts", "format"
   )
 }
@@ -317,44 +298,8 @@ validateDR2SConf <- function(conf) {
   conf$datadir <- normalizePath(conf$datadir, mustWork = TRUE)
   conf$outdir  <- normalizePath(conf$outdir, mustWork = FALSE)
 
-  # Assert polymorphism threshold
-  assert_that(
-    is.numeric(conf$threshold),
-    conf$threshold >= 0,
-    conf$threshold <= 1,
-    msg = "The polymorphism threshold must be a number between 0 ans 1")
-
-  # Assert number of mapIter iterations
-  assert_that(
-    is.count(conf$iterations),
-    conf$iterations > 0,
-    conf$iterations < 10,
-    msg = "The number of mapIter() iterations must fall between 1 and 10"
-  )
-
-  # Assert logicals
-  assert_that(
-    is.logical(conf$filterScores),
-    is.logical(conf$microsatellite),
-    is.logical(conf$forceMapping)
-  )
-
-  # Assert number of distinct alleles
-  assert_that(is.count(conf$distAlleles),
-              msg = "Number of distinct alleles (distAlleles) must be numeric")
-
-  ## Assert pipeline
-  pipesteps <- c("clear", "cache", "mapInit", "mapIter", "mapFinal",
-                 "partitionLongreads", "partitionShortreads", "polish",
-                 "report")
-  assert_that(all(conf$pipeline %in% pipesteps),
-              msg = paste(
-                "Invalid pipeline step <",
-                comma(conf$pipeline[!conf$pipeline %in% pipesteps]), ">") )
-
   ## Assert longreads
   conf$longreads <- normaliseLongreads(lrd = conf$longreads)
-
   ## Assert that longreads are available
   if (!is.null(conf$longreads$dir)) {
     longreaddir <- file.path(conf$datadir, conf$longreads$dir)
@@ -378,15 +323,24 @@ validateDR2SConf <- function(conf) {
     )
   } else {
     ## set shortreads field in config to NULL
-    conf$shortreads = NULL
+    conf$shortreads <- NULL
   }
 
   ## Normalise locus
   conf$locus <- sub("^HLA-", "", .normaliseLocus(conf$locus))
 
-  ## Normalise options
-  pipeline <- if (!is.null(conf$shortreads)) "SR" else "LR"
-  conf$opts <- normaliseOpts(conf$opts, pipeline)
+  ## Assert pipeline
+  if (is.null(conf$shortreads)) {
+    assert_that(conf$pipeline == "LR",
+                msg = paste("Invalid pipeline <", conf$pipeline, ">"))
+  } else {
+    assert_that(conf$pipeline == "SR",
+                msg = paste("Invalid pipeline <", conf$pipeline, ">"))
+  }
+
+  ## Normalise and validate options
+  conf$opts <- normaliseOpts(conf$opts, conf$pipeline)
+  validateOpts(conf$opts)
 
   conf
 }
