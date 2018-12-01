@@ -173,11 +173,11 @@ DR2S_$set("public", "runMapInit", function(opts = list(), ...) {
     plotRows <- ifelse(self$hasShortreads(), 2, 1)
     cowplot::save_plot(self$absPath("plot.mapInit.png"),
                        plot = p, ncol = 1, nrow = plotRows, dpi = 150,
-                       base_aspect_ratio = as.numeric(paste(5, plotRows, sep = ".")),
-                       title = paste(self$getLocus(), self$getSampleId(), sep = "." ))
+                       base_aspect_ratio = as.numeric(dot(c(5, plotRows))),
+                       title = dot(c(self$getLocus(), self$getSampleId())))
     cowplot::save_plot(self$absPath(".plots/plot.mapInit.svg"),
                        plot = p, ncol = 1, nrow = plotRows,
-                       base_aspect_ratio = as.numeric(paste(5, plotRows, sep = ".")))
+                       base_aspect_ratio = as.numeric(dot(c(5, plotRows))))
   }
 
   ## set mapInit runstats
@@ -272,7 +272,7 @@ DR2S_$set("public", "runPartitionLongreads", function() {
                 indent(), NCOL(mat), name = "info")
       if (plot) {
         ## correlogram
-        plotpath <- file.path(self$getOutdir(), "snp.correlogram.png")
+        plotpath <- file.path(self$getOutdir(), "plot.correlogram.png")
         cowplot::save_plot(plotpath, attr(mat, "snp.plot"),
                            base_height = base_height, dpi = 150)
       }
@@ -299,7 +299,7 @@ DR2S_$set("public", "runPartitionLongreads", function() {
                          plot = p, dpi = 150, units = "cm", limitsize = FALSE,
                          base_width = 0.4*length(ppos) + 1.4,
                          base_height = 2.5*length(pwm),
-                         title = paste(self$getLocus(), self$getSampleId(), sep = "." ))
+                         title = dot(c(self$getLocus(), self$getSampleId())))
       cowplot::save_plot(filename = self$absPath(".plots/plot.sequence.svg"),
                          plot = p, units = "cm", limitsize = FALSE,
                          base_width  = 0.4*length(ppos) + 1.4,
@@ -417,8 +417,8 @@ DR2S_$set("public", "runSplitLongreadsByHaplotype", function() {
       label = tag, limits = unlist(self$getLimits()))
 
     cowplot::save_plot(self$absPath("plot.partition.png"), plot = p, dpi = 150,
-                       title = paste(self$getLocus(), self$getSampleId(), sep = "."),
-                       base_height = 12, base_width = 10)
+                       base_height = 12, base_width = 10,
+                       title = dot(c(self$getLocus(), self$getSampleId())))
     cowplot::save_plot(self$absPath(".plots/plot.partition.svg"), plot = p,
                        base_aspect_ratio = 1.2)
 
@@ -477,9 +477,9 @@ DR2S_$set("public", "runExtractPartitionedLongreads", function() {
     readIds  <- self$getHapList(hptype)
     ## extract these reads and write to file
     fq <- .extractFastq(bamfile, qnames = readIds)
-    fqfile <- paste(
+    fqfile <- dot(c(
       "hap" %<<% hptype, self$getLrdType(), self$getLrdMapper(),
-      "n" %<<% length(fq), "fastq", "gz", sep = ".")
+      "n" %<<% length(fq), "fastq", "gz"))
     fqout <- .fileDeleteIfExists(file.path(fqdir, fqfile))
     nfq <- ShortRead::writeFastq(fq, file = fqout, full = FALSE, compress = TRUE)
     ## assert that all records got written to file
@@ -621,11 +621,10 @@ DR2S_$set("public", "runMapIter", function(opts = list(), ...) {
     cowplot::save_plot(p, dpi = 150, filename = self$absPath("plot.mapIter.png"),
                        base_width = 12*length(self$getHapTypes()),
                        base_height = 3*self$getIterations(),
-                       title = paste(self$getLocus(), self$getSampleId(), sep = "." ))
+                       title = dot(c(self$getLocus(), self$getSampleId())))
     cowplot::save_plot(p, filename = self$absPath(".plots/plot.mapIter.svg"),
                        base_width = 12*length(self$getHapTypes()),
                        base_height = 3*self$getIterations())
-
   }
 
   createIgvConfigs(x = self, map = "mapIter", open = "FALSE")
@@ -891,8 +890,8 @@ DR2S_$set("public", "runMapFinal", function(opts = list(), ...) {
     p <- cowplot::plot_grid(plotlist = plotlist, nrow = plotRows, labels = readtypes)
     cowplot::save_plot(p, dpi = 150, filename = self$absPath("plot.mapFinal.png"),
                        base_width = 12*length(hptypes),
-                       title = paste(self$getLocus(), self$getSampleId(), sep = "." ),
-                       base_height = 3*length(readtypes))
+                       base_height = 3*length(readtypes),
+                       title = dot(c(self$getLocus(), self$getSampleId())))
     cowplot::save_plot(p, filename = self$absPath(".plots/plot.mapFinal.svg"),
                        base_width = 12*length(hptypes),
                        base_height = 3*length(readtypes))

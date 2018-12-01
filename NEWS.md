@@ -1,3 +1,12 @@
+# DR2S 0.0.5
+
+* move to a JSON-based configuration model and expand configuration for the
+  individual DR2S pipeline steps.
+* add optional read filtering to mapInit().
+* add optional restriction of partitioning to correlated (i.e., in-phase) SNPs.
+* add a longread-only pipeline.
+* cleanup of NAMESPACE
+
 # DR2S 0.0.4
  
 * adapt everything to use with the shiny app
@@ -11,6 +20,7 @@
 * Add option to prevent clustering by gaps. Useful if only few other SNPs are present.
 * Add homopolymer count by mode value
 * Adapt refineAlignment to cn 1 samples
+
 # DR2S 0.0.3
  
 * Add complete workflow for samples with > 2 alleles and 1 allele.
@@ -22,7 +32,7 @@ gap noise" in Sequel reads.
 * Add executable scripts for IGV and most useful postprocessing steps.
 * Change everything to relative paths so the dr2s object can be read from 
 everywhere.
-* Allow fasta files as input.
+* Allow fasta files as reference input.
 * Refactor.
 
 # DR2S 0.0.2

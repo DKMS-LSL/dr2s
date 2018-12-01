@@ -214,7 +214,7 @@ conseq.matrix <- function(x,
   dels <- bases == "-"
   seq  <- Biostrings::BStringSet(paste0(bases[!dels], collapse = ""))
 
-  metadata(seq) <- list(
+  S4Vectors::metadata(seq) <- list(
     zscore     = NULL,
     freq       = unname(vapply(s, function(x) sum(x[["freq"]]), 0)),
     ambigs     = ambigs,

@@ -24,7 +24,7 @@ mapReads <- function(
     bamfile <- .bamSortIndex(samfile = samfile, reffile = reffile,
                              minMapq = minMapq, clean = clean)
     ## Trim softclips
-    fq <- .trimSoftclippedEnds(bam = scanBam(bamfile)[[1]], preserveRefEnds = TRUE)
+    fq <- .trimSoftclippedEnds(bam = Rsamtools::scanBam(bamfile)[[1]], preserveRefEnds = TRUE)
     ## Trim polymorphic ends
     fq <- .trimPolymorphicEnds(fq)
     ## Write new shortread file to disc
@@ -38,7 +38,7 @@ mapReads <- function(
     samfile <- mapfun(reffile, refname, readfile, readtype, outdir, maplabel,
                       opts = list(A = 1, B = 4, O = 2))
     # cleanup
-    .fileDeleteIfExists(fqout)
+    .fileDeleteIfExists(readfile)
     .fileDeleteIfExists(fqdir)
   }
 

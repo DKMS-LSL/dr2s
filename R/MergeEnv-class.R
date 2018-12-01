@@ -103,7 +103,7 @@ MergeEnv_$set("public", "init", function(hapEnv) {
     .ambiguousPositions(envir[[rt]], self$threshold)
   }
   apos <- unique(sort(apos))
-  envir$POSit = itertools::ihasNext(iter(apos))
+  envir$POSit = itertools::ihasNext(iterators::iter(apos))
   envir$variants = list()
   envir$pos = 1L
   envir$currentVariant = NULL
@@ -246,7 +246,7 @@ MergeEnv_$set("public", "export", function() {
                                consmat(self$x$mapFinal$LR[[hp]]$pileup)
                              }
                              cseq <- conseq(x = cmat, name = "hap" %<<% hp, type = "ambig", suppressAllGaps = TRUE, threshold = self$threshold)
-                             metadata(cseq) <- list()
+                             S4Vectors::metadata(cseq) <- list()
                              cseq
                            }),
       ## consensus for remapping without ambigs
@@ -259,7 +259,7 @@ MergeEnv_$set("public", "export", function() {
                                    consmat(self$x$mapFinal$LR[[hp]]$pileup)
                                  }
                                  cseq <- conseq(cmat, "hap" %<<% hp, "prob", suppressAllGaps = TRUE)
-                                 metadata(cseq) <- list()
+                                 S4Vectors::metadata(cseq) <- list()
                                  cseq
                                })
     ),
@@ -281,7 +281,7 @@ MergeEnv_$set("public", "export", function() {
     insert <- matrix(c(0, 0, 0, 0, stats::median(rowSums(m)), 0), ncol = 6)
     myIns <- sort(ins(srm))
     myIns <- myIns[myIns < nrow(lrm)]
-    INSit <- itertools::ihasNext(iter(myIns))
+    INSit <- itertools::ihasNext(iterators::iter(myIns))
     while (itertools::hasNext(INSit)) {
       i <- iterators::nextElem(INSit)
       m <- rbind(m[seq_len(i - 1), ], insert, m[i:NROW(m), ])

@@ -21,7 +21,7 @@ polymorphicPositions.consmat <- function(x, threshold = 0.20) {
   pos <- rownames(x)
   i <- cpp_polymorphicPositions(x, threshold)
   rs <- cpp_top2Cols(x[i, ])
-  tibble::data_frame(
+  tibble::tibble(
     position = pos[i],
     a1 = nuc[rs$i1],
     f1 = rs$v1,

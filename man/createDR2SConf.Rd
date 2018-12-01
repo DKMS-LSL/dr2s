@@ -6,9 +6,8 @@
 \usage{
 createDR2SConf(sample, locus, longreads = list(dir = "pacbio", type =
   "pacbio", mapper = "minimap"), shortreads = NULL, datadir = ".",
-  outdir = "./output", reference = NULL, threshold = 0.2,
-  iterations = 1, microsatellite = FALSE, distAlleles = 2,
-  filterScores = FALSE, forceMapping = FALSE, details = list(), ...)
+  outdir = "./output", reference = NULL, details = NULL,
+  opts = NULL, ...)
 }
 \arguments{
 \item{sample}{A unique sample identifier used to locate the long and short

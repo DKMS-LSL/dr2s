@@ -13,8 +13,8 @@ createDR2SConf <- function(sample,
                            opts = NULL,
                            ...) {
   assert_that(
-    !missing(sample),
-    !missing(locus))
+    !missing(sample) && is.character(sample),
+    !missing(locus) && is.character(locus))
   dots <- list(...)
   locus_allele <- strsplit1(locus, "*", fixed = TRUE)
   locus        <- sub("HLA-", "", .normaliseLocus(locus_allele[1]))
@@ -36,7 +36,8 @@ createDR2SConf <- function(sample,
     opts       = normaliseOpts(opts, pipeline),
     format     = dots$format %||% "json"
   )
-  structure(conf0, class = c("DR2Sconf", "list"))
+  conf1 <- structure(conf0, class = c("DR2Sconf", "list"))
+  normaliseDR2SConf(conf1)
 }
 
 #' Read a DR2S config file in yaml or json format
@@ -159,7 +160,7 @@ expandDR2SConf <- function(conf) {
   ## we can have more than one sample
   samples <- conf$samples
   if (is.null(samples)) {
-    return(list(validateDR2SConf(conf)))
+    return(list(normaliseDR2SConf(conf)))
   }
   conf$samples <- NULL
   sampleIds <- names(samples)
@@ -188,7 +189,7 @@ updateDR2SConf <- function(conf0, lrd, sampleId, sample) {
   sample$reference <- NULL
   ## add overides if they exist
   conf1 <- mergeList(conf0, sample, update = TRUE)
-  list(validateDR2SConf(conf1))
+  list(normaliseDR2SConf(conf1))
 }
 
 
@@ -288,7 +289,10 @@ normaliseShortreads <- function(srd) {
   srd
 }
 
-validateDR2SConf <- function(conf) {
+normaliseDR2SConf <- function(conf) {
+  if (has_attr(conf, "valid")) {
+    return(conf)
+  }
   fields <- MANDATORY_CONF_FIELDS()
   assert_that(all(fields %in% names(conf)),
               msg = paste("Missing fields <",
@@ -299,7 +303,7 @@ validateDR2SConf <- function(conf) {
   conf$outdir  <- normalizePath(conf$outdir, mustWork = FALSE)
 
   ## Assert longreads
-  conf$longreads <- normaliseLongreads(lrd = conf$longreads)
+  conf$longreads <- normaliseLongreads(conf$longreads)
   ## Assert that longreads are available
   if (!is.null(conf$longreads$dir)) {
     longreaddir <- file.path(conf$datadir, conf$longreads$dir)
@@ -340,7 +344,9 @@ validateDR2SConf <- function(conf) {
 
   ## Normalise and validate options
   conf$opts <- normaliseOpts(conf$opts, conf$pipeline)
-  validateOpts(conf$opts)
+
+  ## add flag that normalisation/validation has been performed
+  attr(conf, "valid") <- TRUE
 
   conf
 }
@@ -350,7 +356,7 @@ validateDR2SConf <- function(conf) {
 
 
 initialiseDR2S <- function(conf, createOutdir = TRUE) {
-  conf <- validateDR2SConf(conf)
+  conf <- normaliseDR2SConf(conf)
   if (createOutdir) {
     conf$outdir <- .dirCreateIfNotExists(path = gsub("//+", "/", file.path(
       conf$outdir,

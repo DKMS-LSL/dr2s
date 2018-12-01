@@ -17,7 +17,7 @@
                    "")
   #ext <- ".sorted"
   samtoolsPath <- Sys.which("samtools")
-  sorted <- sub("\\.sam(\\.gz)?", paste(ext, "bam", sep = "."), samfile)
+  sorted <- sub("\\.sam(\\.gz)?", dot(c(ext, "bam")), samfile)
   if (nzchar(samtoolsPath)) {
     ## -F260 exclude 'read unmapped', 'not primary alignment'
     ## Better use -F2308 to also exclude chimeric reads!
@@ -99,10 +99,7 @@ subSampleBam <- function(bamfile, windowSize = NULL, sampleSize = 100,
   ## Sample only for reads < 0.5 * geneLength
   if (0.5*geneLength > windowSize) {
     windows <- seq(from = windowSize, to = geneLength, by = windowSize)
-
-    sampledAlignmentBam <- do.call(c,
-                                   lapply(windows, function(i, m, maxCov,
-                                                               windowSize) {
+    sampledAlignmentBam <- do.call(c, lapply(windows, function(i, m, maxCov, windowSize) {
       readMid <- start(m) + floor(windowSize/2)
       m <- m[readMid > i - windowSize & readMid < i]
       if (maxCov <= length(m)) {

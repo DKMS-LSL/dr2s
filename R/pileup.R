@@ -38,11 +38,7 @@
 #' @export
 #' @examples
 #' ###
-pileup <- function(bamfile,
-                   reffile,
-                   readtype,
-                   ...,
-                   pParam) {
+pileup <- function(bamfile, reffile, readtype, ..., pParam) {
   bampath <- normalizePath(bamfile, mustWork = TRUE)
   refpath <- normalizePath(reffile, mustWork = TRUE)
   indent <- list(...)$indent %||% indentation()
@@ -315,8 +311,8 @@ pileup <- function(bamfile,
 #' ###
 plotPileupCoverage <- function(x, threshold = 0.2, range = NULL, thin = 0.1,
                                width = 1, label = "", drop.indels = FALSE) {
-  stopifnot(is(x, "pileup"))
-  x <- as.data.table(x$pileup)
+  assert_that(is(x, "pileup"))
+  x <- data.table::as.data.table(x$pileup)
   if (drop.indels) {
     x <- x[nucleotide != "-" & nucleotide != "+"]
   }
@@ -341,7 +337,7 @@ plotPileupCoverage <- function(x, threshold = 0.2, range = NULL, thin = 0.1,
                                 levels = c("+", "-", "A", "C", "G", "T", " "),
                                 labels = c("+", "-", "A", "C", "G", "T", " "),
                                 ordered = TRUE)]
-  setkeyv(dtpoly, c("pos", "nucleotide"))
+  data.table::setkeyv(dtpoly, c("pos", "nucleotide"))
 
   ## Set the width for neighbouring SNPs to 1
   positions <- dtpoly$pos
@@ -354,9 +350,8 @@ plotPileupCoverage <- function(x, threshold = 0.2, range = NULL, thin = 0.1,
   p <- ggplot(dtbg, aes(x = pos, y = count)) +
     geom_bar(stat = "identity", position = position_stack(), fill = "grey80") +
     geom_bar(aes(fill = nucleotide), data = dtpoly, stat = "identity",
-             position = position_stack(), width = dtpoly$width) +
-    scale_fill_manual(values = NUCCOL(),
-                      limits = c("A", "C", "G", "T", "-", "+")) +
+                      position = position_stack(), width = dtpoly$width) +
+    scale_fill_manual(values = NUCCOL(), limits = c("G", "A", "T", "C", "-", "+")) +
     guides(fill = guide_legend(reverse = TRUE, title = "Bases")) +
     labs(x = "Position [bp]", y = "Count", fill = "Nucleotide", title = label) +
     theme_bw(base_size = 12) +

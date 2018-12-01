@@ -45,7 +45,6 @@
 #' @return A \code{\link[DR2S]{DR2S}} config object
 #' @family DR2S mapper functions
 #' @export
-#' @importFrom S4Vectors metadata metadata<-
 #' @examples
 #' \dontrun{
 #' x <- InitDR2S(createDR2SConf(

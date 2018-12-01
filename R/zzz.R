@@ -77,9 +77,9 @@ PARTCOL <- function() {
 
 NUCCOL <- function() {
   c(
+    G = "#009f6b", ## GREEN
     A = "#0087bd", ## BLUE
     T = "#ffd300", ## YELLOW
-    G = "#009f6b", ## GREEN
     C = "#c40233", ## RED
     N = "#000000",
     `-` = "purple",

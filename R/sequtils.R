@@ -1,9 +1,8 @@
 ## Extract (a subset of) reads from a bamfile
 .extractFastq <- function(x, qnames = NULL) {
-  stopifnot(is.character(x) && length(x) == 1)
-  bam <- scanBam(x)[[1]]
-  qn <-
-    if (!is.null(qnames)) {
+  assert_that(is.string(x))
+  bam <- Rsamtools::scanBam(x)[[1]]
+  qn <- if (!is.null(qnames)) {
       qnames
     } else if (is.null(qnames)) {
       bam$qname
@@ -13,9 +12,7 @@
 
 # todo add length and cut option
 .filterReads <- function(bam, qnames = NULL, preserveRefEnds = TRUE, ...) {
-
   indent <- list(...)$indent %||% indentation()
-
   readlength <- 250
   i <- if (is.null(qnames)) {
     seq_along(bam$qname)
@@ -55,7 +52,7 @@
   unique(c(trim, badScore))
 }
 
-.trimSoftclippedEnds <- function(bam, qnames=NULL, preserveRefEnds=FALSE) {
+.trimSoftclippedEnds <- function(bam, qnames = NULL, preserveRefEnds = FALSE) {
   i <- if (is.null(qnames)) {
     seq_along(bam$qname)
   } else {
@@ -109,16 +106,15 @@
 
 #' Generate reference sequences in a FASTA file
 #'
-#' @param HLA A \code{HLAGene} object
-#' @param allele Allele name.
-#' @param outdir Output directory
+#' @param locus Locus name (HLA or KIR).
+#' @param allele Allele name or NULL.
+#' @param outdir Output directory.
 #' @param dirtag TODO
-#'
 #' @return Path to refseq fasta file.
 #' @keywords internal
 #' @examples
 #' ###
-.generateReferenceSequence <- function(locus, allele, outdir, dirtag = NULL) {
+.generateReferenceSequence <- function(locus, allele = NULL, outdir, dirtag = NULL) {
   if (is.null(allele)) {
     ## fetch the generic reference for <locus>
     allele <- .normaliseLocus(locus)
@@ -157,23 +153,6 @@
   outpath <- normalizePath(file.path(outdir, filename), mustWork = FALSE)
   Biostrings::writeXStringSet(sref, outpath)
   filename
-}
-
-.multialignConsensus <- function(aln) {
-  n      <- length(aln)
-  mat    <- t(Biostrings::consensusMatrix(aln))[, c(1:4, 16)]
-  ## always accept the first and last base irrespective of how many gaps
-  mat[1, 5] <- 0
-  mat[NROW(mat), 5] <- 0
-  ##
-  tbl    <- table(mat[, 5]/n)
-  cutoff <- as.numeric(names(tbl)[which.min(tbl)])
-  mat0   <- mat[mat[, 5]/n <= cutoff, 1:4]/n
-  score  <- apply(mat0, 1, max)
-  cons   <- Biostrings::BStringSet(paste0(
-    colnames(mat0)[apply(mat0, 1, which.max)], collapse = ""))
-  cons@metadata <- list(score = score, cutoff = cutoff, gaptable = tbl)
-  cons
 }
 
 .trimPolymorphicEnds <- function(fq, minLen = 50) {
@@ -294,7 +273,8 @@ checkHomopolymerCount <- function(x, hpCount = 10, map = "mapFinal") {
     }
     x$consensus$homopolymers <- list()
     plotname <- "plot.homopolymers.pdf"
-  } else if (map == "refine") {
+  }
+  else if (map == "refine") {
     refseqs <- lapply(x$consensus$refine$ref, function(hp) {
       seq <- Biostrings::readDNAStringSet(file.path(x$getOutdir(), hp))
       names(seq) <- strsplit1(names(seq), " ")[1]
@@ -324,7 +304,7 @@ checkHomopolymerCount <- function(x, hpCount = 10, map = "mapFinal") {
       Rsamtools::close.BamFile(bam)
       covering <- vapply(msa, function(a, lenHP) {
         nchar(gsub(pattern = "\\+", "", toString(a))) == lenHP + 21
-        }, lenHP = lenHP, FUN.VALUE = logical(1), USE.NAMES = TRUE)
+      }, lenHP = lenHP, FUN.VALUE = logical(1), USE.NAMES = TRUE)
       msa <- msa[covering]
       readsOI <- names(msa)
       ins <- .getInsertions(bamfile,
@@ -334,22 +314,22 @@ checkHomopolymerCount <- function(x, hpCount = 10, map = "mapFinal") {
       if (length(ins) > 0) {
         ins <- ins[[1]]
         msa <- unlist(Biostrings::DNAStringSetList(
-          set_names(lapply(names(msa), function(a) {
-              if (a %in% names(ins)) {
-                firstSeq <- unlist(Biostrings::subseq(msa[a], start = 1,
-                                                      width = 10))
-                insert <- unlist(ins[a])
-                lastSeq <- unlist(Biostrings::subseq(msa[a], start = 11,
-                                                     width = lenHP + 10))
-                Biostrings::DNAStringSet(c(firstSeq, insert, lastSeq))
-              } else {
-                msa[a]
-              }
+          stats::setNames(lapply(names(msa), function(a) {
+            if (a %in% names(ins)) {
+              firstSeq <- unlist(Biostrings::subseq(msa[a], start = 1,
+                                                    width = 10))
+              insert <- unlist(ins[a])
+              lastSeq <- unlist(Biostrings::subseq(msa[a], start = 11,
+                                                   width = lenHP + 10))
+              Biostrings::DNAStringSet(c(firstSeq, insert, lastSeq))
+            } else {
+              msa[a]
+            }
           }), readsOI)))
       }
       msarle <- lapply(msa, .seq2rle)
       lens <- vapply(msarle, function(a) max(a$lengths), integer(1))
-      tibble::data_frame(haptype = hp, position = positionHP, length = lens)
+      tibble::tibble(haptype = hp, position = positionHP, length = lens)
     }
 
     modes <- homopolymersHP %>%
@@ -382,13 +362,13 @@ checkHomopolymerCount <- function(x, hpCount = 10, map = "mapFinal") {
     plots <- lapply(p, function(x) x$plot)
     n <- max(vapply(p, function(x) length(x$n), FUN.VALUE = integer(1)))
     p1 <- cowplot::plot_grid(plotlist = plots, nrow = length(n))
-    cowplot::save_plot(p1, filename = x$absPath("plot.homopolymers.pdf"),
-                base_width = 7*length(hptypes),
-                title     = paste(x$getLocus(), x$getSampleId(), sep = "." ),
-                base_height = 7*length(n))
+    cowplot::save_plot(p1, dpi = 150, filename = x$absPath("plot.homopolymers.png"),
+                       base_width = 7*length(hptypes),
+                       base_height = 7*length(n),
+                       title = dot(c(x$getLocus(), x$getSampleId())))
     cowplot::save_plot(p1, filename = x$absPath(".plots/plot.homopolymers.svg"),
-              base_width = 7*length(hptypes),
-              base_height = 7*length(n))
+                       base_width = 7*length(hptypes),
+                       base_height = 7*length(n))
   }
 
   return(invisible(x))

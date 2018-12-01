@@ -6,7 +6,7 @@ InitDR2S.DR2Sconf <- function(config, createOutdir = TRUE) {
 #' @export
 cache.DR2S <- function(x, outname, ...) {
   if (missing(outname)) {
-    outname <- paste("DR2S", x$getLrdType(), x$getLrdMapper(), "rds", sep = ".")
+    outname <- dot(c("DR2S", x$getLrdType(), x$getLrdMapper(), "rds"))
   }
   x$cache(outname = outname)
   invisible(x)
@@ -70,12 +70,12 @@ DR2S_ <- R6::R6Class(
     ## Public functions
     initialize  = function(conf, createOutdir = TRUE) {
       private$conf = initialiseDR2S(conf, createOutdir = createOutdir)
-      private$runstats <- NULL
-      private$reportStatus <- FALSE
+      private$runstats = NULL
+      private$reportStatus = FALSE
       if (is.null(private$conf$reference)) {
         ## fetch the generic reference for <locus>
-        private$conf$reference   <- .normaliseLocus(conf$locus)
-        private$runstats$refPath <- .generateReferenceSequence(
+        private$conf$reference   = .normaliseLocus(conf$locus)
+        private$runstats$refPath = .generateReferenceSequence(
           locus  = private$conf$locus,
           allele = NULL,
           outdir = private$conf$outdir,
@@ -94,10 +94,10 @@ DR2S_ <- R6::R6Class(
         ## fetch the allele-specific reference for <locus>
         private$conf$reference = .expandAllele(conf$reference, conf$locus)
         private$runstats$refPath = .generateReferenceSequence(
-          private$conf$reference,
-          private$conf$locus,
-          private$conf$outdir,
-          "mapInit")
+          locus  = private$conf$locus,
+          allele = private$conf$reference,
+          outdir = private$conf$outdir,
+          dirtag = "mapInit")
       }
       .confLog(outdir = private$conf$outdir, logName = "info")
       private$srStatus = self$checkGetShortreads()
@@ -117,25 +117,33 @@ DR2S_ <- R6::R6Class(
     clear = function() {
       unlink(self$getOutdir(), recursive = TRUE)
       .dirCreateIfNotExists(file.path(self$getOutdir()))
-      if (!is.null(private$conf$extref) &&
-          file.exists(refPath <- private$conf$extref)) {
+      if (!is.null(private$conf$extref) && file.exists(refPath <- private$conf$extref)) {
+        ## use the user-provided reference for <locus>
         private$conf$reference = sub("\\.fa(s|sta)?$", "", basename(refPath))
         private$runstats$refPath = file.path("mapInit", basename(refPath))
         cPath <- .dirCreateIfNotExists(normalizePath(
           file.path(private$conf$outdir, "mapInit"), mustWork = FALSE))
         file.copy(refPath, file.path(cPath, basename(refPath)))
-      } else {
-        private$conf$reference = .expandAllele(private$conf$reference,
-                                               private$conf$locus)
-        outdir <- .dirCreateIfNotExists(normalizePath(
-          file.path(private$conf$outdir, "mapInit"), mustWork = FALSE))
-        private$runstats$refPath = .generateReferenceSequence(
-          self$getReference(),
-          self$getLocus(),
-          private$conf$outdir,
-          "mapInit")
       }
-      .confLog(outdir = private$conf$outdir, logName = "info")
+      else if (sub("HLA-", "", self$getReference()) == self$getLocus()) {
+        ## fetch the generic reference for <locus>
+        private$runstats$refPath = .generateReferenceSequence(
+          locus  = self$getLocus(),
+          allele = NULL,
+          outdir = self$getOutdir(),
+          dirtag = "mapInit")
+      }
+      else {
+        ## fetch the allele-specific reference for <locus>
+        outdir <- .dirCreateIfNotExists(normalizePath(
+          self$absPath("mapInit"), mustWork = FALSE))
+        private$runstats$refPath = .generateReferenceSequence(
+          locus  = self$getLocus(),
+          allele = self$getReference(),
+          outdir = self$getOutdir(),
+          dirtag = "mapInit")
+      }
+      .confLog(outdir = self$getOutdir(), logName = "info")
       private$srStatus = self$checkGetShortreads()
       private$lrStatus = self$checkGetLongreads()
       writeDR2SConf(self)
@@ -762,7 +770,7 @@ DR2S_ <- R6::R6Class(
       tag <- self$getMapTag()
       p1 <-  self$plotPartitionHistogram(label = label %||% tag,
                                          limits = limits) +
-        ggplot2::theme(legend.position = "none")
+        theme(legend.position = "none")
       p2 <- self$plotPartitionTree()
       p3 <- self$plotPartitionRadar()
       if (is.null(p2)) {
@@ -815,16 +823,16 @@ DR2S_ <- R6::R6Class(
         })
       }
       ggplot() +
-        geom_logo(pwm, method = "bits", seq_type = "dna", stack_width = 0.9) +
+        ggseqlogo::geom_logo(pwm, method = "bits", seq_type = "dna", stack_width = 0.9) +
         scale_x_continuous(labels = ppos, breaks = seq_along(ppos)) +
         facet_wrap(~ seq_group, ncol = 1, strip.position = "left") +
-        theme_logo() +
+        ggseqlogo::theme_logo() +
         theme(
-          axis.text.x  = ggplot2::element_text(size = 10, angle = 45),
-          axis.title.y = ggplot2::element_blank(),
-          axis.text.y  = ggplot2::element_blank(),
-          axis.ticks.y = ggplot2::element_blank(),
-          strip.text.y = ggplot2::element_text(face = "bold", size = 42, angle = 180)
+          axis.text.x  = element_text(size = 10, angle = 45),
+          axis.title.y = element_blank(),
+          axis.text.y  = element_blank(),
+          axis.ticks.y = element_blank(),
+          strip.text.y = element_text(face = "bold", size = 42, angle = 180)
         )
     }
   ),

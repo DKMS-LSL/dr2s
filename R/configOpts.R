@@ -2,13 +2,16 @@
 NULL
 
 normaliseOpts <- function(opts, pipeline = "LR") {
+  if (has_attr(opts, "valid")) {
+    return(opts)
+  }
   pipeline <- match.arg(pipeline, c("SR", "LR"))
   ## camelCasify option names of passed-in options
-  opts <- lapply(opts, function(o) setNames(o, .camelCasify(names(o))))
+  opts <- setNames(opts, .camelCasify(names(opts)))
   ## set up defaults according to the pipeline type
   opts0 <- list()
   ##
-  ## set mapInit defaults
+  ## mapInit() defaults ####
   ##
   opts0$mapInit <- compact(list(
     ## include deletions in pileup.
@@ -51,7 +54,7 @@ normaliseOpts <- function(opts, pipeline = "LR") {
     plot = TRUE
   ))
   ##
-  ## set partitionLongreads defaults
+  ## partitionLongreads() defaults ####
   ##
   opts0$partitionLongreads <- compact(list(
     ## Threshold to call a polymorphic position. A minority nucleotide frequency
@@ -90,7 +93,7 @@ normaliseOpts <- function(opts, pipeline = "LR") {
     plot = TRUE
   ))
   ##
-  ## set mapIter defaults
+  ## mapIter() defaults ####
   ##
   opts0$mapIter <- compact(list(
     ## Number of <mapIter> iterations. How often are the
@@ -106,7 +109,7 @@ normaliseOpts <- function(opts, pipeline = "LR") {
     plot = TRUE
   ))
   ##
-  ## set partitionShortreads defaults
+  ## partitionShortreads() defaults ####
   ##
   if (pipeline == "SR") {
     opts0$partitionShortreads <- compact(list(
@@ -114,7 +117,7 @@ normaliseOpts <- function(opts, pipeline = "LR") {
     ))
   }
   ##
-  ## set mapFinal defaults
+  ## mapFinal() defaults ####
   ##
   opts0$mapFinal <- compact(list(
     ## include deletions in pileup.
@@ -134,7 +137,7 @@ normaliseOpts <- function(opts, pipeline = "LR") {
     plot = TRUE
   ))
   ##
-  ## set polish defaults
+  ## polish() defaults ####
   ##
   opts0$polish <- compact(list(
     ## Threshold to call a polymorphic position. Set to override global default.
@@ -146,7 +149,7 @@ normaliseOpts <- function(opts, pipeline = "LR") {
     hpCount = 10
   ))
   ##
-  ## set report defaults
+  ## report() defaults ####
   ##
   opts0$report <- compact(list(
     ## Maximum number of sequence letters per line in pairwise alignment.
@@ -160,7 +163,134 @@ normaliseOpts <- function(opts, pipeline = "LR") {
   opts0 <- compact(opts0)
   ## update default with config settings
   opts1 <- utils::modifyList(compact(opts0), opts, keep.null = FALSE)
-  opts1
+  validateOpts(opts1)
+}
+
+MANDATORY_OPTS <- function() {
+  c("mapInit", "partitionLongreads", "mapIter", "mapFinal", "polish", "report")
+}
+
+validateOpts <- function(opts) {
+  fields <- MANDATORY_OPTS()
+  assert_that(all(fields %in% names(opts)),
+              msg = paste0("Missing opts for <",
+                           comma(fields[!fields %in% names(opts)]),
+                           "> in config"))
+  ##
+  ## mapInit() asserts ####
+  ##
+  assert_that(
+    is.flag(opts$mapInit$includeDeletions),
+    is.flag(opts$mapInit$includeInsertions),
+    is.flag(opts$mapInit$microsatellite),
+    is.flag(opts$mapInit$forceMapping),
+    is.flag(opts$mapInit$updateBackgroundModel),
+    is.number(opts$mapInit$minMapq),
+    is.number(opts$mapInit$pickiness),
+    is.number(opts$mapInit$increasePickiness),
+    is.number(opts$mapInit$lowerLimit),
+    is.flag(opts$mapInit$createIgv),
+    is.flag(opts$mapInit$plot)
+  )
+  assert_that(
+    is.number(opts$mapInit$callInsertionThreshold),
+    opts$mapInit$callInsertionThreshold >= 0,
+    opts$mapInit$callInsertionThreshold <= 1,
+    msg = "<callInsertionThreshold> in mapInit() is not a number between 0 and 1")
+  assert_that(
+    opts$mapInit$topx == "auto" || is.number(opts$mapInit$topx),
+    msg = "<topx> in mapInit() is not \"auto\" or a number >= 0")
+  ##
+  ## partitionLonreads() asserts ####
+  ##
+  assert_that(
+    is.flag(opts$partitionLongreads$noGapPartitioning),
+    is.flag(opts$partitionLongreads$restrictToCorrelatedPositions),
+    is.number(opts$partitionLongreads$minClusterSize),
+    is.number(opts$partitionLongreads$pickiness),
+    is.number(opts$partitionLongreads$lowerLimit),
+    is.flag(opts$partitionLongreads$plot)
+  )
+  assert_that(
+    is.number(opts$partitionLongreads$threshold),
+    opts$partitionLongreads$threshold >= 0,
+    opts$partitionLongreads$threshold <= 1,
+    msg = "<threshold> in partitionLongreads() is not a number between 0 and 1")
+  assert_that(
+    is.count(opts$partitionLongreads$distAlleles),
+    opts$partitionLongreads$distAlleles > 0,
+    opts$partitionLongreads$distAlleles < 5,
+    msg = "<distAlleles> in partitionLongreads() is not a count between 1 and 4")
+  assert_that(
+    is.number(opts$partitionLongreads$skipGapFreq),
+    opts$partitionLongreads$skipGapFreq >= 0,
+    opts$partitionLongreads$skipGapFreq <= 1,
+    msg = "<skipGapFreq> in partitionLongreads() is not a number between 0 and 1")
+  assert_that(
+    is.string(opts$partitionLongreads$selectAllelesBy),
+    opts$partitionLongreads$selectAllelesBy %in% c("count", "distance"),
+    msg = "<selectAllelesBy> in partitionLongreads() is not 'count' nor 'distance'"
+  )
+  ##
+  ## mapIter() asserts ####
+  ##
+  assert_that(
+    is.flag(opts$mapIter$plot)
+  )
+  assert_that(
+    is.count(opts$mapIter$iterations),
+    opts$mapIter$iterations > 0,
+    opts$mapIter$iterations < 10,
+    msg = "<iterations> in mapIter() is not a count between 1 and 9"
+  )
+  assert_that(
+    is.number(opts$mapIter$columnOccuppancy),
+    opts$mapIter$columnOccuppancy >= 0,
+    opts$mapIter$columnOccuppancy <= 1,
+    msg = "<columnOccuppancy> in mapIter() is not a number between 0 and 1")
+  assert_that(
+    is.number(opts$mapIter$callInsertionThreshold),
+    opts$mapIter$callInsertionThreshold >= 0,
+    opts$mapIter$callInsertionThreshold <= 1,
+    msg = "<callInsertionThreshold> in mapIter() is not a number between 0 and 1")
+  ##
+  ## mapFinal() asserts ####
+  ##
+  assert_that(
+    is.flag(opts$mapFinal$includeDeletions),
+    is.flag(opts$mapFinal$includeInsertions),
+    is.flag(opts$mapFinal$trimPolymorphicEnds),
+    is.flag(opts$mapFinal$createIgv),
+    is.flag(opts$mapFinal$plot)
+  )
+  assert_that(
+    is.number(opts$mapFinal$callInsertionThreshold),
+    opts$mapFinal$callInsertionThreshold >= 0,
+    opts$mapFinal$callInsertionThreshold <= 1,
+    msg = "<callInsertionThreshold> in mapFinal() is not a number between 0 and 1")
+  ##
+  ## polish() asserts ####
+  ##
+  assert_that(
+    is.flag(opts$polish$checkHpCount),
+    is.count(opts$polish$hpCount)
+  )
+  assert_that(
+    is.null(opts$polish$threshold) || (
+      is.number(opts$threshold$threshold) && opts$polish$threshold >= 0 && opts$polish$threshold <= 1
+    ),
+    msg = "<threshold> in polish() is not NULL or a number between 0 and 1")
+  ##
+  ## report() asserts ####
+  ##
+  assert_that(
+    is.count(opts$report$blockWidth),
+    is.flag(opts$report$noRemap),
+    is.flag(opts$report$createIgv)
+  )
+
+  attr(opts, "valid") <- TRUE
+  return(opts)
 }
 
 .capitalise <- function(x) {
@@ -175,36 +305,4 @@ normaliseOpts <- function(opts, pipeline = "LR") {
     paste0(x[1L], paste0(.capitalise(x[-1L]), collapse = ""))
   }, FUN.VALUE = character(1))
 }
-
-validateOpts <- function(opts) {
-  # Assert mapInit() logicals
-  assert_that(
-    is.logical(opts$mapInit$microsatellite),
-    is.logical(opts$mapInit$forceMapping)
-  )
-
-  # Assert polymorphism threshold
-  assert_that(
-    is.numeric(opts$partitionLongreads$threshold),
-    opts$partitionLongreads$threshold >= 0,
-    opts$partitionLongreads$threshold <= 1,
-    msg = "The polymorphism threshold must be a number between 0 ans 1")
-
-  # Assert number of distinct alleles
-  assert_that(is.count(opts$partitionLongreads$distAlleles),
-              msg = "Number of distinct alleles (distAlleles) must be numeric")
-
-  # Assert number of mapIter iterations
-  assert_that(
-    is.count(opts$mapIter$iterations),
-    opts$mapIter$iterations > 0,
-    opts$mapIter$iterations < 10,
-    msg = "The number of mapIter() iterations must fall between 1 and 10"
-  )
-
-  return(invisible(TRUE))
-}
-
-
-
 

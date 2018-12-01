@@ -91,9 +91,8 @@ readDR2S <- function(path) {
     p <- cowplot::plot_grid(plotlist = plotlist, nrow = plotRows, labels = readtypes)
     cowplot::save_plot(p, filename = self$absPath("plot.MapFinal.pdf"),
                        base_width = 12*length(hptypes),
-                       title = paste(self$getLocus(), self$getSampleId(),
-                                     sep = "." ),
-                       base_height = 3*length(readtypes))
+                       base_height = 3*length(readtypes),
+                       title = dot(c(self$getLocus(), self$getSampleId())))
     cowplot::save_plot(p, filename = self$absPath(".plots/plot.MapFinal.svg"),
                        base_width = 12*length(hptypes),
                        base_height = 3*length(readtypes))
@@ -252,7 +251,7 @@ createIgvJsFiles <- function(reference, bamfile, outdir, ...) {
   ## Subsample the bam file
   resultList <- subSampleBam(bamfile = bamfile, ...)#fragmentReads = TRUE, sampleSize = 100)#, ...)
   ## Index the reference
-  indexFa(reference)
+  Rsamtools::indexFa(reference)
   resultList$referenceFile <- .cropPath(outdir, reference)
   resultList$original <- .cropPath(outdir, resultList$original)
   resultList$sampled <- .cropPath(outdir, resultList$sampled)

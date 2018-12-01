@@ -4,16 +4,16 @@
 \alias{.generateReferenceSequence}
 \title{Generate reference sequences in a FASTA file}
 \usage{
-.generateReferenceSequence(allele, locus, outdir, dirtag = NULL)
+.generateReferenceSequence(locus, allele = NULL, outdir, dirtag = NULL)
 }
 \arguments{
-\item{allele}{Allele name.}
+\item{locus}{Locus name (HLA or KIR).}
 
-\item{outdir}{Output directory}
+\item{allele}{Allele name or NULL.}
+
+\item{outdir}{Output directory.}
 
 \item{dirtag}{TODO}
-
-\item{HLA}{A \code{HLAGene} object}
 }
 \value{
 Path to refseq fasta file.

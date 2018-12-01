@@ -555,66 +555,6 @@ plotPartitionHistogramMulti <- function(x, limits, label = "") {
     theme_bw()
 }
 
-# #' Tile plot of haplotyped reads.
-# #'
-# #' @param x A \code{HapPart} object.
-# #' @param thin Subsample reads. [1]
-# #' @param label Optional plot label.
-# #' @param sort Sort [TRUE]
-# #' @param nameReads Name reads [FALSE]
-# #'
-# #' @return A \code{ggplot} object.
-# #' @export
-# #' @examples
-# #' ###
-# plotPartitionHaplotypes <- function(x, thin = 1, label = "", sort = TRUE,
-#                                     nameReads = FALSE) {
-#   stopifnot(is(x, "HapPart"))
-#   q <- mcoef(x)
-#   snpPos <- SNP(x)
-#   rs <- CLS(x)[, order(snpPos), drop = FALSE]
-#   i <- if (thin < 1) {
-#     sample(NROW(rs), thin*NROW(rs))
-#   } else seq_len(NROW(rs))
-#   qOrder <- if (sort) {
-#     rev(order(q[i], decreasing = TRUE))
-#   } else i
-#   rs2 <- rs <- rs[i, , drop = FALSE][qOrder, , drop = FALSE]
-#   dim(rs2) <- NULL
-#   alphaSteps <- function(a) {
-#     a <- abs(a)
-#     a <- ifelse(a <= 0.25, 0L, ifelse(a <= 0.5, 1L, ifelse(a <= 0.75, 2L, 3L)))
-#     factor(a, levels = 0:3,
-#            labels = c("q <= 0.25", "0.25 < q <= 0.50",
-#                       "0.50 < q <= 0.75", "0.75 < q <= 1"))
-#   }
-#
-#   df <- tibble::data_frame(
-#     snp   = rep(seq_len(NCOL(rs)), each = NROW(rs)),
-#     read  = rep.int(seq_len(NROW(rs)), NCOL(rs)),
-#     hap   = factor(rs2, levels = c("A", "B", "-"), ordered = TRUE),
-#     trans = alphaSteps(a = rep(q[i][qOrder], NCOL(rs))),
-#     mcoef = rep(q[i][qOrder], NCOL(rs))
-#   )
-#
-#   if (nameReads) {
-#     readnames <- as.vector(x[i])[qOrder]
-#     readnames <- factor(readnames, readnames, readnames, ordered = TRUE)
-#     df$read   <- rep(readnames, NCOL(rs))
-#   }
-#
-#   ggplot(df) +
-#     geom_tile(aes(x =~ snp, y =~ read, fill =~ hap, alpha =~ trans)) +
-#     scale_alpha_discrete(range = c(0.25, 0.95)) +
-#     scale_fill_manual(values = PARTCOL()) +
-#     labs(x = "Polymorphic positions", y = "Reads", fill = "Haplotype",
-#          alpha = "Coefficient") +
-#     ggtitle(label = label) +
-#     theme_bw() +
-#     theme(legend.position = "top")
-# }
-
-
 #' Plot a radar chart for each haplotype. Membership values for each read
 #' for each partition are shown as lines.
 #'
@@ -669,7 +609,7 @@ plotPartitionTree <- function(x){
       dplyr::mutate(label = as.character(.data$label))
 
     clust <- stats::cutree(tree, k)
-    clust <- tibble::data_frame(label = names(clust), haplotype = clust)
+    clust <- tibble::tibble(label = names(clust), haplotype = clust)
     dendr$labels <- dplyr::left_join(dendr$labels, clust, by = "label")
 
     height <- unique(dendr$segments$y)[order(unique(dendr$segments$y),
