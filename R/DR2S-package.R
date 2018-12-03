@@ -11,7 +11,7 @@
 #' @import futile.logger
 #' @import ggplot2
 #' @importFrom data.table :=
-#' @importFrom foreach foreach %do%
+#' @importFrom foreach foreach %do% %:%
 #' @importFrom rlang .data
 #' @importFrom methods is
 NULL

@@ -273,7 +273,7 @@ DR2S_$set("public", "runPartitionLongreads", function() {
       spos <- .selectCorrelatedPolymorphicPositions(
         mat, method = measureOfAssociation, dunnCutoff = dunnCutoff,
         minimumMeanAssociation = minimumMeanAssociation, indent = indent)
-      mat0 <- mat[, spos]
+      mat0 <- mat[, spos[order(as.numeric(spos))]]
       if (plot) {
         ## correlogram
         plotpath <- file.path(self$getOutdir(), "plot.correlogram.png")

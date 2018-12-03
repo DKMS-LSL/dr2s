@@ -71,6 +71,7 @@ readDR2SConf <- function(configFile, format = "auto") {
     yaml = yaml::yaml.load_file(con0),
     json = jsonlite::fromJSON(conf0)
   )
+
   ## set reference if extref exists
   if (!is.null(conf$extref)) {
     tryCatch(
@@ -91,6 +92,18 @@ readDR2SConf <- function(configFile, format = "auto") {
   } else {
     conf$pipeline <- "SR"
   }
+  ## for backwards compatibility
+  if (!is.null(conf$microsatellite))
+    conf$opts$mapInit$microsatellite <- conf$microsatellite
+  if (!is.null(conf$forceMapping))
+    conf$opts$mapInit$microsatellite <- conf$forceMapping
+  if (!is.null(conf$threshold))
+    conf$opts$partitionLongreads$threshold <- conf$threshold
+  if (!is.null(conf$distAlleles))
+    conf$opts$partitionLongreads$distAlleles <- conf$distAlleles
+  if (!is.null(conf$iterations))
+    conf$opts$mapIter$iterations <- conf$iterations
+  ##
   conf$opts <- normaliseOpts(conf$opts, conf$pipeline)
   if (is.null(conf$details))
     conf["details"] <- list(NULL)

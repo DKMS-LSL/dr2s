@@ -85,11 +85,11 @@ normaliseOpts <- function(opts, pipeline = "LR") {
     ## distance). If <dunnIndex > dunnCutoff> accept the existance of a low-
     ## linkage cluster and reject its member SNPs, if <dunnIndex <= dunnCutoff
     ## don't reject any SNPs
-    dunnCutoff = 20,
+    dunnCutoff = 18,
     ## if <restrictToCorrelatedPositions> == TRUE, use this threshold to reject
     ## any SNPs with a mean association to all other SNPs lower than
     ## <minimumMeanAssociation>.
-    minimumMeanAssociation = 0.1,
+    minimumMeanAssociation = 0.12,
     ## If more than <distAlleles> clusters are found select clusters based on:
     ## (1) "distance": The hamming distance of the resulting variant consensus
     ## sequences or (2) "count": Take the clusters with the most reads as the
@@ -178,7 +178,7 @@ normaliseOpts <- function(opts, pipeline = "LR") {
   opts0 <- compact(opts0)
   ## update default with config settings
   opts1 <- utils::modifyList(compact(opts0), opts, keep.null = FALSE)
-  validateOpts(opts1)
+  validateOpts(opts = opts1)
 }
 
 MANDATORY_OPTS <- function() {
@@ -264,10 +264,10 @@ validateOpts <- function(opts) {
     msg = "<iterations> in mapIter() is not a count between 1 and 9"
   )
   assert_that(
-    is.number(opts$mapIter$columnOccuppancy),
-    opts$mapIter$columnOccuppancy >= 0,
-    opts$mapIter$columnOccuppancy <= 1,
-    msg = "<columnOccuppancy> in mapIter() is not a number between 0 and 1")
+    is.number(opts$mapIter$columnOccupancy),
+    opts$mapIter$columnOccupancy >= 0,
+    opts$mapIter$columnOccupancy <= 1,
+    msg = "<columnOccupancy> in mapIter() is not a number between 0 and 1")
   assert_that(
     is.number(opts$mapIter$callInsertionThreshold),
     opts$mapIter$callInsertionThreshold >= 0,
