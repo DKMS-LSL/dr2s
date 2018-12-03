@@ -40,7 +40,8 @@
 #' @param details <named list> of sample metadata or \code{NULL}. Will be written
 #' into the fasta header of the final sequences and stored in the config json
 #' @param opts <named list> of arguments to the DR2S pipeline functions or
-#'  \code{NULL}. Will be stored in the config json
+#'  \code{NULL}. Will be stored in the config json.
+#' @param ... Further arguments.
 #'
 #' @return A \code{\link[DR2S]{DR2S}} config object
 #' @family DR2S mapper functions
@@ -70,7 +71,8 @@ createDR2SConf <- function(
   outdir     = "./output",
   reference  = NULL,
   details    = NULL,
-  opts       = NULL) {
+  opts       = NULL,
+  ...) {
   UseMethod("DR2SConf")
 }
 

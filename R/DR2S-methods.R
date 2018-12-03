@@ -230,6 +230,9 @@ DR2S_$set("public", "runPartitionLongreads", function() {
       exists("skipGapFreq") && is.numeric(skipGapFreq),
       exists("noGapPartitioning") && is.logical(noGapPartitioning),
       exists("restrictToCorrelatedPositions") && is.logical(restrictToCorrelatedPositions),
+      exists("measureOfAssociation") && is.character(measureOfAssociation),
+      exists("dunnCutoff") && is.numeric(dunnCutoff),
+      exists("minimumMeanAssociation") && is.numeric(minimumMeanAssociation),
       exists("selectAllelesBy") && is.character(selectAllelesBy),
       exists("minClusterSize") && is.numeric(minClusterSize),
       exists("plot") && is.logical(plot)
@@ -267,19 +270,27 @@ DR2S_$set("public", "runPartitionLongreads", function() {
     mat <- SNPmatrix(self$absPath(bampath(self$mapInit)), ppos)
     base_height <- max(6, floor(sqrt(NCOL(mat))))
     if (restrictToCorrelatedPositions) {
-      mat <- .selectCorrelatedPolymorphicPositions(mat)
-      flog.info("%sRestrict SNP matrix to %s high-information positions",
-                indent(), NCOL(mat), name = "info")
+      spos <- .selectCorrelatedPolymorphicPositions(
+        mat, method = measureOfAssociation, dunnCutoff = dunnCutoff,
+        minimumMeanAssociation = minimumMeanAssociation, indent = indent)
+      mat0 <- mat[, spos]
       if (plot) {
         ## correlogram
         plotpath <- file.path(self$getOutdir(), "plot.correlogram.png")
-        cowplot::save_plot(plotpath, attr(mat, "snp.plot"),
+        cowplot::save_plot(plotpath, attr(spos, "snp.correlogram"),
                            base_height = base_height, dpi = 150)
+        ## associiation plot
+        plotpath <- file.path(self$getOutdir(), "plot.association.png")
+        cowplot::save_plot(plotpath, attr(spos, "snp.association"),
+                           base_height = base_height/2.4, dpi = 150,
+                           base_aspect_ratio = 3)
       }
+    } else {
+      mat0 <- mat
     }
 
-    flog.info("%sPartition %s longreads over %s SNPs", indent(), NROW(mat), NCOL(mat), name = "info")
-    prt <- partitionReads(x = mat,
+    flog.info("%sPartition %s longreads over %s SNPs", indent(), NROW(mat0), NCOL(mat0), name = "info")
+    prt <- partitionReads(x = mat0,
                           skipGapFreq = skipGapFreq,
                           deepSplit = 1,
                           threshold = threshold,

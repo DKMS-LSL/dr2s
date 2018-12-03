@@ -33,7 +33,9 @@ as a named list with the fields \code{dir}, \code{type} ("illumina") and
 into the fasta header of the final sequences and stored in the config json}
 
 \item{opts}{<named list> of arguments to the DR2S pipeline functions or
-\code{NULL}. Will be stored in the config json}
+\code{NULL}. Will be stored in the config json.}
+
+\item{...}{Further arguments.}
 }
 \value{
 A \code{\link[DR2S]{DR2S}} config object

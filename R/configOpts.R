@@ -75,6 +75,21 @@ normaliseOpts <- function(opts, pipeline = "LR") {
     ## higher absolute mean correlation coefficient. This gets rid of positions
     ## that are not well distributed across the two alleles.
     restrictToCorrelatedPositions = FALSE,
+    ## if <restrictToCorrelatedPositions> == TRUE, use <measureOfAssociation>
+    ## ("cramer.V" or "spearman") to determine linkage between all polymorphic
+    ## positions.
+    measureOfAssociation = "cramer.V",
+    ## if <restrictToCorrelatedPositions> == TRUE, infer a putative low-linkage
+    ## cluster of SNPs by calculating a Dunn-like index (the smallest distance
+    ## between the two putative clusters / the approximate mean intra-cluster
+    ## distance). If <dunnIndex > dunnCutoff> accept the existance of a low-
+    ## linkage cluster and reject its member SNPs, if <dunnIndex <= dunnCutoff
+    ## don't reject any SNPs
+    dunnCutoff = 20,
+    ## if <restrictToCorrelatedPositions> == TRUE, use this threshold to reject
+    ## any SNPs with a mean association to all other SNPs lower than
+    ## <minimumMeanAssociation>.
+    minimumMeanAssociation = 0.1,
     ## If more than <distAlleles> clusters are found select clusters based on:
     ## (1) "distance": The hamming distance of the resulting variant consensus
     ## sequences or (2) "count": Take the clusters with the most reads as the
@@ -230,6 +245,11 @@ validateOpts <- function(opts) {
     is.string(opts$partitionLongreads$selectAllelesBy),
     opts$partitionLongreads$selectAllelesBy %in% c("count", "distance"),
     msg = "<selectAllelesBy> in partitionLongreads() is not 'count' nor 'distance'"
+  )
+  assert_that(
+    is.string(opts$partitionLongreads$measureOfAssociation),
+    opts$partitionLongreads$measureOfAssociation %in% c("cramer.V", "spearman"),
+    msg = "<measureOfAssociation> in partitionLongreads() is not 'cramer.V' nor 'spearman'"
   )
   ##
   ## mapIter() asserts ####
