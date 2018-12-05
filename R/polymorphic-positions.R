@@ -67,15 +67,20 @@ polymorphicPositions.pileup <- function(x, threshold = NULL) {
                                                   method.assoc = "cramer.V",
                                                   method.clust = "mclust",
                                                   expectedAbsDeviation = 0.05,
+                                                  noSelect = FALSE,
                                                   resample = NULL,
                                                   ...) {
   method.assoc <- match.arg(method.assoc, c("cramer.V", "spearman", "kendall"))
   method.clust <- match.arg(method.clust, c("mclust", "dunn"))
   indent <- list(...)$indent %||% indentation()
-  cmat <- .associationMatrix(mat, method = method.assoc, resample)#, ...)
-  clustered.snps <- .clusterPolymorphicPositions(
-    dist = cmat, method = method.clust, expectedAbsDeviation = expectedAbsDeviation,
-    ..., indent = indent)
+  cmat <- .associationMatrix(mat, method = method.assoc, resample, ...)
+  if (noSelect) {
+    clustered.snps <- colnames(mat)
+  } else {
+    clustered.snps <- .clusterPolymorphicPositions(
+      dist = cmat, method = method.clust, expectedAbsDeviation = expectedAbsDeviation,
+      ..., indent = indent)
+  }
   flog.info("%sRetaining %s high-association polymorphisms", indent(), length(clustered.snps), name = "info")
   ## create correlogram and association plots
   plts <- .correlogram(cmat, nm = clustered.snps)

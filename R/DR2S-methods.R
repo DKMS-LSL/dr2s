@@ -229,7 +229,7 @@ DR2S_$set("public", "runPartitionLongreads", function() {
       exists("distAlleles") && is.count(distAlleles),
       exists("skipGapFreq") && is.numeric(skipGapFreq),
       exists("noGapPartitioning") && is.logical(noGapPartitioning),
-      exists("restrictToCorrelatedPositions") && is.logical(restrictToCorrelatedPositions),
+      exists("selectCorrelatedPositions") && is.logical(selectCorrelatedPositions),
       exists("measureOfAssociation") && is.character(measureOfAssociation),
       exists("expectedAbsDeviation") && is.numeric(expectedAbsDeviation),
       exists("selectAllelesBy") && is.character(selectAllelesBy),
@@ -268,24 +268,24 @@ DR2S_$set("public", "runPartitionLongreads", function() {
 
     mat <- SNPmatrix(self$absPath(bampath(self$mapInit)), ppos)
     base_height <- max(6, floor(sqrt(NCOL(mat))))
-    if (restrictToCorrelatedPositions) {
-      spos <- .selectAssociatedPolymorphicPositions(
-        mat, method.assoc = measureOfAssociation, method.clust = "mclust",
-        expectedAbsDeviation = expectedAbsDeviation, indent = indent)
-      mat0 <- mat[, spos[order(as.numeric(spos))]]
-      if (plot) {
-        ## correlogram
-        plotpath <- file.path(self$getOutdir(), "plot.correlogram.png")
-        cowplot::save_plot(plotpath, attr(spos, "snp.correlogram"),
-                           base_height = base_height, dpi = 150)
-        ## associiation plot
-        plotpath <- file.path(self$getOutdir(), "plot.association.png")
-        cowplot::save_plot(plotpath, attr(spos, "snp.association"),
-                           base_height = base_height/2.4, dpi = 150,
-                           base_aspect_ratio = 3)
-      }
-    } else {
-      mat0 <- mat
+    spos <- .selectAssociatedPolymorphicPositions(
+      mat, method.assoc = measureOfAssociation,
+      method.clust = "mclust",
+      expectedAbsDeviation = expectedAbsDeviation,
+      noSelect = !selectCorrelatedPositions,
+      indent = indent)
+    mat0 <- mat[, spos[order(as.numeric(spos))]]
+
+    if (plot) {
+      ## correlogram
+      plotpath <- file.path(self$getOutdir(), "plot.correlogram.png")
+      cowplot::save_plot(plotpath, attr(spos, "snp.correlogram"),
+                         base_height = base_height, dpi = 150)
+      ## associiation plot
+      plotpath <- file.path(self$getOutdir(), "plot.association.png")
+      cowplot::save_plot(plotpath, attr(spos, "snp.association"),
+                         base_height = base_height/2.4, dpi = 150,
+                         base_aspect_ratio = 3)
     }
 
     flog.info("%sPartition %s longreads over %s SNPs", indent(), NROW(mat0), NCOL(mat0), name = "info")

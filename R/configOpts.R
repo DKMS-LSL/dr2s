@@ -74,8 +74,8 @@ normaliseOpts <- function(opts, pipeline = "LR") {
     ## correlation coefficient. Extract positions from the cluster with the
     ## higher absolute mean correlation coefficient. This gets rid of positions
     ## that are not well distributed across the two alleles.
-    restrictToCorrelatedPositions = FALSE,
-    ## if <restrictToCorrelatedPositions> == TRUE, use <measureOfAssociation>
+    selectCorrelatedPositions = FALSE,
+    ## if <selectCorrelatedPositions> == TRUE, use <measureOfAssociation>
     ## ("cramer.V" or "spearman") to determine linkage between all polymorphic
     ## positions.
     measureOfAssociation = "cramer.V",
@@ -213,7 +213,7 @@ validateOpts <- function(opts) {
   ##
   assert_that(
     is.flag(opts$partitionLongreads$noGapPartitioning),
-    is.flag(opts$partitionLongreads$restrictToCorrelatedPositions),
+    is.flag(opts$partitionLongreads$selectCorrelatedPositions),
     is.number(opts$partitionLongreads$minClusterSize),
     is.number(opts$partitionLongreads$pickiness),
     is.number(opts$partitionLongreads$lowerLimit),
