@@ -72,7 +72,8 @@ DR2S_ <- R6::R6Class(
       private$conf = initialiseDR2S(conf, createOutdir = createOutdir)
       private$runstats = NULL
       private$reportStatus = FALSE
-      if (is.null(private$conf$reference)) {
+      if (is.null(conf$reference) ||
+          sub("HLA-", "", conf$reference) == conf$locus) {
         ## fetch the generic reference for <locus>
         private$conf$reference   = .normaliseLocus(conf$locus)
         private$runstats$refPath = .generateReferenceSequence(
@@ -81,7 +82,7 @@ DR2S_ <- R6::R6Class(
           outdir = private$conf$outdir,
           dirtag = "mapInit")
       }
-      else if (file.exists(refPath <- private$conf$reference)) {
+      else if (file.exists(refPath <- conf$reference)) {
         ## use the user-provided reference for <locus>
         private$conf$extref = normalizePath(refPath, mustWork = TRUE)
         private$conf$reference = sub("\\.fa(s|sta)?$", "", basename(refPath))

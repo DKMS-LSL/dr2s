@@ -79,17 +79,10 @@ normaliseOpts <- function(opts, pipeline = "LR") {
     ## ("cramer.V" or "spearman") to determine linkage between all polymorphic
     ## positions.
     measureOfAssociation = "cramer.V",
-    ## if <restrictToCorrelatedPositions> == TRUE, infer a putative low-linkage
-    ## cluster of SNPs by calculating a Dunn-like index (the smallest distance
-    ## between the two putative clusters / the approximate mean intra-cluster
-    ## distance). If <dunnIndex > dunnCutoff> accept the existance of a low-
-    ## linkage cluster and reject its member SNPs, if <dunnIndex <= dunnCutoff
-    ## don't reject any SNPs
-    dunnCutoff = 18,
-    ## if <restrictToCorrelatedPositions> == TRUE, use this threshold to reject
-    ## any SNPs with a mean association to all other SNPs lower than
-    ## <minimumMeanAssociation>.
-    minimumMeanAssociation = 0.12,
+    ## By how much do we expect 2 clusters to differ on in mean Cramér's V.
+    ## BIC-informed model-based clustering tends to split rather than lump
+    ## and this is a heuristical attempt to forestall this.
+    expectedAbsDeviation = 0.06,
     ## If more than <distAlleles> clusters are found select clusters based on:
     ## (1) "distance": The hamming distance of the resulting variant consensus
     ## sequences or (2) "count": Take the clusters with the most reads as the
@@ -251,6 +244,11 @@ validateOpts <- function(opts) {
     opts$partitionLongreads$measureOfAssociation %in% c("cramer.V", "spearman"),
     msg = "<measureOfAssociation> in partitionLongreads() is not 'cramer.V' nor 'spearman'"
   )
+  assert_that(
+    is.number(opts$partitionLongreads$expectedAbsDeviation),
+    opts$partitionLongreads$expectedAbsDeviation >= 0,
+    opts$partitionLongreads$expectedAbsDeviation <= 1,
+    msg = "<expectedAbsDeviation> in partitionLongreads() is not a number between 0 and 1")
   ##
   ## mapIter() asserts ####
   ##

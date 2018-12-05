@@ -231,8 +231,7 @@ DR2S_$set("public", "runPartitionLongreads", function() {
       exists("noGapPartitioning") && is.logical(noGapPartitioning),
       exists("restrictToCorrelatedPositions") && is.logical(restrictToCorrelatedPositions),
       exists("measureOfAssociation") && is.character(measureOfAssociation),
-      exists("dunnCutoff") && is.numeric(dunnCutoff),
-      exists("minimumMeanAssociation") && is.numeric(minimumMeanAssociation),
+      exists("expectedAbsDeviation") && is.numeric(expectedAbsDeviation),
       exists("selectAllelesBy") && is.character(selectAllelesBy),
       exists("minClusterSize") && is.numeric(minClusterSize),
       exists("plot") && is.logical(plot)
@@ -270,9 +269,9 @@ DR2S_$set("public", "runPartitionLongreads", function() {
     mat <- SNPmatrix(self$absPath(bampath(self$mapInit)), ppos)
     base_height <- max(6, floor(sqrt(NCOL(mat))))
     if (restrictToCorrelatedPositions) {
-      spos <- .selectCorrelatedPolymorphicPositions(
-        mat, method = measureOfAssociation, dunnCutoff = dunnCutoff,
-        minimumMeanAssociation = minimumMeanAssociation, indent = indent)
+      spos <- .selectAssociatedPolymorphicPositions(
+        mat, method.assoc = measureOfAssociation, method.clust = "mclust",
+        expectedAbsDeviation = expectedAbsDeviation, indent = indent)
       mat0 <- mat[, spos[order(as.numeric(spos))]]
       if (plot) {
         ## correlogram
