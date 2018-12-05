@@ -3,8 +3,9 @@
 * implement a JSON-based configuration model and expand configuration options
   for the individual DR2S pipeline steps.
 * add optional read filtering to `mapInit()` and add "readpicking" plots.
-* add optional restriction of partitioning to correlated (i.e., in-phase) SNPs.
-* add correlogram plot.
+* add optional restriction of partitioning to correlated (i.e., in-phase) SNPs
+  for the lonread-only workflow.
+* add correlogram and association plots.
 * add a dedictaed longread-only pipeline.
 * include standard reference data for HLA.
 * move from pdf to png for plots.
