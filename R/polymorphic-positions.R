@@ -163,7 +163,7 @@ polymorphicPositions.pileup <- function(x, threshold = NULL) {
           clustered.snps <- j
         }
       } else {
-        flog.info("%srejecting clusters as mean difference does not exceed thhreshold <%s>",
+        flog.info("%sRejecting clusters as mean difference does not exceed thhreshold <%s>",
                   indent(), expectedAbsDeviation, name = "info")
         clustered.snps <- c(i, j)
       }
