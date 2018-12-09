@@ -66,25 +66,26 @@ polymorphicPositions.pileup <- function(x, threshold = NULL) {
 .selectAssociatedPolymorphicPositions <- function(mat,
                                                   method.assoc = "cramer.V",
                                                   method.clust = "mclust",
-                                                  expectedAbsDeviation = 0.05,
+                                                  minimumExpectedDifference = 0.06,
                                                   noSelect = FALSE,
                                                   resample = NULL,
                                                   ...) {
   method.assoc <- match.arg(method.assoc, c("cramer.V", "spearman", "kendall"))
   method.clust <- match.arg(method.clust, c("mclust", "dunn"))
   indent <- list(...)$indent %||% indentation()
-  cmat <- .associationMatrix(mat, method = method.assoc, resample, ...)
+  #resample <- floor(NCOL(mat)*0.1)
+  cmat <- .associationMatrix(mat, method.assoc, resample, ...)
   if (noSelect) {
-    clustered.snps <- colnames(mat)
+    selected.snps <- colnames(mat)
   } else {
-    clustered.snps <- .clusterPolymorphicPositions(
-      dist = cmat, method = method.clust, expectedAbsDeviation = expectedAbsDeviation,
+    selected.snps <- .clusterPolymorphicPositions(
+      dist = cmat, method = method.clust, minimumExpectedDifference = minimumExpectedDifference,
       ..., indent = indent)
   }
-  flog.info("%sRetaining %s high-association polymorphisms", indent(), length(clustered.snps), name = "info")
+  flog.info("%sRetaining %s high-association polymorphisms", indent(), length(selected.snps), name = "info")
   ## create correlogram and association plots
-  plts <- .correlogram(cmat, nm = clustered.snps)
-  structure(clustered.snps, snp.corr.mat = cmat,
+  plts <- .correlogram(dist = cmat, nm = selected.snps)
+  structure(selected.snps, snp.corr.mat = cmat,
             snp.correlogram = plts$correlogram,
             snp.association = plts$association)
 }
@@ -132,52 +133,25 @@ polymorphicPositions.pileup <- function(x, threshold = NULL) {
   cmat
 }
 
-.clusterPolymorphicPositions <- function(dist, method = "mclust", expectedAbsDeviation = 0.05, ...) {
-  ## @param expectedAbsDeviation How much do we expect 2 clusters to differ on
+.clusterPolymorphicPositions <- function(dist, method = "mclust", minimumExpectedDifference = 0.05, ...) {
+  ## @param minimumExpectedDifference How much do we expect 2 clusters to differ on
   ##   in mean Cramér's V. BIC-based clustering tends to split rather than lump
   ##   and this is a heuristical attempt to forestall this.
   method <- match.arg(method, c("mclust", "dunn"))
   indent <- list(...)$indent %||% indentation()
-  assert_that(has_attr(dist, "method"))
-  assoc.measure <- switch(attr(dist, "method"),
-                          "cramer.V" = "Cramér's V",
-                          "spearman" = "Spearman's Rho",
-                          "kendall" = "Kendall's Tau")
+
   if (method == "mclust") {
     diag(dist) <- 1
     bic <- mclust::mclustBIC(dist, G = 1:2, verbose = FALSE)
     mc <- mclust::Mclust(dist, x = bic, verbose = FALSE)
     if (mc$G == 2) {
-      diag(dist) <- NA_real_
-      classification <- mc$classification
-      i <- names(which(classification == 1))
-      j <- names(which(classification == 2))
-      if (length(i) == 1) {
-        d <- mean(dist[i, ], na.rm = TRUE) - mean(dist[j, j], na.rm = TRUE)
-      } else if (length(j) == 1) {
-        d <- mean(dist[i, i], na.rm = TRUE) - mean(dist[j, ], na.rm = TRUE)
-      } else {
-        d <- mean(dist[i, i], na.rm = TRUE) - mean(dist[j, j], na.rm = TRUE)
-      }
-      flog.info("%s2 SNP clusters selected that differ by <%0.4f> mean %s",
-                indent(), abs(d), assoc.measure, name = "info")
-      if (abs(d) > expectedAbsDeviation) {
-        if (d > expectedAbsDeviation) {
-          clustered.snps <- i
-        } else {
-          clustered.snps <- j
-        }
-      } else {
-        flog.info("%sRejecting clusters as mean difference does not exceed thhreshold <%s>",
-                  indent(), expectedAbsDeviation, name = "info")
-        clustered.snps <- c(i, j)
-      }
+      selected.snps <- .checkClusterMerge(dist, mc, minimumExpectedDifference, indent)
     }
     else if (mc$G == 1) {
-      clustered.snps <- mc$classification
+      selected.snps <- structure(names(mc$classification), classification = as.character(mc$classification))
     }
-    attr(clustered.snps, "mclustBIC") <- bic
-    attr(clustered.snps, "mclust") <- mc
+    attr(selected.snps, "mclustBIC") <- bic
+    attr(selected.snps, "mclust") <- mc
   }
   else if (method == "dunn") {
     ## calculate mean association of each PP too each other PP
@@ -196,24 +170,123 @@ polymorphicPositions.pileup <- function(x, threshold = NULL) {
     c2 <- scm[-(1:which.max(dcm))] ## putative high association cluster
     dunnIndex <- max(dcm)/mean(dcm)
     if (dunnIndex > dunnCutoff) {
-      clustered.snps <- names(c2)
+      selected.snps <- names(c2)
       flog.info("%sInferring cluster of low association polymorphisms at Dunn index <%0.1f>",
                 indent(), dunnIndex, name = "info")
       flog.info("%sRemoving %s low-association polymorphic positions ", indent(), length(c1), name = "info")
     } else {
-      clustered.snps <- names(cm)
+      selected.snps <- names(cm)
       flog.info("%sInferring no cluster of low association polymorphisms at Dunn index <%0.1f>",
                 indent(), dunnIndex, name = "info")
     }
     ## use minimumMeanAssociation as a hard cutoff
-    if (any(idx <- cm[clustered.snps] >= minimumMeanAssociation)) {
-      clustered.snps <- names(which(idx))
+    if (any(idx <- cm[selected.snps] >= minimumMeanAssociation)) {
+      selected.snps <- names(which(idx))
       flog.info("%sRemoving %s additional polymorphic positions below minimum mean association threshold <%0.2f>", indent(),
                 sum(!idx), minimumMeanAssociation, name = "info")
     }
   }
 
-  clustered.snps
+  selected.snps
+}
+
+.checkClusterMerge <- function(dist, mc, ...) {
+  ## @param ...minimumExpectedDifference The absolute difference
+  ##   in mean association between clusters that must be exceded
+  ##   to accept the clusters as a secondary check performed after
+  ##   the equivalence test
+  assert_that(has_attr(dist, "method"))
+  indent <- list(...)$indent %||% indentation()
+  minimumExpectedDifference <- list(...)$minimumExpectedDifference %||% 0.05
+  assoc.measure <- switch(attr(dist, "method"),
+                          "cramer.V" = "Cramér's V",
+                          "spearman" = "Spearman's Rho",
+                          "kendall"  = "Kendall's Tau")
+  ##
+  diag(dist) <- NA_real_
+  classification <- mc$classification
+  i <- names(which(classification == 1))
+  j <- names(which(classification == 2))
+  ## infer mean and standard deviation for the high-association (h)
+  ## and the low-association (l) cluster
+  if (length(i) == 1) {
+    mi  <- mean(dist[i, ], na.rm = TRUE)
+    sdi <- sd(dist[i, ], na.rm = TRUE)
+  } else {
+    mi  <- mean(dist[i, i], na.rm = TRUE)
+    sdi <- sd(dist[i, i], na.rm = TRUE)
+  }
+  if (length(j) == 1) {
+    mj  <- mean(dist[j, ], na.rm = TRUE)
+    sdj <- sd(dist[j, ], na.rm = TRUE)
+  } else {
+    mj  <- mean(dist[j, j], na.rm = TRUE)
+    sdj <- sd(dist[j, j], na.rm = TRUE)
+  }
+  ## calculate average distance (dij) between clusters
+  dij <- mi - mj
+  ## perform an ad hoc equivalence test on the two clusters: calculate the
+  ## lower confidence bound of the high-association cluster.
+  ## If this bound overlaps the upper confidence bound of the low-association
+  ## cluster, reject the clusters
+  reject <- if (dij > 0) { # i is high-association, j is low-association
+    (mi - 1.96*sdi) <= (mj + 1.96*sdj)
+  } else {
+    (mj - 1.96*sdj) <= (mi - 1.96*sdi)
+  }
+  if (reject) {
+    flog.info("%sReject SNP clusters: mean difference <%0.3f> %s has overlapping confidence bounds",
+              indent(), abs(dij), assoc.measure, name = "info")
+    selected.snps <- c(i, j)
+  }
+  else {
+    ## perform a secondary test to see if dij is less than the minimum expected
+    ## absolute difference between mi and mj
+    if (abs(dij) < minimumExpectedDifference) {
+      flog.info("%sReject SNP clusters: mean difference <%0.3f> %s does not exceed threshold <%s>",
+                indent(), abs(dij), assoc.measure, minimumExpectedDifference, name = "info")
+      selected.snps <- c(i, j)
+    }
+    else {
+      ## perform yet another test to see if the putative high-association SNPs
+      ## are likely to differ by a location shift within the gene. If this happens,
+      ## it is quite likely that one cluster is a local high linkage block.
+      if (.locationShift(i, j, p.value = 0.001)) {
+        flog.info("%sReject SNP clusters: significant location shift.",
+                  indent(), name = "info")
+        selected.snps <- c(i, j)
+      }
+      else {
+        flog.info("%sAccept SNP clusters with mean difference <%0.3f> %s",
+                  indent(), abs(dij), assoc.measure, name = "info")
+        if (dij > 0) {
+          selected.snps <- i
+        } else {
+          selected.snps <- j
+        }
+      }
+    }
+  }
+
+  o1 <- order(as.numeric(selected.snps))
+  o2 <- order(as.numeric(c(i, j)))
+  structure(selected.snps[o1], classification = c(rep("1", length(i)), rep("2", length(j)))[o2])
+}
+
+.locationShift <- function(i, j, p.value = 0.001) {
+  i  <- as.numeric(i)
+  j  <- as.numeric(j)
+  ni <- length(i)
+  nj <- length(j)
+  ## we test the hypothesis that a randomly selected location from set i will be less
+  ## or greater than a rondomly selected location from set j (Wilcoxon rank-sum test)
+  rij <- rank(c(i, j))
+  Ri <- sum(rij[1:ni])
+  Rj <- sum(rij[(ni + 1):(ni + nj)])
+  Wi <- Ri - (ni*(ni + 1))/2
+  Wj <- Rj - (nj*(nj + 1))/2
+  W  <- min(Wi, Wj)
+  2*stats::pwilcox(W, ni, nj) < p.value
 }
 
 .correlogram <- function(dist, nm) {
@@ -253,13 +326,15 @@ polymorphicPositions.pileup <- function(x, threshold = NULL) {
   rDf <- tibble::tibble(
     Position = factor(names(cm), levels = names(cm), labels = names(cm), ordered = TRUE),
     meanAssoc = unname(cm),
-    picked = ifelse(names(cm) %in% nm, "yes", "no")
+    selected = ifelse(names(cm) %in% nm, "yes", "no"),
+    cluster = attr(nm, "classification") %||% 1
   )
-  p2 <- ggplot(rDf, aes(x = Position, y = meanAssoc, colour =  picked)) +
+  p2 <- ggplot(rDf, aes(x = Position, y = meanAssoc, colour =  selected, shape = cluster)) +
     geom_point() +
     expand_limits(y = 0) +
     labs(x = "Polymorphic position", y = y.lab) +
     theme_bw() +
+    scale_colour_manual(values = c("#4c8cb5", "#e15a53")) +
     theme(panel.grid = element_blank(),
           axis.text.x = element_text(angle = 60, hjust = 1, vjust = 1),
           legend.position = "bottom")

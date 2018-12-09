@@ -231,7 +231,7 @@ DR2S_$set("public", "runPartitionLongreads", function() {
       exists("noGapPartitioning") && is.logical(noGapPartitioning),
       exists("selectCorrelatedPositions") && is.logical(selectCorrelatedPositions),
       exists("measureOfAssociation") && is.character(measureOfAssociation),
-      exists("expectedAbsDeviation") && is.numeric(expectedAbsDeviation),
+      exists("minimumExpectedDifference") && is.numeric(minimumExpectedDifference),
       exists("selectAllelesBy") && is.character(selectAllelesBy),
       exists("minClusterSize") && is.numeric(minClusterSize),
       exists("plot") && is.logical(plot)
@@ -271,7 +271,7 @@ DR2S_$set("public", "runPartitionLongreads", function() {
     spos <- .selectAssociatedPolymorphicPositions(
       mat, method.assoc = measureOfAssociation,
       method.clust = "mclust",
-      expectedAbsDeviation = expectedAbsDeviation,
+      minimumExpectedDifference = minimumExpectedDifference,
       noSelect = !selectCorrelatedPositions,
       indent = indent)
     mat0 <- mat[, spos[order(as.numeric(spos))]]
