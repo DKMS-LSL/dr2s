@@ -79,10 +79,10 @@ normaliseOpts <- function(opts, pipeline = "LR") {
     ## ("cramer.V" or "spearman") to determine linkage between all polymorphic
     ## positions.
     measureOfAssociation = "cramer.V",
-    ## By how much do we expect 2 clusters to differ on in mean Cramér's V.
+    ## By how much do we expect 2 clusters to minimally differ in mean Cramér's V.
     ## BIC-informed model-based clustering tends to split rather than lump
     ## and this is a heuristical attempt to forestall this.
-    expectedAbsDeviation = 0.06,
+    minimumExpectedDifference = 0.06,
     ## If more than <distAlleles> clusters are found select clusters based on:
     ## (1) "distance": The hamming distance of the resulting variant consensus
     ## sequences or (2) "count": Take the clusters with the most reads as the
@@ -245,10 +245,10 @@ validateOpts <- function(opts) {
     msg = "<measureOfAssociation> in partitionLongreads() is not 'cramer.V' nor 'spearman'"
   )
   assert_that(
-    is.number(opts$partitionLongreads$expectedAbsDeviation),
-    opts$partitionLongreads$expectedAbsDeviation >= 0,
-    opts$partitionLongreads$expectedAbsDeviation <= 1,
-    msg = "<expectedAbsDeviation> in partitionLongreads() is not a number between 0 and 1")
+    is.number(opts$partitionLongreads$minimumExpectedDifference),
+    opts$partitionLongreads$minimumExpectedDifference >= 0,
+    opts$partitionLongreads$minimumExpectedDifference <= 1,
+    msg = "<minimumExpectedDifference> in partitionLongreads() is not a number between 0 and 1")
   ##
   ## mapIter() asserts ####
   ##
