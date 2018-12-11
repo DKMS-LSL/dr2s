@@ -300,20 +300,23 @@ DR2S_$set("public", "runPartitionLongreads", function() {
 
     if (plot) {
       ppos <- SNP(prt)
-      pwm <- lapply(PWM(prt), function(pwm) {
-        pwm[pwm < 0.1] <- 0
-        pwm
-      })
-      p <- suppressMessages(self$plotSeqLogo(ppos, pwm))
-      cowplot::save_plot(filename = self$absPath("plot.sequence.png"),
-                         plot = p, dpi = 150, units = "cm", limitsize = FALSE,
-                         base_width = 0.4*length(ppos) + 1.4,
-                         base_height = 2.5*length(pwm),
-                         title = dot(c(self$getLocus(), self$getSampleId())))
-      cowplot::save_plot(filename = self$absPath(".plots/plot.sequence.svg"),
-                         plot = p, units = "cm", limitsize = FALSE,
-                         base_width  = 0.4*length(ppos) + 1.4,
-                         base_height = 2.5*length(pwm))
+      ## ggseqlogo doesn't work with 1-column matrices
+      if (length(ppos) > 1) {
+        pwm <- lapply(PWM(prt), function(pwm) {
+          pwm[pwm < 0.1] <- 0
+          pwm
+        })
+        p <- suppressMessages(self$plotSeqLogo(ppos, pwm))
+        cowplot::save_plot(filename = self$absPath("plot.sequence.png"),
+                           plot = p, dpi = 150, units = "cm", limitsize = FALSE,
+                           base_width = 0.4*length(ppos) + 1.4,
+                           base_height = 2.5*length(pwm),
+                           title = dot(c(self$getLocus(), self$getSampleId())))
+        cowplot::save_plot(filename = self$absPath(".plots/plot.sequence.svg"),
+                           plot = p, units = "cm", limitsize = FALSE,
+                           base_width  = 0.4*length(ppos) + 1.4,
+                           base_height = 2.5*length(pwm))
+      }
     }
 
     ## set runstats

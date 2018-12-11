@@ -76,7 +76,7 @@ polymorphicPositions.pileup <- function(x, threshold = NULL) {
   #resample <- floor(NCOL(mat)*0.1)
   cmat <- .associationMatrix(mat, method.assoc, resample, ...)
   if (noSelect) {
-    selected.snps <- colnames(mat)
+    selected.snps <- structure(colnames(mat), classification = "1")
   } else {
     selected.snps <- .clusterPolymorphicPositions(
       dist = cmat, method = method.clust, minimumExpectedDifference = minimumExpectedDifference,
@@ -229,14 +229,18 @@ polymorphicPositions.pileup <- function(x, threshold = NULL) {
   ## lower confidence bound of the high-association cluster.
   ## If this bound overlaps the upper confidence bound of the low-association
   ## cluster, reject the clusters
-  reject <- if (dij > 0) { # i is high-association, j is low-association
-    (mi - 1.96*sdi) <= (mj + 1.96*sdj)
+  if (dij > 0) { # i is high-association, j is low-association
+    #(mi - 1.96*sdi) <= (mj + 1.96*sdj)
+    reject <- (mi - sdi) <= (mj + sdj)
+    ovl <- (mj + sdj) - (mi - sdi)
   } else {
-    (mj - 1.96*sdj) <= (mi - 1.96*sdi)
+    #(mj - 1.96*sdj) <= (mi - 1.96*sdi)
+    reject <- (mj - sdj) <= (mi - sdi)
+    ovl <- (mi + sdi) - (mj - sdj)
   }
   if (reject) {
-    flog.info("%sReject SNP clusters: mean difference <%0.3f> %s has overlapping confidence bounds",
-              indent(), abs(dij), assoc.measure, name = "info")
+    flog.info("%sReject SNP clusters: mean difference <%0.3f> %s with <%0.4f> overlapping confidence bounds",
+              indent(), abs(dij), assoc.measure, ovl, name = "info")
     selected.snps <- c(i, j)
   }
   else {
