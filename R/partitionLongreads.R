@@ -30,14 +30,14 @@ partitionReads <- function(x, distAlleles = 2, sortBy = "count", threshold = 0.2
   # get SNPs
   ppos <- colnames(x)
   badPpos <- c()
-  xm <- as.matrix(x[order(rownames(x)), , drop = FALSE])
+  xm <- x[order(rownames(x)), , drop = FALSE]
   ## if there is only one SNP for clustering, use it! If it does not match both
   ## sequencing types it will be reported
   if (length(ppos) > 1) {
     badPpos <- apply(xm, 2, function(col) {
       sum(col == "+" | col == "-")/NROW(col) > skipGapFreq
     })
-    xm <- as.matrix(xm[, !badPpos])
+    xm <- xm[, !badPpos, drop = FALSE]
     badPpos <- ppos[badPpos]
     flog.info("%s%s polymorphisms occupy less than %0.3g%% of the reads and are discarded",
               indent(), length(badPpos), 100*(1 - skipGapFreq), name = "info")

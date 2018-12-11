@@ -232,7 +232,7 @@ createPWM <- function(msa, indelRate = NULL) {
   # Prob is calculated afterwards.
   indent2 <- indentation(2)
   cmat <- as.matrix(Biostrings::consensusMatrix(msa, as.prob = FALSE))
-  cmat <- cmat[VALID_DNA("del"), ]
+  cmat <- cmat[VALID_DNA("del"), , drop = FALSE]
   cmat <- sweep(cmat, 2, colSums(cmat), "/")
   ## Add pseudocount
   cmat <- cmat + 1/length(msa)
