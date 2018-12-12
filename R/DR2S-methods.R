@@ -274,7 +274,7 @@ DR2S_$set("public", "runPartitionLongreads", function() {
       minimumExpectedDifference = minimumExpectedDifference,
       noSelect = !selectCorrelatedPositions,
       indent = indent)
-    mat0 <- mat[, spos[order(as.numeric(spos))]]
+    mat0 <- mat[, spos[order(as.numeric(spos))], drop = FALSE]
 
     if (plot) {
       ## correlogram
@@ -293,6 +293,13 @@ DR2S_$set("public", "runPartitionLongreads", function() {
                        res = 150, bg = "white")
         print(attr(spos, "ovl.plot"))
         grDevices::dev.off()
+      }
+
+      ## if exists: mclust
+      if (has_attr(spos, "mclust")) {
+        plotpath <- file.path(self$getOutdir(), "plot.mclust.png")
+        p <- factoextra::fviz_mclust(attr(spos, "mclust"))
+        cowplot::save_plot(plotpath, p, base_height = 5, dpi = 150)
       }
     }
 

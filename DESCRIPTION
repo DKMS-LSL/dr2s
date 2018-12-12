@@ -61,7 +61,8 @@ Imports:
     BiocParallel,
     stats,
     purrr,
-    mclust
+    mclust,
+    factoextra
 SystemRequirements: bwa (>= 0.7.11) and/or minimap2; optional: samtools (faster, 
   but RSamtools do also work)
 VignetteBuilder: knitr

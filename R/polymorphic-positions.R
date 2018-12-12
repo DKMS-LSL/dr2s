@@ -133,60 +133,23 @@ polymorphicPositions.pileup <- function(x, threshold = NULL) {
   cmat
 }
 
-.clusterPolymorphicPositions <- function(dist, method = "mclust", minimumExpectedDifference = 0.05, ...) {
+.clusterPolymorphicPositions <- function(dist, minimumExpectedDifference = 0.05, ...) {
   ## @param minimumExpectedDifference How much do we expect 2 clusters to differ on
   ##   in mean Cramér's V. BIC-based clustering tends to split rather than lump
   ##   and this is a heuristical attempt to forestall this.
-  method <- match.arg(method, c("mclust", "dunn"))
   indent <- list(...)$indent %||% indentation()
-
-  if (method == "mclust") {
-    diag(dist) <- 1
-    bic <- mclust::mclustBIC(dist, G = 1:2, verbose = FALSE)
-    mc <- mclust::Mclust(dist, x = bic, verbose = FALSE)
-    if (mc$G == 2) {
-      selected.snps <- .checkClusterMerge(dist, mc, minimumExpectedDifference, indent)
-    }
-    else if (mc$G == 1) {
-      selected.snps <- structure(names(mc$classification), classification = as.character(mc$classification))
-    }
-    attr(selected.snps, "mclustBIC") <- bic
-    attr(selected.snps, "mclust") <- mc
+  diag(dist) <- 1
+  bic <- mclust::mclustBIC(dist, G = 1:2, verbose = FALSE)
+  mc <- mclust::Mclust(dist, x = bic, verbose = FALSE)
+  if (mc$G == 2) {
+    selected.snps <- .checkClusterMerge(dist, mc, minimumExpectedDifference, indent)
   }
-  else if (method == "dunn") {
-    ## calculate mean association of each PP too each other PP
-    dunnCutoff <- list(...)$dunnCutoff %||% 18
-    minimumMeanAssociation <- list(...)$minimumMeanAssociation %||% 0.12
-    cm <- .colMeans(dist, m = NCOL(dist), n = NROW(dist), na.rm = TRUE)
-    names(cm) <- colnames(dist)
-    ## try to split PP in a low association and a high association cluster.
-    ## evaluate using a Dunn-like index, the ratio of the largest distance
-    ## between the sorted average association (i.e., the smallest distance
-    ## between the two putative clusters) to the mean average association
-    ## (approximately the mean intra-cluster distance).
-    scm <- sort(cm)  # ranked mean association
-    dcm <- diff(scm) # ranked difference in mean association
-    c1 <- scm[1:which.max(dcm)] ## putative low association cluster
-    c2 <- scm[-(1:which.max(dcm))] ## putative high association cluster
-    dunnIndex <- max(dcm)/mean(dcm)
-    if (dunnIndex > dunnCutoff) {
-      selected.snps <- names(c2)
-      flog.info("%sInferring cluster of low association polymorphisms at Dunn index <%0.1f>",
-                indent(), dunnIndex, name = "info")
-      flog.info("%sRemoving %s low-association polymorphic positions ", indent(), length(c1), name = "info")
-    } else {
-      selected.snps <- names(cm)
-      flog.info("%sInferring no cluster of low association polymorphisms at Dunn index <%0.1f>",
-                indent(), dunnIndex, name = "info")
-    }
-    ## use minimumMeanAssociation as a hard cutoff
-    if (any(idx <- cm[selected.snps] >= minimumMeanAssociation)) {
-      selected.snps <- names(which(idx))
-      flog.info("%sRemoving %s additional polymorphic positions below minimum mean association threshold <%0.2f>", indent(),
-                sum(!idx), minimumMeanAssociation, name = "info")
-    }
+  else if (mc$G == 1) {
+    selected.snps <- structure(
+      names(mc$classification), classification = as.character(mc$classification))
   }
-
+  attr(selected.snps, "mclustBIC") <- bic
+  attr(selected.snps, "mclust") <- mc
   selected.snps
 }
 
@@ -214,14 +177,14 @@ polymorphicPositions.pileup <- function(x, threshold = NULL) {
     sdi <- sd(dist[i, ], na.rm = TRUE)
   } else {
     mi  <- mean(dist[i, i][lower.tri(dist[i, i])])
-    sdi <- sd(dist[i, i][lower.tri(dist[i, i])])
+    sdi <- sd(dist[i, i][lower.tri(dist[i, i])]) %|na|% 0.001
   }
   if (length(j) == 1) {
     mj  <- mean(dist[j, ], na.rm = TRUE)
     sdj <- sd(dist[j, ], na.rm = TRUE)
   } else {
     mj  <- mean(dist[j, j][lower.tri(dist[j, j])])
-    sdj <- sd(dist[j, j][lower.tri(dist[j, j])])
+    sdj <- sd(dist[j, j][lower.tri(dist[j, j])]) %|na|% 0.001
   }
   ## mi: mean association of high-association cluster
   ## mj: mean association of low-association cluster
@@ -237,7 +200,7 @@ polymorphicPositions.pileup <- function(x, threshold = NULL) {
     j   <- tmp.j
   }
   ## perform an ad hoc equivalence test on the two clusters
-  ovl <- .OVL(mi, sdi, mj, sdj, limit.level = 1, reject.pct = 0.1)
+  ovl <- .OVL(mi, sdi, mj, sdj, limit.level = 1, reject.pct = 1/3)
   if (ovl$reject) {
     flog.info("%sReject SNP clusters: mean difference <%0.3f> %s with <%0.2f%%> overlapping one-sigma limits",
               indent(), ovl$dij, assoc.measure, 100*ovl$ovl, name = "info")
