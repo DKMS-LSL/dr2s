@@ -79,6 +79,12 @@ normaliseOpts <- function(opts, pipeline = "LR") {
     ## ("cramer.V" or "spearman") to determine linkage between all polymorphic
     ## positions.
     measureOfAssociation = "cramer.V",
+    ## We perform an equivalence test on clusters of polymorhic positions:
+    ## Calculate the lower 1-sigma bound of the high-association cluster i.
+    ## Calculate the upper 1-sigma bound of the low-association cluster j.
+    ## Reject the clusters, if this bounds overlap by more than <proportionOfOverlap>
+    ## of the average distance (dij) between clusters.
+    proportionOfOverlap = 1/3,
     ## By how much do we expect 2 clusters to minimally differ in mean Cramér's V.
     ## BIC-informed model-based clustering tends to split rather than lump
     ## and this is a heuristical attempt to forestall this.
