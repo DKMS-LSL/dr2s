@@ -74,13 +74,13 @@ polymorphicPositions.pileup <- function(x, threshold = NULL) {
   method.clust <- match.arg(method.clust, c("mclust", "dunn"))
   indent <- list(...)$indent %||% indentation()
   #resample <- floor(NCOL(mat)*0.1)
-  cmat <- .associationMatrix(mat, method.assoc, resample, ...)
+  cmat <- .associationMatrix(mat, method.assoc, resample)#, ...)
   if (noSelect) {
     selected.snps <- structure(colnames(mat), classification = "1")
   } else {
     selected.snps <- .clusterPolymorphicPositions(
       dist = cmat, method = method.clust, minimumExpectedDifference = minimumExpectedDifference,
-      ..., indent = indent)
+      indent = indent)#, ...)
   }
   flog.info("%sRetaining %s high-association polymorphisms", indent(), length(selected.snps), name = "info")
   ## create correlogram and association plots
@@ -213,45 +213,43 @@ polymorphicPositions.pileup <- function(x, threshold = NULL) {
     mi  <- mean(dist[i, ], na.rm = TRUE)
     sdi <- sd(dist[i, ], na.rm = TRUE)
   } else {
-    mi  <- mean(dist[i, i], na.rm = TRUE)
-    sdi <- sd(dist[i, i], na.rm = TRUE)
+    mi  <- mean(dist[i, i][lower.tri(dist[i, i])])
+    sdi <- sd(dist[i, i][lower.tri(dist[i, i])])
   }
   if (length(j) == 1) {
     mj  <- mean(dist[j, ], na.rm = TRUE)
     sdj <- sd(dist[j, ], na.rm = TRUE)
   } else {
-    mj  <- mean(dist[j, j], na.rm = TRUE)
-    sdj <- sd(dist[j, j], na.rm = TRUE)
+    mj  <- mean(dist[j, j][lower.tri(dist[j, j])])
+    sdj <- sd(dist[j, j][lower.tri(dist[j, j])])
   }
-  ## calculate average distance (dij) between clusters
-  dij <- mi - mj
-  ## perform an ad hoc equivalence test on the two clusters: calculate the
-  ## lower confidence bound of the high-association cluster.
-  ## If this bound overlaps the upper confidence bound of the low-association
-  ## cluster, reject the clusters
-  if (dij > 0) { # i is high-association, j is low-association
-    #(mi - 1.96*sdi) <= (mj + 1.96*sdj)
-    reject <- (mi - sdi) <= (mj + sdj)
-    ovl <- (mj + sdj) - (mi - sdi)
-  } else {
-    #(mj - 1.96*sdj) <= (mi - 1.96*sdi)
-    reject <- (mj - sdj) <= (mi - sdi)
-    ovl <- (mi + sdi) - (mj - sdj)
+  ## mi: mean association of high-association cluster
+  ## mj: mean association of low-association cluster
+  if (mi < mj) { ## mi <-> mj; i <-> j
+    tmp.mj  <- mi
+    tmp.sdj <- sdi
+    tmp.j   <- i
+    mi  <- mj
+    sdi <- sdj
+    i   <- j
+    mj  <- tmp.mj
+    sdj <- tmp.sdj
+    j   <- tmp.j
   }
-  if (reject) {
-    flog.info("%sReject SNP clusters: mean difference <%0.3f> %s with <%0.4f> overlapping confidence bounds",
-              indent(), abs(dij), assoc.measure, ovl, name = "info")
+  ## perform an ad hoc equivalence test on the two clusters
+  ovl <- .OVL(mi, sdi, mj, sdj, limit.level = 1, reject.pct = 0.1)
+  if (ovl$reject) {
+    flog.info("%sReject SNP clusters: mean difference <%0.3f> %s with <%0.2f%%> overlapping one-sigma limits",
+              indent(), ovl$dij, assoc.measure, 100*ovl$ovl, name = "info")
     selected.snps <- c(i, j)
-  }
-  else {
+  } else {
     ## perform a secondary test to see if dij is less than the minimum expected
     ## absolute difference between mi and mj
-    if (abs(dij) < minimumExpectedDifference) {
+    if (ovl$dij < minimumExpectedDifference) {
       flog.info("%sReject SNP clusters: mean difference <%0.3f> %s does not exceed threshold <%s>",
-                indent(), abs(dij), assoc.measure, minimumExpectedDifference, name = "info")
+                indent(), ovl$dij, assoc.measure, minimumExpectedDifference, name = "info")
       selected.snps <- c(i, j)
-    }
-    else {
+    } else {
       ## perform yet another test to see if the putative high-association SNPs
       ## are likely to differ by a location shift within the gene. If this happens,
       ## it is quite likely that one cluster is a local high linkage block.
@@ -259,22 +257,19 @@ polymorphicPositions.pileup <- function(x, threshold = NULL) {
         flog.info("%sReject SNP clusters: significant location shift.",
                   indent(), name = "info")
         selected.snps <- c(i, j)
-      }
-      else {
+      } else {
         flog.info("%sAccept SNP clusters with mean difference <%0.3f> %s",
-                  indent(), abs(dij), assoc.measure, name = "info")
-        if (dij > 0) {
-          selected.snps <- i
-        } else {
-          selected.snps <- j
-        }
+                  indent(), ovl$dij, assoc.measure, name = "info")
+        selected.snps <- i
       }
     }
   }
 
   o1 <- order(as.numeric(selected.snps))
   o2 <- order(as.numeric(c(i, j)))
-  structure(selected.snps[o1], classification = c(rep("1", length(i)), rep("2", length(j)))[o2])
+  structure(selected.snps[o1],
+            classification = c(rep("1", length(i)), rep("2", length(j)))[o2],
+            dij = ovl$dij, ovl = ovl$ovl, ovl.coef = ovl$ovl.coef, ovl.plot = ovl$ovl.plot)
 }
 
 .locationShift <- function(i, j, p.value = 0.001) {
@@ -360,6 +355,47 @@ cramerV <- function(x) {
   k <- NCOL(x)
   V <- sqrt(chi2/(n * (k - 1)))
   V
+}
+
+.OVL <- function(mi, sdi, mj, sdj, limit.level = 1, reject.pct = 0.1) {
+  min.fifj <- function(x, mi, mj, sdi, sdj) {
+    fi <- dnorm(x, mean = mi, sd = sdi)
+    fj <- dnorm(x, mean = mj, sd = sdj)
+    pmin(fi, fj)
+  }
+  ## expected percentage by which each sample distribution overlaps the other
+  rs <- stats::integrate(min.fifj, -Inf, Inf, mi, mj, sdi, sdj)
+  ## calculate average distance (dij) between clusters
+  dij <- mi - mj
+  ## perform an ad hoc equivalence test on the two clusters:
+  ## calculate the lower 1sigma bound of the high-association cluster.
+  ## calculate the upper 1sigma bound of the low-association cluster.
+  ## reject, if this bounds overlap by more than 10% of the average distance
+  ## (dij) between clusters.
+  ovl <- ((mj + limit.level*sdj) - (mi - limit.level*sdi))/dij
+  reject <- ovl > reject.pct
+  ## plot
+  xs <- seq(mj - 3*sdj, mi + 3*sdi, 0.01)
+  f1 <- dnorm(xs, mean = mi, sd = sdi)
+  f2 <- dnorm(xs, mean = mj, sd = sdj)
+  ys <- min.fifj(xs, mi, mj, sdi, sdj)
+  xs2 <- c(xs, xs[1])
+  ys2 <- c(ys, ys[1])
+  grDevices::pdf(NULL, bg = "white")
+  grDevices::dev.control(displaylist = "enable")
+  plot(xs, f1, type = "n", ylim = c(0, max(f1, f2)),
+       xlab = "association", ylab = "density", bg = "white")
+  lines(xs, f1, lty = "dashed", lwd = 2)
+  lines(xs, f2, lty = "dotted", lwd = 2)
+  polygon(xs2, ys2, col = "gray80", density = 20)
+  abline(v = c(mi - limit.level*sdi), lty = "dashed", col = "red")
+  abline(v = c(mj + limit.level*sdj), lty = "dotted", col = "red")
+  abline(v = mi, lty = "dashed", col = "green")
+  abline(v = mj, lty = "dotted", col = "green")
+  p.base <- grDevices::recordPlot()
+  invisible(grDevices::dev.off())
+
+  list(reject = reject, dij = dij, ovl = ovl, ovl.coef = rs$value, ovl.plot = p.base)
 }
 
 findCutpoint <- function(d, m) {
