@@ -286,6 +286,14 @@ DR2S_$set("public", "runPartitionLongreads", function() {
       cowplot::save_plot(plotpath, attr(spos, "snp.association"),
                          base_height = base_height/2.4, dpi = 150,
                          base_aspect_ratio = 3)
+      ## if exists: cluster overlap
+      if (has_attr(spos, "ovl.plot")) {
+        plotpath <- file.path(self$getOutdir(), "plot.clustovl.png")
+        grDevices::png(filename = plotpath, width = 5, height = 4.25, units = "in",
+                       res = 150, bg = "white")
+        print(attr(spos, "ovl.plot"))
+        grDevices::dev.off()
+      }
     }
 
     flog.info("%sPartition %s longreads over %s SNPs", indent(), NROW(mat0), NCOL(mat0), name = "info")
