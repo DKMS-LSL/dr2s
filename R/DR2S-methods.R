@@ -552,7 +552,6 @@ DR2S_$set("public", "runMapIter", function(opts = list(), ...) {
   # debug
   # self <- dr2s
   # opts = list()
-  # plot = TRUE
   ## If reporting is already done exit safely
   if (.checkReportStatus(self)) return(invisible(self))
 
@@ -582,7 +581,6 @@ DR2S_$set("public", "runMapIter", function(opts = list(), ...) {
   ## Mapper
   mapfun <- self$getLrdMapFun()
 
-  # iterations <- 2
   # iteration <- 1
   # iteration <- 2
   for (iteration in seq_len(iterations)) {

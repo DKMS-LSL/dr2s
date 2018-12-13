@@ -37,30 +37,33 @@ polymorphicPositions.pileup <- function(x, threshold = NULL) {
   polymorphicPositions(consmat(x, freq = TRUE), threshold = threshold)
 }
 
-.ambiguousPositions <- function(x, threshold)
+.ambiguousPositions <- function(x, threshold, ignoreInsertions)
   UseMethod(".ambiguousPositions")
 
-.ambiguousPositions.NULL <- function(x, threshold) {
+.ambiguousPositions.NULL <- function(x, threshold, ignoreInsertions) {
   integer(0)
 }
 
-.ambiguousPositions.consmat <- function(x, threshold) {
+.ambiguousPositions.consmat <- function(x, threshold, ignoreInsertions) {
   f_ <- function(row) {
     sum(row > threshold) > 1L
   }
-  ## make sure to ignore insertions!
-  x[, "+"] <- 0
+  if (ignoreInsertions) {
+    ## make sure to ignore insertions!
+    x[, "+"] <- 0
+  }
   x <- if (!is.freq(x)) {
     sweep(x, 1, n(x), `/`)
   } else x
   unname(which(apply(x, 1, f_)))
 }
 
-.ambiguousPositions.pileup <- function(x, threshold = NULL) {
+.ambiguousPositions.pileup <- function(x, threshold = NULL, ignoreInsertions = TRUE) {
   if (is.null(threshold)) {
     threshold <- x$threshold
   }
-  .ambiguousPositions(consmat(x, freq = TRUE), threshold = threshold)
+  .ambiguousPositions(
+    consmat(x, freq = TRUE), threshold = threshold, ignoreInsertions = ignoreInsertions)
 }
 
 .selectAssociatedPolymorphicPositions <- function(mat,

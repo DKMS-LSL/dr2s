@@ -79,7 +79,7 @@ pileup <- function(bamfile, reffile, readtype, ..., pParam) {
 
 .pileupFindInsertionPositions_ <- function(x, threshold = 0.20) {
   cm  <- consmat(x, freq = TRUE)
-  pos <- .ambiguousPositions(cm, threshold = threshold)
+  pos <- .ambiguousPositions(cm, threshold = threshold, ignoreInsertions = FALSE)
   pos[cm[pos, "+"] > threshold]
 }
 
