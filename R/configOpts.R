@@ -251,6 +251,11 @@ validateOpts <- function(opts) {
     msg = "<measureOfAssociation> in partitionLongreads() is not 'cramer.V' nor 'spearman'"
   )
   assert_that(
+    is.number(opts$partitionLongreads$proportionOfOverlap),
+    opts$partitionLongreads$proportionOfOverlap >= 0,
+    opts$partitionLongreads$proportionOfOverlap <= 1,
+    msg = "<proportionOfOverlap> in partitionLongreads() is not a number between 0 and 1")
+  assert_that(
     is.number(opts$partitionLongreads$minimumExpectedDifference),
     opts$partitionLongreads$minimumExpectedDifference >= 0,
     opts$partitionLongreads$minimumExpectedDifference <= 1,
