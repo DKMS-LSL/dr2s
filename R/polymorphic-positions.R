@@ -173,6 +173,7 @@ polymorphicPositions.pileup <- function(x, threshold = NULL) {
   ## @param ...minimumExpectedDifference The absolute difference in mean association
   ##   between clusters that must be exceeded to accept the clusters as a secondary
   ##   check performed after the equivalence test
+  # sigmaLevel = 1
   assert_that(has_attr(dist, "method"))
   indent <- list(...)$indent %||% indentation()
   sigmaLevel <- list(...)$sigmaLevel %||% 1
@@ -222,7 +223,7 @@ polymorphicPositions.pileup <- function(x, threshold = NULL) {
       ## perform yet another test to see if the putative high-association SNPs
       ## are likely to differ by a location shift within the gene. If this happens,
       ## it is quite likely that one cluster is a local high linkage block.
-      if (.locationShift(h, l, p.value = 0.001)) {
+      if (.locationShift(h, l)) {
         flog.info("%sReject SNP clusters: significant location shift.",
                   indent(), name = "info")
         selected.snps <- c(h, l)
@@ -241,11 +242,13 @@ polymorphicPositions.pileup <- function(x, threshold = NULL) {
             dij = ovl$dij, ovl = ovl$ovl, ovl.coef = ovl$ovl.coef, ovl.plot = ovl$ovl.plot)
 }
 
-.locationShift <- function(i, j, p.value = 0.001) {
+.locationShift <- function(i, j, p.value = NULL) {
   i  <- as.numeric(i)
   j  <- as.numeric(j)
   ni <- length(i)
   nj <- length(j)
+  if (is.null(p.value))
+    p.value <- (ni + nj)^-log(ni + nj)
   ## we test the hypothesis that a randomly selected location from set i will be less
   ## or greater than a rondomly selected location from set j (Wilcoxon rank-sum test)
   rij <- rank(c(i, j))
