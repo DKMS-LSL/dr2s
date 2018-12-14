@@ -1,3 +1,9 @@
+# DR2S 0.0.6
+
+* improved identification of highly associated polymorphic positions.
+* addition of diagnistic plots `plot.mclust.png` and `plot-mclust.ovl.png`.
+* minor bugfixes.
+
 # DR2S 0.0.5
 
 * implement a JSON-based configuration model and expand configuration options
@@ -6,7 +12,7 @@
 * add optional restriction of partitioning to correlated (i.e., in-phase) SNPs
   for the lonread-only workflow.
 * add correlogram and association plots.
-* add a dedictaed longread-only pipeline.
+* add a dedicated longread-only pipeline.
 * include standard reference data for HLA.
 * move from pdf to png for plots.
 * cleanup of dependencies.
