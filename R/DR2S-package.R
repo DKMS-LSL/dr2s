@@ -5,8 +5,8 @@
 #' sequencing technologies
 #'
 #' @docType package
-#' @name DR2S
-#' @useDynLib DR2S
+#' @name DR2Sdevel
+#' @useDynLib DR2Sdevel
 #' @import assertthat
 #' @import futile.logger
 #' @import ggplot2
