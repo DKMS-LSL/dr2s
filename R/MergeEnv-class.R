@@ -100,7 +100,7 @@ MergeEnv_$set("public", "init", function(hapEnv) {
   apos <- foreach(rt = c("LR", "SR"), .combine = c) %do% {
     # threshold <- ifelse(rt == "LR", max(c(threshold, 0.2)), threshold)
     # rt = "LR"
-    .ambiguousPositions(envir[[rt]], self$threshold)
+    .ambiguousPositions(envir[[rt]], self$threshold, TRUE)
   }
   apos <- unique(sort(apos))
   envir$POSit = itertools::ihasNext(iterators::iter(apos))

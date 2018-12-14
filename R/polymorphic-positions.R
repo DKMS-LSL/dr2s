@@ -37,55 +37,56 @@ polymorphicPositions.pileup <- function(x, threshold = NULL) {
   polymorphicPositions(consmat(x, freq = TRUE), threshold = threshold)
 }
 
-.ambiguousPositions <- function(x, threshold)
+.ambiguousPositions <- function(x, threshold, ignoreInsertions)
   UseMethod(".ambiguousPositions")
 
-.ambiguousPositions.NULL <- function(x, threshold) {
+.ambiguousPositions.NULL <- function(x, threshold, ignoreInsertions) {
   integer(0)
 }
 
-.ambiguousPositions.consmat <- function(x, threshold) {
+.ambiguousPositions.consmat <- function(x, threshold, ignoreInsertions) {
   f_ <- function(row) {
     sum(row > threshold) > 1L
   }
-  ## make sure to ignore insertions!
-  x[, "+"] <- 0
+  if (ignoreInsertions) {
+    ## make sure to ignore insertions!
+    x[, "+"] <- 0
+  }
   x <- if (!is.freq(x)) {
     sweep(x, 1, n(x), `/`)
   } else x
   unname(which(apply(x, 1, f_)))
 }
 
-.ambiguousPositions.pileup <- function(x, threshold = NULL) {
+.ambiguousPositions.pileup <- function(x, threshold = NULL, ignoreInsertions = TRUE) {
   if (is.null(threshold)) {
     threshold <- x$threshold
   }
-  .ambiguousPositions(consmat(x, freq = TRUE), threshold = threshold)
+  .ambiguousPositions(
+    consmat(x, freq = TRUE), threshold = threshold, ignoreInsertions = ignoreInsertions)
 }
 
 .selectAssociatedPolymorphicPositions <- function(mat,
-                                                  method.assoc = "cramer.V",
-                                                  method.clust = "mclust",
+                                                  measureOfAssociation = "cramer.V",
+                                                  proportionOfOverlap = 1/3,
                                                   minimumExpectedDifference = 0.06,
                                                   noSelect = FALSE,
                                                   resample = NULL,
                                                   ...) {
-  method.assoc <- match.arg(method.assoc, c("cramer.V", "spearman", "kendall"))
-  method.clust <- match.arg(method.clust, c("mclust", "dunn"))
+  measureOfAssociation <- match.arg(measureOfAssociation, c("cramer.V", "spearman", "kendall"))
   indent <- list(...)$indent %||% indentation()
   #resample <- floor(NCOL(mat)*0.1)
-  cmat <- .associationMatrix(mat, method.assoc, resample)#, ...)
+  dist <- .associationMatrix(mat, measureOfAssociation, resample)#, ...)
   if (noSelect) {
     selected.snps <- structure(colnames(mat), classification = "1")
   } else {
     selected.snps <- .clusterPolymorphicPositions(
-      dist = cmat, method = method.clust, minimumExpectedDifference = minimumExpectedDifference,
-      indent = indent)#, ...)
+      dist, proportionOfOverlap, minimumExpectedDifference, indent = indent)#, ...)
   }
   flog.info("%sRetaining %s high-association polymorphisms", indent(), length(selected.snps), name = "info")
   ## create correlogram and association plots
-  plts <- .correlogram(dist = cmat, nm = selected.snps)
-  structure(selected.snps, snp.corr.mat = cmat,
+  plts <- .correlogram(dist, nm = selected.snps)
+  structure(selected.snps, snp.corr.mat = dist,
             snp.correlogram = plts$correlogram,
             snp.association = plts$association)
 }
@@ -133,150 +134,121 @@ polymorphicPositions.pileup <- function(x, threshold = NULL) {
   cmat
 }
 
-.clusterPolymorphicPositions <- function(dist, method = "mclust", minimumExpectedDifference = 0.05, ...) {
-  ## @param minimumExpectedDifference How much do we expect 2 clusters to differ on
-  ##   in mean Cramér's V. BIC-based clustering tends to split rather than lump
-  ##   and this is a heuristical attempt to forestall this.
-  method <- match.arg(method, c("mclust", "dunn"))
+.clusterPolymorphicPositions <- function(dist,
+                                         proportionOfOverlap = 0.1,
+                                         minimumExpectedDifference = 0.05,
+                                         ...) {
+  ## @param proportionOfOverlap We perform an equivalence test on the two clusters:
+  ##   calculate the lower 1-sigma bound of the high-association cluster i.
+  ##   calculate the upper 1-sigma bound of the low-association cluster j.
+  ##   reject clusters, if this bounds overlap by more than <proportionOfOverlap> of
+  ##   the average distance (dij) between clusters.
+  ## @param minimumExpectedDifference The absolute difference in mean association
+  ##   between clusters that must be exceeded to accept the clusters as a secondary
+  ##   check performed after the equivalence test
   indent <- list(...)$indent %||% indentation()
-
-  if (method == "mclust") {
-    diag(dist) <- 1
-    bic <- mclust::mclustBIC(dist, G = 1:2, verbose = FALSE)
-    mc <- mclust::Mclust(dist, x = bic, verbose = FALSE)
-    if (mc$G == 2) {
-      selected.snps <- .checkClusterMerge(dist, mc, minimumExpectedDifference, indent)
-    }
-    else if (mc$G == 1) {
-      selected.snps <- structure(names(mc$classification), classification = as.character(mc$classification))
-    }
-    attr(selected.snps, "mclustBIC") <- bic
-    attr(selected.snps, "mclust") <- mc
+  diag(dist) <- 1
+  bic <- mclust::mclustBIC(dist, G = 1:2, verbose = FALSE)
+  mc  <- mclust::Mclust(dist, x = bic, verbose = FALSE)
+  if (mc$G == 2) {
+    selected.snps <- .checkClusterMerge(
+      dist, mc, proportionOfOverlap= proportionOfOverlap, indent = indent,
+      minimumExpectedDifference = minimumExpectedDifference)
   }
-  else if (method == "dunn") {
-    ## calculate mean association of each PP too each other PP
-    dunnCutoff <- list(...)$dunnCutoff %||% 18
-    minimumMeanAssociation <- list(...)$minimumMeanAssociation %||% 0.12
-    cm <- .colMeans(dist, m = NCOL(dist), n = NROW(dist), na.rm = TRUE)
-    names(cm) <- colnames(dist)
-    ## try to split PP in a low association and a high association cluster.
-    ## evaluate using a Dunn-like index, the ratio of the largest distance
-    ## between the sorted average association (i.e., the smallest distance
-    ## between the two putative clusters) to the mean average association
-    ## (approximately the mean intra-cluster distance).
-    scm <- sort(cm)  # ranked mean association
-    dcm <- diff(scm) # ranked difference in mean association
-    c1 <- scm[1:which.max(dcm)] ## putative low association cluster
-    c2 <- scm[-(1:which.max(dcm))] ## putative high association cluster
-    dunnIndex <- max(dcm)/mean(dcm)
-    if (dunnIndex > dunnCutoff) {
-      selected.snps <- names(c2)
-      flog.info("%sInferring cluster of low association polymorphisms at Dunn index <%0.1f>",
-                indent(), dunnIndex, name = "info")
-      flog.info("%sRemoving %s low-association polymorphic positions ", indent(), length(c1), name = "info")
-    } else {
-      selected.snps <- names(cm)
-      flog.info("%sInferring no cluster of low association polymorphisms at Dunn index <%0.1f>",
-                indent(), dunnIndex, name = "info")
-    }
-    ## use minimumMeanAssociation as a hard cutoff
-    if (any(idx <- cm[selected.snps] >= minimumMeanAssociation)) {
-      selected.snps <- names(which(idx))
-      flog.info("%sRemoving %s additional polymorphic positions below minimum mean association threshold <%0.2f>", indent(),
-                sum(!idx), minimumMeanAssociation, name = "info")
-    }
+  else if (mc$G == 1) {
+    selected.snps <- structure(
+      names(mc$classification), classification = as.character(mc$classification))
   }
-
+  attr(selected.snps, "mclustBIC") <- bic
+  attr(selected.snps, "mclust") <- mc
   selected.snps
 }
 
 .checkClusterMerge <- function(dist, mc, ...) {
-  ## @param ...minimumExpectedDifference The absolute difference
-  ##   in mean association between clusters that must be exceded
-  ##   to accept the clusters as a secondary check performed after
-  ##   the equivalence test
+  ## @param proportionOfOverlap We perform an equivalence test on the two clusters:
+  ##   calculate the lower 1-sigma bound of the high-association cluster i.
+  ##   calculate the upper 1-sigma bound of the low-association cluster j.
+  ##   reject clusters, if this bounds overlap by more than <proportionOfOverlap> of
+  ##   the average distance (dij) between clusters.
+  ## @param ...minimumExpectedDifference The absolute difference in mean association
+  ##   between clusters that must be exceeded to accept the clusters as a secondary
+  ##   check performed after the equivalence test
+  # sigmaLevel = 1
   assert_that(has_attr(dist, "method"))
   indent <- list(...)$indent %||% indentation()
+  sigmaLevel <- list(...)$sigmaLevel %||% 1
+  proportionOfOverlap <- list(...)$proportionOfOverlap %||% 1/3
   minimumExpectedDifference <- list(...)$minimumExpectedDifference %||% 0.05
-  assoc.measure <- switch(attr(dist, "method"),
-                          "cramer.V" = "Cramér's V",
-                          "spearman" = "Spearman's Rho",
-                          "kendall"  = "Kendall's Tau")
+  measureOfAssociation <- switch(attr(dist, "method"),
+                                 "cramer.V" = "Cramér's V",
+                                 "spearman" = "Spearman's Rho",
+                                 "kendall"  = "Kendall's Tau")
   ##
   diag(dist) <- NA_real_
   classification <- mc$classification
   i <- names(which(classification == 1))
   j <- names(which(classification == 2))
-  ## infer mean and standard deviation for the high-association (h)
-  ## and the low-association (l) cluster
+  ## infer the high-association (h) the low-association (l) cluster
   if (length(i) == 1) {
     mi  <- mean(dist[i, ], na.rm = TRUE)
-    sdi <- sd(dist[i, ], na.rm = TRUE)
   } else {
     mi  <- mean(dist[i, i][lower.tri(dist[i, i])])
-    sdi <- sd(dist[i, i][lower.tri(dist[i, i])])
   }
   if (length(j) == 1) {
     mj  <- mean(dist[j, ], na.rm = TRUE)
-    sdj <- sd(dist[j, ], na.rm = TRUE)
   } else {
     mj  <- mean(dist[j, j][lower.tri(dist[j, j])])
-    sdj <- sd(dist[j, j][lower.tri(dist[j, j])])
   }
-  ## mi: mean association of high-association cluster
-  ## mj: mean association of low-association cluster
-  if (mi < mj) { ## mi <-> mj; i <-> j
-    tmp.mj  <- mi
-    tmp.sdj <- sdi
-    tmp.j   <- i
-    mi  <- mj
-    sdi <- sdj
-    i   <- j
-    mj  <- tmp.mj
-    sdj <- tmp.sdj
-    j   <- tmp.j
-  }
-  ## perform an ad hoc equivalence test on the two clusters
-  ovl <- .OVL(mi, sdi, mj, sdj, limit.level = 1, reject.pct = 0.1)
+  h <- list(i, j)[[which.max(c(mi, mj))]]
+  l <- list(i, j)[[which.min(c(mi, mj))]]
+  ## test for equivalence of within-(h)-cluster association and
+  ## between-(h,l)-cluster association
+  muW <- mean(dist[h, h][lower.tri(dist[h, h])])
+  siW <- sd(dist[h, h][lower.tri(dist[h, h])]) %|na|% 0.001
+  muB <- mean(dist[h, l])
+  siB <- siBhl <- sd(dist[h, l])
+  ovl <- .OVL(muW, siW, muB, siB, sigmaLevel = sigmaLevel, proportionOfOverlap = proportionOfOverlap)
   if (ovl$reject) {
-    flog.info("%sReject SNP clusters: mean difference <%0.3f> %s with <%0.2f%%> overlapping one-sigma limits",
-              indent(), ovl$dij, assoc.measure, 100*ovl$ovl, name = "info")
-    selected.snps <- c(i, j)
+    flog.info("%sReject SNP clusters: mean difference <%0.3f> %s with <%0.2f%%> overlapping %s-sigma limits",
+              indent(), ovl$dij, measureOfAssociation, 100*ovl$ovl, sigmaLevel, name = "info")
+    selected.snps <- c(h, l)
   } else {
     ## perform a secondary test to see if dij is less than the minimum expected
     ## absolute difference between mi and mj
     if (ovl$dij < minimumExpectedDifference) {
       flog.info("%sReject SNP clusters: mean difference <%0.3f> %s does not exceed threshold <%s>",
-                indent(), ovl$dij, assoc.measure, minimumExpectedDifference, name = "info")
-      selected.snps <- c(i, j)
+                indent(), ovl$dij, measureOfAssociation, minimumExpectedDifference, name = "info")
+      selected.snps <- c(h, l)
     } else {
       ## perform yet another test to see if the putative high-association SNPs
       ## are likely to differ by a location shift within the gene. If this happens,
       ## it is quite likely that one cluster is a local high linkage block.
-      if (.locationShift(i, j, p.value = 0.001)) {
+      if (.locationShift(h, l)) {
         flog.info("%sReject SNP clusters: significant location shift.",
                   indent(), name = "info")
-        selected.snps <- c(i, j)
+        selected.snps <- c(h, l)
       } else {
         flog.info("%sAccept SNP clusters with mean difference <%0.3f> %s",
-                  indent(), ovl$dij, assoc.measure, name = "info")
-        selected.snps <- i
+                  indent(), ovl$dij, measureOfAssociation, name = "info")
+        selected.snps <- h
       }
     }
   }
 
   o1 <- order(as.numeric(selected.snps))
-  o2 <- order(as.numeric(c(i, j)))
+  o2 <- order(as.numeric(c(h, l)))
   structure(selected.snps[o1],
-            classification = c(rep("1", length(i)), rep("2", length(j)))[o2],
+            classification = c(rep("1", length(h)), rep("2", length(l)))[o2],
             dij = ovl$dij, ovl = ovl$ovl, ovl.coef = ovl$ovl.coef, ovl.plot = ovl$ovl.plot)
 }
 
-.locationShift <- function(i, j, p.value = 0.001) {
+.locationShift <- function(i, j, p.value = NULL) {
   i  <- as.numeric(i)
   j  <- as.numeric(j)
   ni <- length(i)
   nj <- length(j)
+  if (is.null(p.value))
+    p.value <- (ni + nj)^-log(ni + nj)
   ## we test the hypothesis that a randomly selected location from set i will be less
   ## or greater than a rondomly selected location from set j (Wilcoxon rank-sum test)
   rij <- rank(c(i, j))
@@ -291,15 +263,15 @@ polymorphicPositions.pileup <- function(x, threshold = NULL) {
 .correlogram <- function(dist, nm) {
   ## @param nm Names of clustered SNPs to be highlighted in the association
   ##   plot as selected.
-  method.assoc <- attr(dist, "method")
+  measureOfAssociation <- attr(dist, "method")
   ## Set up labels
-  if (method.assoc == "cramer.V") {
+  if (measureOfAssociation == "cramer.V") {
     y.lab <- "Mean Cramér's V"
     legend.label <- "V"
-  } else if (method.assoc == "spearman") {
+  } else if (measureOfAssociation == "spearman") {
     y.lab <- "Mean Spearman's Rho"
     legend.label <- "rho"
-  } else if (method.assoc == "kendall") {
+  } else if (measureOfAssociation == "kendall") {
     y.lab <- "Mean Kendall's Tau"
     legend.label <- "tau"
   }
@@ -357,45 +329,48 @@ cramerV <- function(x) {
   V
 }
 
-.OVL <- function(mi, sdi, mj, sdj, limit.level = 1, reject.pct = 0.1) {
-  min.fifj <- function(x, mi, mj, sdi, sdj) {
-    fi <- dnorm(x, mean = mi, sd = sdi)
-    fj <- dnorm(x, mean = mj, sd = sdj)
-    pmin(fi, fj)
+.OVL <- function(muW, siW, muB, siB, sigmaLevel = 1, proportionOfOverlap = 1/3) {
+  min.f1f2 <- function(x, mu1, mu2, si1, si2) {
+    f1 <- dnorm(x, mean = mu1, sd = si1)
+    f2 <- dnorm(x, mean = mu2, sd = si2)
+    pmin(f1, f2)
   }
   ## expected percentage by which each sample distribution overlaps the other
-  rs <- stats::integrate(min.fifj, -Inf, Inf, mi, mj, sdi, sdj)
-  ## calculate average distance (dij) between clusters
-  dij <- mi - mj
-  ## perform an ad hoc equivalence test on the two clusters:
-  ## calculate the lower 1sigma bound of the high-association cluster.
-  ## calculate the upper 1sigma bound of the low-association cluster.
+  rs <- stats::integrate(min.f1f2, -Inf, Inf, muW, muB, siW, siB)
+  ## calculate average difference (Dwb) of within-(h)-cluster association and
+  ## between-(h,l)-cluster association:
+  Dwb <- muW - muB
+  ## perform an ad hoc equivalence test:
+  ## calculate the lower n-sigma bound of within-(h)-cluster association.
+  ## calculate the upper n-sigma bound of between-(h,l)-cluster association.
   ## reject, if this bounds overlap by more than 10% of the average distance
-  ## (dij) between clusters.
-  ovl <- ((mj + limit.level*sdj) - (mi - limit.level*sdi))/dij
-  reject <- ovl > reject.pct
+  ## (dwb) between clusters.
+  ovl <- ((muB + sigmaLevel*siB) - (muW - sigmaLevel*siW))/Dwb
+  reject <- ovl > proportionOfOverlap
   ## plot
-  xs <- seq(mj - 3*sdj, mi + 3*sdi, 0.01)
-  f1 <- dnorm(xs, mean = mi, sd = sdi)
-  f2 <- dnorm(xs, mean = mj, sd = sdj)
-  ys <- min.fifj(xs, mi, mj, sdi, sdj)
+  xs <- seq(muB - 3*siB, muW + 3*siW, 0.01)
+  f1 <- dnorm(xs, mean = muB, sd = siB)
+  f2 <- dnorm(xs, mean = muW, sd = siW)
+  ys <- min.f1f2(xs, muB, muW, siB, siW)
   xs2 <- c(xs, xs[1])
   ys2 <- c(ys, ys[1])
   grDevices::pdf(NULL, bg = "white")
   grDevices::dev.control(displaylist = "enable")
-  plot(xs, f1, type = "n", ylim = c(0, max(f1, f2)),
+  plot(xs, f1, type = "n", ylim = c(0, max(f1, f2) + 0.1*max(f1, f2)),
        xlab = "association", ylab = "density", bg = "white")
-  lines(xs, f1, lty = "dashed", lwd = 2)
-  lines(xs, f2, lty = "dotted", lwd = 2)
+  lines(xs, f1, lty = "dotted", lwd = 2) ## between cluster
+  legend(xs[which.max(f1)], max(f1), legend = "btn(h,l)cluster assoc", bty = "n", xjust = 0.5, yjust = 0)
+  lines(xs, f2, lty = "dashed", lwd = 3) ## within cluster
+  legend(xs[which.max(f2)], max(f2), legend = "wtn(h)cluster assoc", bty = "n", xjust = 0.5, yjust = 0)
   polygon(xs2, ys2, col = "gray80", density = 20)
-  abline(v = c(mi - limit.level*sdi), lty = "dashed", col = "red")
-  abline(v = c(mj + limit.level*sdj), lty = "dotted", col = "red")
-  abline(v = mi, lty = "dashed", col = "green")
-  abline(v = mj, lty = "dotted", col = "green")
+  abline(v = c(muB + sigmaLevel*siB), lty = "dotted", col = "red")
+  abline(v = c(muW - sigmaLevel*siW), lty = "dashed", col = "red")
+  abline(v = muB, lty = "dotted", col = "green")
+  abline(v = muW, lty = "dashed", col = "green")
   p.base <- grDevices::recordPlot()
   invisible(grDevices::dev.off())
 
-  list(reject = reject, dij = dij, ovl = ovl, ovl.coef = rs$value, ovl.plot = p.base)
+  list(reject = reject, dij = Dwb, ovl = ovl, ovl.coef = rs$value, ovl.plot = p.base)
 }
 
 findCutpoint <- function(d, m) {

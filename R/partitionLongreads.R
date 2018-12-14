@@ -21,12 +21,12 @@
 #' @export
 #' @examples
 #' ###
-partitionReads <- function(x, distAlleles = 2, sortBy = "count", threshold = 0.2,
+partitionReads <- function(x, distAlleles = 2, selectAllelesBy = "count", threshold = 0.2,
                            clMethod = "ward.D", minLen = 0.5, skipGapFreq = 2/3,
                            deepSplit = 1, minClusterSize = 15, ...) {
 
   indent <- list(...)$indent %||% indentation()
-  sortBy <- match.arg(sortBy, c("count", "distance"))
+  selectAllelesBy <- match.arg(selectAllelesBy, c("count", "distance"))
   # get SNPs
   ppos <- colnames(x)
   badPpos <- c()
@@ -90,10 +90,10 @@ partitionReads <- function(x, distAlleles = 2, sortBy = "count", threshold = 0.2
 
   if (length(hptypes) > distAlleles) {
     flog.info("%sIdentify chimeric reads/haplotypes", indent(), name = "info")
-    if (sortBy == "count") {
-      rC <- names(sort(table(subclades),
-                       decreasing = TRUE)[seq_len(distAlleles)])
-    } else if (sortBy == "distance") {
+    if (selectAllelesBy == "count") {
+      rC <- names(sort(table(subclades), decreasing = TRUE)[seq_len(distAlleles)])
+    }
+    else if (selectAllelesBy == "distance") {
       rC <- sort(.findChimeric(seqs = hpseqs, distAlleles = distAlleles))
     }
     flog.info("%sUse only clusters <%s>", indent(), comma(rC), name = "info")
@@ -112,8 +112,6 @@ partitionReads <- function(x, distAlleles = 2, sortBy = "count", threshold = 0.2
                                   NA_character_)) %>%
     dplyr::mutate(
       correct = dplyr::if_else(.data$clustclade == .data$clade, TRUE, FALSE))
-
-
 
   ## Correctly classified clades in the initial clustering
   falseClassified <- sum(!clades$correct, na.rm = TRUE)/sum(clades$correct, na.rm = TRUE)

@@ -79,6 +79,12 @@ normaliseOpts <- function(opts, pipeline = "LR") {
     ## ("cramer.V" or "spearman") to determine linkage between all polymorphic
     ## positions.
     measureOfAssociation = "cramer.V",
+    ## We perform an equivalence test on clusters of polymorhic positions:
+    ## Calculate the lower 1-sigma bound of the high-association cluster i.
+    ## Calculate the upper 1-sigma bound of the low-association cluster j.
+    ## Reject the clusters, if this bounds overlap by more than <proportionOfOverlap>
+    ## of the average distance (dij) between clusters.
+    proportionOfOverlap = 1/3,
     ## By how much do we expect 2 clusters to minimally differ in mean Cramér's V.
     ## BIC-informed model-based clustering tends to split rather than lump
     ## and this is a heuristical attempt to forestall this.
@@ -244,6 +250,11 @@ validateOpts <- function(opts) {
     opts$partitionLongreads$measureOfAssociation %in% c("cramer.V", "spearman"),
     msg = "<measureOfAssociation> in partitionLongreads() is not 'cramer.V' nor 'spearman'"
   )
+  assert_that(
+    is.number(opts$partitionLongreads$proportionOfOverlap),
+    opts$partitionLongreads$proportionOfOverlap >= 0,
+    opts$partitionLongreads$proportionOfOverlap <= 1,
+    msg = "<proportionOfOverlap> in partitionLongreads() is not a number between 0 and 1")
   assert_that(
     is.number(opts$partitionLongreads$minimumExpectedDifference),
     opts$partitionLongreads$minimumExpectedDifference >= 0,

@@ -231,6 +231,7 @@ DR2S_$set("public", "runPartitionLongreads", function() {
       exists("noGapPartitioning") && is.logical(noGapPartitioning),
       exists("selectCorrelatedPositions") && is.logical(selectCorrelatedPositions),
       exists("measureOfAssociation") && is.character(measureOfAssociation),
+      exists("proportionOfOverlap") && is.numeric(proportionOfOverlap),
       exists("minimumExpectedDifference") && is.numeric(minimumExpectedDifference),
       exists("selectAllelesBy") && is.character(selectAllelesBy),
       exists("minClusterSize") && is.numeric(minClusterSize),
@@ -269,12 +270,9 @@ DR2S_$set("public", "runPartitionLongreads", function() {
     mat <- SNPmatrix(self$absPath(bampath(self$mapInit)), ppos)
     base_height <- max(6, floor(sqrt(NCOL(mat))))
     spos <- .selectAssociatedPolymorphicPositions(
-      mat, method.assoc = measureOfAssociation,
-      method.clust = "mclust",
-      minimumExpectedDifference = minimumExpectedDifference,
-      noSelect = !selectCorrelatedPositions,
-      indent = indent)
-    mat0 <- mat[, spos[order(as.numeric(spos))]]
+      mat, measureOfAssociation, proportionOfOverlap, minimumExpectedDifference,
+      noSelect = !selectCorrelatedPositions, indent = indent)
+    mat0 <- mat[, spos[order(as.numeric(spos))], drop = FALSE]
 
     if (plot) {
       ## correlogram
@@ -288,11 +286,18 @@ DR2S_$set("public", "runPartitionLongreads", function() {
                          base_aspect_ratio = 3)
       ## if exists: cluster overlap
       if (has_attr(spos, "ovl.plot")) {
-        plotpath <- file.path(self$getOutdir(), "plot.clustovl.png")
+        plotpath <- file.path(self$getOutdir(), "plot.mclust.ovl.png")
         grDevices::png(filename = plotpath, width = 5, height = 4.25, units = "in",
                        res = 150, bg = "white")
         print(attr(spos, "ovl.plot"))
         grDevices::dev.off()
+      }
+
+      ## if exists: mclust
+      if (has_attr(spos, "mclust")) {
+        plotpath <- file.path(self$getOutdir(), "plot.mclust.png")
+        p <- factoextra::fviz_mclust(attr(spos, "mclust"))
+        cowplot::save_plot(plotpath, p, base_height = 5, dpi = 150)
       }
     }
 
@@ -302,7 +307,7 @@ DR2S_$set("public", "runPartitionLongreads", function() {
                           deepSplit = 1,
                           threshold = threshold,
                           distAlleles = distAlleles,
-                          sortBy = selectAllelesBy,
+                          selectAllelesBy = selectAllelesBy,
                           minClusterSize = minClusterSize,
                           indent = incr(indent))
 
@@ -547,7 +552,6 @@ DR2S_$set("public", "runMapIter", function(opts = list(), ...) {
   # debug
   # self <- dr2s
   # opts = list()
-  # plot = TRUE
   ## If reporting is already done exit safely
   if (.checkReportStatus(self)) return(invisible(self))
 
@@ -577,7 +581,6 @@ DR2S_$set("public", "runMapIter", function(opts = list(), ...) {
   ## Mapper
   mapfun <- self$getLrdMapFun()
 
-  # iterations <- 2
   # iteration <- 1
   # iteration <- 2
   for (iteration in seq_len(iterations)) {
