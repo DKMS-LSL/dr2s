@@ -46,7 +46,7 @@ mapReads <- function(
   #flog.info("%sSort and index", indent(), name = "info")
   bamfile <- .bamSortIndex(samfile = samfile, reffile = reffile, minMapq = minMapq)
 
-  ## NOTE: "auto" > 0 evaluates to TRUE
+  ## NOTE: "auto" > 0 evaluates to TRUE, FALSE > 0 evaluates to FALSE
   ## dots <- list()
   ## indelRate <- NULL
   if (topx > 0 && readtype != "illumina") {

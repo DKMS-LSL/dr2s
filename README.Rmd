@@ -19,6 +19,21 @@ phase-defined reference sequences for novel HLA and KIR alleles.
 **Note, that this package is still maturing. There's no guarantee yet that
 the API or the under-the-hood workings of the package won't change substantially** 
 
+## Installation
+
+This package is only available on GitHub for now. It depends on a local installation
+of `samtools`, `bwa` (>= 0.7.11), python and the pysam library, and a C++11
+compliant compiler.
+
+For longreads, an alternative mapper with better results is `minimap2`, the successor
+of `bwa` For installation over git via SSH, you need to have installed libssh2-1 and libssh2-1-dev prior to installing git2r/devtools or reinstall the package afterwards. 
+
+```r
+install.packages("devtools")  # if not already installed
+library("devtools")
+devtools::install_github("gschofl/DR2S)
+```
+
 ## Workflow
 
 ### Input and output
@@ -74,8 +89,7 @@ x <- InitDR2S(createDR2SConf(
 ))
 ```
 
-This call generates an `R6` object of class `DR2S` that encapsulates all data
-and methods for all subsequent analysis steps.
+#### Arguments
 
 * `sample`: A unique sample identifier. The FASTQs associated with a sample need
   need to be prefixed with this identifier.
@@ -98,7 +112,13 @@ and methods for all subsequent analysis steps.
   included  in the fasta headers of the final sequences and stored in the
   config file.
 * `opts`: (optional) Named list of arguments to the DR2S pipeline steps. They
-  will be stored in the config file.
+  will be stored in the config file. See below for a detailed descriptions of
+  options that control the DR2S pipeline.
+
+This call generates an `R6` object of class `DR2S` that encapsulates all data
+and methods for all subsequent analysis steps.
+
+#### Pipeline
 
 An analysis proceeds in a number of steps that can be chained together
 using the pipe `%>%`:
@@ -111,7 +131,8 @@ x %>%
   partitionShortreads() %>%
   mapFinal() %>%
   polish() %>%
-  report()
+  report() %>% 
+  cache()
 ```
 
 Alternatively, the complete pipeline can be run in one go:
@@ -122,41 +143,44 @@ x$runPipeline()
 The individual steps perform the following analyses:
 
 * `mapInit()`:
-    1. Map the shortreads against an initial reference. Construct a consensus.
-    2. Perform an optional second mapping of shortreads to the consensus
-    sequence from the previous step. This expands the reference and may be
-    necessary if there are extensive repeat structures like microsatellites in
-    your sequence. Construct a consensus.
-    3. A final mapping of shortreads to the consensus from the previous step.
-    4. Map the longreads to the consensus from the previous step..
+    1. Map the shortreads (SR) against an initial reference. Construct a tentative 
+       consensus.
+    2. (optional) Perform a second SR mapping to the consensus sequence from the
+       previous step. This expands the reference and may be necessary if there are
+       extensive repeat structures like microsatellites in your sequence. Construct a
+       tentative consensus.
+    3. A final SR mapping to the consensus from the previous step.
+    4. A longread (LR) mapping to the consensus from the previous step.
 * `partitionLongreads()`:
-    1. Construct a SNP matrix from the longreads at polymorphic positions in
-    shortreads. 
-    2. Perform hierarchical clustering, 
-    3. Chimera detection and 
-    4. Assign a haplotype and score to each read.
-    5. Pick longreads that best represent the allele haplotypes based on the
-    _haplotype score_ from the previous step.
-    6. Extract the chosen longreads from the alignment file and write the data
-    as FASTQs into subdirectories for each haplotype.
+    1. Infer polymorphic positions from the SR mapping performed in the previous
+       step.
+    2. Construct a SNP matrix from the LR mapping at the polymorphic positions
+       infer frm the SR mapping. 
+    3. Perform hierarchical clustering the LR SNPs.
+    4. Attempt to detect chimeric reads. 
+    5. Assign a haplotype and a _haplotype score_ to each read.
+    6. Pick longreads that best represent the allele haplotypes based on the
+       _haplotype score_ from the previous step.
+    7. Extract the selected longreads from the alignment file and output the data
+       as FASTQs into subdirectories for each haplotype.
 * `mapIter()`: 
-    1. Construct a consensus sequence for each haplotype from the initial mapping
-    while using only reads that are assigned to a haplotype.
-    2. Iteratively refine the long read consensus sequences by remapping long reads
-    per haplotype to the latest haplotype consensus.
+    1. Construct a consensus sequence for each haplotype from the initial LR mapping
+       whilst using only reads that have been assigned to that haplotype.
+    2. Iteratively refine the longread consensus sequences by remapping longreads
+       per haplotype to the latest haplotype consensus.
 * `partitionShortreads()`:
     1. Partition the shortreads into haplotypes using the inferred longread
-    haplotypes and initial mapping.
+       haplotypes and the initial SR mapping.
 * `mapFinal()`:
-    1. Map the short reads against the refined long read consensus sequences.
+    1. Map the shortreads against the refined longread consensus sequences.
 * `polish()`:
-    1.Disambiguate polymorphic positions in the short read mapping. Check and 
-    report inconsistencies, insertions, deletions along the way. This should not
-    be that much with okayish seuence data 
+    1. Disambiguate polymorphic positions in the short read mapping. Check and 
+       report inconsistencies, insertions, deletions along the way. This should not
+       be that much with okayish seuence data 
 * `report()`:
     1. Report the finalised shortread-based consensus sequences as FASTA files.
-    Provide a tsv file with suspicious positions that may warrant manual inspection.
-    Report the alignment of all haplotypes.
+       Provide a tsv file with suspicious positions that may warrant manual inspection.
+       Report the alignment of all haplotypes.
 
 Throughout this process a number of diagnostic plots are produced and placed
 in the output directory for later inspection.
@@ -169,6 +193,7 @@ some manual and visual consistency checks!
 `DR2S` provides some facilities to aid checking and signing-off of finalised
 consensus sequences.
 
+#### Postprocessing
 A typical post-processing workflow may look as follows:
 
 ```{r, eval=FALSE}
@@ -218,37 +243,294 @@ report_checked_consensus(x)
 - __run_reportCheckedConsensus.sh__
    report the manually checked consensus and state that its finished and can 
    be used.
-    
-### Only longreads
-If you want to find allele sequences only based on longreads you need to skip the partitioning of shortreads.
-The longread partitioning in other steps is automatically done if `partSR` is set to `FALSE` and no shortreads are found in the datadir.
-  
-  
+   
+#### Pipeline control options
+A more fine-grained control of the DR2S pipeline is available via a `json`-based
+config file. This config file can be created externally and read in using the
+`readDR2Sconf()` function. Alternatively the config file is created by the
+`createDR2Sconf()` function. Pipeline control options are set using the `opts`
+argument in `createDR2Sconf()`, e.g.:
+
 ```{r, eval=FALSE}
-x %>% 
+conf <- createDR2SConf(
+  sample = "ID12912701",
+  locus = "A*01:01:01:01",
+  longreads = list(dir = "pacbio", type = "pacbio", mapper = "minimap"),
+  shortreads = list(dir = "illumina", type = "illumina", mapper = "bwamem"),
+  datadir = "~/dr2s_data",
+  outdir = "~/dr2s_data/output",
+  opts = list(
+    mapInit = list(topx = "auto",
+                   createIgv = FALSE),
+    partitionLongreads = list(threshold = 1/5,
+                              noGapPartitioning = TRUE,
+                              selectCorrelatedPositions = TRUE,
+                              selectAllelesBy = "distance"),
+    mapIter  = list(iterations = 2),
+    mapFinal = list(createIgv = FALSE),
+    report   = list(createIgv = FALSE)
+  ))
+```
+
+The complete set of available options and their defaults are:
+```{r, eval=FALSE}
+  ##
+  ## mapInit() defaults ####
+  ##
+  mapInit = list(
+    ## <includeDeletions>: include deletions in pileup.
+    includeDeletions = TRUE,
+    ## <includeInsertions>: include insertions in pileup.
+    includeInsertions = TRUE,
+    ## <callInsertionThreshold>: if <includeInsertions == TRUE>, an insertion
+    ## needs to be at frequency <callInsertionThreshold> for it to be included
+    ## in the pileup.
+    callInsertionThreshold = 1/5,
+    ## <microsatellite>: if <pipeline == "SR">, perform a second mapping of
+    ## shortreads to the inferred reference. Set to TRUE if you suspect
+    ## microsatellites or repetitive regions in your sequence. This extends
+    ## the reference to a maximum length and enables a better mapping.
+    microsatellite = FALSE,
+    ## <forceMapping>: set to TRUE if you want to force processing of "bad"
+    ## shortreads when the distribution of coverage is heavily unequal.
+    ## Aborts the program if maximum coverage > 75 % quantile * 5.
+    forceMapping = FALSE,
+    ## <minMapq>: don't filter longreads for mapping quality unless specified.
+    ## NOTE: for shortreads <minMapq = 50> is hardcoded.
+    minMapq = 0,
+    ## <topx>: pick the x top-scoring reads. Set to an integer value to pick
+    ## a fixed number of reads. Set to "auto" to use a dynamically determined
+    ## number of reads to be selected.
+    topx = FALSE,
+    ## <pickiness>: if <topx == "auto">: <pickiness < 1>: bias towards higher
+    ## scores/less reads; <pickiness > 1>: bias towards lower scores/more reads
+    pickiness = 1,
+    ## <increasePickiness>: if <topx == "auto">: increase pickiness for the
+    ## second iteration of LR mapping
+    increasePickiness = 1,
+    ## <lowerLimit>: if <topx == "auto"> or <topx > 0>: the  minimum number
+    ## of reads to pick if available.
+    lowerLimit = 200,
+    ## <updateBackgroundModel>: estimate the indel noise in a pileup and use
+    ## this information to update the background model for PWM scoring
+    updateBackgroundModel = FALSE,
+    ## <createIgv>: subsample bam files for visualisation with IgvJs in the
+    ## DR2S shiny app.
+    createIgv = TRUE,
+    ## <plot>: generate diagnostic plots.
+    plot = TRUE
+  )
+  ##
+  ## partitionLongreads() defaults ####
+  ##
+  partitionLongreads = list(
+    ## Threshold to call a polymorphic position. A minority nucleotide frequency
+    ## below this threshold is considered noise rather than a valid polymorphism.
+    threshold = 1/5,
+    ## The expected number of distinct alleles in the sample. This should be 2
+    ## for heterozygous samples, 1 for homozygous samples may be >2 for some
+    ## KIR loci.
+    distAlleles = 2,
+    ## The minumum frequency of the gap character required to call a gap position.
+    skipGapFreq = 2/3,
+    ## Don't partition based on gaps. Useful for samples with only few SNPs but
+    ## with homopolymers. The falsely called gaps could mask the real variation.
+    ## Set to override global default.
+    noGapPartitioning = TRUE,
+    ## Correlate polymorphic positions and cluster based on the absolute
+    ## correlation coefficient. Extract positions from the cluster with the
+    ## higher absolute mean correlation coefficient. This gets rid of positions
+    ## that are not well distributed across the two alleles.
+    selectCorrelatedPositions = FALSE,
+    ## if <selectCorrelatedPositions> == TRUE, use <measureOfAssociation>
+    ## ("cramer.V" or "spearman") to determine linkage between all polymorphic
+    ## positions.
+    measureOfAssociation = "cramer.V",
+    ## We perform an equivalence test on clusters of polymorhic positions:
+    ## Calculate the lower 1-sigma bound of the high-association cluster i.
+    ## Calculate the upper 1-sigma bound of the low-association cluster j.
+    ## Reject the clusters, if this bounds overlap by more than <proportionOfOverlap>
+    ## of the average distance (dij) between clusters.
+    proportionOfOverlap = 1/3,
+    ## By how much do we expect 2 clusters to minimally differ in mean Cramér's V.
+    ## BIC-informed model-based clustering tends to split rather than lump
+    ## and this is a heuristical attempt to forestall this.
+    minimumExpectedDifference = 0.06,
+    ## If more than <distAlleles> clusters are found select clusters based on:
+    ## (1) "distance": The hamming distance of the resulting variant consensus
+    ## sequences or (2) "count": Take the clusters with the most reads as the
+    ## true alleles.
+    selectAllelesBy = "distance",
+    ## Minimum size of an allele cluster
+    minClusterSize = 20,
+    ## When selecting reads from allele clusters using a dynamic threshold:
+    ## pickiness < 1: bias towards higher scores/less reads
+    ## pickiness > 1: bias towards lower scores/more reads
+    pickiness = 1,
+    ## When selecting reads from allele clusters the minimum number of
+    ## reads to pick if available.
+    lowerLimit = 40,
+    ## Generate diagnostic plots.
+    plot = TRUE
+  )
+  ##
+  ## mapIter() defaults ####
+  ##
+  mapIter = list(
+    ## Number of <mapIter> iterations. How often are the
+    ## clustered reads remapped to updated reference sequences.
+    iterations = 1,
+    ## Minimum occupancy (1 - fraction of gap) below which
+    ## bases at insertion position are excluded from from consensus calling.
+    columnOccupancy = 2/5,
+    ## an insertion needs to be at frequency <callInsertionThreshold> for it
+    ## to be included in the pileup.
+    callInsertionThreshold = 1/5,
+    ## Generate diagnostic plots.
+    plot = TRUE
+  )
+  ##
+  ## mapFinal() defaults ####
+  ##
+  mapFinal = list(
+    ## include deletions in pileup.
+    includeDeletions = TRUE,
+    ## include insertions in pileup.
+    includeInsertions = TRUE,
+    ## an insertion needs to be at frequency <callInsertionThreshold> for it
+    ## to be included in the pileup.
+    callInsertionThreshold = 1/5,
+    ## (for shortreads only) trim softclips and polymorphic ends of reads before
+    ## the final mapping
+    trimPolymorphicEnds = FALSE,
+    ## Subsample bam files for visualisation with IgvJs in the
+    ## DR2S shiny app.
+    createIgv = TRUE,
+    ## Generate diagnostic plots.
+    plot = TRUE
+  )
+  ##
+  ## polish() defaults ####
+  ##
+  polish = list(
+    ## Threshold to call a polymorphic position. Set to override global default.
+    threshold = NULL,
+    ## Check the number of homopolymer counts. Compare the resulting sequence
+    ## with the mode value and report differences.
+    checkHpCount = TRUE,
+    ## The minimal length of a homopolymer to be checked.
+    hpCount = 10
+  )
+  ##
+  ## report() defaults ####
+  ##
+  report = list(
+    ## Maximum number of sequence letters per line in pairwise alignment.
+    blockWidth = 80,
+    ## Suppress remapping of reads against final consensus.
+    noRemap = FALSE,
+    ## Subsample bam files for visualisation with IgvJs in the
+    ## DR2S shiny app.
+    createIgv = TRUE
+  )
+```
+
+An example config file:
+```{json}
+{
+  "sampleId": "ID12912701",
+  "locus": "A",
+  "datadir": "/home/user/dr2s_data",
+  "outdir": "/home/user/dr2s_data/A/ID12912701",
+  "reference": "HLA-A*01:01:01:01",
+  "longreads": {
+    "dir": "pacbio",
+    "type": "pacbio",
+    "mapper": "minimap"
+  },
+  "shortreads": {
+    "dir": "illumina",
+    "type": "illumina",
+    "mapper": "bwamem"
+  },
+  "pipeline": "SR",
+  "opts": {
+    "mapInit": {
+      "includeDeletions": true,
+      "includeInsertions": true,
+      "callInsertionThreshold": 0.2,
+      "microsatellite": true,
+      "forceMapping": false,
+      "minMapq": 0,
+      "topx": false,
+      "pickiness": 1,
+      "increasePickiness": 1,
+      "lowerLimit": 200,
+      "updateBackgroundModel": false,
+      "createIgv": false,
+      "plot": true
+    },
+    "partitionLongreads": {
+      "threshold": 0.2,
+      "distAlleles": 2,
+      "skipGapFreq": 0.6667,
+      "noGapPartitioning": true,
+      "selectCorrelatedPositions": false,
+      "measureOfAssociation": "cramer.V",
+      "proportionOfOverlap": 0.3333,
+      "minimumExpectedDifference": 0.06,
+      "selectAllelesBy": "distance",
+      "minClusterSize": 20,
+      "pickiness": 1,
+      "lowerLimit": 40,
+      "plot": true
+    },
+    "mapIter": {
+      "iterations": 2,
+      "columnOccupancy": 0.4,
+      "callInsertionThreshold": 0.2,
+      "plot": true
+    },
+    "mapFinal": {
+      "includeDeletions": true,
+      "includeInsertions": true,
+      "callInsertionThreshold": 0.2,
+      "trimPolymorphicEnds": false,
+      "createIgv": false,
+      "plot": true
+    },
+    "polish": {
+      "checkHpCount": true,
+      "hpCount": 10
+    },
+    "report": {
+      "blockWidth": 80,
+      "noRemap": false,
+      "createIgv": false
+    }
+  },
+  "format": "json"
+}
+```
+
+### Longread-only workflow _DR2S-LR_ ###
+If you want to find allele sequences only based on longreads you just need to set
+`shortreads = NULL` in `createDR2SConf()` and skip the the `partitionShortreads()`
+step in the DR2S pipeline.
+
+```{r, eval=FALSE}
+x <- InitDR2S(createDR2SConf(
+  sample = "ID12912701",
+  locus = "DPB1",
+  longreads = list(dir = "pacbio", type = "pacbio", mapper = "minimap"),
+  datadir = "~/dr2s_data",
+  outdir = "~/dr2s_data/output"
+)) %>% 
   mapInit() %>%
-  partition_haplotypes() %>%
-  split_reads_by_haplotype() %>%
-  extract_fastq() %>%
+  partitionLongreads() %>%
   mapIter() %>%
   mapFinal() %>%
   polish() %>%
-  report()
-```
-
-## Installation
-
-This package is only available via gitlab now. It depends on a local installation
-of `samtools`, `bwa` (>= 0.7.11), python and the pysam library, and a C++11
-compliant compiler.
-An alternative mapper with better results is `minimap2`, a successor of `bwa`
-For installation over git via SSH, you need to have installed libssh2-1 and libssh2-1-dev prior to install git2r/devtools or reinstall the package afterwards. You do also need to have set up your ssh key in gitlab.
-Otherwise you need to give your gitlab password in plain.
-
-```r
-install.packages("devtools")  # if not already installed
-library("devtools")
-install_git("git@srvddgit01.labor.local:rlib/IPDdata.git")
-install_git("git@srvddgit01.labor.local:rlib/hlatools.git")
-install_git("git@srvddgit01.labor.local:sklas/gDR2S.git")
+  report() %>% 
+  cache()
 ```
