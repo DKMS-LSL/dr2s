@@ -83,7 +83,7 @@ readDR2SConf <- function(configFile, format = "auto") {
   }
   ## set defaults as necessary
   conf["datadir"] <- conf$datadir %||% normalizePath(".", mustWork = TRUE)
-  conf["outdir"] <- .cropOutdir(conf)
+  # conf["outdir"] <- .cropOutdir(conf)
   conf["format"] <- if (format == "auto") format0 else format
   conf$longreads <- conf$longreads %||% list(dir = "pacbio", type = "pacbio", mapper = "minimap")
   if (is.null(conf$shortreads)) {
@@ -193,13 +193,15 @@ expandDR2SConf <- function(conf) {
 }
 
 updateDR2SConf <- function(conf0, lrd, sampleId, sample) {
-  conf0$datadir <- normalizePath(conf0$datadir, mustWork = TRUE)
-  conf0$outdir  <- normalizePath(conf0$outdir, mustWork = FALSE)
-  conf0$longreads <- lrd
-  conf0$sampleId  <- sampleId
-  sample$distAlleles <- NULL
-  conf0["reference"] <- sample$reference %||% conf0$reference %||% list(NULL)
-  sample$reference <- NULL
+  conf0$datadir      <- normalizePath(conf0$datadir, mustWork = TRUE)
+  conf0$longreads    <- lrd
+  conf0$sampleId     <- sampleId
+  conf0$reference    <- sample$reference %||% conf0$reference %||% list(NULL)
+  conf0$locus        <- sample$locus
+  conf0$outdir       <- normalizePath(.cropOutdir(conf0), mustWork = TRUE)
+  sample$sampleId    <- NULL
+  sample$reference   <- NULL
+  sample$locus       <- NULL
   ## add overides if they exist
   conf1 <- mergeList(conf0, sample, update = TRUE)
   list(normaliseDR2SConf(conf1))
@@ -313,7 +315,7 @@ normaliseDR2SConf <- function(conf) {
                           "> in config"))
   conf <- structure(compact(conf[ORDERED_CONF_FIELDS()]), class = c("DR2Sconf", "list"))
   conf$datadir <- normalizePath(conf$datadir, mustWork = TRUE)
-  conf$outdir  <- normalizePath(conf$outdir, mustWork = FALSE)
+  conf$outdir <- normalizePath(.cropOutdir(conf), mustWork = TRUE)
 
   ## Assert longreads
   conf$longreads <- normaliseLongreads(conf$longreads)
