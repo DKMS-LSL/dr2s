@@ -6,15 +6,15 @@ mapInit.DR2S <- function(x, opts = list(), ...) {
 }
 
 DR2S_$set("public", "runMapInit", function(opts = list(), ...) {
-  # # debug
+  # debug
   # opts = list()
   # library(assertthat)
-  # library(ggplot2)
-  # library(S4Vectors)
-  # library(Rsamtools)
   # library(foreach)
   # library(futile.logger)
+  # library(ggplot2)
   # library(cowplot)
+  # library(S4Vectors)
+  # library(Rsamtools)
   # self <-dr2s
   # self <- mapper
 
@@ -908,17 +908,16 @@ DR2S_$set("public", "runMapFinal", function(opts = list(), ...) {
     plotRows  <- if (self$hasShortreads()) 2 else 1
     ## readtype = "LR"
     plotlist <- foreach(readtype = readtypes) %do% {
-      suppressWarnings(self$plotMapFinalSummary(iteration = "final",
-                       readtype = readtype, thin = 0.25, width = 20))
+      suppressWarnings(self$plotMapFinalSummary(readtype = readtype, thin = 0.25, width = 20))
     }
-    p <- cowplot::plot_grid(plotlist = plotlist, nrow = plotRows, labels = readtypes)
+    p <- cowplot::plot_grid(plotlist = plotlist, nrow = plotRows, labels = readtypes, hjust = -0.25)
     cowplot::save_plot(p, dpi = 150, filename = self$absPath("plot.mapFinal.png"),
-                       base_width = 12*length(hptypes),
-                       base_height = 3*length(readtypes),
+                       base_width = 6*plotRows*length(hptypes),
+                       base_height = 6/plotRows*length(readtypes),
                        title = dot(c(self$getLocus(), self$getSampleId())))
     cowplot::save_plot(p, filename = self$absPath(".plots/plot.mapFinal.svg"),
-                       base_width = 12*length(hptypes),
-                       base_height = 3*length(readtypes))
+                       base_width = 6*plotRows*length(hptypes),
+                       base_height = 6/plotRows*length(readtypes))
   }
 
   ## set mapFinal runstats

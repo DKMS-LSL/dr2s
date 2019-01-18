@@ -797,20 +797,20 @@ DR2S_ <- R6::R6Class(
       cowplot::plot_grid(plotlist = plotlist, labels = hptypes)
     },
     ##
-    plotMapFinalSummary = function(readtype, thin = 0.2, width = 10,
-                                   iteration = "final") {
+    plotMapFinalSummary = function(readtype, thin = 0.2, width = 10) {
       hptypes <- self$getHapTypes()
       ## hp = "A"
       plotlist <- foreach(hp = hptypes) %do% {
-        tag <- self$getMapTag(iter = iteration, group = hp, ref = readtype)
+        tag <- self$getMapTag(iter = "final", group = hp, ref = readtype)
         ref <- readtype %<<% hp
         self$plotGroupCoverage(group = hp, ref = readtype,
-                               iteration = iteration, threshold = NULL,
+                               iteration = "final", threshold = NULL,
                                range = NULL, thin = thin,
                                width = width, label = tag)
       }
-
-      cowplot::plot_grid(plotlist = plotlist, labels = hptypes)
+      nrow <- if (self$hasShortreads()) 1 else 2
+      cowplot::plot_grid(plotlist = plotlist, labels = hptypes, nrow = nrow,
+                         hjust = -2.5)
     },
     ##
     plotSeqLogo = function(ppos = NULL, pwm = NULL) {

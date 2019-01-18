@@ -14,43 +14,59 @@ normaliseOpts <- function(opts, pipeline = "LR") {
   ## mapInit() defaults ####
   ##
   opts0$mapInit <- compact(list(
-    ## include deletions in pileup.
+    ##
+    ## <includeDeletions>: include deletions in pileup.
     includeDeletions = TRUE,
-    ## include insertions in pileup.
+    ##
+    ## <includeInsertions>: include insertions in pileup.
     includeInsertions = TRUE,
-    ## an insertion needs to be at frequency <callInsertionThreshold> for it
-    ## to be included in the pileup.
+    ##
+    ## <callInsertionThreshold>: if <includeInsertions == TRUE>, an insertion
+    ## needs to be at frequency <callInsertionThreshold> for it to be included
+    ## in the pileup.
     callInsertionThreshold = 1/5,
-    ## Perform a second mapping of shortreads to the inferred reference.
-    ## Set to TRUE if you suspect microsatellites or other repetitive regions
-    ## in your sequence. Usually extends the reference to a maximum length
-    ## and enables a better mapping.
+    ##
+    ## <microsatellite>: if <pipeline == "SR">, perform a second mapping of
+    ## shortreads to the inferred reference. Set to TRUE if you suspect
+    ## microsatellites or repetitive regions in your sequence. This extends
+    ## the reference to a maximum length and enables a better mapping.
     microsatellite = FALSE,
-    ## set to TRUE if you want to force processing of "bad" shortreads, i.e.
-    ## when the distribution of coverage is heavily unequal. Aborts the program
-    ## if maximum coverage > 75 % quantile * 5.
+    ##
+    ## <forceMapping>: set to TRUE if you want to force processing of "bad"
+    ## shortreads when the distribution of coverage is heavily unequal.
+    ## Aborts the program if maximum coverage > 75 % quantile * 5.
     forceMapping = FALSE,
-    ## don't filter for mapping quality unless specified.
-    ## for <shortreads> we hardcode <minMapq = 50>
+    ##
+    ## <minMapq>: don't filter longreads for mapping quality unless specified.
+    ## NOTE: for shortreads <minMapq = 50> is hardcoded.
     minMapq = 0,
-    ## Pick x top-scoring reads.
-    topx = 0,
-    ## if picking x top-scoring reads using a dynamic threshold:
-    ## pickiness < 1: bias towards higher scores/less reads
-    ## pickiness > 1: bias towards lower scores/more reads
+    ##
+    ## <topx>: pick the x top-scoring reads. Set to an integer value to pick
+    ## a fixed number of reads. Set to "auto" to use a dynamically determined
+    ## number of reads to be selected.
+    topx = FALSE,
+    ##
+    ## <pickiness>: if <topx == "auto">: <pickiness < 1>: bias towards higher
+    ## scores/less reads; <pickiness > 1>: bias towards lower scores/more reads
     pickiness = 1,
-    ## increase pickiness for the second iteration of LR mapping
+    ##
+    ## <increasePickiness>: if <topx == "auto">: increase pickiness for the
+    ## second iteration of LR mapping
     increasePickiness = 1,
-    ## when picking x top-scoring reads the  minimum number of
-    ## reads to pick if available.
+    ##
+    ## <lowerLimit>: if <topx == "auto"> or <topx > 0>: the  minimum number
+    ## of reads to pick if available.
     lowerLimit = 200,
-    ## estimate the indel noise in a pileup and use this information to
-    ## update the background model for PWM scoring
+    ##
+    ## <updateBackgroundModel>: estimate the indel noise in a pileup and use
+    ## this information to update the background model for PWM scoring
     updateBackgroundModel = FALSE,
-    ## Subsample bam files for visualisation with IgvJs in the
+    ##
+    ## <createIgv>: subsample bam files for visualisation with IgvJs in the
     ## DR2S shiny app.
     createIgv = TRUE,
-    ## Generate diagnostic plots.
+    ##
+    ## <plot>: generate diagnostic plots.
     plot = TRUE
   ))
   ##
@@ -212,7 +228,7 @@ validateOpts <- function(opts) {
     opts$mapInit$callInsertionThreshold <= 1,
     msg = "<callInsertionThreshold> in mapInit() is not a number between 0 and 1")
   assert_that(
-    opts$mapInit$topx == "auto" || is.number(opts$mapInit$topx),
+    opts$mapInit$topx == "auto" || is.number(opts$mapInit$topx) || is.flag(opts$mapInit$topx),
     msg = "<topx> in mapInit() is not \"auto\" or a number >= 0")
   ##
   ## partitionLonreads() asserts ####
