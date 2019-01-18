@@ -237,7 +237,8 @@ createPWM <- function(msa, indelRate = NULL) {
   ## Add pseudocount
   cmat <- cmat + 1/length(msa)
   ## Normalise
-  cmat <- cmat/colSums(cmat)
+  cmat <- scale(cmat, center = FALSE, 
+                 scale = colSums(cmat))
   ## Divide by background model
   b <- DNA_PROB(gapfreq = indelRate, include = "del")
   if (!is.null(indelRate)) {
