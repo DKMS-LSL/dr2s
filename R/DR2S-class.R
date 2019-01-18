@@ -853,10 +853,17 @@ DR2S_ <- R6::R6Class(
 # Helpers -----------------------------------------------------------------
 
 findReads <- function(datadir, sampleId, locus) {
+  #sampleId <- self$getSampleId()
+  #locus <- self$getLocus()
   locus <- sub("^HLA-", "", toupper(locus))
   locus <- sub("^KIR-", "", toupper(locus))
   filePattern <- sampleId %<<% "_" %<<% locus %<<% ".+" %<<% "fast(q|a)(\\.gz)?$"
   readPath <- dir(datadir, pattern = filePattern, full.names = TRUE)
+  if (length(readPath) == 0) {
+    filePattern <- sampleId %<<% ".+" %<<% "fast(q|a)(\\.gz)?$"
+    readPath <- dir(datadir, pattern = filePattern, full.names = TRUE)
+    flog.info("Could not determine locus in fastq filename. Assuming its only %s in the shortread directory", locus)
+  }
   readPath <- readPath[grep(pattern = "^((?!_trimmed.fastq).)*$", readPath, perl = TRUE)]
   if (length(readPath) > 0) {
     normalizePath(readPath, mustWork = TRUE)

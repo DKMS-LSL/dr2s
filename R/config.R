@@ -198,7 +198,7 @@ updateDR2SConf <- function(conf0, lrd, sampleId, sample) {
   conf0$sampleId     <- sampleId
   conf0$reference    <- sample$reference %||% conf0$reference %||% list(NULL)
   conf0$locus        <- sample$locus
-  conf0$outdir       <- normalizePath(.cropOutdir(conf0), mustWork = TRUE)
+  conf0$outdir       <- normalizePath(.cropOutdir(conf0), mustWork = FALSE)
   sample$sampleId    <- NULL
   sample$reference   <- NULL
   sample$locus       <- NULL
@@ -315,7 +315,7 @@ normaliseDR2SConf <- function(conf) {
                           "> in config"))
   conf <- structure(compact(conf[ORDERED_CONF_FIELDS()]), class = c("DR2Sconf", "list"))
   conf$datadir <- normalizePath(conf$datadir, mustWork = TRUE)
-  conf$outdir <- normalizePath(.cropOutdir(conf), mustWork = TRUE)
+  conf$outdir <- normalizePath(.cropOutdir(conf), mustWork = FALSE)
 
   ## Assert longreads
   conf$longreads <- normaliseLongreads(conf$longreads)
