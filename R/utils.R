@@ -268,7 +268,7 @@ rescale <- function(x, lower, upper) {
     as.double(sub(",", ".", unlist(strsplit(out[4], ' {2,}'))[12]))
   }, FUN.VALUE = double(1))
 
-  max(sum(proc_idle_time > (100 - max_cpu_usage)) - 1, 1)
+  max(sum(proc_idle_time > (70 - max_cpu_usage)) - 1, 1)
 }
 
 .setRunstats <- function(self, name, value) {
