@@ -68,7 +68,7 @@ readDR2SConf <- function(configFile, format = "auto") {
   }
   conf <- switch(
     format0,
-    yaml = yaml::yaml.load_file(con0),
+    yaml = yaml::yaml.load_file(conf0),
     json = jsonlite::fromJSON(conf0)
   )
 
