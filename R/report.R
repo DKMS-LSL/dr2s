@@ -135,7 +135,7 @@ report.DR2S <- function(x, whichMap, ...) {
 #' Report haplotype consensus files as verified
 #'
 #' @param x  A \code{\link[=DR2S_]{DR2S}} object.
-#' @param which Which mapping do we want to update.
+#' @param map Which mapping do we want to update.
 #' @return Side effect
 #' @details
 #' \code{reportCheckedConsensus} will create a \code{checked} directory
@@ -144,8 +144,8 @@ report.DR2S <- function(x, whichMap, ...) {
 #' and a html alignment file \code{aln.\{readtype\}.\{mapper\}.checked.html}.
 #' @family DR2S mapper functions
 #' @export
-reportCheckedConsensus <- function(x, which = "mapFinal") {
-  map <- match.arg(tolower(which), c("mapfinal", "mapiter", noRemap = FALSE))
+reportCheckedConsensus <- function(x, map = "mapFinal") {
+  map <- match.arg(tolower(map), c("mapfinal", "mapiter", noRemap = FALSE))
   ending <- ifelse(length(x$getHapTypes()) == 2,
                    "psa",
                    ifelse(length(x$getHapTypes()) == 1,
@@ -203,7 +203,7 @@ reportCheckedConsensus <- function(x, which = "mapFinal") {
 #'
 #'
 #' @param x  A \code{\link[=DR2S_]{DR2S}} object.
-#' @param which Which stage of mapping to use. Either "mapFinal" (default) or
+#' @param map Which stage of mapping to use. Either "mapFinal" (default) or
 #' "mapIter".
 #' @param where Where to focus with the editor.
 #' @param editor Which editor to use. Either "xdg-open" (default) for standard
@@ -212,22 +212,28 @@ reportCheckedConsensus <- function(x, which = "mapFinal") {
 #' @return The path to the newliy created alignment file to check the polished
 #'   consensus sequences.
 #' @export
-checkAlignmentFile <- function(x, which = "mapFinal", where = 0,
+checkAlignmentFile <- function(x, map = "mapFinal", where = 0,
                                  editor = "xdg-open", openEditor = TRUE) {
-  which <- match.arg(tolower(which), c("mapfinal", "mapiter"))
+  map <- match.arg(tolower(map), c("mapfinal", "mapiter"))
   ending <- ifelse(length(x$getHapTypes()) == 2,
                    "psa",
                    ifelse(length(x$getHapTypes()) == 1,
                           "fa",
                           "msa"))
-  pairfileUnchecked <- dot(c(which, "aln", x$getLrdType(), x$getLrdMapper(), "unchecked", ending))
+  if (x$hasShortreads()) {
+    haplotypes <- "SR" %<<% x$getHapTypes()
+    readtype <- x$getSrdType()
+    mapper <-  x$getSrdMapper()
+  } else {
+    haplotypes <- "LR" %<<% x$getHapTypes()
+    readtype <- x$getLrdType()
+    mapper <-  x$getLrdMapper()
+  }
+  pairfileUnchecked <- dot(c(map, "aln", readtype, mapper, "unchecked", ending))
   pairfileUnchecked <- normalizePath(x$absPath(file.path("report", pairfileUnchecked)),
-                                     mustWork = FALSE)
-  assert_that(
-    file.exists(pairfileUnchecked),
-    is.readable(pairfileUnchecked)
-  )
-  pairfileChecked <- dot(c(which, "aln", x$getLrdType(), x$getLrdMapper(), "checked", ending))
+                                     mustWork = TRUE)
+  assert_that(is.readable(pairfileUnchecked))
+  pairfileChecked <- dot(c(map, "aln", readtype, mapper, "checked", ending))
   pairfileChecked <- normalizePath(x$absPath(file.path("report", pairfileChecked)),
                                    mustWork = FALSE)
   if (!file.exists(pairfileChecked)) {
