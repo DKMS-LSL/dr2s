@@ -112,7 +112,7 @@ DR2S_ <- R6::R6Class(
       }
       path <- file.path(self$getOutdir(), outname)
       flog.info("Caching <%s>", path, name = "info")
-      saveRDS(self$clone(deep = TRUE), file = path, compress = TRUE)
+      saveRDS(self$clone(deep = TRUE), file = path, compress = FALSE)
       invisible(self)
     },
     clear = function() {
