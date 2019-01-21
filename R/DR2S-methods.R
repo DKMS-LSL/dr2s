@@ -70,8 +70,7 @@ DR2S_$set("public", "runMapInit", function(opts = list(), ...) {
 
     reffile  <- self$absPath(conspath(SR$SR1))
     refname  <- consname(SR$SR1)
-  }
-  else {
+  } else {
     maplabel <- "mapInit1"
     mapfun   <- self$getLrdMapFun()
     readtype <- self$getLrdType()

@@ -100,7 +100,7 @@ subSampleBam <- function(bamfile, windowSize = NULL, sampleSize = 100,
   if (0.5*geneLength > windowSize) {
     windows <- seq(from = windowSize, to = geneLength, by = windowSize)
     sampledAlignmentBam <- do.call(c, lapply(windows, function(i, m, maxCov, windowSize) {
-      readMid <- start(m) + floor(windowSize/2)
+      readMid <- GenomicAlignments::start(m) + floor(windowSize/2)
       m <- m[readMid > i - windowSize & readMid < i]
       if (maxCov <= length(m)) {
         return(sample(m, maxCov))
@@ -111,7 +111,7 @@ subSampleBam <- function(bamfile, windowSize = NULL, sampleSize = 100,
   } else if (length(names(alignmentBam)) > sampleSize) {
     ## Use only longreads of desired lengths, i.e. between .9 and 1.1 of reference length if there are enough
     lens <- GenomicAlignments::qwidth(alignmentBam)
-    sampledAlignmentBam <- alignmentBam[lens > 0.9 * geneLength & lens < 1.1 * geneLength]
+    sampledAlignmentBam <- sample(alignmentBam[lens > 0.9 * geneLength & lens < 1.1 * geneLength], size = sampleSize)
     missingReads <- max(c(sampleSize - length(sampledAlignmentBam), 0))
     sampledAlignmentBam <- c(sampledAlignmentBam,
                              sample(alignmentBam[!names(alignmentBam) %in% names(sampledAlignmentBam)], missingReads))
@@ -122,7 +122,7 @@ subSampleBam <- function(bamfile, windowSize = NULL, sampleSize = 100,
   if (fragmentReads) {
     sampledAlignmentBam <- .fragmentReads(alignment = sampledAlignmentBam, fragmentLength = fragmentWidth)
   }
-
+  
   newBamfile <- gsub(".bam", ".sampled.bam", bamfile)
   rtracklayer::export(sampledAlignmentBam, newBamfile)
   list(

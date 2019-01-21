@@ -82,6 +82,7 @@ mapInitSR <- function(self, opts = list(), includeDeletions = TRUE,
   ## from same reference as longreads
   reffile <- self$absPath(conspath(SR1))
   refname <- consname(SR1)
+  maplabel <- "mapInit2"
   pileup  <- mapReads(
     mapfun = mapfun, maplabel = maplabel, reffile = reffile, refname = refname,
     readfile = readfile, readtype = readtype, opts = opts, outdir = outdir,
