@@ -145,17 +145,28 @@ report.DR2S <- function(x, whichMap, ...) {
 #' @family DR2S mapper functions
 #' @export
 reportCheckedConsensus <- function(x, map = "mapFinal") {
-  map <- match.arg(tolower(map), c("mapfinal", "mapiter", noRemap = FALSE))
+  map <- match.arg(tolower(map), c("mapfinal", "mapiter"))
   ending <- ifelse(length(x$getHapTypes()) == 2,
                    "psa",
                    ifelse(length(x$getHapTypes()) == 1,
                           "fa",
                           "msa"))
-  pairfileUnchecked <- dot(c(map, "aln", x$getLrdType(), x$getLrdMapper(), "unchecked", ending))
-  pairfileChecked   <- dot(c(map, "aln", x$getLrdType(), x$getLrdMapper(), "checked", ending))
-  pairfileChecked   <- normalizePath(x$absPath(file.path("report",
-                                                pairfileChecked)),
-                                      mustWork = FALSE)
+  if (x$hasShortreads()) {
+    haplotypes <- "SR" %<<% x$getHapTypes()
+    readtype <- x$getSrdType()
+    mapper <-  x$getSrdMapper()
+  } else {
+    haplotypes <- "LR" %<<% x$getHapTypes()
+    readtype <- x$getLrdType()
+    mapper <-  x$getLrdMapper()
+  }
+  pairfileUnchecked <- dot(c(map, "aln", readtype, mapper, "unchecked", ending))
+  pairfileUnchecked <- normalizePath(x$absPath(file.path("report", pairfileUnchecked)),
+                                     mustWork = TRUE)
+  assert_that(is.readable(pairfileUnchecked))
+  pairfileChecked <- dot(c(map, "aln", readtype, mapper, "checked", ending))
+  pairfileChecked <- normalizePath(x$absPath(file.path("report", pairfileChecked)),
+                                   mustWork = FALSE)
 
   if (!file.exists(pairfileChecked)) {
     msg <- sprintf("'%s' must be saved as '%s' before invoking this function",
@@ -267,7 +278,6 @@ checkAlignmentFile <- function(x, map = "mapFinal", where = 0,
 #' @family DR2S mapper functions
 #' @export
 refineAlignment <- function(x, hptype, report = FALSE, createIgv = TRUE, ...) {
-
   indent <- list(...)$indent %||% indentation()
   opts <- list(...)$opts
 
@@ -366,12 +376,23 @@ refineAlignment <- function(x, hptype, report = FALSE, createIgv = TRUE, ...) {
 # Helpers -----------------------------------------------------------------
 
 .getUpdatedSeqs <- function(x, hptype){
-  ending <- ifelse(length(x$getHapTypes()) == 1, "fa",
-                   ifelse(length(x$getHapTypes()) == 2, "psa",
+  ending <- ifelse(length(x$getHapTypes()) == 2,
+                   "psa",
+                   ifelse(length(x$getHapTypes()) == 1,
+                          "fa",
                           "msa"))
-  pairfileChecked <- dot(c("mapfinal.aln", x$getLrdType(), x$getLrdMapper(), "checked", ending))
+  if (x$hasShortreads()) {
+    haplotypes <- "SR" %<<% x$getHapTypes()
+    readtype <- x$getSrdType()
+    mapper <-  x$getSrdMapper()
+  } else {
+    haplotypes <- "LR" %<<% x$getHapTypes()
+    readtype <- x$getLrdType()
+    mapper <-  x$getLrdMapper()
+  }
+  pairfileChecked <- dot(c(map, "aln", readtype, mapper, "checked", ending))
   pairfileChecked <- normalizePath(x$absPath(file.path("report", pairfileChecked)),
-                                   mustWork = FALSE)
+                                   mustWork = TRUE)
   rs <- readPairFile(pairfileChecked)
   seqs <- Biostrings::DNAStringSet(
     lapply(rs, function(s) Biostrings::DNAString(stripIndel(s))))
@@ -390,8 +411,9 @@ readPairFile <- function(pairfile) {
     rs <- readLines(pairfile)
     ## This assignment relies on the premise that hapA is always used!
     ## Usually this should be true, bcs it is the cluster with the most reads
-    rsA <- rs[grepl("^hapA", rs)]
-    rsB <- rs[grepl("^hap[B-Z]", rs)]
+    ## TODO make "mapfinal" agnostic
+    rsA <- rs[grepl("^mapFinal.consensus.SRA", rs)]
+    rsB <- rs[grepl("^mapFinal.consensus.SR[B-Z]", rs)]
     hap <- c(
       Biostrings::DNAStringSet(.collapsePairLines_(rsA)),
       Biostrings::DNAStringSet(.collapsePairLines_(rsB))
