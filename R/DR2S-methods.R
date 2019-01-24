@@ -141,7 +141,7 @@ DR2S_$set("public", "runMapInit", function(opts = list(), ...) {
     igv[["LR"]] <- createIgvJsFiles(
       reference = refpath(pileup),
       bamfile = bampath(pileup),
-      outdir = outdir,
+      outdir = self$getOutdir(),
       sampleSize = 100,
       fragmentReads = TRUE)
 
