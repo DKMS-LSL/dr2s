@@ -54,7 +54,7 @@ MergeEnv_ <- R6::R6Class(
        structure(as.environment(list(haplotype = hptype)), class = "HapEnv")
       }
       #threshold <- max(c(threshold, 0.2))
-      threshold <- max(c(threshold, 0.3))
+      # threshold <- max(c(threshold, 0.3))
       self$threshold = threshold
       self$x = x
     },
@@ -92,15 +92,23 @@ MergeEnv_$set("public", "init", function(hapEnv) {
     rs <- .equaliseConsmat(lrm = lr, srm = sr)
     envir$LR <- rs$lrm
     envir$SR <- rs$srm
-  }
-  else if (readtype == "LR") {
+    referencePath <- self$x$absPath(self$x$mapFinal$SR[[hapEnv]]$conspath)
+    reference <- Biostrings::readDNAStringSet(referencePath)
+    envir$ref <- unname(strsplit1(as.character(reference), ""))
+  } else if (readtype == "LR") {
     envir$LR <- consmat(self$x$mapFinal$LR[[hapEnv]]$pileup, prob = FALSE)
     envir$SR <- NULL
+    referencePath <- self$x$absPath(self$x$mapFinal$LR[[hapEnv]]$conspath)
+    reference <- Biostrings::readDNAStringSet(referencePath)
+    envir$ref <- unname(strsplit1(as.character(reference), ""))
   }
+  
   apos <- foreach(rt = c("LR", "SR"), .combine = c) %do% {
-    # threshold <- ifelse(rt == "LR", max(c(threshold, 0.2)), threshold)
-    # rt = "LR"
-    .ambiguousPositions(envir[[rt]], self$threshold, TRUE)
+    ## positions not matching the consensus
+    dism <- .noRefMatch(envir[[rt]], envir[["ref"]])
+    ## ambiguous positions
+    amb <- .ambiguousPositions(envir[[rt]], self$threshold, TRUE)
+    sort(c(amb, dism))
   }
   apos <- unique(sort(apos))
   envir$POSit = itertools::ihasNext(iterators::iter(apos))
@@ -133,6 +141,7 @@ MergeEnv_$set("public", "walk", function(hp, verbose = FALSE) {
   if (!self$isInitialised(hp)) {
     self$init(hp)
   }
+  
   envir <- self$getHapEnv(hp)
   # while (stepThrough(envir)) {
   while (private$stepThrough(envir)) {
@@ -148,17 +157,19 @@ MergeEnv_$set("public", "walk", function(hp, verbose = FALSE) {
 
 ## private$stepThrough() ####
 MergeEnv_$set("private", "stepThrough", function(envir) {
-  # stepThrough <- function(envir) {
+# stepThrough <- function(envir) {
   if (!itertools::hasNext(envir$POSit)) {
     return(FALSE)
   }
   envir$pos <- ifelse(!is.null(envir$SR),
                       iterators::nextElem(envir$POSit) + offsetBases(envir$SR),
                       iterators::nextElem(envir$POSit) + offsetBases(envir$LR))
-  # message(envir$pos)
-  # envir$pos <- 962
+  message(envir$pos)
+  # envir$pos <- 3960
+  # 9886
   # p  <- envir$pos
   # x  <- yield(envir)
+  # pos = 11076
   rs <- disambiguateVariant(x = yield(envir), threshold = self$threshold)
   .update(envir) <- rs
   TRUE
@@ -286,18 +297,18 @@ MergeEnv_$set("public", "export", function() {
       i <- iterators::nextElem(INSit)
       m <- rbind(m[seq_len(i - 1), ], insert, m[i:NROW(m), ])
     }
-    if (! NROW(m) == NROW(srm)){
+    if (!NROW(m) == NROW(srm)) {
       warning("SR and LR of different length! Check problem file")
-      if (NROW(m) < NROW(srm)){
+      if (NROW(m) < NROW(srm)) {
         flog.info(" fill longreads with gaps from %s to %s",
                 NROW(m), NROW(srm), name = "info")
-        add <- ((NROW(m)+1):NROW(srm))
+        add <- ((NROW(m) + 1):NROW(srm))
         m <- rbind(m, srm[add,])
         m[add,] <- rep.int(0, 6*length(add))
-      } else if (NROW(m) > NROW(srm)){
+      } else if (NROW(m) > NROW(srm)) {
         flog.info(" fill shortreads with gaps from %s to %s",
                 NROW(srm), NROW(m), name = "info")
-        add <- ((NROW(srm)+1):NROW(m))
+        add <- ((NROW(srm) + 1):NROW(m))
         srm <- rbind(srm, m[add,])
         srm[add,] <- rep.int(0, 6*length(add))
       }
@@ -311,10 +322,9 @@ MergeEnv_$set("public", "export", function() {
 
 
 .equaliseConsmat <- function(lrm, srm) {
-  if (NROW(srm) + length(ins(lrm)) != NROW(lrm) + length(ins(srm))) {
-    warning("SR and LR consensus matrices differ in length", immediate. = TRUE)
+  if (NROW(srm) != NROW(lrm) + length(ins(srm))) {
+    flog.warn("SR and LR are of different length", name = "info")
   }
-
   # lm[ins(lrm), ]
   # sm[ins(srm), ]
   # ref <- Biostrings::readDNAStringSet(self$x$absPath(self$x$mapFinal$ref[["B"]]))
@@ -333,26 +343,26 @@ MergeEnv_$set("public", "export", function() {
   if (NCOL(srm) == 5) {
     sm <- cbind(sm, `+` = 0)
   }
-  if (length(ins(lrm)) > 0) {
-    insert <- matrix(c(0, 0, 0, 0, stats::median(rowSums(sm)), 0), ncol = 6)
-    myIns  <- sort(ins(lrm))
-    myIns  <- myIns[myIns < NROW(srm) + length(ins(lrm))]
-    INSit  <- itertools::ihasNext(iterators::iter(myIns))
-    if (length(ins(srm)) > 0) {
-      while (itertools::hasNext(INSit)) {
-        i  <- iterators::nextElem(INSit)
-        if (i %in% ins(srm))
-          next
-        ins(srm)[ins(srm) > i] <- ins(srm)[ins(srm) > i] + 1
-        sm <- rbind(sm[seq_len(i - 1), ], insert, sm[i:NROW(sm), ])
-      }
-    } else {
-      while (itertools::hasNext(INSit)) {
-        i  <- iterators::nextElem(INSit)
-        sm <- rbind(sm[seq_len(i - 1), ], insert, sm[i:NROW(sm), ])
-      }
-    }
-  }
+  # if (length(ins(lrm)) > 0) {
+  #   insert <- matrix(c(0, 0, 0, 0, stats::median(rowSums(sm)), 0), ncol = 6)
+  #   myIns  <- sort(ins(lrm))
+  #   myIns  <- myIns[myIns < NROW(srm) + length(ins(lrm))]
+  #   INSit  <- itertools::ihasNext(iterators::iter(myIns))
+  #   if (length(ins(srm)) > 0) {
+  #     while (itertools::hasNext(INSit)) {
+  #       i  <- iterators::nextElem(INSit)
+  #       if (i %in% ins(srm))
+  #         next
+  #       ins(srm)[ins(srm) > i] <- ins(srm)[ins(srm) > i] + 1
+  #       sm <- rbind(sm[seq_len(i - 1), ], insert, sm[i:NROW(sm), ])
+  #     }
+  #   } else {
+  #     while (itertools::hasNext(INSit)) {
+  #       i  <- iterators::nextElem(INSit)
+  #       sm <- rbind(sm[seq_len(i - 1), ], insert, sm[i:NROW(sm), ])
+  #     }
+  #   }
+  # }
   dimnames(sm) <- list(pos = as.character(1:NROW(sm)),
                        nucleotide = c("G", "A", "T", "C", "-", "+"))
 
@@ -384,7 +394,7 @@ MergeEnv_$set("public", "export", function() {
                        nucleotide = c("G", "A", "T", "C", "-", "+"))
 
   if (NROW(sm) != NROW(lm)) {
-    warning("SR and LR of different length! Check problem file")
+    flog.warn("SR and LR of different length! Check problem file", name = "info")
     if (NROW(lm) < NROW(sm)) {
       flog.info(" fill longreads with gaps from %s to %s",
                 NROW(sm), NROW(sm), name = "info")
@@ -393,7 +403,7 @@ MergeEnv_$set("public", "export", function() {
       lm[add, ] <- rep.int(0, 6*length(add))
     } else if (NROW(lm) > NROW(sm)) {
       flog.info(" fill shortreads with gaps from %s to %s",
-                NROW(sm), NROW(lm), name = "info")
+                NROW(sm) + 1, NROW(lm), name = "info")
       add <- ((NROW(sm) + 1):NROW(lm))
       sm  <- rbind(sm, lm[add, ])
       sm[add, ] <- rep.int(0, 6*length(add))

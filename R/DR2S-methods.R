@@ -65,7 +65,7 @@ DR2S_$set("public", "runMapInit", function(opts = list(), ...) {
       igv[["SR"]] <- createIgvJsFiles(
         reference = self$absPath(refpath(SR$SR2)),
         bamfile = self$absPath(bampath(SR$SR2)),
-        outdir = outdir,
+        outdir = self$getOutdir(),
         sampleSize = 100)
 
     reffile  <- self$absPath(conspath(SR$SR1))
@@ -797,8 +797,12 @@ DR2S_$set("public", "runMapFinal", function(opts = list(), ...) {
   readfilesLR <- stats::setNames(lapply(hptypes, function(x)
     self$absPath(readpath(lastIter[[x]]))), hptypes)
   if (self$hasShortreads()) {
-    readfilesSR <- stats::setNames(lapply(hptypes, function(x)
-      self$absPath(self$srpartition[[x]]$SR)), hptypes)
+     readfilesSR <-  tryCatch({
+      stats::setNames(lapply(hptypes, function(x)
+        self$absPath(self$srpartition[[x]]$SR)), hptypes)
+      }, error = function(e) {
+        stop("Cant find clustered shortreads. Did you run paritionShortreads?")
+      })
   }
   ## hp = "A"
   ## hp = "B"
@@ -831,7 +835,7 @@ DR2S_$set("public", "runMapFinal", function(opts = list(), ...) {
     names(conspath) <- self$relPath(conspath)
     flog.info("%sConstruct consensus <%s>", indent(), names(conspath), name = "info")
     conseq <- .writeConseq(x = pileup, name = consname, type = "ambig",
-                           threshold = 1/4, suppressAllGaps = TRUE,
+                           threshold = self$getThreshold(), suppressAllGaps = TRUE,
                            replaceIndel = "", conspath = conspath)
     ## Initialize mapFinal LR MapList
     self$mapFinal$LR[[hp]] = MapList_(
@@ -878,7 +882,7 @@ DR2S_$set("public", "runMapFinal", function(opts = list(), ...) {
       names(conspath) <- self$relPath(conspath)
       flog.info("%sConstruct consensus <%s>", indent(), names(conspath), name = "info")
       conseq <- .writeConseq(x = pileup, name = consname, type = "ambig",
-                             threshold = 1/4, suppressAllGaps = TRUE,
+                             threshold = self$getThreshold(), suppressAllGaps = TRUE,
                              replaceIndel = "", conspath = conspath)
       ## Initialize mapFinal SR MapList
       self$mapFinal$SR[[hp]] = MapList_(
