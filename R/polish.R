@@ -27,7 +27,7 @@ polish.DR2S <- function(x, ...) {
   # rdtypes <- names(x$mapFinal) ## LR, SR
   hptypes <- x$getHapTypes() ## A, B, C, ...
   menv <- MergeEnv(x, threshold)
-  ## hp = "D"
+  ## hp = "A"
   for (hp in hptypes) {
     menv$init(hp)
     menv$walk(hp)
@@ -35,6 +35,7 @@ polish.DR2S <- function(x, ...) {
   rs <- menv$export()
   ## Get variants
   vars <- .getVariants(x = rs)
+  # .getVariants(mapper)
 
   ## Check homopolymer count; Only check if the count is found in both
   if (checkHpCount) {
@@ -45,7 +46,7 @@ polish.DR2S <- function(x, ...) {
         seqrle <- .seq2rle(seq)
         # n <- seqrle$length[seqrle$length >= 10] %||% 0
         n <- which(seqrle$length > 8)
-        nCount <- seqrle$length[n]
+#        nCount <- seqrle$length[n]
         origPosition <- vapply(n, function(ni) sum(seqrle$lengths[1:((ni) - 1)]), FUN.VALUE = integer(1))
         modeN <- sort(rs$consensus$homopolymers[[hp]])
         #names(n) <- names(modeN)
@@ -79,7 +80,7 @@ polish.DR2S <- function(x, ...) {
     })
   }
 
-  rs$consensus$variants = dplyr::arrange(vars, .data$pos, .data$haplotype)
+  rs$consensus$variants = na.omit(dplyr::arrange(vars, .data$pos, .data$haplotype))
 
   ## set polish runstats
   .setRunstats(x, "polish",

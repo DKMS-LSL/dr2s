@@ -92,15 +92,23 @@ MergeEnv_$set("public", "init", function(hapEnv) {
     rs <- .equaliseConsmat(lrm = lr, srm = sr)
     envir$LR <- rs$lrm
     envir$SR <- rs$srm
-  }
-  else if (readtype == "LR") {
+    referencePath <- self$x$absPath(self$x$mapFinal$SR[[hapEnv]]$conspath)
+    reference <- Biostrings::readDNAStringSet(referencePath)
+    envir$ref <- unname(strsplit1(as.character(reference), ""))
+  } else if (readtype == "LR") {
     envir$LR <- consmat(self$x$mapFinal$LR[[hapEnv]]$pileup, prob = FALSE)
     envir$SR <- NULL
+    referencePath <- self$x$absPath(self$x$mapFinal$LR[[hapEnv]]$conspath)
+    reference <- Biostrings::readDNAStringSet(referencePath)
+    envir$ref <- unname(strsplit1(as.character(reference), ""))
   }
+  
   apos <- foreach(rt = c("LR", "SR"), .combine = c) %do% {
-    # threshold <- ifelse(rt == "LR", max(c(threshold, 0.2)), threshold)
-    # rt = "LR"
-    .ambiguousPositions(envir[[rt]], self$threshold, TRUE)
+    ## positions not matching the consensus
+    dism <- .noRefMatch(envir[[rt]], envir[["ref"]])
+    ## ambiguous positions
+    amb <- .ambiguousPositions(envir[[rt]], self$threshold, TRUE)
+    sort(c(amb, dism))
   }
   apos <- unique(sort(apos))
   envir$POSit = itertools::ihasNext(iterators::iter(apos))
@@ -148,17 +156,19 @@ MergeEnv_$set("public", "walk", function(hp, verbose = FALSE) {
 
 ## private$stepThrough() ####
 MergeEnv_$set("private", "stepThrough", function(envir) {
-  # stepThrough <- function(envir) {
+# stepThrough <- function(envir) {
   if (!itertools::hasNext(envir$POSit)) {
     return(FALSE)
   }
   envir$pos <- ifelse(!is.null(envir$SR),
                       iterators::nextElem(envir$POSit) + offsetBases(envir$SR),
                       iterators::nextElem(envir$POSit) + offsetBases(envir$LR))
-  # message(envir$pos)
-  # envir$pos <- 962
+  message(envir$pos)
+  # envir$pos <- 11076
+  # 9886
   # p  <- envir$pos
   # x  <- yield(envir)
+  # pos = 11076
   rs <- disambiguateVariant(x = yield(envir), threshold = self$threshold)
   .update(envir) <- rs
   TRUE
@@ -314,7 +324,6 @@ MergeEnv_$set("public", "export", function() {
   if (NROW(srm) + length(ins(lrm)) != NROW(lrm) + length(ins(srm))) {
     warning("SR and LR consensus matrices differ in length", immediate. = TRUE)
   }
-
   # lm[ins(lrm), ]
   # sm[ins(srm), ]
   # ref <- Biostrings::readDNAStringSet(self$x$absPath(self$x$mapFinal$ref[["B"]]))
