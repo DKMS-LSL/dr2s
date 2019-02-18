@@ -90,7 +90,15 @@ polymorphicPositions.pileup <- function(x, threshold = NULL) {
             snp.correlogram = plts$correlogram,
             snp.association = plts$association)
 }
-
+.noRefMatch <- function(mat, ref) {
+  na.omit(vapply(seq_len(NROW(mat)), function(i) {
+    # i <- 1
+    row <- mat[i, ]
+    m <- colnames(mat)[which.max(row)]
+    n <- ref[i]
+    ifelse(m != n, i, NA)
+  }, FUN.VALUE = integer(1)))
+}
 .associationMatrix <- function(mat, method = "cramer.V", resample = NULL, ...) {
   ## expect a read x snp matrix with elements {G, A, T, C, -, +}
   assert_that(is(mat, "matrix"))

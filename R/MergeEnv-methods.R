@@ -2,7 +2,7 @@ yield <- function(envir, ...) UseMethod("yield")
 yield.HapEnv <- function(envir, pos = NULL) {
   lr <- envir$LR
   sr <- envir$SR
-
+  ref <- envir$ref
   pos <- if (is.null(pos)) envir$pos else pos
   structure(list(
     ## class: variant
@@ -16,7 +16,8 @@ yield.HapEnv <- function(envir, pos = NULL) {
     ##
     offsetBases = c(
       lr = offsetBases(lr),
-      sr = ifelse(is.null(sr), 0, offsetBases(sr))
+      sr = ifelse(is.null(sr), 0, offsetBases(sr)),
+      ref = ifelse(is.null(sr), offsetBases(lr), offsetBases(sr))
     ),
     ##
     haplotype = envir$haplotype
@@ -62,27 +63,33 @@ disambiguateVariant <- function(x, threshold) {
   ## Start with long reads. They have to be there
   lr <- as.matrix(x$lr)
   varl <- .filterVariant(cm = lr, threshold)
+  ref <- x$ref
+  
 
   ## Look if its ambiguous
   if (length(varl) > 1) {
-    ## Look for deletions
-    if ("-" %in% names(varl)) {
-      if (lr[varl["-"]]/sum(lr[varl]) > max(threshold/(2/3), 0.3)) {
-        warningMsg <- warningMsg %<<% "|Gap overrepresented in long reads"
-      }
-    } else {
+    ## Dont look for deletions in longreads
+    # ## Look for deletions
+    if (!"-" %in% names(varl)) {
       warningMsg <- warningMsg %<<% "|Ambiguous position in long reads"
     }
     ## Check for > 2 alleles
     if (length(varl) > 2) {
       warningMsg <- warningMsg %<<% "|More than two long read variants"
-      srBasel <- names(varl)[1:2]
+      lrBases <- names(varl)[1:2]
     }
     ## Set the ambiguous bases
     lrBases <- names(varl)
+  } else if (names(varl) != ref) {
+    if (names(varl) == "-") {
+      lrBases <- c(names(varl), names(varl))
+    } else {
+      warningMsg <- warningMsg %<<% "|long read variant not matching the reference"
+      lrBases <- c(names(varl), names(varl))
+    }
   } else {
     warningMsg <- warningMsg %<<% "|Variant only in short reads"
-    lrBases <- c(names(varl), NA)
+    lrBases <- c(names(varl), names(varl))
   }
 
   if (!is.null(x$sr)) {
@@ -135,15 +142,23 @@ disambiguateVariant <- function(x, threshold) {
           srBases <- names(vars)[1:2]
         }
       }
+    } else if (names(vars) != ref) {
+      ## Check if it is a gap
+      if (names(vars) == "-") {
+        warningMsg <- warningMsg %<<% "|Only gap in short read variant, not matching the reference"
+      } else {
+        warningMsg <- warningMsg %<<% "|short read variant not matching the reference"
+      }
+      srBases <- c(names(vars), names(vars))
     } else {
       ## Use only non-gap variants from only longreads.
       warningMsg <- ifelse("-" %in% names(varl),
                            "",
                            "|Variant only in long reads") %<<% warningMsg
-      srBases <- c(names(vars), NA)
+      srBases <- c(names(vars), names(vars))
     }
   } else {
-    srBases <- c(NA, NA)
+    srBases <- c(names(vars), names(vars))
   }
 
   # names(bases) <- c("ref", "alt")
