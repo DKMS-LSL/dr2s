@@ -332,7 +332,8 @@ refineAlignment <- function(x, hptype, report = FALSE, createIgv = TRUE, ...) {
   ## Remap long reads to the same reference sequences as short reads
   flog.info("%sRefine mapping for haplotype <%s>", indent(), hptype, name = "info")
   mapgroupLR <- "LR" %<<% hptype
-  maptagLR <- dot(c("refine", mapgroupLR, x$getLrdType(), x$getLrdMapper()))
+  ## TO RM?
+  # maptagLR <- dot(c("refine", mapgroupLR, x$getLrdType(), x$getLrdMapper()))
   pileup <- mapReads(
     mapfun = x$getLrdMapFun(), maplabel = reftag, reffile = refpath,
     refname = mapgroupLR, readfile = readpathLR, readtype = x$getLrdType(),
@@ -345,12 +346,13 @@ refineAlignment <- function(x, hptype, report = FALSE, createIgv = TRUE, ...) {
     x$consensus$refine$igv[[mapgroupLR]] <- createIgvJsFiles(
       refpath(pileup), bampath(pileup), x$getOutdir(), sampleSize = 100,
       fragmentReads = TRUE)
+  }
 
   ## Map short reads
   if (!is.null(unlist(readpathSR))) {
     mapgroupSR <- "SR" %<<% hptype
-    maptagSR <- dot(c("refine", mapgroupSR, x$getSrdType(), x$getSrdMapper()))
-    readfiles <- readpathSR
+    ## TO RM?
+    # maptagSR <- dot(c("refine", mapgroupSR, x$getSrdType(), x$getSrdMapper()))
     ## Mapper
     pileup <- mapReads(
       mapfun = x$getSrdMapFun(), maplabel = reftag, reffile = refpath,
