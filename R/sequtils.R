@@ -253,14 +253,14 @@
 #'
 #' @param x a DR2S object.
 #' @param hpCount the minimal length of a homopolymer to be checked (10).
-#' @param map Which result to use. Either "mapFinal" or "refine".
+#' @param map Which result to use. Either "mapFinal" or "remap".
 #' @return plot a pdf with length histogram and write mode to log
 #' @examples
 #' ###
 #' @export
 checkHomopolymerCount <- function(x, hpCount = 10, map = "mapFinal") {
   assert_that(is(x, "DR2S"))
-  map <- match.arg(map, c("mapFinal", "refine"))
+  map <- match.arg(map, c("mapFinal", "remap"))
   hptypes <- x$getHapTypes()
   if (map == "mapFinal") {
     refseqs <- stats::setNames(x$getLatestRef(), hptypes)
@@ -274,15 +274,15 @@ checkHomopolymerCount <- function(x, hpCount = 10, map = "mapFinal") {
     x$consensus$homopolymers <- list()
     plotname <- "plot.homopolymers.pdf"
   }
-  else if (map == "refine") {
-    refseqs <- lapply(x$consensus$refine$ref, function(hp) {
+  else if (map == "remap") {
+    refseqs <- lapply(x$consensus$remap$reference, function(hp) {
       seq <- Biostrings::readDNAStringSet(file.path(x$getOutdir(), hp))
       names(seq) <- strsplit1(names(seq), " ")[1]
       seq
     })
     x$consensus$homopolymers <- list()
-    bambase <- x$consensus$refine$bamfile
-    plotname <- "plot.homopolymers.refine.pdf"
+    bambase <- x$consensus$remap$bamfile
+    plotname <- "plot.homopolymers.remapped.pdf"
   }
   #hp <- "A"
   p <- foreach(hp = hptypes) %do% {
@@ -343,7 +343,7 @@ checkHomopolymerCount <- function(x, hpCount = 10, map = "mapFinal") {
       if (map == "mapFinal") {
         x$consensus$homopolymers[[hp]][[
           as.character(modeHP$position)]] <- modeHP$mode
-      } else if (map == "refine") {
+      } else if (map == "remap") {
         x$consensus$homopolymers[[hp]][[
           as.character(modeHP$position)]] <- modeHP$mode
       }

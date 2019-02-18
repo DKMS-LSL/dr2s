@@ -86,7 +86,7 @@ readDR2S <- function(path) {
 #' @param x A \code{\link{DR2S_}} object.
 #' @param position The position where IGV focuses on startup.
 #' @param map Which mapping should be opened. One of "mapInit", "mapIter",
-#' "mapFinal" or "refine".
+#' "mapFinal" or "remap".
 #' @param open whether to open an IGV instance now.
 #' @export
 createIgvConfigs <- function(x, position, map = "mapFinal", open = TRUE) {
@@ -96,7 +96,7 @@ createIgvConfigs <- function(x, position, map = "mapFinal", open = TRUE) {
   map <- match.arg(map, c("mapInit",
                           "mapFinal",
                           "mapIter",
-                          "refine"))
+                          "remap"))
 
   basedir <- normalizePath(x$getOutdir(), mustWork = TRUE)
   igvdir <- file.path(basedir, ".pplib")
@@ -128,19 +128,17 @@ createIgvConfigs <- function(x, position, map = "mapFinal", open = TRUE) {
       if (!is.null(x$mapFinal$sreads[[hp]]))
         bamSR <- file.path("mapFinal",
                            basename(x$mapFinal$bamfile[["SR" %<<% hp]]))
-    } else if (map == "refine") {
-      if (!is.null(x$consensus$refine$ref[[hp]])) {
-        ref   <- x$consensus$refine$ref[[hp]]
-        bamLR <- x$consensus$refine$bamfile[["LR" %<<% hp]]
-        if (!is.null(x$mapFinal$sreads[[hp]]))
-          bamSR <- x$consensus$refine$bamfile[["SR" %<<% hp]]
+    } else if (map == "remap") {
+      if (hp %in% names(x$consensus$remap$reference)) {
+        ref   <- x$consensus$remap$reference[[hp]]
+        bamLR <- x$consensus$remap$bamfile[["LR" %<<% hp]]
+        if (!is.null(x$mapFinal$SR[[hp]]$bampath)) 
+          bamSR <- x$consensus$remap$bamfile[["SR" %<<% hp]]
       } else {
-        ref   <- x$mapIter[[as.character(x$getIterations())]][[hp]]$seqpath
-        bamLR <- file.path("mapFinal",
-                           basename(x$mapFinal$bamfile[["LR" %<<% hp]]))
-        if (!is.null(x$mapFinal$sreads[[hp]]))
-          bamSR <- file.path("mapFinal",
-                             basename(x$mapFinal$bamfile[["SR" %<<% hp]]))
+        ref   <- x$mapFinal$LR[[hp]]$refpath
+        bamLR <- x$mapFinal$LR[[hp]]$bampath
+        if (!is.null(x$mapFinal$SR[[hp]]))
+          bamSR <- x$mapFinal$SR[[hp]]$bampath
       }
     } else if (map == "mapInit") {
       if (x$hasShortreads()) {

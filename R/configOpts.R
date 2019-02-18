@@ -185,7 +185,7 @@ normaliseOpts <- function(opts, pipeline = "LR") {
     ## Maximum number of sequence letters per line in pairwise alignment.
     blockWidth = 80,
     ## Suppress remapping of reads against final consensus.
-    noRemap = FALSE,
+    remap = TRUE,
     ## Subsample bam files for visualisation with IgvJs in the
     ## DR2S shiny app.
     createIgv = TRUE
@@ -330,7 +330,7 @@ validateOpts <- function(opts) {
   ##
   assert_that(
     is.count(opts$report$blockWidth),
-    is.flag(opts$report$noRemap),
+    is.flag(opts$report$remap),
     is.flag(opts$report$createIgv)
   )
 

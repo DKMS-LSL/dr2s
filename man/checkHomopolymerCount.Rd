@@ -11,7 +11,7 @@ checkHomopolymerCount(x, hpCount = 10, map = "mapFinal")
 
 \item{hpCount}{the minimal length of a homopolymer to be checked (10).}
 
-\item{map}{Which result to use. Either "mapFinal" or "refine".}
+\item{map}{Which result to use. Either "mapFinal" or "remap".}
 }
 \value{
 plot a pdf with length histogram and write mode to log

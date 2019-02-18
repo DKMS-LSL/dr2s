@@ -43,7 +43,7 @@ Other DR2S mapper functions: \code{\link{cache}},
   \code{\link{clear}}, \code{\link{createDR2SConf}},
   \code{\link{mapInit}}, \code{\link{mapIter}},
   \code{\link{partitionLongreads}}, \code{\link{polish}},
-  \code{\link{refineAlignment}},
+  \code{\link{remapAlignment}},
   \code{\link{reportCheckedConsensus}},
   \code{\link{report}}
 }

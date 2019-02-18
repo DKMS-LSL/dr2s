@@ -14,7 +14,7 @@ createIgvConfigs(x, position, map = "mapFinal", open = TRUE)
 \item{position}{The position where IGV focuses on startup.}
 
 \item{map}{Which mapping should be opened. One of "mapInit", "mapIter",
-"mapFinal" or "refine".}
+"mapFinal" or "remap".}
 
 \item{open}{whether to open an IGV instance now.}
 }

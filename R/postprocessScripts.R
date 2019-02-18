@@ -56,7 +56,7 @@ tryCatch(checkAlignmentFile(x),
   Sys.chmod(bashFile, mode = "775")
 }
 
-.writeRefineAlignments <- function(path, haptypes, libpath = ".pplib") {
+.writeRemapAlignments <- function(path, haptypes, libpath = ".pplib") {
   .writeScript <- function(hptype, path) {
     bashFile <- file.path(path, "run_remap" %<<% hptype %<<% ".sh")
     rFile    <- file.path(libpath, "remap" %<<% hptype %<<% ".R")
@@ -71,7 +71,7 @@ scriptBaseName <- dirname(scriptName)
 setwd(scriptBaseName)
 
 x <- readDR2S("..")
-tryCatch({refineAlignment(x, "%s")
+tryCatch({remapAlignment(x, "%s")
          },
          error = function(e) {
            system(paste(

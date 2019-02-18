@@ -431,7 +431,7 @@ The complete set of available options and their defaults are:
     ## Maximum number of sequence letters per line in pairwise alignment.
     blockWidth = 80,
     ## Suppress remapping of reads against final consensus.
-    noRemap = FALSE,
+    remap = TRUE,
     ## Subsample bam files for visualisation with IgvJs in the
     ## DR2S shiny app.
     createIgv = TRUE
@@ -509,7 +509,7 @@ An example config file:
     },
     "report": {
       "blockWidth": 80,
-      "noRemap": false,
+      "remap": true,
       "createIgv": false
     }
   },
