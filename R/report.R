@@ -341,7 +341,7 @@ refineAlignment <- function(x, hptype, report = FALSE, createIgv = TRUE, ...) {
 
   x$consensus$refine$bamfile[[mapgroupLR]] = x$relPath(bampath(pileup))
 
-  if (createIgv)
+  if (createIgv) {
     x$consensus$refine$igv[[mapgroupLR]] <- createIgvJsFiles(
       refpath(pileup), bampath(pileup), x$getOutdir(), sampleSize = 100,
       fragmentReads = TRUE)
@@ -359,8 +359,12 @@ refineAlignment <- function(x, hptype, report = FALSE, createIgv = TRUE, ...) {
       includeInsertions = FALSE, clip = TRUE, indent = incr(indent))
 
     x$consensus$refine$bamfile[[mapgroupSR]] = x$relPath(bampath(pileup))
-    x$consensus$refine$igv[[mapgroupSR]] <- createIgvJsFiles(
-      refpath(pileup), bampath(pileup), x$getOutdir(), sampleSize = 100)
+    if (createIgv) {
+      clusteredReads <- x$srpartition$A$srpartition$haplotypes$read
+      x$consensus$refine$igv[[mapgroupSR]] <- createIgvJsFiles(
+        refpath(pileup), bampath(pileup), x$getOutdir(), sampleSize = 100,
+        clusteredReads = clusteredReads)
+    }
   }
 
   # calc new consensus

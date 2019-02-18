@@ -869,8 +869,10 @@ DR2S_$set("public", "runMapFinal", function(opts = list(), ...) {
         indent = incr(indent), ...)
       ## Create igv
       if (createIgv) {
+        clusteredReads <- self$srpartition$A$srpartition$haplotypes$read
         igv <- createIgvJsFiles(
-          refpath(pileup), bampath(pileup), self$getOutdir(), sampleSize = 100)
+          refpath(pileup), bampath(pileup), self$getOutdir(), sampleSize = 100,
+          clusteredReads = clusteredReads)
       }
       ## Construct consensus sequence
       consname <- maplabel %<<% ".consensus." %<<% refname

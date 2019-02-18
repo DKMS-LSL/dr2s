@@ -73,7 +73,7 @@
 #' @export
 subSampleBam <- function(bamfile, windowSize = NULL, sampleSize = 100,
                          fragmentReads = FALSE, fragmentWidth = 1000,
-                         what = NULL) {
+                         what = NULL, clusteredReads = NULL) {
   assert_that(
     file.exists(bamfile),
     endsWith(bamfile, ".bam"),
@@ -122,7 +122,12 @@ subSampleBam <- function(bamfile, windowSize = NULL, sampleSize = 100,
   if (fragmentReads) {
     sampledAlignmentBam <- .fragmentReads(alignment = sampledAlignmentBam, fragmentLength = fragmentWidth)
   }
-  
+
+  # smpld <- mapper$srpartition$A$srpartition$haplotypes
+  if (!s.null(clusteredReads)) {
+    clustered = ifelse(names(sampledAlignmentBam) %in% clusteredReads, 1, 2)
+    S4Vectors::mcols(sampledAlignmentBam)$pt <- clustered
+  }
   newBamfile <- gsub(".bam", ".sampled.bam", bamfile)
   rtracklayer::export(sampledAlignmentBam, newBamfile)
   list(
