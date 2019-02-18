@@ -114,12 +114,12 @@ createIgvConfigs <- function(x, position, map = "mapFinal", open = TRUE) {
   }
   igvConfigs <- list()
   # hp = "A"
-  haptypes <- if(map == "mapInit") {
+  haptypes <- if (map == "mapInit") {
     "Init"
   } else {
     x$getHapTypes()
   }
-  for (hp in haptypes){
+  for (hp in haptypes) {
     igv <- file.path(igvdir, "igv" %<<% hp %<<% map %<<% ".xml")
     if (map == "mapFinal") {
       ref   <- x$mapIter[[as.character(x$getIterations())]][[hp]]$seqpath
@@ -143,17 +143,17 @@ createIgvConfigs <- function(x, position, map = "mapFinal", open = TRUE) {
                              basename(x$mapFinal$bamfile[["SR" %<<% hp]]))
       }
     } else if (map == "mapInit") {
-      if (x$getPartSR()) {
-        ref <- unname(x$mapInit$SR2$seqpath)
-        bamSR <- x$mapInit$SR2$bamfile
+      if (x$hasShortreads()) {
+        ref <- unname(x$mapInit$refpath)
+        bamSR <- x$mapInit$meta$SR2$bampath
       } else {
         ref <- x$getRefSeq()
       }
-      bamLR <- x$mapInit$bamfile
+      bamLR <- x$mapInit$bampath
 
     } else if (map == "mapIter") {
-      ref <- x$mapIter[[as.character(x$getIterations() - 1)]][[hp]]$seqpath
-      bamLR <- x$mapIter[[as.character(x$getIterations())]][[hp]]$bamfile
+      ref <- x$mapIter[[as.character(x$getIterations())]][[hp]]$conspath
+      bamLR <- x$mapIter[[as.character(x$getIterations())]][[hp]]$bampath
     }
     if (!is(ref, "DNAStringSet")) {
       chr <- strsplit1(sub(">", "",
@@ -240,7 +240,7 @@ createIgvJsFiles <- function(reference, bamfile, outdir, ...) {
   ## Subsample the bam file
   resultList <- subSampleBam(bamfile = bamfile, ...)#fragmentReads = TRUE, sampleSize = 100)#, ...)
   ## Index the reference
-  indexFa(reference)
+  Rsamtools::indexFa(reference)
   resultList$referenceFile <- .cropPath(outdir, reference)
   resultList$original <- .cropPath(outdir, resultList$original)
   resultList$sampled <- .cropPath(outdir, resultList$sampled)
