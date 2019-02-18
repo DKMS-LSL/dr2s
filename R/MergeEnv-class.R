@@ -102,7 +102,6 @@ MergeEnv_$set("public", "init", function(hapEnv) {
     reference <- Biostrings::readDNAStringSet(referencePath)
     envir$ref <- unname(strsplit1(as.character(reference), ""))
   }
-  
   apos <- foreach(rt = c("LR", "SR"), .combine = c) %do% {
     ## positions not matching the consensus
     dism <- .noRefMatch(envir[[rt]], envir[["ref"]])
@@ -141,7 +140,6 @@ MergeEnv_$set("public", "walk", function(hp, verbose = FALSE) {
   if (!self$isInitialised(hp)) {
     self$init(hp)
   }
-  
   envir <- self$getHapEnv(hp)
   # while (stepThrough(envir)) {
   while (private$stepThrough(envir)) {
@@ -157,19 +155,17 @@ MergeEnv_$set("public", "walk", function(hp, verbose = FALSE) {
 
 ## private$stepThrough() ####
 MergeEnv_$set("private", "stepThrough", function(envir) {
-# stepThrough <- function(envir) {
+  # stepThrough <- function(envir) {
   if (!itertools::hasNext(envir$POSit)) {
     return(FALSE)
   }
   envir$pos <- ifelse(!is.null(envir$SR),
                       iterators::nextElem(envir$POSit) + offsetBases(envir$SR),
                       iterators::nextElem(envir$POSit) + offsetBases(envir$LR))
-  message(envir$pos)
-  # envir$pos <- 3960
-  # 9886
+  # message(envir$pos)
+  # envir$pos <- 962
   # p  <- envir$pos
   # x  <- yield(envir)
-  # pos = 11076
   rs <- disambiguateVariant(x = yield(envir), threshold = self$threshold)
   .update(envir) <- rs
   TRUE
@@ -325,6 +321,7 @@ MergeEnv_$set("public", "export", function() {
   if (NROW(srm) != NROW(lrm) + length(ins(srm))) {
     flog.warn("SR and LR are of different length", name = "info")
   }
+
   # lm[ins(lrm), ]
   # sm[ins(srm), ]
   # ref <- Biostrings::readDNAStringSet(self$x$absPath(self$x$mapFinal$ref[["B"]]))
