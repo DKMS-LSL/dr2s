@@ -4,12 +4,12 @@
 \alias{reportCheckedConsensus}
 \title{Report haplotype consensus files as verified}
 \usage{
-reportCheckedConsensus(x, which = "mapFinal")
+reportCheckedConsensus(x, map = "mapFinal")
 }
 \arguments{
 \item{x}{A \code{\link[=DR2S_]{DR2S}} object.}
 
-\item{which}{Which mapping do we want to update.}
+\item{map}{Which mapping do we want to update.}
 }
 \value{
 Side effect

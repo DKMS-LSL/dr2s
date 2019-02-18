@@ -124,7 +124,7 @@ subSampleBam <- function(bamfile, windowSize = NULL, sampleSize = 100,
   }
 
   # smpld <- mapper$srpartition$A$srpartition$haplotypes
-  if (!s.null(clusteredReads)) {
+  if (!is.null(clusteredReads)) {
     clustered = ifelse(names(sampledAlignmentBam) %in% clusteredReads, 1, 2)
     S4Vectors::mcols(sampledAlignmentBam)$pt <- clustered
   }

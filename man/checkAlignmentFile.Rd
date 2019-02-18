@@ -4,13 +4,13 @@
 \alias{checkAlignmentFile}
 \title{Manually check the alignment of consensus sequences using an editor.}
 \usage{
-checkAlignmentFile(x, which = "mapFinal", where = 0,
+checkAlignmentFile(x, map = "mapFinal", where = 0,
   editor = "xdg-open", openEditor = TRUE)
 }
 \arguments{
 \item{x}{A \code{\link[=DR2S_]{DR2S}} object.}
 
-\item{which}{Which stage of mapping to use. Either "mapFinal" (default) or
+\item{map}{Which stage of mapping to use. Either "mapFinal" (default) or
 "mapIter".}
 
 \item{where}{Where to focus with the editor.}
