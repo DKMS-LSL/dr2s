@@ -10,6 +10,7 @@ yield.HapEnv <- function(envir, pos = NULL) {
     ## Original consensus matrix at the position of the variant
     lr = lr[pos, ],
     sr = sr[pos, ],
+    ref = ref[pos],
     ## Disambiguated consensus matrix at the position of the variant
     lr_ = NULL,
     sr_ = NULL,
