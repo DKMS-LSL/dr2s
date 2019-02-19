@@ -278,7 +278,7 @@ createPWM <- function(msa, indelRate = NULL) {
   ## 'package:stats' may not be available when loading
   ## For the time being we suppress this warning
   changeMat <- suppressWarnings(BiocParallel::bplapply(which(idx), function(i, bfl, seq) {
-    #  i <- which(seq$length > 5)[1]
+    # i <- which(idx)[1]
     ## Assign new gap numbers to each position starting from left
     #  meanCoverage <- mean(rowSums(mat[(seqStart-2):(seqEnd+2),1:4]))
     seqStart <- sum(seq$lengths[seq_len(i - 1)]) + 1
@@ -293,6 +293,9 @@ createPWM <- function(msa, indelRate = NULL) {
       ## gives no info
       msa <- msa[vapply(msa, function(x) !"+" %in% Biostrings::uniqueLetters(x),
                         FUN.VALUE = logical(1))]
+      ## Check again if still sequence there
+      if (length(msa) == 0) 
+        return(NULL)
       if (removeError) {
         aFreq <- colSums(Biostrings::letterFrequency(msa, VALID_DNA("none")))
         nt <- names(aFreq)[which.max(aFreq)]
@@ -337,8 +340,10 @@ createPWM <- function(msa, indelRate = NULL) {
       )
     }
   }, bfl = bam, seq = seq, BPPARAM = bpparam))
-  ##
-  assert_that(!any(vapply(changeMat, is.null, FUN.VALUE = logical(1))))
+  ## 
+  ## remove empty entries resulting from too bad coverage
+  nullMats <- vapply(changeMat, is.null, FUN.VALUE = logical(1))
+  changeMat <- changeMat[!nullMats]
   ## Change the matrix
   for (i in changeMat) {
     mat[i$seqStart:i$seqEnd, ] <- i$mat
