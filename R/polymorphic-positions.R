@@ -167,7 +167,7 @@ polymorphicPositions.pileup <- function(x, threshold = NULL) {
       selectByColSum = selectByColSum)
   } else if (mc$G == 1) {
     selected.snps <- structure(
-      names(mc$classification), classification = as.character(mc$classification))
+      colnames(mc$data), classification = as.character(mc$classification))
   }
   attr(selected.snps, "mclustBIC") <- bic
   attr(selected.snps, "mclust") <- mc
