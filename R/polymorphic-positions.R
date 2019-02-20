@@ -364,7 +364,7 @@ cramerV <- function(x) {
   ys2 <- c(ys, ys[1])
   grDevices::pdf(NULL, bg = "white")
   grDevices::dev.control(displaylist = "enable")
-  plot(xs, f1, type = "n", ylim = c(0, max(f1, f2) + 0.1*max(f1, f2)),
+  plot(xs, f1, type = "n", ylim = c(0, max(f1[f1 < Inf], f2[f2 < Inf]) + 0.1*max(f1[f1 < Inf], f2[f2 < Inf])),
        xlab = "association", ylab = "density", bg = "white")
   lines(xs, f1, lty = "dotted", lwd = 2) ## between cluster
   legend(xs[which.max(f1)], max(f1), legend = "btn(h,l)cluster assoc", bty = "n", xjust = 0.5, yjust = 0)
