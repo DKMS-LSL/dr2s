@@ -48,10 +48,17 @@ consmat.matrix <- function(x, freq = TRUE, ...) {
   Consmat_(x, n, freq, ...)
 }
 
-
 #' @export
 consmat.tbl_df <- function(x, freq = TRUE, drop.unused.levels = FALSE, ...) {
   assert_that(all(c("pos", "nucleotide", "count") %in% colnames(x)))
+  ## Add empty positions to pileup 
+  # gaps <- which(!1:max(x$pos) %in% x$pos)
+  # x <- dplyr::bind_rows(x, lapply(gaps, function(i, seqname) {
+  #   tibble::tibble(seqnames = seqname, pos = i, nucleotide = "-", count = 0L)
+  # }, seqname = x$seqnames[[1]])) %>% 
+  #   dplyr::arrange(pos)
+  # x$nucleotide <- factor(x$nucleotide)
+  
   ctab <- stats::xtabs(formula = count ~ pos + nucleotide, data = x,
                        drop.unused.levels = drop.unused.levels)
   cmat <- matrix(ctab, NROW(ctab), NCOL(ctab))

@@ -495,20 +495,21 @@ plotPileupBasecallFrequency <- function(x, threshold = 0.20, label = "",
             " No equal distribution of coverage!" %<<%
             " Have a look at the mapInit plot",
             indent(), maxCov, q75Cov, maxCov/q75Cov, name = "info")
-  plt <- plotPileupCoverage(
-    x = pileup,
-    thin = 0.25,
-    width = 2,
-    label = maptag,
-    drop.indels = TRUE
-  )
+  if (NROW(pileup) > 0) {
+    plt <- plotPileupCoverage(
+      x = pileup,
+      thin = 0.25,
+      width = 2,
+      label = maptag,
+      drop.indels = TRUE
+    )
+    cowplot::save_plot(plotFile, plt, base_aspect_ratio = 3,
+              onefile = TRUE)
+  }
   flog.error("%sAborting. If you want to force processing set" %<<%
              " forceMapping = TRUE in DR2S object initialisation", indent(), name = "info")
-  cowplot::save_plot(plotFile, plt, base_aspect_ratio = 3,
-            onefile = TRUE)
   if (!forceMapping) {
-    stop("Shortreads probably of bad quality. Bad coverage distribution.
-         Run with forceMapping = TRUE to force processing.")
+    stop("Shortreads probably of bad quality. Bad coverage distribution. Run with forceMapping to force processing.")
   } else {
     flog.warn("%sContinue. Be aware that resulsts may not be correct!!", indent(), name = "info")
   }
