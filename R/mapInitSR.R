@@ -28,7 +28,12 @@ mapInitSR <- function(self, opts = list(), includeDeletions = TRUE,
     clip = FALSE, distributeGaps = FALSE, removeError = TRUE, topx = 0,
     clean = clean, indent = indent, ...)#minMapq = 50)
 
-  ## Check if the coverage is somewhat equally distributed
+  ## Check if the pileup is empty and the coverage is somewhat equally distributed
+  if (NROW(consmat(pileup)) == 0) {
+    errorMsg <- "No mapping reads in pileup"
+    flog.info(paste0("%s", errorMsg), indent(), name = "info")
+    stop(errorMsg)
+  }
   if (max(rowSums(consmat(pileup, freq = FALSE))) /
       quantile(rowSums(consmat(pileup, freq = FALSE)), 0.75) > 5) {
     plotfile <- self$absPath("plot.MapInit.SR.problem.pdf")
