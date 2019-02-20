@@ -322,21 +322,6 @@ MergeEnv_$set("public", "export", function() {
   if (NROW(srm) != NROW(lrm) + length(ins(srm))) {
     flog.warn("SR and LR are of different length", name = "info")
   }
-
-  # lm[ins(lrm), ]
-  # sm[ins(srm), ]
-  # ref <- Biostrings::readDNAStringSet(self$x$absPath(self$x$mapFinal$ref[["B"]]))
-  # ref
-  # i <- i
-  # j <- i
-  # t(lm[(i-6):(i+6), ])
-  # t(sm[(j-6):(j+6), ])
-  # Biostrings::subseq(ref, j-9, j+9)
-  # NROW(lm)
-  # NROW(sm)
-  # tail(lm)
-  # tail(sm)
-
   sm <- as.matrix(srm)
   if (NCOL(srm) == 5) {
     sm <- cbind(sm, `+` = 0)
@@ -371,7 +356,11 @@ MergeEnv_$set("public", "export", function() {
   if (length(ins(srm)) > 0) {
     insert <- matrix(c(0, 0, 0, 0, stats::median(rowSums(lm)), 0), ncol = 6)
     myIns  <- sort(ins(srm))
-    myIns  <- myIns[myIns < NROW(lrm) + length(ins(srm))]
+    
+    ## Don't add the length(of ins(srm) to NROW(lrm) for getting valid 
+    ## insertions. We don't know the length of each ins and so its useless
+    # myIns  <- myIns[myIns < NROW(lrm) + length(ins(srm))]
+    myIns  <- myIns[myIns < NROW(lrm)]
     INSit  <- itertools::ihasNext(iterators::iter(myIns))
     if (length(ins(lrm)) > 0) {
       while (itertools::hasNext(INSit)) {
