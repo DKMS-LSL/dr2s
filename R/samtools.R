@@ -111,7 +111,13 @@ subSampleBam <- function(bamfile, windowSize = NULL, sampleSize = 100,
   } else if (length(names(alignmentBam)) > sampleSize) {
     ## Use only longreads of desired lengths, i.e. between .9 and 1.1 of reference length if there are enough
     lens <- GenomicAlignments::qwidth(alignmentBam)
-    sampledAlignmentBam <- sample(alignmentBam[lens > 0.9 * geneLength & lens < 1.1 * geneLength], size = sampleSize)
+    readsCorrectLen <- lens > 0.9 * geneLength & lens < 1.1 * geneLength
+    ## If more than 90% of reads are too long the reference might be too short
+    if (sum(lens > 1.1 * geneLength)/NROW(alignmentBam) > 0.9) {
+      flog.warn("The reference is probably too short", name = "info")
+      readsCorrectLen <- lens > 0.9 * geneLength
+    } 
+    sampledAlignmentBam <- sample(alignmentBam[readsCorrectLen], size = sampleSize)
     missingReads <- max(c(sampleSize - length(sampledAlignmentBam), 0))
     sampledAlignmentBam <- c(sampledAlignmentBam,
                              sample(alignmentBam[!names(alignmentBam) %in% names(sampledAlignmentBam)], missingReads))
