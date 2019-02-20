@@ -265,7 +265,7 @@ rescale <- function(x, lower, upper) {
 
   # fallback to N_CORES/4 if mpstat not installed
   if (!.hasCommand("mpstat")) {
-    warning("Install sysstat to make use of idle core detection", immediate. = TRUE)
+    flog.warn("Install sysstat to make use of idle core detection", immediate. = TRUE)
     return(max(floor(N_CORES/4), 1))
   }
 

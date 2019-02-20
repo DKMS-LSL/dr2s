@@ -13,8 +13,7 @@ readDR2S <- function(path) {
   outdir <- normalizePath(path, mustWork = TRUE)
   rdsPath <- dir(outdir, pattern = "^DR2S(YAML)?.*.rds", full.names = TRUE)
   if (length(rdsPath) == 0) {
-    warning("No DR2S analysis object found", call. = TRUE, immediate. = TRUE)
-    return(NULL)
+    stop("No DR2S analysis object found", call. = TRUE, immediate. = TRUE)
   }
   rs <- lapply(rdsPath, readRDS)
   ## update outdir
