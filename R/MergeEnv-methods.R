@@ -65,7 +65,6 @@ disambiguateVariant <- function(x, threshold) {
   lr <- as.matrix(x$lr)
   varl <- .filterVariant(cm = lr, threshold)
   ref <- x$ref
-  
 
   ## Look if its ambiguous
   if (length(varl) > 1) {
@@ -81,7 +80,7 @@ disambiguateVariant <- function(x, threshold) {
     }
     ## Set the ambiguous bases
     lrBases <- names(varl)
-  } else if (names(varl) != ref) {
+  } else if (!is.null(ref) & names(varl) != ref) {
     if (names(varl) == "-") {
       lrBases <- c(names(varl), names(varl))
     } else {
@@ -91,75 +90,82 @@ disambiguateVariant <- function(x, threshold) {
   } else {
     warningMsg <- warningMsg %<<% "|Variant only in short reads"
     lrBases <- c(names(varl), names(varl))
+    if (is.null(ref))
+      warningMsg <- warningMsg %<<% "|no reference "
   }
 
   if (!is.null(x$sr)) {
     sr <- as.matrix(x$sr)
     vars <- .filterVariant(cm = sr, threshold)
 
-    ## State which reads are ambiguous
-    if (length(vars) > 1 ) {
-      srBases <- names(vars)
-      ## Check for deletions
-      if ("-" %in% names(vars)) {
-        if ((sr[vars["-"]]/sum(sr[vars])) %|na|% 0  > max(threshold/2*3, 0.3)) {
-          warningMsg <- warningMsg %<<% "|Gap in short reads"
-        }
-      } else {
-        warningMsg <- warningMsg %<<% "|Ambiguous position in short reads"
-
-        ## Spurious insertion in short reads that should have been set to zero.
-        if ("+" %in% names(vars)) {
-          warningMsg <- warningMsg %<<% "|Insertion signal in short reads"
-        }
-
-        ## Mismatch in variant bases between long and short reads
-        ## not the same order or base
-        if (length(varl) == length(vars)) {
-          if (any(!varl == vars)) {
-            ## No base matches
-            if (length(intersect(names(varl), names(vars))) == 0) {
-              warningMsg <- warningMsg %<<%
-                "|No intersect between long and short read variants"
-            } else if (any(!sort(varl) == sort(vars))) { # different order
+    if (sum(sr) == 0) {
+      warningMsg <- warningMsg %<<% "|no shortreads"
+      srBases <- c("-", "-")
+    } else {
+      ## State which reads are ambiguous
+      if (length(vars) > 1 ) {
+        srBases <- names(vars)
+        ## Check for deletions
+        if ("-" %in% names(vars)) {
+          if ((sr[vars["-"]]/sum(sr[vars])) %|na|% 0  > max(threshold/2*3, 0.3)) {
+            warningMsg <- warningMsg %<<% "|Gap in short reads"
+          }
+        } else {
+          warningMsg <- warningMsg %<<% "|Ambiguous position in short reads"
+  
+          ## Spurious insertion in short reads that should have been set to zero.
+          if ("+" %in% names(vars)) {
+            warningMsg <- warningMsg %<<% "|Insertion signal in short reads"
+          }
+  
+          ## Mismatch in variant bases between long and short reads
+          ## not the same order or base
+          if (length(varl) == length(vars)) {
+            if (any(!varl == vars)) {
+              ## No base matches
+              if (length(intersect(names(varl), names(vars))) == 0) {
                 warningMsg <- warningMsg %<<%
-                  "|Major/minor variant different in long and short reads"
-            } else if (length(varl) > length(vars)) {
+                  "|No intersect between long and short read variants"
+              } else if (any(!sort(varl) == sort(vars))) { # different order
+                  warningMsg <- warningMsg %<<%
+                    "|Major/minor variant different in long and short reads"
+              } else if (length(varl) > length(vars)) {
+                  warningMsg <- warningMsg %<<%
+                    "|Variant in long but not in short reads"
+              } else if (length(vars) > length(varl)) {
+                  warningMsg <- warningMsg %<<%
+                    "|Variant in short but not in long reads"
+              } else {
                 warningMsg <- warningMsg %<<%
-                  "|Variant in long but not in short reads"
-            } else if (length(vars) > length(varl)) {
-                warningMsg <- warningMsg %<<%
-                  "|Variant in short but not in long reads"
-            } else {
-              warningMsg <- warningMsg %<<%
-                "|Mismatch between long and short read variants"
+                  "|Mismatch between long and short read variants"
+              }
             }
           }
+  
+          ## Check for more than two alleles
+          if (length(vars) > 2) {
+            warningMsg <- warningMsg %<<% "|More than two short read variants"
+            srBases <- names(vars)[1:2]
+          }
         }
-
-        ## Check for more than two alleles
-        if (length(vars) > 2) {
-          warningMsg <- warningMsg %<<% "|More than two short read variants"
-          srBases <- names(vars)[1:2]
+      } else if (names(vars) != ref) {
+        ## Check if it is a gap
+        if (names(vars) == "-") {
+          warningMsg <- warningMsg %<<% "|Only gap in short read variant, not matching the reference"
+        } else {
+          warningMsg <- warningMsg %<<% "|short read variant not matching the reference"
         }
-      }
-    } else if (names(vars) != ref) {
-      ## Check if it is a gap
-      if (names(vars) == "-") {
-        warningMsg <- warningMsg %<<% "|Only gap in short read variant, not matching the reference"
+        srBases <- c(names(vars), names(vars))
       } else {
-        warningMsg <- warningMsg %<<% "|short read variant not matching the reference"
+        ## Use only non-gap variants from only longreads.
+        warningMsg <- ifelse("-" %in% names(varl),
+                             "",
+                             "|Variant only in long reads") %<<% warningMsg
+        srBases <- c(names(vars), names(vars))
       }
-      srBases <- c(names(vars), names(vars))
-    } else {
-      ## Use only non-gap variants from only longreads.
-      warningMsg <- ifelse("-" %in% names(varl),
-                           "",
-                           "|Variant only in long reads") %<<% warningMsg
-      srBases <- c(names(vars), names(vars))
     }
   } else {
-    srBases <- c(names(vars), names(vars))
+    srBases <- rep(NA, 2)
   }
 
   # names(bases) <- c("ref", "alt")

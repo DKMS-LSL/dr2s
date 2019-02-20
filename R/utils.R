@@ -159,6 +159,17 @@ mergeList <- function(x, y, update = FALSE) {
   }
   x
 }
+## collapse integer vector to ranges
+in.seq <- function(x) {
+  # returns TRUE for elments within ascending sequences
+  (c(diff(x, 1), NA) == 1 & c(NA, diff(x,2), NA) == 2)
+}
+
+contractSeqs <-  function(x) {
+  # returns string formatted with contracted sequences
+  x[in.seq(x)] <- ""
+  gsub(",{2,}", "-", paste(x, collapse=","), perl=TRUE)
+}
 
 wrap <- function(x, wrap = "\"") {
   stopifnot(is.vector(x))

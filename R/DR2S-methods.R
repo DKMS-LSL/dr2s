@@ -55,7 +55,7 @@ DR2S_$set("public", "runMapInit", function(opts = list(), ...) {
   if (self$hasShortreads()) {
     SR <- mapInitSR(
       self = self, opts = opts, includeDeletions = includeDeletions,
-      includeInsertions = includeInsertions, callInsertions = TRUE,
+      includeInsertions = TRUE, callInsertions = TRUE,
       callInsertionThreshold = callInsertionThreshold, clip = FALSE,
       distributeGaps = FALSE, removeError = TRUE, topx = 0,
       outdir = outdir, clean = clean, minMapq = 50, indent = indent, ...)
@@ -125,7 +125,7 @@ DR2S_$set("public", "runMapInit", function(opts = list(), ...) {
   pileup <- mapReads(
     mapfun = mapfun, maplabel = maplabel, reffile = reffile, refname = refname,
     readfile = readfile, readtype = readtype, opts = opts, outdir = outdir,
-    includeDeletions = TRUE, includeInsertions = FALSE, callInsertions = FALSE,
+    includeDeletions = TRUE, includeInsertions = TRUE, callInsertions = FALSE,
     clip = FALSE, distributeGaps = TRUE, removeError = TRUE, topx = topx,
     updateBackgroundModel = updateBackgroundModel, clean = clean,
     minMapq = minMapq, pickiness = pickiness, lowerLimit = lowerLimit,
@@ -189,6 +189,11 @@ DR2S_$set("public", "runMapInit", function(opts = list(), ...) {
     .setRunstats(self, "mapInit",
                  list(Runtime = format(Sys.time() - start.time),
                       LRcoverage = stats(self$mapInit, "coverage")[["50%"]]))
+  }
+  ## Check if there are coverage gaps Intentionally after plotting
+  if (self$hasShortreads()) {
+    pileup <- self$mapInit$meta$SR2$pileup$pileup
+    checkCovGaps(pileup)
   }
 
   return(invisible(self))
@@ -550,6 +555,7 @@ mapIter.DR2S <- function(x, opts = list(), ...) {
 DR2S_$set("public", "runMapIter", function(opts = list(), ...) {
   # debug
   # self <- dr2s
+  # self <- mapper
   # opts = list()
   ## If reporting is already done exit safely
   if (.checkReportStatus(self)) return(invisible(self))
@@ -575,7 +581,7 @@ DR2S_$set("public", "runMapIter", function(opts = list(), ...) {
 
   baseoutdir <- self$absPath("mapIter")
   clean <- TRUE
-  includeInsertions <- ifelse(self$hasShortreads(), FALSE, TRUE)
+  includeInsertions <- TRUE
   callInsertions <- ifelse(self$hasShortreads(), FALSE, TRUE)
   ## Mapper
   mapfun <- self$getLrdMapFun()
@@ -600,7 +606,7 @@ DR2S_$set("public", "runMapIter", function(opts = list(), ...) {
       pileup <- mapReads(
         mapfun = mapfun, maplabel = maplabel, reffile = reffile, refname = refname,
         readfile = readfile, readtype = readtype, opts = opts, outdir = outdir,
-        includeDeletions = TRUE, includeInsertions = includeInsertions,
+        includeDeletions = TRUE, includeInsertions = TRUE,
         callInsertions = callInsertions, callInsertionThreshold = callInsertionThreshold,
         clip = FALSE, distributeGaps = TRUE, removeError = TRUE, topx = 0,
         clean = clean, indent = incr(indent2), ...)
@@ -762,6 +768,7 @@ DR2S_$set("public", "runMapFinal", function(opts = list(), ...) {
   # opts = list()
   # library(futile.logger)
   # library(foreach)
+  # self <- mapper
   # self <- dr2s
   ## If reporting is already done exit safely
   if (.checkReportStatus(self)) return(invisible(self))
@@ -819,10 +826,11 @@ DR2S_$set("public", "runMapFinal", function(opts = list(), ...) {
     pileup <- mapReads(
       mapfun = mapfun, maplabel = maplabel, reffile = reffile, refname = refname,
       readfile = readfile, readtype = readtype, opts = opts, outdir = outdir,
-      includeDeletions = includeDeletions, includeInsertions = includeInsertions,
+      includeDeletions = includeDeletions, includeInsertions = TRUE,
       callInsertions = FALSE, callInsertionThreshold = callInsertionThreshold,
       clip = FALSE, distributeGaps = TRUE, removeError = TRUE, topx = 0,
-      clean = TRUE, max_depth = 1e4, min_mapq = 0, indent = incr(indent), ...)
+      clean = TRUE, max_depth = 1e4, min_mapq = 0, indent = incr(indent), 
+      min_nucleotide_depth = 5, ...)
     ## Create igv
     if (createIgv) {
       igv <- createIgvJsFiles(
@@ -866,11 +874,11 @@ DR2S_$set("public", "runMapFinal", function(opts = list(), ...) {
       pileup <- mapReads(
         mapfun = mapfun, maplabel = maplabel, reffile = reffile, refname = refname,
         readfile = readfile, readtype = readtype, opts = opts, outdir = outdir,
-        includeDeletions = includeDeletions, includeInsertions = includeInsertions,
+        includeDeletions = includeDeletions, includeInsertions = TRUE,
         callInsertions = TRUE, callInsertionThreshold = callInsertionThreshold,
         clip = trimPolymorphicEnds, distributeGaps = TRUE, removeError = TRUE, topx = 0,
         clean = TRUE, max_depth = 1e5, min_mapq = 50, min_base_quality = 13,
-        indent = incr(indent), ...)
+        indent = incr(indent), min_nucleotide_depth = 5, ...)
       ## Create igv
       if (createIgv) {
         clusteredReads <- self$srpartition$A$srpartition$haplotypes$read
@@ -929,6 +937,14 @@ DR2S_$set("public", "runMapFinal", function(opts = list(), ...) {
   .setRunstats(self, "mapFinal",
                list(Runtime = format(Sys.time() - start.time)))
 
+  ## Check if there are coverage gaps Intentionally after plotting
+  if (self$hasShortreads()) {
+    for (hp in hptypes) {
+      pileup <- self$mapFinal$SR[[hp]]$pileup$pileup
+      checkCovGaps(pileup)
+    }
+  }
+      
   return(invisible(self))
 })
 

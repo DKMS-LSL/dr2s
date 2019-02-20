@@ -504,7 +504,7 @@ plotPileupBasecallFrequency <- function(x, threshold = 0.20, label = "",
   )
   flog.error("%sAborting. If you want to force processing set" %<<%
              " forceMapping = TRUE in DR2S object initialisation", indent(), name = "info")
-  save_plot(plotFile, plt, base_aspect_ratio = 3,
+  cowplot::save_plot(plotFile, plt, base_aspect_ratio = 3,
             onefile = TRUE)
   if (!forceMapping) {
     stop("Shortreads probably of bad quality. Bad coverage distribution.
@@ -512,4 +512,12 @@ plotPileupBasecallFrequency <- function(x, threshold = 0.20, label = "",
   } else {
     flog.warn("%sContinue. Be aware that resulsts may not be correct!!", indent(), name = "info")
   }
+}
+checkCovGaps <- function(pileup) {
+  if (any(noCov <- !min(pileup$pos):max(pileup$pos) %in% pileup$pos)) {
+    errorMsg <- sprintf("No shortreads at positions  %s", contractSeqs(which(noCov)))
+    flog.error(errorMsg, name = "info")
+    stop(errorMsg)
+  }
+  return(invisible(TRUE))
 }

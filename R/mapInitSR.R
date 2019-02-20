@@ -86,7 +86,7 @@ mapInitSR <- function(self, opts = list(), includeDeletions = TRUE,
   pileup  <- mapReads(
     mapfun = mapfun, maplabel = maplabel, reffile = reffile, refname = refname,
     readfile = readfile, readtype = readtype, opts = opts, outdir = outdir,
-    includeDeletions = TRUE, includeInsertions = FALSE, callInsertions = FALSE,
+    includeDeletions = TRUE, includeInsertions = TRUE, callInsertions = FALSE,
     callInsertionThreshold = callInsertionThreshold, clip = FALSE,
     distributeGaps = FALSE, removeError = TRUE, topx = 0, clean = clean,
     indent = indent, ...)#minMapq = 50)

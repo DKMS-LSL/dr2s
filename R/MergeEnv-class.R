@@ -81,12 +81,12 @@ MergeEnv_ <- R6::R6Class(
 )
 
 ## self$init() ####
-MergeEnv_$set("public", "init", function(hapEnv) {
+MergeEnv_$set("public", "init", function(hapEnv, map = "mapFinal") {
   hapEnv <- match.arg(hapEnv, self$x$getHapTypes())
+  map <- match.arg(map, c("mapFinal", "remap"))
   envir <- self$hptypes[[hapEnv]]
 
-  readtype <- ifelse(self$x$hasShortreads(), "SR", "LR")
-  if (readtype == "SR") {
+  if (self$x$hasShortreads()) {
     lr <- consmat(self$x$mapFinal$LR[[hapEnv]]$pileup, prob = FALSE)
     sr <- consmat(self$x$mapFinal$SR[[hapEnv]]$pileup, prob = FALSE)
     rs <- .equaliseConsmat(lrm = lr, srm = sr)
@@ -95,7 +95,7 @@ MergeEnv_$set("public", "init", function(hapEnv) {
     referencePath <- self$x$absPath(self$x$mapFinal$SR[[hapEnv]]$conspath)
     reference <- Biostrings::readDNAStringSet(referencePath)
     envir$ref <- unname(strsplit1(as.character(reference), ""))
-  } else if (readtype == "LR") {
+  } else {
     envir$LR <- consmat(self$x$mapFinal$LR[[hapEnv]]$pileup, prob = FALSE)
     envir$SR <- NULL
     referencePath <- self$x$absPath(self$x$mapFinal$LR[[hapEnv]]$conspath)
