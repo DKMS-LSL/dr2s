@@ -217,6 +217,7 @@ DR2S_$set("public", "runPartitionLongreads", function() {
     ## debug
     # library(futile.logger)
     # library(assertthat)
+    # self <- mapper
     # self <- dr2s
 
     flog.info("# PartitionLongreads", name = "info")
@@ -273,36 +274,41 @@ DR2S_$set("public", "runPartitionLongreads", function() {
 
     mat <- SNPmatrix(self$absPath(bampath(self$mapInit)), ppos)
     base_height <- max(6, floor(sqrt(NCOL(mat))))
-    spos <- .selectAssociatedPolymorphicPositions(
-      mat, measureOfAssociation, proportionOfOverlap, minimumExpectedDifference,
-      noSelect = !selectCorrelatedPositions, indent = indent)
-    mat0 <- mat[, spos[order(as.numeric(spos))], drop = FALSE]
+    ## Only get associations if more than 1 SNP is present
+    if (NROW(ppos) > 1) {
+      spos <- .selectAssociatedPolymorphicPositions(
+        mat, measureOfAssociation, proportionOfOverlap, minimumExpectedDifference,
+        noSelect = !selectCorrelatedPositions, indent = indent)
+      mat0 <- mat[, spos[order(as.numeric(spos))], drop = FALSE]
 
-    if (plot) {
-      ## correlogram
-      plotpath <- file.path(self$getOutdir(), "plot.correlogram.png")
-      cowplot::save_plot(plotpath, attr(spos, "snp.correlogram"),
-                         base_height = base_height, dpi = 150)
-      ## associiation plot
-      plotpath <- file.path(self$getOutdir(), "plot.association.png")
-      cowplot::save_plot(plotpath, attr(spos, "snp.association"),
-                         base_height = base_height/2.4, dpi = 150,
-                         base_aspect_ratio = 3)
-      ## if exists: cluster overlap
-      if (has_attr(spos, "ovl.plot")) {
-        plotpath <- file.path(self$getOutdir(), "plot.mclust.ovl.png")
-        grDevices::png(filename = plotpath, width = 5, height = 4.25, units = "in",
-                       res = 150, bg = "white")
-        print(attr(spos, "ovl.plot"))
-        grDevices::dev.off()
-      }
+      if (plot) {
+        ## correlogram
+        plotpath <- file.path(self$getOutdir(), "plot.correlogram.png")
+        cowplot::save_plot(plotpath, attr(spos, "snp.correlogram"),
+                           base_height = base_height, dpi = 150)
+        ## associiation plot
+        plotpath <- file.path(self$getOutdir(), "plot.association.png")
+        cowplot::save_plot(plotpath, attr(spos, "snp.association"),
+                           base_height = base_height/2.4, dpi = 150,
+                           base_aspect_ratio = 3)
+        ## if exists: cluster overlap
+        if (has_attr(spos, "ovl.plot")) {
+          plotpath <- file.path(self$getOutdir(), "plot.mclust.ovl.png")
+          grDevices::png(filename = plotpath, width = 5, height = 4.25, units = "in",
+                         res = 150, bg = "white")
+          print(attr(spos, "ovl.plot"))
+          grDevices::dev.off()
+        }
 
-      ## if exists: mclust
-      if (has_attr(spos, "mclust")) {
-        plotpath <- file.path(self$getOutdir(), "plot.mclust.png")
-        p <- factoextra::fviz_mclust(attr(spos, "mclust"))
-        cowplot::save_plot(plotpath, p, base_height = 5, dpi = 150)
+        ## if exists: mclust
+        if (has_attr(spos, "mclust")) {
+          plotpath <- file.path(self$getOutdir(), "plot.mclust.png")
+          p <- factoextra::fviz_mclust(attr(spos, "mclust"))
+          cowplot::save_plot(plotpath, p, base_height = 5, dpi = 150)
+        }
       }
+    } else {
+      mat0 <- mat
     }
 
     flog.info("%sPartition %s longreads over %s SNPs", indent(), NROW(mat0), NCOL(mat0), name = "info")

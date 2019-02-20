@@ -38,10 +38,10 @@ B.}
 \section{Public Methods}{
 
 \describe{
-\item{\code{x$runMapInit( opts = list(), createIgv = TRUE, plot = TRUE, ...)}}
-{Run the inital mapping step (long reads against the reference allele)}
-\item{\code{x$runPartitionLongreadsplot = TRUE, ...)}}
-{Partition mapped longreads into haplotypes}
+\item{\code{x$runMapInit( opts = list(), createIgv = TRUE, plot = TRUE, ...)}}{
+Run the inital mapping step (long reads against the reference allele)}
+\item{\code{x$runPartitionLongreadsplot = TRUE, ...)}}{
+Partition mapped longreads into haplotypes}
 \item{\code{x$runSplitLongreadsByHaplotype((plot = TRUE)}}{
 Partition mapped longreads into haplotypes}
 \item{\code{x$runExtractPartitionedLongreads()}}{
