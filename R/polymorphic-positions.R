@@ -72,6 +72,7 @@ polymorphicPositions.pileup <- function(x, threshold = NULL) {
                                                   minimumExpectedDifference = 0.06,
                                                   noSelect = FALSE,
                                                   resample = NULL,
+                                                  selectByColSum = TRUE,
                                                   ...) {
   measureOfAssociation <- match.arg(measureOfAssociation, c("cramer.V", "spearman", "kendall"))
   indent <- list(...)$indent %||% indentation()
@@ -81,7 +82,7 @@ polymorphicPositions.pileup <- function(x, threshold = NULL) {
     selected.snps <- structure(colnames(mat), classification = "1")
   } else {
     selected.snps <- .clusterPolymorphicPositions(
-      dist, proportionOfOverlap, minimumExpectedDifference, indent = indent)#, ...)
+      dist, proportionOfOverlap, minimumExpectedDifference, selectByColSum, indent = indent)#, ...)
   }
   flog.info("%sRetaining %s high-association polymorphisms", indent(), length(selected.snps), name = "info")
   ## create correlogram and association plots
@@ -145,6 +146,7 @@ polymorphicPositions.pileup <- function(x, threshold = NULL) {
 .clusterPolymorphicPositions <- function(dist,
                                          proportionOfOverlap = 0.1,
                                          minimumExpectedDifference = 0.05,
+                                         selectByColSum = FALSE,
                                          ...) {
   ## @param proportionOfOverlap We perform an equivalence test on the two clusters:
   ##   calculate the lower 1-sigma bound of the high-association cluster i.
@@ -161,9 +163,9 @@ polymorphicPositions.pileup <- function(x, threshold = NULL) {
   if (mc$G == 2) {
     selected.snps <- .checkClusterMerge(
       dist, mc, proportionOfOverlap= proportionOfOverlap, indent = indent,
-      minimumExpectedDifference = minimumExpectedDifference)
-  }
-  else if (mc$G == 1) {
+      minimumExpectedDifference = minimumExpectedDifference, 
+      selectByColSum = selectByColSum)
+  } else if (mc$G == 1) {
     selected.snps <- structure(
       names(mc$classification), classification = as.character(mc$classification))
   }
@@ -186,6 +188,7 @@ polymorphicPositions.pileup <- function(x, threshold = NULL) {
   indent <- list(...)$indent %||% indentation()
   sigmaLevel <- list(...)$sigmaLevel %||% 1
   proportionOfOverlap <- list(...)$proportionOfOverlap %||% 1/3
+  selectByColSum <- list(...)$selectByColSum %||% FALSE
   minimumExpectedDifference <- list(...)$minimumExpectedDifference %||% 0.05
   measureOfAssociation <- switch(attr(dist, "method"),
                                  "cramer.V" = "Cramér's V",
@@ -196,17 +199,20 @@ polymorphicPositions.pileup <- function(x, threshold = NULL) {
   classification <- mc$classification
   i <- names(which(classification == 1))
   j <- names(which(classification == 2))
+  
+  selectFun <- function(dist, x, selectByColSum = TRUE) {
+    if (selectByColSum) {
+      return(mean(colSums(dist[], na.rm = TRUE)[x]))
+    } else {
+      if (length(x) == 1 )
+        return(mean(dist[, ], na.rm = TRUE))
+      return(mean(dist[x, x][lower.tri(dist[x, x])]))
+    }
+  }
+  
   ## infer the high-association (h) the low-association (l) cluster
-  if (length(i) == 1) {
-    mi  <- mean(dist[i, ], na.rm = TRUE)
-  } else {
-    mi  <- mean(dist[i, i][lower.tri(dist[i, i])])
-  }
-  if (length(j) == 1) {
-    mj  <- mean(dist[j, ], na.rm = TRUE)
-  } else {
-    mj  <- mean(dist[j, j][lower.tri(dist[j, j])])
-  }
+  mi <- selectFun(dist, i, selectByColSum = selectByColSum)
+  mj <- selectFun(dist, j, selectByColSum = selectByColSum)
   h <- list(i, j)[[which.max(c(mi, mj))]]
   l <- list(i, j)[[which.min(c(mi, mj))]]
   ## test for equivalence of within-(h)-cluster association and

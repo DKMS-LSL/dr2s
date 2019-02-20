@@ -164,6 +164,7 @@ MergeEnv_$set("private", "stepThrough", function(envir) {
                       iterators::nextElem(envir$POSit) + offsetBases(envir$LR))
   # message(envir$pos)
   # envir$pos <- 962
+  # envir$pos <- 4136
   # p  <- envir$pos
   # x  <- yield(envir)
   rs <- disambiguateVariant(x = yield(envir), threshold = self$threshold)

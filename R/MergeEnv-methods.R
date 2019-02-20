@@ -80,18 +80,23 @@ disambiguateVariant <- function(x, threshold) {
     }
     ## Set the ambiguous bases
     lrBases <- names(varl)
-  } else if (!is.null(ref) & names(varl) != ref) {
-    if (names(varl) == "-") {
-      lrBases <- c(names(varl), names(varl))
+  } else if (sum(lr) > 0) {
+    if (!is.null(ref) & names(varl) != ref) {
+      if (names(varl) == "-") {
+        lrBases <- c(names(varl), names(varl))
+      } else {
+        warningMsg <- warningMsg %<<% "|long read variant not matching the reference"
+        lrBases <- c(names(varl), names(varl))
+      }
     } else {
-      warningMsg <- warningMsg %<<% "|long read variant not matching the reference"
+      warningMsg <- warningMsg %<<% "|Variant only in short reads"
       lrBases <- c(names(varl), names(varl))
+      if (is.null(ref))
+        warningMsg <- warningMsg %<<% "|no reference "
     }
   } else {
-    warningMsg <- warningMsg %<<% "|Variant only in short reads"
-    lrBases <- c(names(varl), names(varl))
-    if (is.null(ref))
-      warningMsg <- warningMsg %<<% "|no reference "
+    lrBases <- rep(NA, 2)
+    warningMsg <- warningMsg %<<% "|no longreads"
   }
 
   if (!is.null(x$sr)) {
