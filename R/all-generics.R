@@ -59,7 +59,6 @@
 #'   mapIter() %>%
 #'   partitionShortreads() %>%
 #'   mapFinal() %>%
-#'   polish() %>%
 #'   report(blockWidth = 60)
 #' }
 createDR2SConf <- function(
@@ -116,7 +115,6 @@ InitDR2S <- function(config, createOutdir = TRUE) {
 #'   mapIter() %>%
 #'   partitionShortreads() %>%
 #'   mapFinal() %>%
-#'   polish() %>%
 #'   report(blockWidth = 60)
 #' }
 mapInit <- function(x, opts = list(), ...) {
@@ -149,7 +147,6 @@ mapInit <- function(x, opts = list(), ...) {
 #'   mapIter() %>%
 #'   partitionShortreads() %>%
 #'   mapFinal() %>%
-#'   polish() %>%
 #'   report(blockwidth = 60)
 #' }
 mapIter <- function(x, opts = list(), ...) {
@@ -182,7 +179,6 @@ mapIter <- function(x, opts = list(), ...) {
 #'   mapIter() %>%
 #'   partitionShortreads() %>%
 #'   mapFinal() %>%
-#'   polish() %>%
 #'   report(blockWidth = 60)
 #' }
 mapFinal <- function(x, opts = list(), ...) {
@@ -214,7 +210,6 @@ mapFinal <- function(x, opts = list(), ...) {
 #'   mapIter() %>%
 #'   partitionShortreads() %>%
 #'   mapFinal() %>%
-#'   polish() %>%
 #'   report(blockWidth = 60)
 #' }
 partitionLongreads <- function(x, plot = TRUE, ...) {
@@ -243,7 +238,6 @@ partitionLongreads <- function(x, plot = TRUE, ...) {
 #'   mapIter() %>%
 #'   partitionShortreads() %>%
 #'   mapFinal() %>%
-#'   polish() %>%
 #'   report(blockWidth = 60)
 #' }
 partitionShortreads <- function(x, opts = list(), ...) {
@@ -251,36 +245,7 @@ partitionShortreads <- function(x, opts = list(), ...) {
 }
 
 
-# polishing and reporting ------------------------------------------------
-
-
-#' Polish final haplotype sequences.
-#'
-#' @param x A \code{\link[=DR2S_]{DR2S}} object.
-#' @param ... Additional arguments passed to methods.
-#' @return A \code{\link[=DR2S_]{DR2S}} object with the \code{consensus} field
-#' populated.
-#' @family DR2S mapper functions
-#' @export
-#' @examples
-#' \dontrun{
-#' x <- DR2Smap(
-#'   sample = "ID12300527",
-#'   locus = "DPB1*04:01:01:01",
-#'   datadir = "/path/to/data",
-#'   outdir = "/path/to/output"
-#'   ) %>%
-#'   mapInit() %>%
-#'   partitionLongreads() %>%
-#'   mapIter() %>%
-#'   partitionShortreads() %>%
-#'   mapFinal() %>%
-#'   polish() %>%
-#'   report(blockwidth = 60)
-#' }
-polish <- function(x, ...) {
-  UseMethod("polish")
-}
+# reporting ------------------------------------------------
 
 
 #' Report the final haplotype sequences.
@@ -321,7 +286,6 @@ polish <- function(x, ...) {
 #'   mapIter() %>%
 #'   partitionShortreads() %>%
 #'   mapFinal() %>%
-#'   polish() %>%
 #'   report(blockWidth = 60)
 #' }
 report <- function(x, whichMap, ...) {
@@ -354,7 +318,6 @@ report <- function(x, whichMap, ...) {
 #'   mapIter() %>%
 #'   partitionShortreads() %>%
 #'   mapFinal() %>%
-#'   polish() %>%
 #'   report(blockWidth = 60)
 #' }
 clear <- function(x, ...) {
@@ -383,7 +346,6 @@ clear <- function(x, ...) {
 #'   mapIter() %>%
 #'   partitionShortreads() %>%
 #'   mapFinal() %>%
-#'   polish() %>%
 #'   report(blockWidth = 60)
 #' }
 cache <- function(x, ...) {

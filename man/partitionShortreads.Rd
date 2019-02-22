@@ -33,7 +33,6 @@ x <- DR2Smap(
   mapIter() \%>\%
   partitionShortreads() \%>\%
   mapFinal() \%>\%
-  polish() \%>\%
   report(blockWidth = 60)
 }
 }

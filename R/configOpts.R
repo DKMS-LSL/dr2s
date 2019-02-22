@@ -167,18 +167,6 @@ normaliseOpts <- function(opts, pipeline = "LR") {
     plot = TRUE
   ))
   ##
-  ## polish() defaults ####
-  ##
-  opts0$polish <- compact(list(
-    ## Threshold to call a polymorphic position. Set to override global default.
-    threshold = NULL,
-    ## Check the number of homopolymer counts. Compare the resulting sequence
-    ## with the mode value and report differences.
-    checkHpCount = TRUE,
-    ## The minimal length of a homopolymer to be checked.
-    hpCount = 10
-  ))
-  ##
   ## report() defaults ####
   ##
   opts0$report <- compact(list(
@@ -188,7 +176,14 @@ normaliseOpts <- function(opts, pipeline = "LR") {
     remap = TRUE,
     ## Subsample bam files for visualisation with IgvJs in the
     ## DR2S shiny app.
-    createIgv = TRUE
+    createIgv = TRUE,
+    ## Threshold to call a polymorphic position. Set to override global default.
+    threshold = NULL,
+    ## Check the number of homopolymer counts. Compare the resulting sequence
+    ## with the mode value and report differences.
+    checkHpCount = TRUE,
+    ## The minimal length of a homopolymer to be checked.
+    hpCount = 10
   ))
   opts0 <- compact(opts0)
   ## update default with config settings
@@ -197,7 +192,7 @@ normaliseOpts <- function(opts, pipeline = "LR") {
 }
 
 MANDATORY_OPTS <- function() {
-  c("mapInit", "partitionLongreads", "mapIter", "mapFinal", "polish", "report")
+  c("mapInit", "partitionLongreads", "mapIter", "mapFinal", "report")
 }
 
 validateOpts <- function(opts) {
@@ -314,25 +309,20 @@ validateOpts <- function(opts) {
     opts$mapFinal$callInsertionThreshold <= 1,
     msg = "<callInsertionThreshold> in mapFinal() is not a number between 0 and 1")
   ##
-  ## polish() asserts ####
-  ##
-  assert_that(
-    is.flag(opts$polish$checkHpCount),
-    is.count(opts$polish$hpCount)
-  )
-  assert_that(
-    is.null(opts$polish$threshold) || (
-      is.number(opts$threshold$threshold) && opts$polish$threshold >= 0 && opts$polish$threshold <= 1
-    ),
-    msg = "<threshold> in polish() is not NULL or a number between 0 and 1")
-  ##
   ## report() asserts ####
   ##
   assert_that(
     is.count(opts$report$blockWidth),
     is.flag(opts$report$remap),
-    is.flag(opts$report$createIgv)
+    is.flag(opts$report$createIgv),
+    is.flag(opts$report$checkHpCount),
+    is.count(opts$report$hpCount)
   )
+  assert_that(
+    is.null(opts$report$threshold) || (
+      is.number(opts$threshold$threshold) && opts$report$threshold >= 0 && opts$report$threshold <= 1
+    ),
+    msg = "<threshold> in report()) is not NULL or a number between 0 and 1")
 
   attr(opts, "valid") <- TRUE
   return(opts)

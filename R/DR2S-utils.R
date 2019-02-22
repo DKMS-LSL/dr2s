@@ -27,7 +27,6 @@ readDR2S <- function(path) {
   } else rs
 }
 
-
 .finishCn1 <- function(x){
   flog.info("Set only allele to A", name = "info")
   x$setHapTypes(c("A"))
@@ -68,10 +67,6 @@ readDR2S <- function(path) {
   }
   x$mapFinal$seq$A <- cseq
 
-  flog.info(
-    "Polish and look for inconsistencies between shortreads and longreads ...",
-    name = "info")
-  polish(x)
   flog.info("Report consensus sequence and potential problematic variants",
             name = "info")
   report(x)

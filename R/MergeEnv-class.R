@@ -81,24 +81,23 @@ MergeEnv_ <- R6::R6Class(
 )
 
 ## self$init() ####
-MergeEnv_$set("public", "init", function(hapEnv, map = "mapFinal") {
+MergeEnv_$set("public", "init", function(hapEnv) {
   hapEnv <- match.arg(hapEnv, self$x$getHapTypes())
-  map <- match.arg(map, c("mapFinal", "remap"))
   envir <- self$hptypes[[hapEnv]]
 
   if (self$x$hasShortreads()) {
-    lr <- consmat(self$x$mapFinal$LR[[hapEnv]]$pileup, prob = FALSE)
-    sr <- consmat(self$x$mapFinal$SR[[hapEnv]]$pileup, prob = FALSE)
+    lr <- consmat(self$x$remap$LR[[hapEnv]]$pileup, prob = FALSE)
+    sr <- consmat(self$x$remap$SR[[hapEnv]]$pileup, prob = FALSE)
     rs <- .equaliseConsmat(lrm = lr, srm = sr)
     envir$LR <- rs$lrm
     envir$SR <- rs$srm
-    referencePath <- self$x$absPath(self$x$mapFinal$SR[[hapEnv]]$conspath)
+    referencePath <- self$x$absPath(self$x$remap$SR[[hapEnv]]$refpath)
     reference <- Biostrings::readDNAStringSet(referencePath)
     envir$ref <- unname(strsplit1(as.character(reference), ""))
   } else {
-    envir$LR <- consmat(self$x$mapFinal$LR[[hapEnv]]$pileup, prob = FALSE)
+    envir$LR <- consmat(self$x$remap$LR[[hapEnv]]$pileup, prob = FALSE)
     envir$SR <- NULL
-    referencePath <- self$x$absPath(self$x$mapFinal$LR[[hapEnv]]$conspath)
+    referencePath <- self$x$absPath(self$x$remap$LR[[hapEnv]]$refpath)
     reference <- Biostrings::readDNAStringSet(referencePath)
     envir$ref <- unname(strsplit1(as.character(reference), ""))
   }
@@ -257,7 +256,7 @@ MergeEnv_$set("public", "export", function() {
                              S4Vectors::metadata(cseq) <- list()
                              cseq
                            }),
-      ## consensus for remapping without ambigs
+      ## consensus for remapping without ambiguities
       noAmbig = list(foreach(hp = self$x$getHapTypes(),
                              .final = function(x)
                                setNames(x, self$x$getHapTypes())) %do% {

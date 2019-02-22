@@ -4,7 +4,7 @@ mapReads <- function(
   mapfun, maplabel, reffile, refname, readfile, readtype, opts = NULL, outdir,
   includeDeletions, includeInsertions, callInsertions = FALSE,
   callInsertionThreshold = 0.15, clip = FALSE, distributeGaps = FALSE,
-  removeError = TRUE, updateBackgroundModel = FALSE, topx = 0, clean, ...) {
+  removeError = TRUE, updateBackgroundModel = FALSE, topx = 0, clean, force = FALSE, ...) {
 
   dots   <- list(...)
   indent <- dots$indent %||% indentation()
@@ -17,7 +17,6 @@ mapReads <- function(
   ## collect minMapq for use in .bamSortIndex
   # minMapq = 0
   minMapq <- dots$minMapq %||% dots$min_mapq %||% 0
-
   if (clip) {
     flog.info("%sTrim softclips and polymorphic ends", indent(), name = "info")
     ## Run bam - sort - index pipeline
@@ -44,7 +43,7 @@ mapReads <- function(
 
   ## Run bam - sort - index pipeline
   #flog.info("%sSort and index", indent(), name = "info")
-  bamfile <- .bamSortIndex(samfile = samfile, reffile = reffile, minMapq = minMapq)
+  bamfile <- .bamSortIndex(samfile = samfile, reffile = reffile, minMapq = minMapq, force = force)
 
   ## NOTE: "auto" > 0 evaluates to TRUE, FALSE > 0 evaluates to FALSE
   ## dots <- list()

@@ -31,6 +31,9 @@ consensus sequences produced in the previous step.}
 \item{\code{mapFinal}}{\code{[MapList]}; the mapping of A, B, and short reads
 to consensus sequences produced in the previous step.}
 
+\item{\code{remap}}{\code{[MapList]}; the mapping of A, B, and short reads
+to consensus sequences produced in the previous step.}
+
 \item{\code{consensus}}{\code{[ConsList]}; final consensus sequences for A and
 B.}
 }}

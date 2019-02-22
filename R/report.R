@@ -1,12 +1,13 @@
 #' @export
-report.DR2S <- function(x, whichMap, ...) {
+report.DR2S <- function(x, whichMap = NULL, threshold = NULL, ...) {
   ## If reporting is already done exit safely
-  if (.checkReportStatus(x)) return(invisible(x))
-
+  # if (.checkReportStatus(x)) return(invisible(x))
   ## Collect start time for report runstats
   start.time <- Sys.time()
 
   flog.info("# report", name = "info")
+  if (is.null(threshold))
+    threshold <- x$getThreshold()
 
   ## Export report config to function environment
   args <- x$getOpts("report")
@@ -14,27 +15,15 @@ report.DR2S <- function(x, whichMap, ...) {
   assert_that(
     exists("blockWidth") && is.numeric(blockWidth),
     exists("remap") && is.logical(remap),
-    exists("createIgv") && is.logical(createIgv)
+    exists("createIgv") && is.logical(createIgv),
+    is.double(threshold),
+    exists("checkHpCount") && is.logical(checkHpCount),
+    exists("hpCount") && is.numeric(hpCount)
   )
 
   outdir <- .dirCreateIfNotExists(x$absPath("report"))
-  if (missing(whichMap)) {
-    ## if `which` is unspecified choose `mapFinal` if available,
-    ## otherwise try `mapIter`
-    if (x$hasMapFinal()) {
-      .reportMap_(x, map = "mapFinal", outdir = outdir, blockWidth = blockWidth,
-                  remap = remap, createIgv = createIgv, ...)
-    }
-    else if (x$hasMapIter()) {
-      .reportMap_(x, map = "mapIter", outdir = outdir, blockWidth = blockWidth,
-                  remap = remap, createIgv = createIgv, ...)
-    }
-    else stop("Nothing to report")
-  } else {
-    whichMap <- match.arg(tolower(whichMap), c("mapFinal", "mapIter"))
-    .reportMap_(x, map = whichMap, outdir = outdir, blockWidth = blockWidth,
-                remap = remap, createIgv = createIgv, ...)
-  }
+  .reportMap_(x, map = whichMap, outdir = outdir, blockWidth = blockWidth,
+              remap = remap, createIgv = createIgv, ...)
 
   ## set report runstats
   .setRunstats(x, "report",
@@ -47,6 +36,13 @@ report.DR2S <- function(x, whichMap, ...) {
 # debug
 #map = "mapFinal"
 .reportMap_ <- function(x, map, outdir, blockWidth, remap = TRUE, createIgv = TRUE, ...) {
+  if (is.null(map)) {
+    if (x$hasMapFinal()) {
+      map <- "mapFinal"
+   } else if (x$hasMapIter()) {
+      map <- "mapIter"
+   } else stop("Nothing to report")
+  }
   map <- match.arg(tolower(map), c("mapfinal", "mapiter"))
   ref <- Biostrings::BStringSet(x$getRefSeq())
   if (x$hasShortreads()) {
@@ -64,9 +60,8 @@ report.DR2S <- function(x, whichMap, ...) {
   ## Write html alignment file
   alnFile <- dot(c(map, "aln", readtype, mapper, "unchecked"))
   # get all seqs as stringset
-
-  haps <- x$getLatestRef()
-  seqs <- Biostrings::BStringSet(haps[grepl(paste0(haplotypes, collapse = "|"), names(haps))])
+  seqs <- x$getLatestRef()
+  names(seqs) <- "hap" %<<% x$getHapTypes()
   refseqs <- c(ref, seqs)
   .browseAlign(refseqs, file = file.path(outdir, alnFile), openURL = FALSE)
 
@@ -76,7 +71,7 @@ report.DR2S <- function(x, whichMap, ...) {
   for (hp in haplotypes) {
     hp0 <- substr(hp, 3, 3)
     hpFile <- dot(c(map, hp, readtype, mapper, "unchecked.fa"))
-    seq <- seqs[endsWith(names(seqs), hp)]
+    seq <- seqs[endsWith(names(seqs), hp0)]
     seqname <- paste(x$getSampleId(), hp0, sep = "_")
     sampleDetails <- x$getSampleDetails()
     names(seq) <- paste(seqname,
@@ -106,26 +101,9 @@ report.DR2S <- function(x, whichMap, ...) {
     }
     writeMSA(aln, file = file.path(outdir, alnFile))
   }
-
-  if (map == "mapfinal") {
-    ## Report problematic Variants
-    probvarFile <- dot(c("problems", readtype, mapper, "tsv"))
-    vars <- x$consensus$variants %>%
-      dplyr::arrange(as.numeric(.data$pos), .data$haplotype)
-    readr::write_tsv(vars, path = file.path(outdir, probvarFile),
-                     append = FALSE, col_names = TRUE)
-
-    ## Write postprocessing scripts
-    .writeCheckConsensus(path = x$getOutdir())
-    .writeReportCheckedConsensus(path = x$getOutdir())
-    .writeRemapAlignments(path = x$getOutdir(), haptypes = x$getHapTypes())
-
-    if (remap) {
-      flog.info("%sRemapping final sequences", indent(), name = "info")
-      lapply(x$getHapTypes(), function(h)
-        remapAlignment(x, h, report = TRUE, createIgv = createIgv, indent = indent))
-    }
-  }
+  if (remap) {
+    x <- remapAndReport(x, report = TRUE)
+  } 
 
   x$setReportStatus(TRUE)
   invisible(x)
@@ -197,7 +175,6 @@ reportCheckedConsensus <- function(x, map = "mapFinal") {
                                      sampleDetails,
                                      "date=" %<<% litQuote(Sys.Date()),
                                      "status=" %<<% litQuote("checked"))))
-
     Biostrings::writeXStringSet(
       seq,
       filepath = file.path(outdir,file),
@@ -275,48 +252,21 @@ checkAlignmentFile <- function(x, map = "mapFinal", where = 0,
 #' @family DR2S mapper functions
 #' @export
 remapAlignment <- function(x, hptype, report = FALSE, createIgv = TRUE, ...) {
+  # hptype <- "A"
   indent <- list(...)$indent %||% indentation()
   opts <- list(...)$opts
-
   ## Overide default arguments
   args <- x$getOpts("remap")
   if (!is.null(args)) {
     env  <- environment()
     list2env(args, envir = env)
   }
-
   ## stop if no shortreads provided
   if (!x$hasShortreads()) {
     flog.warn("%sCannot remap. No shortreads provided", indent(), name = "info")
     return(invisible(x))
   }
-
-  if (is.null(x$consensus$remap)) {
-    x$consensus$remap <- list()
-    # self$mapFinal$LR[[hp]] = MapList_(
-    #   ## mapdata
-    #   readpath  = self$relPath(readfile),
-    #   refpath   = self$relPath(reffile),
-    #   bampath   = self$relPath(bampath(pileup)),
-    #   conspath  = self$relPath(conspath),
-    #   pileup    = pileup,
-    #   stats     = list(coverage = .coverage(pileup)),
-    #   ## required metadata
-    #   maplabel  = maplabel,
-    #   refname   = refname,
-    #   mapper    = self$getLrdMapper(),
-    #   opts      = opts,
-    #   ## additional metadata
-    #   igv       = igv
-    # )
-    # x$consensus$remap <- list(
-    #   mapgroup = list(),
-    #   bamfile = list(),
-    #   consensus = list(),
-    #   ref = list(),
-    #   igv = list()
-    # )
-  }
+  mappings <- list(LR = NA, SR = NA)
   reftag <- "remap"
   outdir <- .dirCreateIfNotExists(x$absPath(reftag))
   if (length(x$getHapTypes()) == 1) {
@@ -326,55 +276,58 @@ remapAlignment <- function(x, hptype, report = FALSE, createIgv = TRUE, ...) {
     readpathLR <- x$absPath(readpath(x$mapFinal$LR[[hptype]]))
     readpathSR <- x$absPath(readpath(x$mapFinal$SR[[hptype]]))
   }
-  refpath <- ifelse(report, {
-    seq <- x$consensus$noAmbig[[hptype]]
-    file <- dot(c(names(seq), x$getLrdType(), x$getLrdMapper(), "polished", "fa"))
+  refpath <- if (report) {
+    cmat <- if (x$hasShortreads()) {
+      x$mapFinal$SR[[hptype]]$pileup$consmat 
+    } else {
+      x$mapFinal$LR[[hptype]]$pileup$consmat 
+    }
+    seq <- conseq(cmat, "hap" %<<% hptype, "prob", suppressAllGaps = TRUE)
+    file <- dot(c(names(seq), x$getLrdType(), x$getLrdMapper(), "remap", "fa"))
     names(seq) <- names(seq) %<<% " LOCUS=" %<<%
       x$getLocus() %<<% ";REF=" %<<%  x$getReference()
     seqPath <- x$absPath(file.path("remap", file))
     Biostrings::writeXStringSet(seq, filepath = seqPath, format = "fasta" )
     seqPath
-    # stats::setNames(seqPath, hptype)
-  }, .getUpdatedSeqs(x, hptype))
-
-  ## TοDO RM?
-  # x$consensus$remap$reference[[hptype]] <- x$relPath(refpath)
-  # names(refpath) <- x$relPath(refpath)
-
+  } else {
+    .getUpdatedSeqs(x, hptype)
+  } 
+  if (!is.null(attr(refpath, "updated")) & !is.null(x$remap)) {
+    flog.info("%sReference of %s is not changed. Keep old mapping", indent(), 
+              hptype, name = "info")
+    return(list(LR = x$remap$LR[[hptype]],
+                SR = x$remap$SR[[hptype]]))
+  }
   ## Remap long reads to the same reference sequences as short reads
   flog.info("%sRemapping haplotype <%s>", indent(), hptype, name = "info")
   mapgroupLR <- "LR" %<<% hptype
   pileup <- mapReads(
     mapfun = x$getLrdMapFun(), maplabel = reftag, reffile = refpath,
     refname = mapgroupLR, readfile = readpathLR, readtype = x$getLrdType(),
-    opts = opts, outdir = outdir, clean = TRUE, includeDeletions = FALSE,
+    opts = opts, outdir = outdir, clean = TRUE, force = TRUE, includeDeletions = TRUE,
     includeInsertions = FALSE, indent = incr(indent))
   
-  ## TODO RM?
-  # x$consensus$remap$bamfile[[mapgroupLR]] = x$relPath(bampath(pileup))
-
   if (createIgv) {
     igv <- createIgvJsFiles(
       refpath(pileup), bampath(pileup), x$getOutdir(), sampleSize = 100,
       fragmentReads = TRUE)
   }
-  x$consensus$remap$LR[[hptype]]  <- MapList_(
-      ## mapdata
-      readpath  = x$relPath(readpathLR),
-      refpath   = x$relPath(refpath),
-      bampath   = x$relPath(bampath(pileup)),
-      # conspath  = self$relPath(conspath),
-      pileup    = pileup,
-      stats     = list(coverage = .coverage(pileup)),
-      ## required metadata
-      maplabel  = reftag,
-      refname   = mapgroupLR,
-      mapper    = x$getLrdMapper(),
-      opts      = opts,
-      ## additional metadata
-      igv       = igv
-    )
-
+  mappings$LR  <- MapList_(
+        ## mapdata
+        readpath  = x$relPath(readpathLR),
+        refpath   = x$relPath(refpath),
+        bampath   = x$relPath(bampath(pileup)),
+        # conspath  = self$relPath(conspath),
+        pileup    = pileup,
+        stats     = list(coverage = .coverage(pileup)),
+        ## required metadata
+        maplabel  = reftag,
+        refname   = mapgroupLR,
+        mapper    = x$getLrdMapper(),
+        opts      = opts,
+        ## additional metadata
+        igv       = igv
+  )
   ## Map short reads
   if (!is.null(unlist(readpathSR))) {
     mapgroupSR <- "SR" %<<% hptype
@@ -385,42 +338,35 @@ remapAlignment <- function(x, hptype, report = FALSE, createIgv = TRUE, ...) {
       opts = opts, outdir = outdir, clean = TRUE, includeDeletions = FALSE,
       includeInsertions = FALSE, clip = TRUE, indent = incr(indent))
 
-    ## TODO RM?
-    # x$consensus$remap$bamfile[[mapgroupSR]] = x$relPath(bampath(pileup))
-    
     if (createIgv) {
       clusteredReads <- x$srpartition$A$srpartition$haplotypes$read
       igv <- createIgvJsFiles(
         refpath(pileup), bampath(pileup), x$getOutdir(), sampleSize = 100,
         clusteredReads = clusteredReads)
     }
-    x$consensus$remap$SR[[hptype]]  <- MapList_(
-        ## mapdata
-        readpath  = x$relPath(readpathSR),
-        refpath   = x$relPath(refpath),
-        bampath   = x$relPath(bampath(pileup)),
-        # conspath  = self$relPath(conspath),
-        pileup    = pileup,
-        stats     = list(coverage = .coverage(pileup)),
-        ## required metadata
-        maplabel  = reftag,
-        refname   = mapgroupSR,
-        mapper    = x$getSrdMapper(),
-        opts      = opts,
-        ## additional metadata
-        igv       = igv
-      )
+    mappings$SR <- MapList_(
+      ## mapdata
+      readpath  = x$relPath(readpathSR),
+      refpath   = x$relPath(refpath),
+      bampath   = x$relPath(bampath(pileup)),
+      # conspath  = self$relPath(conspath),
+      pileup    = pileup,
+      stats     = list(coverage = .coverage(pileup)),
+      ## required metadata
+      maplabel  = reftag,
+      refname   = mapgroupSR,
+      mapper    = x$getSrdMapper(),
+      opts      = opts,
+      ## additional metadata
+      igv       = igv
+    )
   }
-
-  ## TODO RM? Do we need a consensus?
-  # # calc new consensus
-  # consName <- "remap" %<<% hptype
-  # cseq <- conseq(consmat(pileup), name = consName, type = "ambig",
-  #                threshold = x$getThreshold(), suppressAllGaps = FALSE)
-  # x$consensus$remap$consensus[[hptype]] <- cseq
   createIgvConfigs(x, map = "remap", open = FALSE)
   
-  invisible(x)
+  ## TODO! remap only if consensus changed
+  ## TODO! do it parallel
+  
+  invisible(mappings)
 }
 
 
@@ -438,18 +384,26 @@ remapAlignment <- function(x, hptype, report = FALSE, createIgv = TRUE, ...) {
     readtype <- x$getLrdType()
     mapper <-  x$getLrdMapper()
   }
-  pairfileChecked <- dot(c(map, "aln", readtype, mapper, "checked", ending))
+  pairfileChecked <- dot(c("mapFinal", "aln", readtype, mapper, "checked", ending))
   pairfileChecked <- normalizePath(x$absPath(file.path("report", pairfileChecked)),
-                                   mustWork = TRUE)
+                                   mustWork = FALSE)
+  if (!file.exists(pairfileChecked))
+    stop("check out the alignment first!")
   rs <- readPairFile(pairfileChecked)
   seqs <- Biostrings::DNAStringSet(
     lapply(rs, function(s) Biostrings::DNAString(stripIndel(s))))
 
+  #hptype <- "A"
   ## Export FASTA
   seq <- seqs["hap" %<<% hptype]
-  file <- dot(c(names(seq), x$getLrdType(), x$getLrdMapper(), "remapped", "fa"))
+  file <- dot(c(names(seq), x$getLrdType(), x$getLrdMapper(), "remap", "fa"))
   names(seq) <- names(seq) %<<% " LOCUS=" %<<% x$getLocus() %<<% ";REF=" %<<% x$getReference()
   seqPath <- x$absPath(file.path("remap", file))
+  if (file.exists(seqPath)) {
+    oldSeq <- Biostrings::readDNAStringSet(seqPath)
+    if (identical(as.character(oldSeq), as.character(seq)))
+      attr(seqPath, "updated") <- FALSE
+  }
   Biostrings::writeXStringSet(seq, filepath = seqPath, format = "fasta")
   seqPath
 }
@@ -460,8 +414,8 @@ readPairFile <- function(pairfile) {
     ## This assignment relies on the premise that hapA is always used!
     ## Usually this should be true, bcs it is the cluster with the most reads
     ## TODO make "mapfinal" agnostic
-    rsA <- rs[grepl("^mapFinal.consensus.SRA", rs)]
-    rsB <- rs[grepl("^mapFinal.consensus.SR[B-Z]", rs)]
+    rsA <- rs[grepl("^hapA", rs)]
+    rsB <- rs[grepl("^hap[B-Z]", rs)]
     hap <- c(
       Biostrings::DNAStringSet(.collapsePairLines_(rsA)),
       Biostrings::DNAStringSet(.collapsePairLines_(rsB))
@@ -615,4 +569,105 @@ writeMSA <- function(aln, file="", block.width = 50){
     lstart <- lend + 1
     lend <- lstart + block.width - 1
   }
+}
+
+.updateHomopolymers <- function(vars, cons, hptypes) {
+  class(cons)
+  assertthat::assert_that(is(cons, "ConsList"))
+  vars <- rbind(vars, foreach(hp = hptypes, .combine = rbind) %do% {
+    if (hp %in% names(cons$homopolymers)) {
+      seq <- cons$seq[[hp]]
+      seqrle <- .seq2rle(seq)
+      # n <- seqrle$length[seqrle$length >= 10] %||% 0
+      n <- which(seqrle$length > 8)
+      #        nCount <- seqrle$length[n]
+      origPosition <- vapply(n, function(ni) sum(seqrle$lengths[1:((ni) - 1)]), FUN.VALUE = integer(1))
+      modeN <- sort(cons$homopolymers[[hp]])
+      #names(n) <- names(modeN)
+      if (!all(names(modeN) %in% vapply(origPosition, function(ni) (ni - 5):(ni + 5), FUN.VALUE = integer(11)))) {
+        missingN <- modeN[which(!n %in% modeN)]
+        varsHP <- tibble::tibble(haplotype = hp,
+                                 pos       = names(missingN),
+                                 ref       = "",
+                                 alt       = "",
+                                 warning   = sprintf(paste(
+                                   "Homopolymer at position %s should be of",
+                                   "length %s, but is %s"),
+                                   names(missingN), missingN,
+                                   n[names(missingN)]),
+                                 refSR     = "",
+                                 altSR     = "",
+                                 refLR     = "",
+                                 altLR     = "")
+        return(varsHP)
+      }
+    }
+    tibble::tibble(haplotype = "",
+                   pos       = "",
+                   ref       = "",
+                   alt       = "",
+                   warning   = "",
+                   refSR     = "",
+                   altSR     = "",
+                   refLR     = "",
+                   altLR     = "")
+  })
+  vars
+}
+
+#' @export
+remapAndReport <- function(x, report = FALSE, threshold = NULL, ...) {
+  if(is.null(threshold)) 
+    threshold <- x$getThreshold()
+  dots   <- list(...)
+  indent <- dots$indent %||% indentation()
+  ## Export report config to function environment
+  args <- x$getOpts("report")
+  args$createIgv <- dots$createIgv %||% args$createIgv
+  args$checkHpCount <- dots$checkHpCount %||% args$checkHpCount
+  args$hpCount <- dots$hpCount %||% args$hpCount
+  list2env(args, envir = environment())
+  assert_that(
+    exists("createIgv") && is.logical(createIgv),
+    is.double(threshold),
+    exists("checkHpCount") && is.logical(checkHpCount),
+    exists("hpCount") && is.numeric(hpCount),
+    is.logical(report)
+  )
+  
+  flog.info("%sRemapping final sequences", indent(), name = "info")
+  
+  ## TODO! check if ref is new 
+  mappings <- lapply(x$getHapTypes(), function(h)
+    remapAlignment(x, h, report = report, createIgv = createIgv))
+  names(mappings) <- x$getHapTypes()
+  x$remap <- purrr::transpose(mappings)
+  ## Do what polish did
+  flog.info("%sReport variants", indent(), name = "info")
+  threshold <- max(x$getThreshold(), 0.3)
+  hptypes <- x$getHapTypes()
+  menv <- MergeEnv(x, threshold)
+  for (hp in hptypes) {
+    menv$init(hp)
+    menv$walk(hp)
+  }
+  
+  x <- menv$export()
+  ## Get variants
+  vars <- .getVariants(x)
+  ## Check homopolymer count; Only check if the count is found in both
+  if (checkHpCount) {
+    x <- checkHomopolymerCount(x, hpCount = hpCount)
+    vars <- .updateHomopolymers(vars, x$consensus, hptypes)
+  }
+  x$consensus$variants <- na.omit(dplyr::arrange(vars, .data$pos, .data$haplotype))
+
+  ## Report problematic Variants
+  probvarFile <- dot(c("problems", "tsv"))
+  vars <- vars %>% 
+    dplyr::arrange(as.numeric(.data$pos), .data$haplotype)
+  outdir <- .dirCreateIfNotExists(x$absPath("report"))
+  readr::write_tsv(vars, path = file.path(outdir, probvarFile),
+                   append = FALSE, col_names = TRUE)
+  return(invisible(x))
 }

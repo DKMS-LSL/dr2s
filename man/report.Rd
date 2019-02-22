@@ -49,7 +49,6 @@ x <- DR2Smap(
   mapIter() \%>\%
   partitionShortreads() \%>\%
   mapFinal() \%>\%
-  polish() \%>\%
   report(blockWidth = 60)
 }
 }
@@ -58,7 +57,7 @@ Other DR2S mapper functions: \code{\link{cache}},
   \code{\link{clear}}, \code{\link{createDR2SConf}},
   \code{\link{mapFinal}}, \code{\link{mapInit}},
   \code{\link{mapIter}}, \code{\link{partitionLongreads}},
-  \code{\link{polish}}, \code{\link{remapAlignment}},
+  \code{\link{remapAlignment}},
   \code{\link{reportCheckedConsensus}}
 }
 \concept{DR2S mapper functions}

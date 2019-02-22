@@ -35,6 +35,8 @@ clear.DR2S <- function(x, ...) {
 #' consensus sequences produced in the previous step.
 #' @field mapFinal \code{[MapList]}; the mapping of A, B, and short reads
 #' to consensus sequences produced in the previous step.
+#' @field remap \code{[MapList]}; the mapping of A, B, and short reads
+#' to consensus sequences produced in the previous step.
 #' @field consensus \code{[ConsList]}; final consensus sequences for A and
 #' B.
 #' @keywords data internal
@@ -66,6 +68,7 @@ DR2S_ <- R6::R6Class(
     mapIter     = list(), ## <MapList>;
     srpartition = list(), ## <PartList>;
     mapFinal    = list(), ## <MapList>;
+    remap       = list(), ## <MapList>;
     consensus   = list(), ## <ConsList>;
     ## Public functions
     initialize  = function(conf, createOutdir = TRUE) {
@@ -188,7 +191,6 @@ DR2S_ <- R6::R6Class(
         mapInit  = self$runMapInit(),
         mapIter  = self$runMapIter(),
         mapFinal = self$runMapFinal(),
-        polish   = DR2S::polish(self),
         report   = DR2S::report(self),
         stop("<", step, "> is not a valid step in the mapping pipeline")
       )
