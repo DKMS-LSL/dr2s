@@ -261,20 +261,17 @@ remapAlignment <- function(x, hptype, report = FALSE, createIgv = TRUE, ...) {
     env  <- environment()
     list2env(args, envir = env)
   }
-  ## stop if no shortreads provided
-  if (!x$hasShortreads()) {
-    flog.warn("%sCannot remap. No shortreads provided", indent(), name = "info")
-    return(invisible(x))
-  }
   mappings <- list(LR = NA, SR = NA)
   reftag <- "remap"
   outdir <- .dirCreateIfNotExists(x$absPath(reftag))
   if (length(x$getHapTypes()) == 1) {
     readpathLR  <- x$absPath(readpath(x$mapInit))
-    readpathSR <- x$getShortreads()
+    if (x$hasShortreads()) 
+      readpathSR <- x$getShortreads()
   } else {
     readpathLR <- x$absPath(readpath(x$mapFinal$LR[[hptype]]))
-    readpathSR <- x$absPath(readpath(x$mapFinal$SR[[hptype]]))
+    if (x$hasShortreads()) 
+      readpathSR <- x$absPath(readpath(x$mapFinal$SR[[hptype]]))
   }
   refpath <- if (report) {
     cmat <- if (x$hasShortreads()) {
@@ -312,6 +309,7 @@ remapAlignment <- function(x, hptype, report = FALSE, createIgv = TRUE, ...) {
       refpath(pileup), bampath(pileup), x$getOutdir(), sampleSize = 100,
       fragmentReads = TRUE)
   }
+  
   mappings$LR  <- MapList_(
         ## mapdata
         readpath  = x$relPath(readpathLR),
@@ -329,7 +327,7 @@ remapAlignment <- function(x, hptype, report = FALSE, createIgv = TRUE, ...) {
         igv       = igv
   )
   ## Map short reads
-  if (!is.null(unlist(readpathSR))) {
+  if (x$hasShortreads()) {
     mapgroupSR <- "SR" %<<% hptype
     ## Mapper
     pileup <- mapReads(
@@ -610,7 +608,7 @@ remapAndReport <- function(x, report = FALSE, threshold = NULL, ...) {
   ## Get variants
   vars <- .getVariants(x)
   ## Check homopolymer count; Only check if the count is found in both
-  if (checkHpCount) {
+  if (checkHpCount & x$hasShortreads()) {
     x <- checkHomopolymerCount(x, hpCount = hpCount)
     for (hp in hptypes) {
       homopolymers <- x$consensus$homopolymers[[hp]]
