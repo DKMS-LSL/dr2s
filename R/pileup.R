@@ -130,7 +130,6 @@ pileup <- function(bamfile, reffile, readtype, ..., pParam) {
                drop = FALSE]
       res <- c( res, list(cm) )
     }
-    res
     names(res) <- names(inseqs)
   }
   # Remove all empty positions for now!! ToDo: Better apply this to the initial
@@ -442,20 +441,20 @@ plotPileupBasecallFrequency <- function(x, threshold = 0.20, label = "",
   ## 'package:stats' may not be available when loading
   ## For the time being we suppress this warning
   bpparam <- BiocParallel::MulticoreParam(workers = .getIdleCores())
-  insSeq <- unlist(Biostrings::DNAStringSetList(suppressWarnings(
-    BiocParallel::bplapply(seq_along(alnI), function(a, alnI, inpos) {
+  insSeq <- suppressWarnings(BiocParallel::bplapply(seq_along(alnI), function(a, alnI, inpos) {
       .extractInsertion(alnI[a], inpos)
-    }, alnI = alnI, inpos = inpos, BPPARAM = bpparam))))
+    }, alnI = alnI, inpos = inpos, BPPARAM = bpparam))
+  names(insSeq) <- names(alnI)
+  insSeq <- purrr::transpose(insSeq)
+  
   ## Extract per positions
-  insSeqs <- foreach(i = inpos) %do% {
-    #message("Position: ", i)
-    insSeq[which(names(insSeq) == i)]
-  }
+  insSeqs <- lapply(insSeq, function(i) {
+    i <- i[!is.na(i)]
+    unlist(Biostrings::DNAStringSetList(lapply(i, Biostrings::DNAStringSet)))
+  })
   ## decrement to last matching position again to work as expected with
   ## downstream
   names(insSeqs) <- inpos - 1
-  insSeqs <- insSeqs[vapply(insSeqs, function(x)
-    length(unlist(x)) > 0, FUN.VALUE = logical(1))]
   insSeqs
 }
 
@@ -472,6 +471,8 @@ plotPileupBasecallFrequency <- function(x, threshold = 0.20, label = "",
   fInPos <- qPos[foundPositions]
   insertPos <- insertionQ[foundPositions]
 
+  res <- (rep(NA, length(inpos)))
+  names(res) <- inpos
   if (length(insertPos) > 0) {
     seq <- unlist(Biostrings::DNAStringSetList(lapply(seq_along(insertPos),
                                                       function(ip) {
@@ -480,10 +481,11 @@ plotPileupBasecallFrequency <- function(x, threshold = 0.20, label = "",
                                                                            start = IRanges::start(ipp),
                                                                            end = IRanges::end(ipp))
                                                       })))
-    names(seq) <- fInPos
-    return(seq)
+    # seq <- Biostrings::DNAStringSet(c("AA", "GG"))
+    # fInPos <- inpos[1:2]
+    res[as.character(fInPos)] <- as.character(seq)
   }
-  Biostrings::DNAStringSet("-")
+  res
 }
 
 .checkCoverage <- function(pileup, forceMapping, plotFile, maptag, ...) {

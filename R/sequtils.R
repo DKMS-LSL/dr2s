@@ -258,45 +258,29 @@
 #' @examples
 #' ###
 #' @export
-checkHomopolymerCount <- function(x, hpCount = 10, map = "mapFinal") {
+checkHomopolymerCount <- function(x, hpCount = 10) {
   assert_that(is(x, "DR2S"))
-  map <- match.arg(map, c("mapFinal", "remap"))
   hptypes <- x$getHapTypes()
-  if (map == "mapFinal") {
-    refseqs <- stats::setNames(x$getLatestRef(), hptypes)
-    bambase <- if (x$hasShortreads()) {
-      stats::setNames(lapply(hptypes, function(hp)
-        x$absPath(bampath(x$mapFinal[["SR"]][[hp]]))), hptypes)
-    } else {
-      stats::setNames(lapply(hptypes, function(hp)
-        x$absPath(bampath(x$mapFinal[["LR"]][[hp]]))), hptypes)
-    }
-    x$consensus$homopolymers <- list()
-    plotname <- "plot.homopolymers.pdf"
-  }
-  else if (map == "remap") {
-    refseqs <- lapply(x$consensus$remap$reference, function(hp) {
-      seq <- Biostrings::readDNAStringSet(file.path(x$getOutdir(), hp))
-      names(seq) <- strsplit1(names(seq), " ")[1]
-      seq
-    })
-    x$consensus$homopolymers <- list()
-    bambase <- x$consensus$remap$bamfile
-    plotname <- "plot.homopolymers.remapped.pdf"
-  }
+  x$consensus$homopolymers <- list()
+  plotname <- "plot.homopolymers.pdf"
   #hp <- "A"
   p <- foreach(hp = hptypes) %do% {
-    seq <- refseqs[[hp]]
+    bamfile <- ifelse(x$hasShortreads(),
+        x$absPath(bampath(x$remap[["SR"]][[hp]])),
+        x$absPath(bampath(x$remap[["LR"]][[hp]])))
+    ref <- ifelse(x$hasShortreads(),
+      x$absPath(refpath(x$remap$SR[[hp]])),
+      x$absPath(refpath(x$remap$LR[[hp]])))
+    seq <- Biostrings::readDNAStringSet(ref)
     seqrle <- .seq2rle(seq)
     n <- which(seqrle$lengths >= hpCount)
     if (length(n) == 0) {
       return(NULL)
     }
-    bamfile <- bambase[[hp]]
     bam <- Rsamtools::BamFile(bamfile)
     #pos = n[1]
     homopolymersHP <- foreach(pos = n, .combine = rbind) %do% {
-      positionHP <- sum(seqrle$length[seq_len(pos - 1)])#+1
+      positionHP <- sum(seqrle$length[seq_len(pos - 1)])
       lenHP <- seqrle$lengths[pos]
       range <- c(positionHP - 10, positionHP + lenHP + 10)
       Rsamtools::open.BamFile(bam)
@@ -308,48 +292,32 @@ checkHomopolymerCount <- function(x, hpCount = 10, map = "mapFinal") {
       msa <- msa[covering]
       readsOI <- names(msa)
       ins <- .getInsertions(bamfile,
-                            inpos = c(positionHP - 1, positionHP, positionHP - 2),
+                            inpos = positionHP,
                             reads = readsOI,
                             readtype = "illumina")
+      ins <- ins[[1]]
       if (length(ins) > 0) {
-        ins <- ins[[1]]
-        msa <- unlist(Biostrings::DNAStringSetList(
-          stats::setNames(lapply(names(msa), function(a) {
-            if (a %in% names(ins)) {
-              firstSeq <- unlist(Biostrings::subseq(msa[a], start = 1,
-                                                    width = 10))
-              insert <- unlist(ins[a])
-              lastSeq <- unlist(Biostrings::subseq(msa[a], start = 11,
-                                                   width = lenHP + 10))
-              Biostrings::DNAStringSet(c(firstSeq, insert, lastSeq))
-            } else {
-              msa[a]
-            }
-          }), readsOI)))
+        s <- msa[names(msa) %in% names(ins)]
+        pre <- Biostrings::subseq(s, start = 1, width = 11)
+        post <- Biostrings::subseq(s, start = 12, end = length(s[[1]]))
+        s <- Biostrings::xscat(pre, ins, post)
+        msa[names(s)] <- s
       }
       msarle <- lapply(msa, .seq2rle)
       lens <- vapply(msarle, function(a) max(a$lengths), integer(1))
-      tibble::tibble(haptype = hp, position = positionHP, length = lens)
+      tibble::tibble(haptype = hp, position = positionHP, length = lens,
+                     read = names(lens), cons = lenHP)
     }
 
     modes <- homopolymersHP %>%
-      dplyr::group_by(.data$position) %>%
-      dplyr::summarise(mode = .getModeValue(length))
-
-    for (i in seq_len(NROW(modes))) {
-      modeHP <- modes[i,]
-      flog.info("%s: Mode for homopolymer at position %s: %s",
-                hp, modeHP$position, modeHP$mode)
-      if (map == "mapFinal") {
-        x$consensus$homopolymers[[hp]][[
-          as.character(modeHP$position)]] <- modeHP$mode
-      } else if (map == "remap") {
-        x$consensus$homopolymers[[hp]][[
-          as.character(modeHP$position)]] <- modeHP$mode
-      }
-    }
+      dplyr::group_by(.data$position, .data$cons) %>%
+      dplyr::summarise(mode = .getModeValue(length)) %>% 
+      dplyr::ungroup()
+    x$consensus$homopolymers[[hp]] <- modes
+    cl <- x$srpartition$A$srpartition$haplotypes$read
+    homopolymersHP$clustered <- homopolymersHP$read %in% cl
     plots <- ggplot(data = homopolymersHP) +
-      geom_histogram(aes(length), binwidth = 1) +
+      geom_histogram(aes(length, fill = clustered), binwidth = 1) +
       scale_x_continuous(breaks = seq(min(homopolymersHP$length),
                                       max(homopolymersHP$length), 1)) +
       facet_grid(position~., scales = "free_y") +

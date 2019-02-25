@@ -571,53 +571,9 @@ writeMSA <- function(aln, file="", block.width = 50){
   }
 }
 
-.updateHomopolymers <- function(vars, cons, hptypes) {
-  class(cons)
-  assertthat::assert_that(is(cons, "ConsList"))
-  vars <- rbind(vars, foreach(hp = hptypes, .combine = rbind) %do% {
-    if (hp %in% names(cons$homopolymers)) {
-      seq <- cons$seq[[hp]]
-      seqrle <- .seq2rle(seq)
-      # n <- seqrle$length[seqrle$length >= 10] %||% 0
-      n <- which(seqrle$length > 8)
-      #        nCount <- seqrle$length[n]
-      origPosition <- vapply(n, function(ni) sum(seqrle$lengths[1:((ni) - 1)]), FUN.VALUE = integer(1))
-      modeN <- sort(cons$homopolymers[[hp]])
-      #names(n) <- names(modeN)
-      if (!all(names(modeN) %in% vapply(origPosition, function(ni) (ni - 5):(ni + 5), FUN.VALUE = integer(11)))) {
-        missingN <- modeN[which(!n %in% modeN)]
-        varsHP <- tibble::tibble(haplotype = hp,
-                                 pos       = names(missingN),
-                                 ref       = "",
-                                 alt       = "",
-                                 warning   = sprintf(paste(
-                                   "Homopolymer at position %s should be of",
-                                   "length %s, but is %s"),
-                                   names(missingN), missingN,
-                                   n[names(missingN)]),
-                                 refSR     = "",
-                                 altSR     = "",
-                                 refLR     = "",
-                                 altLR     = "")
-        return(varsHP)
-      }
-    }
-    tibble::tibble(haplotype = "",
-                   pos       = "",
-                   ref       = "",
-                   alt       = "",
-                   warning   = "",
-                   refSR     = "",
-                   altSR     = "",
-                   refLR     = "",
-                   altLR     = "")
-  })
-  vars
-}
-
 #' @export
 remapAndReport <- function(x, report = FALSE, threshold = NULL, ...) {
-  if(is.null(threshold)) 
+  if (is.null(threshold)) 
     threshold <- x$getThreshold()
   dots   <- list(...)
   indent <- dots$indent %||% indentation()
@@ -634,10 +590,8 @@ remapAndReport <- function(x, report = FALSE, threshold = NULL, ...) {
     exists("hpCount") && is.numeric(hpCount),
     is.logical(report)
   )
-  
   flog.info("%sRemapping final sequences", indent(), name = "info")
   
-  ## TODO! check if ref is new 
   mappings <- lapply(x$getHapTypes(), function(h)
     remapAlignment(x, h, report = report, createIgv = createIgv))
   names(mappings) <- x$getHapTypes()
@@ -658,7 +612,27 @@ remapAndReport <- function(x, report = FALSE, threshold = NULL, ...) {
   ## Check homopolymer count; Only check if the count is found in both
   if (checkHpCount) {
     x <- checkHomopolymerCount(x, hpCount = hpCount)
-    vars <- .updateHomopolymers(vars, x$consensus, hptypes)
+    for (hp in hptypes) {
+      homopolymers <- x$consensus$homopolymers[[hp]]
+      diffHp <- which(homopolymers$cons != homopolymers$mode)
+      adjHp <- lapply(diffHp, function(i, homopolymers, hp) {
+        row <- homopolymers[i, ]
+        tibble::tibble(haplotype = hp,
+                       pos       = row$position,
+                       warning   = sprintf(paste(
+                         "Homopolymer should be of",
+                                   "length %s, but is %s"),
+                                   row$cons, row$mode),
+                       ref = "",
+                       alt = "",
+                       refSR     = "",
+                       altSR     = "",
+                       refLR     = "",
+                       altLR     = "")
+      }, homopolymers = homopolymers, hp = hp)
+      if (!NROW(adjHp) == 0)
+        vars <- dplyr::bind_rows(vars, adjHp)
+    }
   }
   x$consensus$variants <- na.omit(dplyr::arrange(vars, .data$pos, .data$haplotype))
 
