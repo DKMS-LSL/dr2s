@@ -271,10 +271,12 @@ remapAlignment <- function(x, hptype, report = FALSE, createIgv = TRUE, ...) {
   outdir <- .dirCreateIfNotExists(x$absPath(reftag))
   if (length(x$getHapTypes()) == 1) {
     readpathLR  <- x$absPath(readpath(x$mapInit))
-    readpathSR <- x$getShortreads()
+    if (x$hasShortreads()) 
+      readpathSR <- x$getShortreads()
   } else {
     readpathLR <- x$absPath(readpath(x$mapFinal$LR[[hptype]]))
-    readpathSR <- x$absPath(readpath(x$mapFinal$SR[[hptype]]))
+    if (x$hasShortreads()) 
+      readpathSR <- x$absPath(readpath(x$mapFinal$SR[[hptype]]))
   }
   refpath <- if (report) {
     cmat <- if (x$hasShortreads()) {
@@ -312,6 +314,7 @@ remapAlignment <- function(x, hptype, report = FALSE, createIgv = TRUE, ...) {
       refpath(pileup), bampath(pileup), x$getOutdir(), sampleSize = 100,
       fragmentReads = TRUE)
   }
+  
   mappings$LR  <- MapList_(
         ## mapdata
         readpath  = x$relPath(readpathLR),
@@ -329,7 +332,7 @@ remapAlignment <- function(x, hptype, report = FALSE, createIgv = TRUE, ...) {
         igv       = igv
   )
   ## Map short reads
-  if (!is.null(unlist(readpathSR))) {
+  if (x$hasShortreads()) {
     mapgroupSR <- "SR" %<<% hptype
     ## Mapper
     pileup <- mapReads(
