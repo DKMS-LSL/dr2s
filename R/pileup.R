@@ -446,6 +446,8 @@ plotPileupBasecallFrequency <- function(x, threshold = 0.20, label = "",
     }, alnI = alnI, inpos = inpos, BPPARAM = bpparam))
   names(insSeq) <- names(alnI)
   insSeq <- purrr::transpose(insSeq)
+  ## Remove positions where we have only gaps
+  insSeq <- insSeq[vapply(insSeq, function(s) !all(is.na(s)), FUN.VALUE = logical(1))]
   
   ## Extract per positions
   insSeqs <- lapply(insSeq, function(i) {
@@ -454,7 +456,7 @@ plotPileupBasecallFrequency <- function(x, threshold = 0.20, label = "",
   })
   ## decrement to last matching position again to work as expected with
   ## downstream
-  names(insSeqs) <- inpos - 1
+  names(insSeqs) <- as.integer(names(insSeqs)) - 1
   insSeqs
 }
 
