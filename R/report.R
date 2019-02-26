@@ -125,9 +125,7 @@ reportCheckedConsensus <- function(x, map = "mapFinal") {
   map <- match.arg(tolower(map), c("mapfinal", "mapiter"))
   ending <- ifelse(length(x$getHapTypes()) == 2,
                    "psa",
-                   ifelse(length(x$getHapTypes()) == 1,
-                          "fa",
-                          "msa"))
+                    "msa")
   if (x$hasShortreads()) {
     haplotypes <- "SR" %<<% x$getHapTypes()
     readtype <- x$getSrdType()
@@ -406,12 +404,13 @@ remapAlignment <- function(x, hptype, report = FALSE, createIgv = TRUE, ...) {
   seqPath
 }
 
+#' @export
 readPairFile <- function(pairfile) {
+  assert_that(is.readable(pairfile))
   if (endsWith(pairfile, "psa")) {
     rs <- readLines(pairfile)
     ## This assignment relies on the premise that hapA is always used!
-    ## Usually this should be true, bcs it is the cluster with the most reads
-    ## TODO make "mapfinal" agnostic
+    ## This should be true, bcs it is the cluster with the most reads
     rsA <- rs[grepl("^hapA", rs)]
     rsB <- rs[grepl("^hap[B-Z]", rs)]
     hap <- c(
@@ -437,7 +436,6 @@ readPairFile <- function(pairfile) {
     stop(paste("Check reported reference! Ambiguous positions were found",
                msg, sep = "\n"))
   }
-
   hap
 }
 
