@@ -295,8 +295,8 @@ checkHomopolymerCount <- function(x, hpCount = 10) {
                             inpos = positionHP,
                             reads = readsOI,
                             readtype = "illumina")
-      ins <- ins[[1]]
       if (length(ins) > 0) {
+        ins <- ins[[1]]
         s <- msa[names(msa) %in% names(ins)]
         pre <- Biostrings::subseq(s, start = 1, width = 11)
         post <- Biostrings::subseq(s, start = 12, end = length(s[[1]]))

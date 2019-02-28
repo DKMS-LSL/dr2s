@@ -4,7 +4,7 @@
 \alias{checkHomopolymerCount}
 \title{Get a distribution of homopolymer counts in alleles}
 \usage{
-checkHomopolymerCount(x, hpCount = 10, map = "mapFinal")
+checkHomopolymerCount(x, hpCount = 10)
 }
 \arguments{
 \item{x}{a DR2S object.}
