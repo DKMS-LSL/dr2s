@@ -72,6 +72,11 @@ mapReads <- function(
                      includeDeletion = includeDeletions,
                      includeInsertions = includeInsertions,
                      ...))
+  if (NROW(pileup$consmat) == 0) {
+    errorMsg <- "No reads in the pileup"
+    flog.info("%s %s", indent(), errorMsg, name = "info")
+    stop(errorMsg)
+  }
 
   if (distributeGaps) {
     #flog.info("%sDistribute gaps", indent(), name = "info")
@@ -80,7 +85,6 @@ mapReads <- function(
                                        removeError = removeError,
                                        indent = incr(indent))
   }
-
   if (callInsertions && is.null(ins(consmat(pileup)))) {
     pileup <- .pileupIncludeInsertions(x = pileup,
                                        threshold = callInsertionThreshold,
