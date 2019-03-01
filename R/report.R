@@ -263,7 +263,7 @@ remapAlignment <- function(x, hptype, report = FALSE, createIgv = TRUE, ...) {
   reftag <- "remap"
   outdir <- .dirCreateIfNotExists(x$absPath(reftag))
   if (length(x$getHapTypes()) == 1) {
-    readpathLR  <- x$absPath(readpath(x$mapInit))
+    readpathLR  <- x$getLongreads()
     if (x$hasShortreads()) 
       readpathSR <- x$getShortreads()
   } else {

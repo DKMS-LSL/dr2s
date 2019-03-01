@@ -30,48 +30,39 @@ readDR2S <- function(path) {
 .finishCn1 <- function(x){
   flog.info("Set only allele to A", name = "info")
   x$setHapTypes(c("A"))
-
   flog.info("Write mapInit data to mapFinal", name = "info")
-  x$mapFinal = structure(
-    list(
-      dir     = x$getOutdir(),
-      sreads  = list(A = x$getSrdDir()),
-      lreads  = list(A = x$getLrdDir()),
-      ref     = list(A = x$mapInit$SR2$ref),
-      bamfile = list(),
-      pileup  = list(),
-      tag     = list(),
-      seqpath = list()
-    ), class = c("mapFinal", "list")
-  )
-  if (!is.null(x$mapInit$SR1)) {
+  x$mapFinal$LR$A = x$mapInit
+  if (!is.null(x$mapInit$meta$SR2)) {
     # Write shortread data to mapFinal
-    mapgroupSR <- "SRA"
-    x$mapFinal$pileup[[mapgroupSR]] = x$mapInit$SR2$pileup
-    x$mapFinal$tag[[mapgroupSR]] = x$mapInit$SR2$tag
+    x$mapFinal$SR$A = x$mapInit$meta$SR2
   }
-
-  # Write longread data to mapFinal
-  mapgroupLR <- "LRA"
-  x$mapFinal$pileup[[mapgroupLR]] = x$mapInit$pileup
-  x$mapFinal$tag[[mapgroupLR]] = x$mapInit$tag
 
   flog.info("Get latest consensus from last mapping ...", name = "info")
 
-  if (!is.null(x$mapInit$SR1)) {
-    cseq <- conseq(x$mapInit$SR2$pileup$consmat, "mapFinalA", "ambig",
-                   excludeGaps = TRUE, threshold = x$getThreshold())
+  ## Construct consensus sequence
+  map <- if (is.null(x$mapFinal$SR)) {
+    x$mapFinal$LR$A
   } else {
-    cseq <- conseq(x$mapInit$pileup$consmat, "mapFinalA", "ambig",
-                   excludeGaps = TRUE, threshold = x$getThreshold())
+    x$mapFinal$SR$A
   }
-  x$mapFinal$seq$A <- cseq
-
+  maplabel <- "mapInit"
+  consname <- maplabel %<<% ".consensus." %<<% refname(map)
+  outdir   <- .dirCreateIfNotExists(self$absPath(maplabel))
+  conspath <- file.path(outdir, consname %<<% ".fa")
+  names(conspath) <- self$relPath(conspath)
+  flog.info("%sConstruct consensus <%s>", indent(), names(conspath), name = "info")
+  conseq <- .writeConseq(x = map$pileup, name = consname, type = "ambig",
+                         threshold = self$getThreshold(), suppressAllGaps = TRUE,
+                         replaceIndel = "", conspath = conspath)
+  if (is.null(x$mapFinal$SR)) {
+    x$mapFinal$LR$A$conspath  = self$relPath(conspath)
+  } else {
+    x$mapFinal$SR$A$conspath  = self$relPath(conspath)
+  }
   flog.info("Report consensus sequence and potential problematic variants",
             name = "info")
-  report(x)
-
-  return(x)
+  x <- report(x)
+  return(invisible(x))
 }
 
 #' Create IGV xml config files for directly open the longread and shortread

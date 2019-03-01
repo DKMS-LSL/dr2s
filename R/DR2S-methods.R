@@ -269,7 +269,7 @@ DR2S_$set("public", "runPartitionLongreads", function() {
       ## set runstats
       .setRunstats(self, "partitionLongreads",
                    list(foundPolymorphicPositions = 0L))
-      return(invisible(.finishCn1(x = self, plot = plot)))
+      return(invisible(.finishCn1(x = self)))
     }
 
     mat <- SNPmatrix(self$absPath(bampath(self$mapInit)), ppos)
@@ -302,9 +302,12 @@ DR2S_$set("public", "runPartitionLongreads", function() {
 
         ## if exists: mclust
         if (has_attr(spos, "mclust")) {
-          plotpath <- file.path(self$getOutdir(), "plot.mclust.png")
-          p <- factoextra::fviz_mclust(attr(spos, "mclust"))
-          cowplot::save_plot(plotpath, p, base_height = 5, dpi = 150)
+          # if more than one cluster is found 
+          if (max(attr(spos, "mclust")$classification) > 1) {
+            plotpath <- file.path(self$getOutdir(), "plot.mclust.png")
+            p <- factoextra::fviz_mclust(attr(spos, "mclust"))
+            cowplot::save_plot(plotpath, p, base_height = 5, dpi = 150)
+          }
         }
       }
     } else {

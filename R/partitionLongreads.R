@@ -62,7 +62,11 @@ partitionReads <- function(x, distAlleles = 2, selectAllelesBy = "count", thresh
                          deepSplit = deepSplit, threshold = threshold,
                          minClusterSize = minClusterSize, suppressGaps = FALSE,
                          indent = indent)
-  subclades <- factor(clusters$clades[!clusters$clades == "@"])
+  if ("@" %in% levels(clusters$clades)) {
+    flog.warn("%s Removed one clusters due to small cluster size of %s. To force processing run with option minClusterSize > %s.",
+                 indent(), sum(clusters$clades == "@"), sum(clusters$clades == "@"), name = "info")
+    subclades <- factor(clusters$clades[!clusters$clades == "@"])
+  }
   tree <- clusters$tree
   hptypes <- levels(subclades)
 
