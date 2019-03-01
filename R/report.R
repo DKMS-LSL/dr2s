@@ -588,8 +588,10 @@ remapAndReport <- function(x, report = FALSE, threshold = NULL, ...) {
   )
   flog.info("%sRemapping final sequences", indent(), name = "info")
   
-  mappings <- lapply(x$getHapTypes(), function(h)
-    remapAlignment(x, h, report = report, createIgv = createIgv))
+  bpparam <- BiocParallel::MulticoreParam(workers = .getIdleCores())
+  mappings <- BiocParallel::bplapply(x$getHapTypes(), function(h, x, report, createIgv) {
+    remapAlignment(x, h, report = report, createIgv = createIgv)
+   }, x = x, report = report, createIgv = createIgv, BPPARAM = bpparam)
   names(mappings) <- x$getHapTypes()
   x$remap <- purrr::transpose(mappings)
   ## Do what polish did

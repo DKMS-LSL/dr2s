@@ -47,17 +47,17 @@ readDR2S <- function(path) {
   }
   maplabel <- "mapInit"
   consname <- maplabel %<<% ".consensus." %<<% refname(map)
-  outdir   <- .dirCreateIfNotExists(self$absPath(maplabel))
+  outdir   <- .dirCreateIfNotExists(x$absPath(maplabel))
   conspath <- file.path(outdir, consname %<<% ".fa")
-  names(conspath) <- self$relPath(conspath)
-  flog.info("%sConstruct consensus <%s>", indent(), names(conspath), name = "info")
+  names(conspath) <- x$relPath(conspath)
+  flog.info("Construct consensus <%s>", names(conspath), name = "info")
   conseq <- .writeConseq(x = map$pileup, name = consname, type = "ambig",
-                         threshold = self$getThreshold(), suppressAllGaps = TRUE,
+                         threshold = x$getThreshold(), suppressAllGaps = TRUE,
                          replaceIndel = "", conspath = conspath)
   if (is.null(x$mapFinal$SR)) {
-    x$mapFinal$LR$A$conspath  = self$relPath(conspath)
+    x$mapFinal$LR$A$conspath  = x$relPath(conspath)
   } else {
-    x$mapFinal$SR$A$conspath  = self$relPath(conspath)
+    x$mapFinal$SR$A$conspath  = x$relPath(conspath)
   }
   flog.info("Report consensus sequence and potential problematic variants",
             name = "info")
