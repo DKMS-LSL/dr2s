@@ -118,7 +118,14 @@ subSampleBam <- function(bamfile, windowSize = NULL, sampleSize = 100,
       flog.warn("The reference is probably too short", name = "info")
       readsCorrectLen <- lens > 0.9 * geneLength
     } 
-    sampledAlignmentBam <- sample(alignmentBam[readsCorrectLen], size = sampleSize)
+    ## if there are not enough reads of the correct length use the longest reads
+    if (sum(readsCorrectLen) < sampleSize) {
+      lenAlignmentBam <- alignmentBam[lens %in% sort(lens)[1:sampleSize]]
+    } else {
+      lenAlignmentBam <- alignmentBam[readsCorrectLen]
+    }
+    sampledAlignmentBam <- sample(lenAlignmentBam, size = sampleSize)
+    
     missingReads <- max(c(sampleSize - length(sampledAlignmentBam), 0))
     sampledAlignmentBam <- c(sampledAlignmentBam,
                              sample(alignmentBam[!names(alignmentBam) %in% names(sampledAlignmentBam)], missingReads))
