@@ -360,7 +360,7 @@ DR2S_$set("public", "runPartitionLongreads", function() {
     if (length(self$getHapTypes()) == 1) {
       flog.warn("%sOnly one allele left", indent(), name = "info")
       flog.info("%sEntering single allele polish and report pipeline", indent(), name = "info")
-      return(invisible(.finishCn1(x = self, plot = plot)))
+      return(invisible(.finishCn1(x = self)))
     }
 
     self$lrpartition = structure(list(
