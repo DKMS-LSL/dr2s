@@ -190,11 +190,11 @@ DR2S_$set("public", "runMapInit", function(opts = list(), ...) {
                  list(Runtime = format(Sys.time() - start.time),
                       LRcoverage = stats(self$mapInit, "coverage")[["50%"]]))
   }
-  ## Check if there are coverage gaps Intentionally after plotting
-  if (self$hasShortreads()) {
-    pileup <- self$mapInit$meta$SR2$pileup$pileup
-    checkCovGaps(pileup)
-  }
+  ## Check if there are coverage gaps after plotting
+  # if (self$hasShortreads()) {
+  #   pileup <- self$mapInit$meta$SR2$pileup$pileup
+  #   checkCovGaps(pileup)
+  # }
 
   return(invisible(self))
 })
