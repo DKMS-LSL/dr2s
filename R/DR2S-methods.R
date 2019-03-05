@@ -76,7 +76,7 @@ DR2S_$set("public", "runMapInit", function(opts = list(), ...) {
     readtype <- self$getLrdType()
     readfile <- self$getLongreads()
     reffile  <- self$getRefPath()
-    refname  <- self$getReference()
+    refname  <- gsub(":", "_", self$getReference())
     pileup   <- mapReads(
       mapfun = mapfun, maplabel = maplabel, reffile = reffile, refname = refname,
       readfile = readfile, readtype = readtype, opts = opts, outdir = outdir,

@@ -19,7 +19,7 @@ mapInitSR <- function(self, opts = list(), includeDeletions = TRUE,
 
   ## Primary mapping
   reffile  <- self$getRefPath()
-  refname  <- self$getReference()
+  refname  <- gsub(":", "_", self$getReference())
   pileup   <- mapReads(
     mapfun = mapfun, maplabel = maplabel, reffile = reffile, refname = refname,
     readfile = readfile, readtype = readtype, opts = opts, outdir = outdir,
