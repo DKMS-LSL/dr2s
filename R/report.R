@@ -271,14 +271,15 @@ remapAlignment <- function(x, hptype, report = FALSE, createIgv = TRUE, ...) {
     if (x$hasShortreads()) 
       readpathSR <- x$absPath(readpath(x$mapFinal$SR[[hptype]]))
   }
-  refpath <- if (report) {
+  if (report) {
     cmat <- if (x$hasShortreads()) {
-      x$mapFinal$SR[[hptype]]$pileup$consmat 
+      refpath <- x$mapFinal$SR[[hptype]]$pileup$consmat 
+      file <- dot(c(names(seq), x$getSrdType(), x$getSrdMapper(), "remap", "fa"))
     } else {
-      x$mapFinal$LR[[hptype]]$pileup$consmat 
+      refpath <- x$mapFinal$LR[[hptype]]$pileup$consmat 
+      file <- dot(c(names(seq), x$getLrdType(), x$getLrdMapper(), "remap", "fa"))
     }
     seq <- conseq(cmat, "hap" %<<% hptype, "prob", suppressAllGaps = TRUE)
-    file <- dot(c(names(seq), x$getLrdType(), x$getLrdMapper(), "remap", "fa"))
     names(seq) <- names(seq) %<<% " LOCUS=" %<<%
       x$getLocus() %<<% ";REF=" %<<%  x$getReference()
     seqPath <- x$absPath(file.path("remap", file))

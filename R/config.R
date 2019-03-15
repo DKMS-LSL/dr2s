@@ -197,7 +197,7 @@ updateDR2SConf <- function(conf0, lrd, sampleId, sample) {
   conf0$longreads    <- lrd
   conf0$sampleId     <- sampleId
   conf0$reference    <- sample$reference %||% conf0$reference %||% list(NULL)
-  conf0$locus        <- sample$locus
+  conf0$locus        <- .normaliseLocus(sample$locus)
   conf0$outdir       <- normalizePath(.cropOutdir(conf0), mustWork = FALSE)
   sample$sampleId    <- NULL
   sample$reference   <- NULL
