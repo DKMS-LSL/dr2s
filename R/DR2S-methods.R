@@ -90,11 +90,19 @@ DR2S_$set("public", "runMapInit", function(opts = list(), ...) {
     ## If topx = "auto" or set to non-zero generate a new subsampled
     ## read file
     if (!is.null(picked1 <- reads(pileup))) {
-      fqFile <- dot(c(self$getSampleId(), readtype, "n" %<<% length(picked1), "fastq", "gz"))
-      topxFqPath <- .fileDeleteIfExists(file.path(outdir, strip(fqFile, "_")))
-      names(topxFqPath) <- self$relPath(topxFqPath)
       fqReads <- .extractFastq(bampath(pileup), picked1)
-      ShortRead::writeFastq(fqReads, topxFqPath, compress = TRUE)
+      ## Check if quality values are there. If not write a fasta file
+      if (Biostrings::uniqueLetters(unique(quality(quality(fqReads)))) == " ") {
+        fqFile <- dot(c(self$getSampleId(), readtype, "n" %<<% length(picked1), "fasta"))
+        topxFqPath <- .fileDeleteIfExists(file.path(outdir, strip(fqFile, "_")))
+        names(topxFqPath) <- self$relPath(topxFqPath)
+        ShortRead::writeFasta(fqReads, topxFqPath)
+      } else {
+        fqFile <- dot(c(self$getSampleId(), readtype, "n" %<<% length(picked1), "fastq", "gz"))
+        topxFqPath <- .fileDeleteIfExists(file.path(outdir, strip(fqFile, "_")))
+        names(topxFqPath) <- self$relPath(topxFqPath)
+        ShortRead::writeFastq(fqReads, topxFqPath, compress = TRUE)
+      }
       ## picking plot 1
       plotpath <- file.path(outdir, "plot.readpicking1.png")
       cowplot::save_plot(plotpath, attr(picked1, "plot"), dpi = 150)
@@ -106,6 +114,7 @@ DR2S_$set("public", "runMapInit", function(opts = list(), ...) {
     refname <- refname %<<% ".consensus"
     self$setRefPath(file.path(outdir, strip(maplabel %<<% "." %<<% refname %<<% ".fa", "_")))
     reffile <- self$getRefPath()
+    ## Debug
     flog.info("%sConstruct consensus <%s>", indent2(), names(reffile), name = "info")
     conseq <- .writeConseq(x = pileup, name = refname, type = "prob",
                            threshold = NULL, suppressAllGaps = TRUE,
