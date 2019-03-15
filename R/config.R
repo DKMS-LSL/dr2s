@@ -176,7 +176,9 @@ expandDR2SConf <- function(conf) {
     return(list(normaliseDR2SConf(conf)))
   }
   conf$samples <- NULL
-  sampleIds <- names(samples)
+  sampleIds <- vapply(seq_along(samples), function(s) {
+    ifelse(is.null(samples[[s]]$sampleId), names(samples)[s], samples[[s]]$sampleId)
+  }, FUN.VALUE = character(1))
   ## we can have more than one longread type
   lrds <- conf$longreads
   if (!is.null(names(lrds))) {
