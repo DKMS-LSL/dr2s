@@ -210,6 +210,8 @@ pileup <- function(bamfile, reffile, readtype, ..., pParam) {
                            ...) {
   indent <- list(...)$indent %||% indentation()
   msa <- .msaFromBam(Rsamtools::BamFile(bamfile))
+  if (length(msa) == 0)
+    stop("No reads found in bam file")
   ## there is no point in sampling if
   if (is.numeric(topx) && length(msa) <= topx) {
     flog.info("%sNothing to pick from %s mapped longreads", indent(), length(msa), name = "info")
