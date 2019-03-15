@@ -92,7 +92,7 @@ DR2S_$set("public", "runMapInit", function(opts = list(), ...) {
     if (!is.null(picked1 <- reads(pileup))) {
       fqReads <- .extractFastq(bampath(pileup), picked1)
       ## Check if quality values are there. If not write a fasta file
-      if (Biostrings::uniqueLetters(unique(quality(quality(fqReads)))) == " ") {
+      if (Biostrings::uniqueLetters(unique(Biostrings::quality(Biostrings::quality(fqReads)))) == " ") {
         fqFile <- dot(c(self$getSampleId(), readtype, "n" %<<% length(picked1), "fasta"))
         topxFqPath <- .fileDeleteIfExists(file.path(outdir, strip(fqFile, "_")))
         names(topxFqPath) <- self$relPath(topxFqPath)
