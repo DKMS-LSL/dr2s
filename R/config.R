@@ -17,7 +17,7 @@ createDR2SConf <- function(sample,
     !missing(locus) && is.character(locus))
   dots <- list(...)
   locus_allele <- strsplit1(locus, "*", fixed = TRUE)
-  locus        <- sub("HLA-", "", .normaliseLocus(locus_allele[1]))
+  locus        <- .normaliseLocus(locus_allele[1])
   ref_allele   <- .expandAllele(locus_allele[2], locus)
   pipeline     <- if (is.null(shortreads)) "LR" else "SR"
   conf0 <- list(
@@ -197,7 +197,7 @@ updateDR2SConf <- function(conf0, lrd, sampleId, sample) {
   conf0$longreads    <- lrd
   conf0$sampleId     <- sampleId
   conf0$reference    <- sample$reference %||% conf0$reference %||% list(NULL)
-  conf0$locus        <- .normaliseLocus(sample$locus)
+  conf0$locus        <- sample$locus
   conf0$outdir       <- normalizePath(.cropOutdir(conf0), mustWork = FALSE)
   sample$sampleId    <- NULL
   sample$reference   <- NULL
@@ -346,7 +346,7 @@ normaliseDR2SConf <- function(conf) {
   }
 
   ## Normalise locus
-  conf$locus <- sub("^HLA-", "", .normaliseLocus(conf$locus))
+  conf$locus <- .normaliseLocus(conf$locus)
 
   ## Assert pipeline
   if (is.null(conf$shortreads)) {

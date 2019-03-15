@@ -119,8 +119,7 @@
     ## fetch the generic reference for <locus>
     allele <- .normaliseLocus(locus)
     sref <- findRef(allele)
-  }
-  else {
+  } else {
     ## fetch the allele-specific reference for <locus>
     locus <- .normaliseLocus(locus)
     if (startsWith(locus, "HLA")) {

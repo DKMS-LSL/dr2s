@@ -76,7 +76,7 @@ DR2S_ <- R6::R6Class(
       private$runstats = NULL
       private$reportStatus = FALSE
       if (is.null(conf$reference) ||
-          sub("HLA-", "", conf$reference) == conf$locus) {
+          conf$reference == conf$locus) {
         ## fetch the generic reference for <locus>
         private$conf$reference   = .normaliseLocus(conf$locus)
         private$runstats$refPath = .generateReferenceSequence(
@@ -84,8 +84,7 @@ DR2S_ <- R6::R6Class(
           allele = NULL,
           outdir = private$conf$outdir,
           dirtag = "mapInit")
-      }
-      else if (file.exists(refPath <- conf$reference)) {
+      } else if (file.exists(refPath <- conf$reference)) {
         ## use the user-provided reference for <locus>
         private$conf$extref = normalizePath(refPath, mustWork = TRUE)
         private$conf$reference = sub("\\.fa(s|sta)?$", "", basename(refPath))
@@ -93,8 +92,7 @@ DR2S_ <- R6::R6Class(
         cPath <- .dirCreateIfNotExists(normalizePath(
           file.path(private$conf$outdir, "mapInit"), mustWork = FALSE))
         file.copy(refPath, file.path(cPath, basename(refPath)))
-      }
-      else {
+      } else {
         ## fetch the allele-specific reference for <locus>
         private$conf$reference = .expandAllele(conf$reference, conf$locus)
         private$runstats$refPath = .generateReferenceSequence(
@@ -128,16 +126,14 @@ DR2S_ <- R6::R6Class(
         cPath <- .dirCreateIfNotExists(normalizePath(
           file.path(private$conf$outdir, "mapInit"), mustWork = FALSE))
         file.copy(refPath, file.path(cPath, basename(refPath)))
-      }
-      else if (sub("HLA-", "", self$getReference()) == self$getLocus()) {
+      } else if (self$getReference() == self$getLocus()) {
         ## fetch the generic reference for <locus>
         private$runstats$refPath = .generateReferenceSequence(
           locus  = self$getLocus(),
           allele = NULL,
           outdir = self$getOutdir(),
           dirtag = "mapInit")
-      }
-      else {
+      } else {
         ## fetch the allele-specific reference for <locus>
         outdir <- .dirCreateIfNotExists(normalizePath(
           self$absPath("mapInit"), mustWork = FALSE))
@@ -858,7 +854,7 @@ findReads <- function(datadir, sampleId, locus) {
   #sampleId <- self$getSampleId()
   #locus <- self$getLocus()
   locus <- sub("^HLA-", "", toupper(locus))
-  locus <- sub("^KIR-", "", toupper(locus))
+  locus <- sub("^KIR", "", toupper(locus))
   filePattern <- sampleId %<<% "_" %<<% locus %<<% ".+" %<<% "fast(q|a)(\\.gz)?$"
   readPath <- dir(datadir, pattern = filePattern, full.names = TRUE)
   if (length(readPath) == 0) {
@@ -874,14 +870,13 @@ findReads <- function(datadir, sampleId, locus) {
 
 findRef <- function(locus) {
   if (startsWith(locus, "HLA")) {
-    lnm <- sub("^HLA-", "", toupper(locus))
     p <- system.file("extdata", "HLAREF.fa", package = "DR2S")
-    Biostrings::readDNAStringSet(p, format = "fasta")[lnm]
-  }
-  else if (startsWith(locus, "KIR")) {
+    Biostrings::readDNAStringSet(p, format = "fasta")[locus]
+  } else if (startsWith(locus, "KIR")) {
     stop("No generic KIR references available")
-  }
-  else {
+  } else if (startsWith(locus, "MIC")) {
+    stop("No generic MIC references available")
+  } else {
     stop("Unknown locus")
   }
 }
