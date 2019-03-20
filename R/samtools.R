@@ -3,7 +3,7 @@
                           minMapq = 0,
                           threads = "auto",
                           threadmem = "1G",
-                          clean = FALSE,
+                          clean = TRUE,
                           force = FALSE) {
   if (threads == "auto") {
     threads <- .getIdleCores()
