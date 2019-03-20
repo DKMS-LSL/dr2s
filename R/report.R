@@ -271,15 +271,14 @@ remapAlignment <- function(x, hptype, report = FALSE, createIgv = TRUE, ...) {
     if (x$hasShortreads()) 
       readpathSR <- x$absPath(readpath(x$mapFinal$SR[[hptype]]))
   }
-  if (report) {
+  refpath <- if (report) {
     cmat <- if (x$hasShortreads()) {
-      refpath <- x$mapFinal$SR[[hptype]]$pileup$consmat 
-      file <- dot(c(names(seq), x$getSrdType(), x$getSrdMapper(), "remap", "fa"))
+      x$mapFinal$SR[[hptype]]$pileup$consmat 
     } else {
-      refpath <- x$mapFinal$LR[[hptype]]$pileup$consmat 
-      file <- dot(c(names(seq), x$getLrdType(), x$getLrdMapper(), "remap", "fa"))
+      x$mapFinal$LR[[hptype]]$pileup$consmat 
     }
     seq <- conseq(cmat, "hap" %<<% hptype, "prob", suppressAllGaps = TRUE)
+    file <- dot(c(names(seq), x$getLrdType(), x$getLrdMapper(), "remap", "fa"))
     names(seq) <- names(seq) %<<% " LOCUS=" %<<%
       x$getLocus() %<<% ";REF=" %<<%  x$getReference()
     seqPath <- x$absPath(file.path("remap", file))
@@ -589,6 +588,7 @@ remapAndReport <- function(x, report = FALSE, threshold = NULL, ...) {
   )
   flog.info("%sRemapping final sequences", indent(), name = "info")
   
+  devtools::load_all()
   bpparam <- BiocParallel::MulticoreParam(workers = .getIdleCores())
   mappings <- BiocParallel::bplapply(x$getHapTypes(), function(h, x, report, createIgv) {
     remapAlignment(x, h, report = report, createIgv = createIgv)

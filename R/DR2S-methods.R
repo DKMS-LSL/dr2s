@@ -525,13 +525,22 @@ DR2S_$set("public", "runExtractPartitionedLongreads", function() {
     readIds  <- self$getHapList(hptype)
     ## extract these reads and write to file
     fq <- .extractFastq(bamfile, qnames = readIds)
-    fqfile <- dot(c(
-      "hap" %<<% hptype, self$getLrdType(), self$getLrdMapper(),
-      "n" %<<% length(fq), "fastq", "gz"))
-    fqout <- .fileDeleteIfExists(file.path(fqdir, fqfile))
-    nfq <- ShortRead::writeFastq(fq, file = fqout, full = FALSE, compress = TRUE)
-    ## assert that all records got written to file
-    assert_that(nfq == length(fq))
+    if (Biostrings::uniqueLetters(unique(Biostrings::quality(Biostrings::quality(fq)))) == " ") {
+      fqfile <- dot(c(
+        "hap" %<<% hptype, self$getLrdType(), self$getLrdMapper(),
+        "n" %<<% length(fq), "fasta"))
+      fqout <- .fileDeleteIfExists(file.path(fqdir, fqfile))
+      ShortRead::writeFasta(fq, file = fqout)
+      nfq <- length(fq)
+    } else {
+      fqfile <- dot(c(
+        "hap" %<<% hptype, self$getLrdType(), self$getLrdMapper(),
+        "n" %<<% length(fq), "fastq", "gz"))
+      fqout <- .fileDeleteIfExists(file.path(fqdir, fqfile))
+      nfq <- ShortRead::writeFastq(fq, file = fqout, full = FALSE, compress = TRUE)
+      ## assert that all records got written to file
+      assert_that(nfq == length(fq))
+      }
     ## Extract consensus matrix from mapInit for the clustered reads
     cmat <- .extractIdsFromMat(mat, readIds)
     ## Construct the initial longread consensus sequence for <hptype>
