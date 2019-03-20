@@ -588,7 +588,6 @@ remapAndReport <- function(x, report = FALSE, threshold = NULL, ...) {
   )
   flog.info("%sRemapping final sequences", indent(), name = "info")
   
-  devtools::load_all()
   bpparam <- BiocParallel::MulticoreParam(workers = .getIdleCores())
   mappings <- BiocParallel::bplapply(x$getHapTypes(), function(h, x, report, createIgv) {
     remapAlignment(x, h, report = report, createIgv = createIgv)
