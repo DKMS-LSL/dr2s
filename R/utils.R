@@ -10,28 +10,73 @@ magrittr::`%>%`
 
 
 .ipdHla <- function() {
-  if (!exists("ipdHlaDb", envir = globalenv()))
-    assign("ipdHlaDb", suppressMessages(ipdDb::loadHlaData()),
-           envir = globalenv())
-  get("ipdHlaDb", envir = globalenv())
+  ipdHlaVersion <- getOption("dr2s.ipdHlaVersion")
+  #ipdDbVersion = NULL
+  if (exists("ipdHlaDb", envir = globalenv())) {
+    db <- get("ipdHlaDb", envir = globalenv())
+    if (!is.null(ipdHlaVersion)) {
+      if (ipdHlaVersion == attr(db, "ipdHlaVersion"))
+        return(db)
+    } else {
+      return(db)
+    }
+  }
+  if (!is.null(ipdHlaVersion)) {
+    if (endsWith(ipdHlaVersion, ".sqlite")) {
+      assertthat::assert_that(assertthat::is.readable(ipdHlaVersion))
+      db <- suppressMessages(ipdDb::loadLocalDataBase(ipdHlaVersion))
+      attr(db, "ipdHlaVersion") <- ipdHlaVersion
+      assign("ipdHlaDb", db,
+             envir = globalenv())
+      return(db)
+    }
+  }
+  db <- suppressMessages(ipdDb::loadHlaData(ipdHlaVersion))
+  attr(db, "ipdHlaVersion") <- ipdHlaVersion
+  assign("ipdHlaDb", db,
+         envir = globalenv())
+  db
 }
 
 .ipdKir <- function() {
-  if (!exists("ipdKirDb", envir = globalenv()))
-    assign("ipdKirDb", suppressMessages(ipdDb::loadKirData()),
-           envir = globalenv())
-  get("ipdKirDb", envir = globalenv())
+  ipdKirVersion <- getOption("dr2s.ipdKirVersion")
+  #ipdDbVersion = NULL
+  if (exists("ipdKirDb", envir = globalenv())) {
+    db <- get("ipdKirDb", envir = globalenv())
+    if (!is.null(ipdKirVersion)) {
+      if (ipdKirVersion == attr(db, "ipdKirVersion"))
+        return(db)
+    } else {
+      return(db)
+    }
+  }
+  if (!is.null(ipdKirVersion)) {
+    if (endsWith(ipdKirVersion, ".sqlite")) {
+      assertthat::assert_that(assertthat::is.readable(ipdKirVersion))
+      db <- suppressMessages(ipdDb::loadLocalDataBase(ipdKirVersion))
+      attr(db, "ipdKirVersion") <- ipdKirVersion
+      assign("ipdKirDb", db,
+             envir = globalenv())
+      return(db)
+    }
+  }
+  db <- suppressMessages(ipdDb::loadKirData(ipdKirVersion))
+  attr(db, "ipdKirVersion") <- ipdKirVersion
+  assign("ipdKirDb", db,
+         envir = globalenv())
+  db
 }
 
 .normaliseLocus <- function(locus) {
+  locus <- gsub(" ", "", locus)
   locus <- sub("(HLA[-_]?|KIR[-_]?)", "", toupper(locus))
   if (locus %in% HLA_LOCI()) {
+    if (startsWith(locus, "MIC"))
+      return(locus)
     "HLA-" %<<% locus
   } else if (locus %in% KIR_LOCI()) {
     "KIR" %<<% locus
   } else if (locus == "ABO") {
-    locus
-  } else if (locus %in% c("MICA", "MICB")) {
     locus
   } else {
     stop("Unknown locus ", sQuote(locus), call. = FALSE)

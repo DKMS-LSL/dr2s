@@ -15,6 +15,7 @@ readDR2S <- function(path) {
   if (length(rdsPath) == 0) {
     stop("No DR2S analysis object found", call. = TRUE, immediate. = TRUE)
   }
+  
   rs <- lapply(rdsPath, readRDS)
   ## update outdir
   rs <- lapply(rs, function(x) {

@@ -122,11 +122,13 @@
   } else {
     ## fetch the allele-specific reference for <locus>
     locus <- .normaliseLocus(locus)
-    if (startsWith(locus, "HLA")) {
-      ipd <- .ipdHla()
-    } else {
+    if (startsWith(locus, "KIR")) {
       ipd <- .ipdKir()
+    } else {
+      ipd <- .ipdHla()
     }
+    if (startsWith(locus, "MIC"))
+      locus <- paste("HLA", locus, sep = "-")
     if (!allele %in% ipd$getAlleles(locus))
       stop(sprintf("Allele %s not found in database", allele))
     sref <- foreach(i = allele, .combine = "c") %do% {

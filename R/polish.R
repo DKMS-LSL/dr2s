@@ -1,5 +1,5 @@
 #' @export
-polish.DR2S <- function(x, ...) {
+polish.DR2S <- function(x, map = "mapFinal") {
   ## If reporting is already done exit safely
   if (.checkReportStatus(x)) return(invisible(x))
   assert_that(x$hasMapFinal())
