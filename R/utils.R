@@ -88,9 +88,9 @@ magrittr::`%>%`
   locus <- sub("KIR", "", toupper(locus))
   locus <- sub("HLA-", "", toupper(locus))
   if (locus %in% HLA_LOCI()) {
-    pattern1 <- "^HLA-" %<<% locus %<<% "[*]\\d\\d\\d?:.+$"
-    pattern2 <- "^" %<<% locus %<<% "[*]\\d\\d\\d?:.+$"
-    pattern3 <- "^\\d\\d\\d?:.+$"
+    pattern1 <- "^HLA-" %<<% locus %<<% "[*]\\d\\d\\d?(:.+)*$"
+    pattern2 <- "^" %<<% locus %<<% "[*]\\d\\d\\d?(:.+)*$"
+    pattern3 <- "^\\d\\d\\d?(:.+)*$"
     if (grepl(pattern1, allele)) {
       allele
     } else if (grepl(pattern2, allele)) {
