@@ -138,10 +138,18 @@
       names(sref) <- gsub(" +", "_", names(sref))
       if (!is.null(utrLength)) {
         assert_that(all(c("start", "end") %in% names(utrLength)))
-        start <- srefFeatures[srefFeatures$name == "5' UTR"]
-        start <- IRanges::end(start) - utrLength$start
-        end <- srefFeatures[srefFeatures$name == "3' UTR"]
-        end <- IRanges::start(end) + utrLength$end
+        if (utrLength$start == 0) {
+          start <- 1
+        } else {
+          start <- srefFeatures[srefFeatures$name == "5' UTR"]
+          start <- IRanges::end(start) - utrLength$start
+        }
+        if (utrLength$end == 0) {
+          end <- Biostrings::width(sref)
+        } else {
+          end <- srefFeatures[srefFeatures$name == "3' UTR"]
+          end <- IRanges::start(end) + utrLength$end
+        }
         sref <- Biostrings::subseq(sref, start = start, 
                                    end = end)
       }
