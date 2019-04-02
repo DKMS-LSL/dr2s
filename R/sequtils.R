@@ -114,7 +114,8 @@
 #' @keywords internal
 #' @examples
 #' ###
-.generateReferenceSequence <- function(locus, allele = NULL, outdir, dirtag = NULL) {
+.generateReferenceSequence <- function(locus, allele = NULL, outdir, 
+                                       utrLength = NULL, dirtag = NULL) {
   if (is.null(allele)) {
     ## fetch the generic reference for <locus>
     allele <- .normaliseLocus(locus)
@@ -133,7 +134,17 @@
       stop(sprintf("Allele %s not found in database", allele))
     sref <- foreach(i = allele, .combine = "c") %do% {
       sref <- ipd$getClosestComplete(i, locus)
+      srefFeatures <- ipd$getStructure(names(sref))
       names(sref) <- gsub(" +", "_", names(sref))
+      if (!is.null(utrLength)) {
+        assert_that(all(c("start", "end") %in% names(utrLength)))
+        start <- srefFeatures[srefFeatures$name == "5' UTR"]
+        start <- IRanges::end(start) - utrLength$start
+        end <- srefFeatures[srefFeatures$name == "3' UTR"]
+        end <- IRanges::start(end) + utrLength$end
+        sref <- Biostrings::subseq(sref, start = start, 
+                                   end = end)
+      }
       sref
     }
   }

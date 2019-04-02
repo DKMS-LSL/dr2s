@@ -105,6 +105,9 @@ readDR2SConf <- function(configFile, format = "auto") {
     conf$opts$mapIter$iterations <- conf$iterations
   ##
   conf$opts <- normaliseOpts(conf$opts, conf$pipeline)
+  
+  conf$utrLength <- .normaliseUtrLength(conf$utrLength)
+    
   if (is.null(conf$details))
     conf["details"] <- list(NULL)
   conf$runstats <- NULL
@@ -229,7 +232,7 @@ ORDERED_CONF_FIELDS <- function() {
     # Sample data
     "sampleId", "locus", "details",
     # Run data
-    "datadir", "outdir", "reference", "longreads", "shortreads",
+    "datadir", "outdir", "reference", "longreads", "shortreads", "utrLength",
     # Run parametrisation
     "pipeline", "opts", "format"
   )
@@ -349,6 +352,8 @@ normaliseDR2SConf <- function(conf) {
 
   ## Normalise locus
   conf$locus <- .normaliseLocus(conf$locus)
+  ## Use only the relevant utrLength 
+  conf$utrLength       <- conf$utrLength[[conf$locus]]
 
   ## Assert pipeline
   if (is.null(conf$shortreads)) {

@@ -83,6 +83,7 @@ DR2S_ <- R6::R6Class(
           locus  = private$conf$locus,
           allele = NULL,
           outdir = private$conf$outdir,
+          utrLength = private$conf$utrLength,
           dirtag = "mapInit")
       } else if (file.exists(refPath <- conf$reference)) {
         ## use the user-provided reference for <locus>
@@ -99,6 +100,7 @@ DR2S_ <- R6::R6Class(
           locus  = private$conf$locus,
           allele = private$conf$reference,
           outdir = private$conf$outdir,
+          utrLength = private$conf$utrLength,
           dirtag = "mapInit")
       }
       .confLog(outdir = private$conf$outdir, logName = "info")
@@ -132,6 +134,7 @@ DR2S_ <- R6::R6Class(
           locus  = self$getLocus(),
           allele = NULL,
           outdir = self$getOutdir(),
+          utrLength = self$getConfig("utrLength"),
           dirtag = "mapInit")
       } else {
         ## fetch the allele-specific reference for <locus>
@@ -141,6 +144,7 @@ DR2S_ <- R6::R6Class(
           locus  = self$getLocus(),
           allele = self$getReference(),
           outdir = self$getOutdir(),
+          utrLength = self$getConfig("utrLength"),
           dirtag = "mapInit")
       }
       .confLog(outdir = self$getOutdir(), logName = "info")

@@ -341,3 +341,9 @@ validateOpts <- function(opts) {
   }, FUN.VALUE = character(1))
 }
 
+.normaliseUtrLength <- function(utrLength) {
+  loci <- names(utrLength)
+  loci <- vapply(loci, .normaliseLocus, FUN.VALUE = character(1))
+  names(utrLength) <- loci
+  utrLength
+}
