@@ -105,9 +105,9 @@ readDR2SConf <- function(configFile, format = "auto") {
     conf$opts$mapIter$iterations <- conf$iterations
   ##
   conf$opts <- normaliseOpts(conf$opts, conf$pipeline)
-  
+
   conf$utrLength <- .normaliseUtrLength(conf$utrLength)
-    
+
   if (is.null(conf$details))
     conf["details"] <- list(NULL)
   conf$runstats <- NULL
@@ -352,8 +352,9 @@ normaliseDR2SConf <- function(conf) {
 
   ## Normalise locus
   conf$locus <- .normaliseLocus(conf$locus)
-  ## Use only the relevant utrLength 
-  conf$utrLength       <- conf$utrLength[[conf$locus]]
+  ## Use only the relevant utrLength
+  if (!all(names(conf$utrLength) %in% c("start", "end")))
+    conf$utrLength       <- conf$utrLength[[conf$locus]]
 
   ## Assert pipeline
   if (is.null(conf$shortreads)) {
