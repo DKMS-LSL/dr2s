@@ -361,3 +361,15 @@ checkHomopolymerCount <- function(x, hpCount = 10) {
 
   return(invisible(x))
 }
+
+.getAmbigPositions <- function(seqs) {
+  ## Check for ambiguous bases
+  seqLetters <- Biostrings::uniqueLetters(seqs)
+  ambigLetters <- seqLetters[which(!seqLetters %in% VALID_DNA(include = "del"))]
+  ambigPositions <- list()
+  if (!length(ambigLetters) == 0) {
+    ambigPositions <- stats::setNames(lapply(ambigLetters, function(l, seqs)
+      unlist(Biostrings::vmatchPattern(l, seqs)), seqs = seqs), ambigLetters)
+  }
+  ambigPositions
+}

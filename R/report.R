@@ -386,10 +386,20 @@ remapAlignment <- function(x, hptype, report = FALSE, createIgv = TRUE, ...) {
   if (!file.exists(pairfileChecked))
     stop("check out the alignment first!")
   rs <- readPairFile(pairfileChecked)
+  
+  
+  ## Check for ambiguous positions in sequence
+  ambigPositions <- .getAmbigPositions(rs)
+  msg <- vapply(seq_along(ambigPositions), function(l, ambigPositions)
+    extractAmbigLetters(ambigPositions, names(ambigPositions)[l]),
+    ambigPositions = ambigPositions, FUN.VALUE = character(1))
+  flog.info(msg, name = "info")
+  stop(paste("Check reported reference! Ambiguous positions were found",
+             msg, sep = "\n"))
+
   seqs <- Biostrings::DNAStringSet(
     lapply(rs, function(s) Biostrings::DNAString(stripIndel(s))))
 
-  #hptype <- "A"
   ## Export FASTA
   seq <- seqs["hap" %<<% hptype]
   file <- dot(c(names(seq), x$getLrdType(), x$getLrdMapper(), "remap", "fa"))
@@ -421,20 +431,6 @@ readPairFile <- function(pairfile) {
     names(hap) <- c("hapA", strsplit1(rsB, "\\s")[1])
   } else if (endsWith(pairfile, "msa")) {
     hap <- readMSA(pairfile)
-  }
-
-  ## Check for ambiguous bases
-  seqLetters <- Biostrings::uniqueLetters(hap)
-  ambigLetters <- seqLetters[which(!seqLetters %in% VALID_DNA(include = "del"))]
-  if (!length(ambigLetters) == 0) {
-    ambigPositions <- stats::setNames(lapply(ambigLetters, function(x, hap)
-      unlist(Biostrings::vmatchPattern(x, hap)), hap = hap), ambigLetters)
-    msg <- vapply(seq_along(ambigPositions), function(x, ambigPositions)
-      extractAmbigLetters(ambigPositions, names(ambigPositions)[x]),
-      ambigPositions = ambigPositions, FUN.VALUE = character(1))
-    flog.info(msg, name = "info")
-    stop(paste("Check reported reference! Ambiguous positions were found",
-               msg, sep = "\n"))
   }
   hap
 }
@@ -607,6 +603,28 @@ remapAndReport <- function(x, report = FALSE, threshold = NULL, ...) {
   x <- menv$export()
   ## Get variants
   vars <- .getVariants(x)
+  seqs <- x$getLatestRef()
+  names(seqs) <- x$getHapTypes()
+  ambigPos <- .getAmbigPositions(seqs)
+  if (length(ambigPos) > 0) {
+    vars <- dplyr::bind_rows(vars, lapply(seq_along(ambigPos), function(iPos, ambigPos) {
+      pos <- ambigPos[[iPos]]
+      ambigLetter <- names(ambigPos)[iPos]
+      tibble::tibble(
+        haplotype = names(pos),
+        pos = IRanges::start(pos),
+        ref = "",
+        alt = "",
+        warning = paste0("Ambiguous position ",  ambigLetter, 
+                         " in consensus | Decide for ", 
+                         paste(strsplit1(CODE_MAP()[ambigLetter], ""), collapse = " or ")),
+        refSR = "",
+        altSR = "",
+        refLR = "",
+        altLR = "")
+    }, ambigPos = ambigPos))
+  }
+  
   ## Check homopolymer count; Only check if the count is found in both
   if (checkHpCount & x$hasShortreads()) {
     x <- checkHomopolymerCount(x, hpCount = hpCount)
