@@ -1,6 +1,6 @@
 Package: DR2S
 Title: Dual redundant reference sequencing
-Version: 1.0.4
+Version: 1.0.5
 Author: Steffen Klasberg <klasberg@dkms-lab.de>; Gerhard Schöfl <schoefl@dkms-lab.de>
 Description: Generate highly accurate reference sequences from heterozygous
     HLA and KIR samples by combining data from long-read and short-read
