@@ -605,26 +605,28 @@ remapAndReport <- function(x, report = FALSE, threshold = NULL, ...) {
   x <- menv$export()
   ## Get variants
   vars <- .getVariants(x)
-  seqs <- x$getLatestRef()
-  names(seqs) <- x$getHapTypes()
-  ambigPos <- .getAmbigPositions(seqs)
-  if (length(ambigPos) > 0) {
-    vars <- dplyr::bind_rows(vars, lapply(seq_along(ambigPos), function(iPos, ambigPos) {
-      pos <- ambigPos[[iPos]]
-      ambigLetter <- names(ambigPos)[iPos]
-      tibble::tibble(
-        haplotype = names(pos),
-        pos = IRanges::start(pos),
-        ref = "",
-        alt = "",
-        warning = paste0("Ambiguous position ",  ambigLetter, 
-                         " in consensus | Decide for ", 
-                         paste(strsplit1(CODE_MAP()[ambigLetter], ""), collapse = " or ")),
-        refSR = "",
-        altSR = "",
-        refLR = "",
-        altLR = "")
-    }, ambigPos = ambigPos))
+  if (report) {
+    seqs <- x$getLatestRef()
+    names(seqs) <- x$getHapTypes()
+    ambigPos <- .getAmbigPositions(seqs)
+    if (length(ambigPos) > 0) {
+      vars <- dplyr::bind_rows(vars, lapply(seq_along(ambigPos), function(iPos, ambigPos) {
+        pos <- ambigPos[[iPos]]
+        ambigLetter <- names(ambigPos)[iPos]
+        tibble::tibble(
+          haplotype = names(pos),
+          pos = IRanges::start(pos),
+          ref = "",
+          alt = "",
+          warning = paste0("Ambiguous position ",  ambigLetter, 
+                           " in consensus | Decide for ", 
+                           paste(strsplit1(CODE_MAP()[ambigLetter], ""), collapse = " or ")),
+          refSR = "",
+          altSR = "",
+          refLR = "",
+          altLR = "")
+      }, ambigPos = ambigPos))
+    }
   }
   
   ## Check homopolymer count; Only check if the count is found in both
