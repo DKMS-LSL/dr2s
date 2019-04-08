@@ -3,6 +3,8 @@
 \name{reads}
 \alias{reads}
 \alias{reads<-}
+\alias{readfile}
+\alias{readfile<-}
 \alias{indelRate}
 \alias{indelRate<-}
 \alias{pileup}
@@ -11,6 +13,10 @@
 reads(x, ...)
 
 reads(x) <- value
+
+readfile(x, ...)
+
+readfile(x) <- value
 
 indelRate(x, ...)
 
