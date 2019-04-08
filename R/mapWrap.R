@@ -18,27 +18,16 @@ mapReads <- function(
   # minMapq = 0
   minMapq <- dots$minMapq %||% dots$min_mapq %||% 0
   if (clip) {
-    flog.info("%sTrim softclips and polymorphic ends", indent(), name = "info")
+    flog.info("%sTrim reads to reference", indent(), name = "info")
     ## Run bam - sort - index pipeline
     bamfile <- .bamSortIndex(samfile = samfile, reffile = reffile,
                              minMapq = minMapq, clean = clean)
-    ## Trim softclips
-    fq <- .trimSoftclippedEnds(bam = Rsamtools::scanBam(bamfile)[[1]], preserveRefEnds = TRUE)
-    ## Trim polymorphic ends
-    fq <- .trimPolymorphicEnds(fq)
-    ## Write new shortread file to disc
-    fqdir  <- .dirCreateIfNotExists(file.path(outdir, "trimmed"))
-    fqfile <- gsub(".fastq(.gz)?", ".trimmed.fastq.gz", basename(readfile[1]))
-    readfile <- .fileDeleteIfExists(file.path(fqdir, fqfile))
-    ShortRead::writeFastq(fq, readfile, compress = TRUE)
-    .fileDeleteIfExists(bamfile)
-    ## Rerun mapper
-    flog.info("%sRemap trimmed reads <%s> to reference <%s>", indent(), fqfile, names(reffile), name = "info")
-    samfile <- mapfun(reffile, refname, readfile, readtype, outdir, maplabel,
-                      opts = list(A = 1, B = 4, O = 2))
-    # cleanup
-    .fileDeleteIfExists(readfile)
-    .fileDeleteIfExists(fqdir)
+    ## Trim to reflen
+    readfile <- file.path(outdir, basename(readfile[[1]]))
+    .trimToRefLen(bamfile, readfile)
+    unlink(bamfile)
+    flog.info("%sRemap trimmed reads <%s> to reference <%s>", indent(), readfile, names(reffile), name = "info")
+    samfile <- mapfun(reffile, refname, readfile, readtype, outdir, maplabel, opts)
   }
 
   ## Run bam - sort - index pipeline
@@ -101,6 +90,7 @@ mapReads <- function(
   if (topx > 0 ) {
     reads(pileup) <- reads
   }
-
+  
+  readfile(pileup) <- readfile
   pileup
 }

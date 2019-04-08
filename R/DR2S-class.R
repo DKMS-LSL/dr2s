@@ -288,6 +288,11 @@ DR2S_ <- R6::R6Class(
         return(self$absPath(filtered))
       }
       srddir <- self$getConfig("shortreads")$dir
+      if (!is.null(sdir <- self$mapInit$meta$SR1$readpath)) {
+        if (!any(startsWith(sdir, srddir))) {
+          self$absPath(sdir)
+        }
+      }
       if (!is.null(srddir)) {
         file.path(self$getDatadir(), srddir)
       } else {

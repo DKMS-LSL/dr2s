@@ -25,7 +25,7 @@ mapInitSR <- function(self, opts = list(), includeDeletions = TRUE,
     readfile = readfile, readtype = readtype, opts = opts, outdir = outdir,
     includeDeletions = includeDeletions, includeInsertions = includeInsertions,
     callInsertions = TRUE, callInsertionThreshold = callInsertionThreshold,
-    clip = FALSE, distributeGaps = FALSE, removeError = TRUE, topx = 0,
+    clip = TRUE, distributeGaps = FALSE, removeError = TRUE, topx = 0,
     clean = clean, indent = indent, ...)#minMapq = 50)
 
   ## Check if the pileup is empty and the coverage is somewhat equally distributed
@@ -50,6 +50,7 @@ mapInitSR <- function(self, opts = list(), includeDeletions = TRUE,
                          replaceIndel = "N", conspath = conspath)
 
   if (microsat) {
+    readfile <- readfile(pileup)
     flog.info("%sRemap shortreads to extended reference", indent(), name = "info")
     pileup <- mapReads(
       mapfun = mapfun, maplabel = maplabel, reffile = conspath, refname = consname,
@@ -71,7 +72,7 @@ mapInitSR <- function(self, opts = list(), includeDeletions = TRUE,
 
   SR1 = MapList_(
     ## mapdata
-    readpath = self$relPath(readfile),
+    readpath = self$relPath(readfile(pileup)),
     refpath  = self$relPath(reffile),
     bampath  = self$relPath(bampath(pileup)),
     conspath = self$relPath(conspath),

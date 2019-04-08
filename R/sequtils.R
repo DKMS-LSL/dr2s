@@ -52,6 +52,21 @@
   unique(c(trim, badScore))
 }
 
+.trimToRefLen <- function(bamfile, fqFileWrite) {
+  bam <- Rsamtools::scanBam(bamfile, param = Rsamtools::ScanBamParam(what = c("qname", "pos", "seq", "qual", "cigar")))[[1]]
+  sc <- .mapSoftclip(bam$cigar, which = "start")
+  clipPos <- sc - bam$pos
+  clipPos[clipPos < 0 | is.na(clipPos)] <- 0
+  clipPos[clipPos > 0] <- clipPos[clipPos > 0] + 2
+  clipPos[clipPos == 0] <- 1
+  fqrClip <- ShortRead::ShortReadQ(sread = bam$seq, quality = Biostrings::BStringSet(bam$qual), id = Biostrings::BStringSet(bam$qname))
+  fqrClipped <- ShortRead::narrow(fqrClip, start = clipPos, end = Biostrings::width(bam$seq))
+  fqFileWrite <- .fileDeleteIfExists(fqFileWrite)
+  ShortRead::writeFastq(fqrClipped, fqFileWrite, compress = TRUE)
+  TRUE
+}
+
+
 .trimSoftclippedEnds <- function(bam, qnames = NULL, preserveRefEnds = FALSE) {
   i <- if (is.null(qnames)) {
     seq_along(bam$qname)
@@ -89,15 +104,19 @@
   rs
 }
 
-.mapSoftclip <- function(cigar) {
+.mapSoftclip <- function(cigar, which = "both") {
   m  <- gregexpr("^\\d+S", cigar)
   sc <- regmatches(cigar, m)
   sc[!vapply(sc, function(x) length(x) > 0, FUN.VALUE = FALSE)] <- NA_character_
   scStart <- as.integer(gsub("S", "", unlist(sc)))
+  if (which == "start")
+    return(scStart)
   m  <- gregexpr("\\d+S$", cigar)
   sc <- regmatches(cigar, m)
   sc[!vapply(sc, function(x) length(x) > 0, FUN.VALUE = FALSE)] <- NA_character_
   scEnd <- as.integer(gsub("S", "", unlist(sc)))
+  if (which == "end")
+    return(scStart)
   tibble::tibble(
     start = scStart,
     end   = scEnd

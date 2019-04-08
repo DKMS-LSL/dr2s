@@ -390,12 +390,14 @@ remapAlignment <- function(x, hptype, report = FALSE, createIgv = TRUE, ...) {
   
   ## Check for ambiguous positions in sequence
   ambigPositions <- .getAmbigPositions(rs)
-  msg <- vapply(seq_along(ambigPositions), function(l, ambigPositions)
-    extractAmbigLetters(ambigPositions, names(ambigPositions)[l]),
-    ambigPositions = ambigPositions, FUN.VALUE = character(1))
-  flog.info(msg, name = "info")
-  stop(paste("Check reported reference! Ambiguous positions were found",
-             msg, sep = "\n"))
+  if (length(ambigPositions) > 0) {
+    msg <- vapply(seq_along(ambigPositions), function(l, ambigPositions)
+      extractAmbigLetters(ambigPositions, names(ambigPositions)[l]),
+      ambigPositions = ambigPositions, FUN.VALUE = character(1))
+    flog.info(msg, name = "info")
+    stop(paste("Check reported reference! Ambiguous positions were found",
+               msg, sep = "\n"))
+  }
 
   seqs <- Biostrings::DNAStringSet(
     lapply(rs, function(s) Biostrings::DNAString(stripIndel(s))))

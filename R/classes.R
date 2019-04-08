@@ -11,6 +11,7 @@ Pileup_ <- function(...) {
   out$pileup   <- dots$pileup  # <tbl_df> with columns: "seqnames", "pos", "nucleotide", "count".
   out$consmat  <- consmat(dots$pileup, freq = FALSE) # <consmat>
   out$stats    <- dots$stats %||% list() # <named list>
+  out$readfile <- dots$readfile %||% NULL
   dots[c("refpath", "bampath", "param", "pileup", "stats")] <- NULL
   out$meta <- compact(mergeList(list(
       refname   = dots$refname,  # <character>; name of reference.
@@ -108,6 +109,24 @@ reads.pileup <- function(x, ..) {
 `reads<-.pileup` <- function(x, value) {
   assert_that(is.character(value))
   x$meta$reads <- value
+  x
+}
+
+#' @rdname pileup
+#' @export
+readfile <- function(x, ...) UseMethod("readfile")
+#' @export
+readfile.pileup <- function(x, ..) {
+  x$readfile
+}
+
+#' @rdname pileup
+#' @export
+`readfile<-` <- function(x, value) UseMethod("readfile<-")
+#' @export
+`readfile<-.pileup` <- function(x, value) {
+  assert_that(is.character(value))
+  x$readfile <- value
   x
 }
 
