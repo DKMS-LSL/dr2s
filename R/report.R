@@ -249,7 +249,8 @@ checkAlignmentFile <- function(x, map = "mapFinal", where = 0,
 #' @return Creates an executable bash file for inspecting the mapping with IGV
 #' @family DR2S mapper functions
 #' @export
-remapAlignment <- function(x, hptype, report = FALSE, createIgv = TRUE, ...) {
+remapAlignment <- function(x, hptype, report = FALSE, createIgv = TRUE, 
+                           threshold = NULL, ...) {
   # hptype <- "A"
   indent <- list(...)$indent %||% indentation()
   opts <- list(...)$opts
@@ -277,7 +278,8 @@ remapAlignment <- function(x, hptype, report = FALSE, createIgv = TRUE, ...) {
     } else {
       x$mapFinal$LR[[hptype]]$pileup$consmat 
     }
-    seq <- conseq(cmat, "hap" %<<% hptype, "prob", suppressAllGaps = TRUE)
+    seq <- conseq(cmat, "hap" %<<% hptype, type = "prob", suppressAllGaps = FALSE,
+                  gapThreshold = 1.5 * threshold)
     file <- dot(c(names(seq), x$getLrdType(), x$getLrdMapper(), "remap", "fa"))
     names(seq) <- names(seq) %<<% " LOCUS=" %<<%
       x$getLocus() %<<% ";REF=" %<<%  x$getReference()
@@ -300,7 +302,7 @@ remapAlignment <- function(x, hptype, report = FALSE, createIgv = TRUE, ...) {
     mapfun = x$getLrdMapFun(), maplabel = reftag, reffile = refpath,
     refname = mapgroupLR, readfile = readpathLR, readtype = x$getLrdType(),
     opts = opts, outdir = outdir, clean = TRUE, force = TRUE, includeDeletions = TRUE,
-    includeInsertions = FALSE, indent = incr(indent))
+    includeInsertions = TRUE, callInsertions = FALSE, indent = incr(indent))
   
   if (createIgv) {
     igv <- createIgvJsFiles(
@@ -332,7 +334,7 @@ remapAlignment <- function(x, hptype, report = FALSE, createIgv = TRUE, ...) {
       mapfun = x$getSrdMapFun(), maplabel = reftag, reffile = refpath,
       refname = mapgroupSR, readfile = readpathSR, readtype = x$getSrdType(),
       opts = opts, outdir = outdir, clean = TRUE, includeDeletions = FALSE,
-      includeInsertions = FALSE, clip = TRUE, indent = incr(indent))
+      includeInsertions = TRUE, callInsertions = FALSE, clip = TRUE, indent = incr(indent))
 
     if (createIgv) {
       clusteredReads <- x$srpartition$A$srpartition$haplotypes$read
@@ -357,7 +359,7 @@ remapAlignment <- function(x, hptype, report = FALSE, createIgv = TRUE, ...) {
       igv       = igv
     )
   }
-  createIgvConfigs(x, map = "remap", open = FALSE)
+  
   
   ## TODO! remap only if consensus changed
   ## TODO! do it parallel
@@ -587,11 +589,13 @@ remapAndReport <- function(x, report = FALSE, threshold = NULL, ...) {
   flog.info("%sRemapping final sequences", indent(), name = "info")
   
   bpparam <- BiocParallel::MulticoreParam(workers = .getIdleCores())
-  mappings <- BiocParallel::bplapply(x$getHapTypes(), function(h, x, report, createIgv) {
-    remapAlignment(x, h, report = report, createIgv = createIgv)
-   }, x = x, report = report, createIgv = createIgv, BPPARAM = bpparam)
+  mappings <- BiocParallel::bplapply(x$getHapTypes(), function(h, x, report, 
+                                                               createIgv,threshold) {
+    remapAlignment(x, h, report = report, createIgv = createIgv, threshold)
+   }, x = x, report = report, createIgv = createIgv, threshold = threshold, BPPARAM = bpparam)
   names(mappings) <- x$getHapTypes()
   x$remap <- purrr::transpose(mappings)
+  createIgvConfigs(x, map = "remap", open = FALSE)
   ## Do what polish did
   flog.info("%sReport variants", indent(), name = "info")
   threshold <- max(x$getThreshold(), 0.3)
@@ -640,8 +644,8 @@ remapAndReport <- function(x, report = FALSE, threshold = NULL, ...) {
         tibble::tibble(haplotype = hp,
                        pos       = row$position,
                        warning   = sprintf(paste(
-                         "Homopolymer should be of",
-                                   "length %s, but is %s"),
+                         "Homopolymer is of",
+                                   "length %s, but should be %s"),
                                    row$cons, row$mode),
                        ref = "",
                        alt = "",

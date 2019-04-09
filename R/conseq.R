@@ -36,6 +36,7 @@ conseq <- function(x,
                    threshold       = NULL,
                    suppressAllGaps = FALSE,
                    suppressInsGaps = TRUE,
+                   gapThreshold    = NULL,
                    columnOccupancy = 0.4,
                    ...)
   UseMethod("conseq")
@@ -47,6 +48,7 @@ conseq.pileup <- function(x,
                           threshold       = NULL,
                           suppressAllGaps = FALSE,
                           suppressInsGaps = TRUE,
+                          gapThreshold    = NULL,
                           columnOccupancy = 0.4,
                           ...) {
   if (is.null(threshold)) {
@@ -55,7 +57,7 @@ conseq.pileup <- function(x,
   x <- consmat(x, freq = FALSE)
   conseq(x, name = name, type = type, threshold = threshold,
          suppressAllGaps = suppressAllGaps, suppressInsGaps = suppressInsGaps,
-         columnOccupancy = columnOccupancy, ...)
+         gapThreshold = gapThreshold, columnOccupancy = columnOccupancy, ...)
 }
 
 #' @export
@@ -65,6 +67,7 @@ conseq.matrix <- function(x,
                           threshold       = NULL,
                           suppressAllGaps = FALSE,
                           suppressInsGaps = TRUE,
+                          gapThreshold    = NULL,
                           columnOccupancy = 0.4,
                           ...) {
   type <- match.arg(type, c("prob", "ambig", "simple"))
@@ -76,6 +79,7 @@ conseq.matrix <- function(x,
     prob   = .makeProbConsensus_(x,
                                  suppressAllGaps = suppressAllGaps,
                                  suppressInsGaps = suppressInsGaps,
+                                 gapThreshold    = gapThreshold,
                                  columnOccupancy = columnOccupancy,
                                  ...),
     ambig  = .makeAmbigConsensus_(x, threshold, suppressAllGaps, ...),
@@ -90,8 +94,10 @@ conseq.matrix <- function(x,
 ## if <suppressInsGaps> only gap counts at insertion position are affected
 ## and if the maximum base frequency >= <columnOccupancy> at an insertion position
 ## the gap count is set to zero.
+## if gapThreshold is set, all gaps below 1-threshold are set to zero.
 .makeProbConsensus_ <- function(x,
                                 suppressAllGaps = FALSE,
+                                gapThreshold = NULL,
                                 suppressInsGaps = TRUE,
                                 columnOccupancy = 0.4,
                                 asRle = FALSE,
@@ -106,10 +112,15 @@ conseq.matrix <- function(x,
   ## suppress all deletions
   if (suppressAllGaps) {
     x[, "-"] <- 0
-  }
-  ## or suppress deletions specifically at insertion positions
-  else if (suppressInsGaps && length(ins_ <- as.character(ins(x))) > 0) {
-    x <- .suppressGaps_(x, ins = ins_, columnOccupancy = columnOccupancy)
+  }  else { ## or suppress deletions specifically at insertion positions or below threshold
+    if (suppressInsGaps && length(ins_ <- as.character(ins(x))) > 0) {
+      x <- .suppressGaps_(x, ins = ins_, columnOccupancy = columnOccupancy)
+    }
+    
+    
+    if (!is.null(gapThreshold)) {
+     x[(x[, "-"] / rowSums(x) < (1 - gapThreshold)),"-"] <- 0
+    }
   }
   ## never allow gaps at the beginning and end of a sequence
   if (!suppressAllGaps) {
@@ -177,6 +188,11 @@ conseq.matrix <- function(x,
   }
   ## Filter all bases with a frequency > threshold
   cmf <- consmat(x, freq = TRUE)
+  
+  ## Take a higher threshold for gaps. Everything with more than 1.5 * threshold
+  ## is probably not present
+  cmf[cmf[,"-"] > 1 - (1.5 * threshold), VALID_DNA("none")] <- 0
+  
   baselist <- apply(cmf, 1, function(m) {
     rs <- m[i <- m > threshold]
     names(rs) <- names(m)[i]

@@ -105,7 +105,7 @@ MergeEnv_$set("public", "init", function(hapEnv) {
     ## positions not matching the consensus
     dism <- .noRefMatch(envir[[rt]], envir[["ref"]])
     ## ambiguous positions
-    amb <- .ambiguousPositions(envir[[rt]], self$threshold, TRUE)
+    amb <- .ambiguousPositions(envir[[rt]], self$threshold, FALSE)
     sort(c(amb, dism))
   }
   apos <- unique(sort(apos))

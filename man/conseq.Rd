@@ -6,7 +6,7 @@
 \usage{
 conseq(x, name = "conseq", type = c("prob", "ambig", "simple"),
   threshold = NULL, suppressAllGaps = FALSE, suppressInsGaps = TRUE,
-  columnOccupancy = 0.4, ...)
+  gapThreshold = NULL, columnOccupancy = 0.4, ...)
 }
 \arguments{
 \item{x}{\code{pileup} object.}

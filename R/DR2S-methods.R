@@ -919,7 +919,7 @@ DR2S_$set("public", "runMapFinal", function(opts = list(), ...) {
       names(conspath) <- self$relPath(conspath)
       flog.info("%sConstruct consensus <%s>", indent(), names(conspath), name = "info")
       conseq <- .writeConseq(x = pileup, name = consname, type = "ambig",
-                             threshold = self$getThreshold(), suppressAllGaps = TRUE,
+                             threshold = self$getThreshold(), suppressAllGaps = FALSE,
                              replaceIndel = "", conspath = conspath)
       ## Initialize mapFinal SR MapList
       self$mapFinal$SR[[hp]] = MapList_(

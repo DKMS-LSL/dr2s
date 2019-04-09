@@ -63,15 +63,17 @@ disambiguateVariant <- function(x, threshold) {
 
   ## Start with long reads. They have to be there
   lr <- as.matrix(x$lr)
-  varl <- .filterVariant(cm = lr, threshold)
+  varl <- .filterVariant(cm = lr, threshold, ignoreInsertions = FALSE)
   ref <- x$ref
 
   ## Look if its ambiguous
   if (length(varl) > 1) {
     ## Dont look for deletions in longreads
     # ## Look for deletions
-    if (!"-" %in% names(varl)) {
+    if (all(names(varl) %in% VALID_DNA("none"))) {
       warningMsg <- warningMsg %<<% "|Ambiguous position in long reads"
+    } else if ("+" %in% names(varl)) {
+      warningMsg <- warningMsg %<<% "|Insertion signal in long reads"
     }
     ## Check for > 2 alleles
     if (length(varl) > 2) {
@@ -101,7 +103,7 @@ disambiguateVariant <- function(x, threshold) {
 
   if (!is.null(x$sr)) {
     sr <- as.matrix(x$sr)
-    vars <- .filterVariant(cm = sr, threshold)
+    vars <- .filterVariant(cm = sr, threshold, ignoreInsertions = FALSE)
 
     if (sum(sr) == 0) {
       warningMsg <- warningMsg %<<% "|no shortreads"
@@ -115,14 +117,10 @@ disambiguateVariant <- function(x, threshold) {
           if ((sr[vars["-"]]/sum(sr[vars])) %|na|% 0  > max(threshold/2*3, 0.3)) {
             warningMsg <- warningMsg %<<% "|Gap in short reads"
           }
+        } else if ("+" %in% names(vars)) {
+          warningMsg <- warningMsg %<<% "|Insertion signal in short reads"
         } else {
           warningMsg <- warningMsg %<<% "|Ambiguous position in short reads"
-  
-          ## Spurious insertion in short reads that should have been set to zero.
-          if ("+" %in% names(vars)) {
-            warningMsg <- warningMsg %<<% "|Insertion signal in short reads"
-          }
-  
           ## Mismatch in variant bases between long and short reads
           ## not the same order or base
           if (length(varl) == length(vars)) {
@@ -182,9 +180,14 @@ disambiguateVariant <- function(x, threshold) {
   x
 }
 
-.filterVariant <- function(cm, threshold) {
+.filterVariant <- function(cm, threshold, ignoreInsertions = TRUE) {
   ## ignore insertions
-  cm <- cm[, VALID_DNA("del"), drop = FALSE]
+  if (ignoreInsertions) {
+    bases <- VALID_DNA("del")
+  } else {
+    bases <- VALID_DNA("indel")
+  }
+  cm <- cm[, bases, drop = FALSE]
   cmf <- sweep(cm, 1, .rowSums(cm, NROW(cm), NCOL(cm)), `/`)
   which(apply(cmf, 2, function(col) all(col > threshold)))
 }

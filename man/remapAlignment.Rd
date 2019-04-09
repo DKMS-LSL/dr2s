@@ -4,7 +4,8 @@
 \alias{remapAlignment}
 \title{Remap an allele to the checked consensus}
 \usage{
-remapAlignment(x, hptype, report = FALSE, createIgv = TRUE, ...)
+remapAlignment(x, hptype, report = FALSE, createIgv = TRUE,
+  threshold = NULL, ...)
 }
 \arguments{
 \item{x}{A \code{\link[=DR2S_]{DR2S}} object.}

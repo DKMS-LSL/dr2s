@@ -115,17 +115,10 @@ createIgvConfigs <- function(x, position, map = "mapFinal", open = TRUE) {
         bamSR <- file.path("mapFinal",
                            basename(x$mapFinal$bamfile[["SR" %<<% hp]]))
     } else if (map == "remap") {
-      if (hp %in% names(x$consensus$remap$reference)) {
-        ref   <- x$consensus$remap$reference[[hp]]
-        bamLR <- x$consensus$remap$bamfile[["LR" %<<% hp]]
-        if (!is.null(x$mapFinal$SR[[hp]]$bampath)) 
-          bamSR <- x$consensus$remap$bamfile[["SR" %<<% hp]]
-      } else {
-        ref   <- x$mapFinal$LR[[hp]]$refpath
-        bamLR <- x$mapFinal$LR[[hp]]$bampath
-        if (!is.null(x$mapFinal$SR[[hp]]))
-          bamSR <- x$mapFinal$SR[[hp]]$bampath
-      }
+        ref   <- x$remap$LR[[hp]]$refpath
+        bamLR <- x$remap$LR[[hp]]$bampath
+        if (x$hasShortreads()) 
+          bamSR <- x$remap$SR[[hp]]$bampath
     } else if (map == "mapInit") {
       if (x$hasShortreads()) {
         ref <- unname(x$mapInit$refpath)
