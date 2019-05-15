@@ -390,17 +390,6 @@ remapAlignment <- function(x, hptype, report = FALSE, createIgv = TRUE,
   rs <- readPairFile(pairfileChecked)
   
   
-  ## Check for ambiguous positions in sequence
-  ambigPositions <- .getAmbigPositions(rs)
-  if (length(ambigPositions) > 0) {
-    msg <- vapply(seq_along(ambigPositions), function(l, ambigPositions)
-      extractAmbigLetters(ambigPositions, names(ambigPositions)[l]),
-      ambigPositions = ambigPositions, FUN.VALUE = character(1))
-    flog.info(msg, name = "info")
-    stop(paste("Check reported reference! Ambiguous positions were found",
-               msg, sep = "\n"))
-  }
-
   seqs <- Biostrings::DNAStringSet(
     lapply(rs, function(s) Biostrings::DNAString(stripIndel(s))))
 
@@ -435,6 +424,17 @@ readPairFile <- function(pairfile) {
     names(hap) <- c("hapA", strsplit1(rsB, "\\s")[1])
   } else if (endsWith(pairfile, "msa")) {
     hap <- readMSA(pairfile)
+  }
+  
+  ## Check for ambiguous positions in sequence
+  ambigPositions <- .getAmbigPositions(hap)
+  if (length(ambigPositions) > 0) {
+    msg <- vapply(seq_along(ambigPositions), function(l, ambigPositions)
+      extractAmbigLetters(ambigPositions, names(ambigPositions)[l]),
+      ambigPositions = ambigPositions, FUN.VALUE = character(1))
+    flog.info(msg, name = "info")
+    stop(paste("Check reported reference! Ambiguous positions were found",
+               msg, sep = "\n"))
   }
   hap
 }
