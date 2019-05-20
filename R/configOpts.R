@@ -95,6 +95,9 @@ normaliseOpts <- function(opts, pipeline = "LR") {
     ## ("cramer.V" or "spearman") to determine linkage between all polymorphic
     ## positions.
     measureOfAssociation = "cramer.V",
+    ## use selectByColSum to decide which SNP cluster to use based on overall 
+    ## sums. Otherwise the intra-cluster values are used
+    selectByColSum = FALSE,
     ## We perform an equivalence test on clusters of polymorhic positions:
     ## Calculate the lower 1-sigma bound of the high-association cluster i.
     ## Calculate the upper 1-sigma bound of the low-association cluster j.
@@ -260,6 +263,10 @@ validateOpts <- function(opts) {
     is.string(opts$partitionLongreads$measureOfAssociation),
     opts$partitionLongreads$measureOfAssociation %in% c("cramer.V", "spearman"),
     msg = "<measureOfAssociation> in partitionLongreads() is not 'cramer.V' nor 'spearman'"
+  )
+  assert_that(
+    is.logical(opts$partitionLongreads$selectByColSum),
+    msg = "<selectByColSum> in partitionLongreads() is not logical"
   )
   assert_that(
     is.number(opts$partitionLongreads$proportionOfOverlap),

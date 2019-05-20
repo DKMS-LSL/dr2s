@@ -146,7 +146,7 @@ polymorphicPositions.pileup <- function(x, threshold = NULL) {
 .clusterPolymorphicPositions <- function(dist,
                                          proportionOfOverlap = 0.1,
                                          minimumExpectedDifference = 0.05,
-                                         selectByColSum = FALSE,
+                                         selectByColSum = TRUE,
                                          ...) {
   ## @param proportionOfOverlap We perform an equivalence test on the two clusters:
   ##   calculate the lower 1-sigma bound of the high-association cluster i.
@@ -200,7 +200,7 @@ polymorphicPositions.pileup <- function(x, threshold = NULL) {
   i <- names(which(classification == 1))
   j <- names(which(classification == 2))
   
-  selectFun <- function(dist, x, selectByColSum = TRUE) {
+  selectFun <- function(dist, x, selectByColSum = FALSE) {
     if (selectByColSum) {
       return(mean(colSums(dist[], na.rm = TRUE)[x]))
     } else {

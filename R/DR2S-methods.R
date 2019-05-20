@@ -245,6 +245,7 @@ DR2S_$set("public", "runPartitionLongreads", function() {
       exists("noGapPartitioning") && is.logical(noGapPartitioning),
       exists("selectCorrelatedPositions") && is.logical(selectCorrelatedPositions),
       exists("measureOfAssociation") && is.character(measureOfAssociation),
+      exists("selectByColSum") && is.character(selectByColSum),
       exists("proportionOfOverlap") && is.numeric(proportionOfOverlap),
       exists("minimumExpectedDifference") && is.numeric(minimumExpectedDifference),
       exists("selectAllelesBy") && is.character(selectAllelesBy),
@@ -287,7 +288,8 @@ DR2S_$set("public", "runPartitionLongreads", function() {
     if (NROW(ppos) > 1) {
       spos <- .selectAssociatedPolymorphicPositions(
         mat, measureOfAssociation, proportionOfOverlap, minimumExpectedDifference,
-        noSelect = !selectCorrelatedPositions, indent = indent)
+        noSelect = !selectCorrelatedPositions, indent = indent, 
+        selectByColSum = selectByColsum)
       mat0 <- mat[, spos[order(as.numeric(spos))], drop = FALSE]
 
       if (plot) {
