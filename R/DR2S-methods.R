@@ -289,7 +289,7 @@ DR2S_$set("public", "runPartitionLongreads", function() {
       spos <- .selectAssociatedPolymorphicPositions(
         mat, measureOfAssociation, proportionOfOverlap, minimumExpectedDifference,
         noSelect = !selectCorrelatedPositions, indent = indent, 
-        selectByColSum = selectByColsum)
+        selectByColSum = selectByColSum)
       mat0 <- mat[, spos[order(as.numeric(spos))], drop = FALSE]
 
       if (plot) {
