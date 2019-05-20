@@ -245,7 +245,7 @@ DR2S_$set("public", "runPartitionLongreads", function() {
       exists("noGapPartitioning") && is.logical(noGapPartitioning),
       exists("selectCorrelatedPositions") && is.logical(selectCorrelatedPositions),
       exists("measureOfAssociation") && is.character(measureOfAssociation),
-      exists("selectByColSum") && is.character(selectByColSum),
+      exists("selectByColSum") && is.logical(selectByColSum),
       exists("proportionOfOverlap") && is.numeric(proportionOfOverlap),
       exists("minimumExpectedDifference") && is.numeric(minimumExpectedDifference),
       exists("selectAllelesBy") && is.character(selectAllelesBy),
