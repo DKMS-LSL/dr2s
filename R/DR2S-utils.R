@@ -124,7 +124,7 @@ createIgvConfigs <- function(x, position, map = "mapFinal", open = TRUE) {
         ref <- unname(x$mapInit$refpath)
         bamSR <- x$mapInit$meta$SR2$bampath
       } else {
-        ref <- x$getRefSeq()
+        ref <- x$mapInit$refpath
       }
       bamLR <- x$mapInit$bampath
 
