@@ -15,7 +15,6 @@ DR2S_$set("public", "runMapInit", function(opts = list(), ...) {
   # library(cowplot)
   # library(S4Vectors)
   # library(Rsamtools)
-  # self <-dr2s
   # self <- mapper
 
   flog.info("# mapInit", name = "info")
@@ -82,7 +81,7 @@ DR2S_$set("public", "runMapInit", function(opts = list(), ...) {
       readfile = readfile, readtype = readtype, opts = opts, outdir = outdir,
       includeDeletions = TRUE, includeInsertions = TRUE, callInsertions = TRUE,
       callInsertionThreshold = callInsertionThreshold, clip = FALSE,
-      distributeGaps = TRUE, removeError = TRUE, topx = topx,
+      distributeGaps = TRUE, removeError = FALSE, topx = topx,
       updateBackgroundModel = updateBackgroundModel, clean = clean,
       minMapq = minMapq, pickiness = pickiness, lowerLimit = lowerLimit,
       indent = indent, ...)
@@ -117,7 +116,7 @@ DR2S_$set("public", "runMapInit", function(opts = list(), ...) {
     ## Debug
     flog.info("%sConstruct consensus <%s>", indent2(), names(reffile), name = "info")
     conseq <- .writeConseq(x = pileup, name = refname, type = "prob",
-                           threshold = NULL, suppressAllGaps = TRUE,
+                           threshold = NULL, suppressAllGaps = FALSE, gapThreshold = 0.1,
                            replaceIndel = "N", conspath = reffile)
   }
 

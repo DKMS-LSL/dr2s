@@ -116,8 +116,6 @@ conseq.matrix <- function(x,
     if (suppressInsGaps && length(ins_ <- as.character(ins(x))) > 0) {
       x <- .suppressGaps_(x, ins = ins_, columnOccupancy = columnOccupancy)
     }
-    
-    
     if (!is.null(gapThreshold)) {
      x[(x[, "-"] / rowSums(x) < (1 - gapThreshold)),"-"] <- 0
     }
@@ -140,10 +138,10 @@ conseq.matrix <- function(x,
       }
     }
   }
-
   rowsd <- mean(.rowSums(x, NROW(x), NCOL(x)))/2 ## WHY?
   z <- sweep(sweep(x, 1, .rowMeans(x, NROW(x), NCOL(x)), `-`), 1, rowsd, `/`)
-  bases <- colnames(x)[apply(z, 1, which.max)]
+  bases <- colnames(x)[apply(z, 1, function(i) 
+    as.numeric(ifelse(max(i) == 0, 5, which.max(i))))]
 
   if (asRle) {
     return(rle(bases))
@@ -162,7 +160,6 @@ conseq.matrix <- function(x,
     deletions  = unname(which(dels)),
     consmat    = xOri
   )
-
   return(seq)
 }
 

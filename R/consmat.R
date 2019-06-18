@@ -271,10 +271,12 @@ createPWM <- function(msa, indelRate = NULL) {
     flog.info("%sEstimate indel noise <%0.3g> to suppress spurious gaps", indent(),
               gapError, name = "info")
   }
-  workers <- min(sum(idx <- seq$length > maxHomopolymerLength), .getIdleCores())
+  idx <- which(seq$length > maxHomopolymerLength)
+  idx <- idx[!seq$values[idx] == "-"]
+  workers <- min(length(idx), .getIdleCores())
   bpparam <- BiocParallel::MulticoreParam(workers = workers, log = FALSE)
   flog.info("%sUse %s workers to rightshift gaps at homopolymer positions <%s>", indent(),
-            workers, comma(which(idx)), name = "info")
+            workers, comma(idx), name = "info")
   bam <- Rsamtools::BamFile(bamfile)
   if (workers > 1) {
     Rsamtools::open.BamFile(bam)
@@ -284,8 +286,8 @@ createPWM <- function(msa, indelRate = NULL) {
   ## TODO: bplapply throws warning in serialize(data, node$con, xdr = FALSE)
   ## 'package:stats' may not be available when loading
   ## For the time being we suppress this warning
-  changeMat <- suppressWarnings(BiocParallel::bplapply(which(idx), function(i, bfl, seq) {
-    # i <- which(idx)[1]
+  changeMat <- suppressWarnings(BiocParallel::bplapply(idx, function(i, bfl, seq) {
+    # i <- which(idx)[8]
     ## Assign new gap numbers to each position starting from left
     #  meanCoverage <- mean(rowSums(mat[(seqStart-2):(seqEnd+2),1:4]))
     seqStart <- sum(seq$lengths[seq_len(i - 1)]) + 1
