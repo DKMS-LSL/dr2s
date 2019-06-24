@@ -432,6 +432,9 @@ DR2S_$set("public", "runSplitLongreadsByHaplotype", function() {
   reads <- stats::setNames(lapply(names(self$getLimits()), function(x) {
     dplyr::filter(prt, .data$haplotype == x, .data$mcoef >= self$getLimits()[x])
   }), names(self$getLimits()))
+  
+  if (any(vapply(reads, NROW, FUN.VALUE = numeric(1)) == 0)) 
+      stop("No reads above threshold available!")
 
   ## Initiate indenter
   indent2 <- incr(indent)
@@ -518,6 +521,7 @@ DR2S_$set("public", "runExtractPartitionedLongreads", function() {
   ##    hptype <- "B
   indent2 <- incr(indent)
   for (hptype in self$getHapTypes()) {
+    # hptype <- "B"
     flog.info("%sFor haplotype <%s>:", indent(), hptype, name = "info")
     ## create the "mapIter/<hptype>" directory
     fqdir <- .dirCreateIfNotExists(
