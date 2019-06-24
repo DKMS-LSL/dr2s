@@ -355,20 +355,27 @@ checkHomopolymerCount <- function(x, hpCount = 10) {
     x$consensus$homopolymers[[hp]] <- modes
     cl <- x$srpartition$A$srpartition$haplotypes$read
     homopolymersHP$clustered <- homopolymersHP$read %in% cl
+    library(cowplot)
+    max(homopolymersHP$length)
     plots <- ggplot(data = homopolymersHP) +
       geom_histogram(aes(length, fill = clustered), binwidth = 1) +
       scale_x_continuous(breaks = seq(min(homopolymersHP$length),
-                                      max(homopolymersHP$length), 1)) +
-      facet_grid(position~., scales = "free_y") +
+                                      max(homopolymersHP$length), 2)) +
+      facet_grid(. ~ position, scales = "free") +
       ggtitle(paste("Homopolymer length", hp)) +
-      theme_minimal()
+      cowplot::theme_cowplot() + 
+      theme(axis.text.x = element_text(angle = 90, vjust = 0.5),
+            panel.grid.major.y = element_blank(),
+            panel.grid.minor.y = element_blank(),
+            panel.grid.major.x = element_line(size = .1, color = "black"),
+            panel.grid.minor.x = element_line(size = .005, color = "black") )
     list(n = n, plot = plots)
   }
-
+  
   if (!all(is.null(unlist(p)))) {
     plots <- lapply(p, function(x) x$plot)
     n <- max(vapply(p, function(x) length(x$n), FUN.VALUE = integer(1)))
-    p1 <- cowplot::plot_grid(plotlist = plots, nrow = length(n))
+    p1 <- cowplot::plot_grid(plotlist = plots, ncol = length(n))
     cowplot::save_plot(p1, dpi = 150, filename = x$absPath("plot.homopolymers.png"),
                        base_width = 7*length(hptypes),
                        base_height = 7*length(n),
