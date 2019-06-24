@@ -164,7 +164,8 @@ reportCheckedConsensus <- function(x, map = "mapFinal") {
 
   ## Export FASTA
   files <- vapply(seq_along(seqs), function(sq, seqs, x) {
-    file <- dot(c(names(seqs[sq]), x$getLrdType(), x$getLrdMapper(), "fa"))
+    file <- dot(c(x$getSampleId(), x$getLocus(), names(seqs[sq]), 
+                  x$getLrdType(), x$getLrdMapper(), "fa"))
     seq <- seqs[sq]
     seqname <- paste(x$getSampleId(), sub("^hap", "", names(seq)), sep = "_")
     sampleDetails <- x$getSampleDetails()
@@ -181,7 +182,6 @@ reportCheckedConsensus <- function(x, map = "mapFinal") {
     file
     }, seqs = seqs, x = x, FUN.VALUE = character(1)
   )
-  # flog.info(x$getSampleDetails(), name = "info")
 }
 
 #' Manually check the alignment of consensus sequences using an editor.

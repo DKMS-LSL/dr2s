@@ -61,7 +61,7 @@ mapReads <- function(
                      includeDeletion = includeDeletions,
                      includeInsertions = includeInsertions,
                      ...))
-  if (NROW(pileup$consmat) == 0) {
+  if (NROW(pileup$consmat) < 5) {
     errorMsg <- "No reads in the pileup"
     flog.info("%s %s", indent(), errorMsg, name = "info")
     stop(errorMsg)
