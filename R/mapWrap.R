@@ -13,7 +13,6 @@ mapReads <- function(
   flog.info("%sMap <%s> reads <%s> to reference <%s>", indent(),
             readtype, comma(names(readfile)), names(reffile), name = "info")
   samfile <- mapfun(reffile, refname, readfile, readtype, outdir, maplabel, opts)
-
   ## collect minMapq for use in .bamSortIndex
   # minMapq = 0
   minMapq <- dots$minMapq %||% dots$min_mapq %||% 0
@@ -33,6 +32,7 @@ mapReads <- function(
   ## Run bam - sort - index pipeline
   #flog.info("%sSort and index", indent(), name = "info")
   bamfile <- .bamSortIndex(samfile = samfile, reffile = reffile, minMapq = minMapq, force = force)
+  
 
   ## NOTE: "auto" > 0 evaluates to TRUE, FALSE > 0 evaluates to FALSE
   ## dots <- list()

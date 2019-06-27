@@ -30,39 +30,73 @@ readDR2S <- function(path) {
 
 .finishCn1 <- function(x){
   flog.info("Set only allele to A", name = "info")
-  x$setHapTypes(c("A"))
-  flog.info("Write mapInit data to mapFinal", name = "info")
-  x$mapFinal$LR$A = x$mapInit
-  if (!is.null(x$mapInit$meta$SR2)) {
-    # Write shortread data to mapFinal
-    x$mapFinal$SR$A = x$mapInit$meta$SR2
-  }
-
-  flog.info("Get latest consensus from last mapping ...", name = "info")
-
-  ## Construct consensus sequence
-  map <- if (is.null(x$mapFinal$SR)) {
-    x$mapFinal$LR$A
-  } else {
-    x$mapFinal$SR$A
-  }
-  maplabel <- "mapInit"
-  consname <- maplabel %<<% ".consensus." %<<% refname(map)
-  outdir   <- .dirCreateIfNotExists(x$absPath(maplabel))
-  conspath <- file.path(outdir, consname %<<% ".fa")
+  hptype <- "A"
+  x$setHapTypes(c(hptype))
+  
+  ## Write cons for mapIter
+  mapIterDir <- .dirCreateIfNotExists(
+    normalizePath(file.path(x$getOutdir(), "mapIter", hptype), mustWork = FALSE))
+  maplabel <- "mapIter0"
+  consname <- maplabel %<<% ".consensus." %<<% hptype
+  conspath <- file.path(mapIterDir, consname %<<% ".fa")
   names(conspath) <- x$relPath(conspath)
   flog.info("Construct consensus <%s>", names(conspath), name = "info")
-  conseq <- .writeConseq(x = map$pileup, name = consname, type = "ambig",
-                         threshold = x$getThreshold(), suppressAllGaps = TRUE,
+  conseq <- .writeConseq(x = x$mapInit$pileup$consmat, name = consname, type = "prob",
+                         threshold = NULL, suppressAllGaps = TRUE,
                          replaceIndel = "", conspath = conspath)
-  if (is.null(x$mapFinal$SR)) {
-    x$mapFinal$LR$A$conspath  = x$relPath(conspath)
-  } else {
-    x$mapFinal$SR$A$conspath  = x$relPath(conspath)
-  }
-  flog.info("Report consensus sequence and potential problematic variants",
-            name = "info")
-  x <- report(x)
+  readfile <- dot(c(
+    "hap" %<<% hptype, x$getLrdType(), x$getLrdMapper(),
+    "n" %<<% "fastq", "gz"))
+  readpath <- file.path(mapIterDir, readfile)
+  file.copy(x$getLongreads(), readpath)
+  ##
+  x$mapIter$`0`[[hptype]] <- MapList_(
+    ## mapdata
+    readpath  = x$relPath(readpath),
+    refpath   = refpath(x$mapInit),
+    bampath   = bampath(x$mapInit),
+    conspath  = x$relPath(conspath),
+    pileup    = x$mapInit$pileup,
+    stats     = list(),
+    ## required metadata
+    maplabel  = maplabel,
+    refname   = refname(x$mapInit),
+    mapper    = meta(x$mapInit, "mapper"),
+    opts      = meta(x$mapInit, "opts")
+  )
+  x$setHomozygous(TRUE)
+  # flog.info("Write mapInit data to mapIter", name = "info")
+  # x$mapFinal$LR$A = x$mapInit
+  # if (!is.null(x$mapInit$meta$SR2)) {
+  #   # Write shortread data to mapFinal
+  #   x$mapFinal$SR$A = x$mapInit$meta$SR2
+  # }
+
+  # flog.info("Get latest consensus from last mapping ...", name = "info")
+
+  ## Construct consensus sequence
+  # map <- if (is.null(x$mapFinal$SR)) {
+  #   x$mapFinal$LR$A
+  # } else {
+  #   x$mapFinal$SR$A
+  # }
+  # maplabel <- "mapInit"
+  # consname <- maplabel %<<% ".consensus." %<<% refname(map)
+  # outdir   <- .dirCreateIfNotExists(x$absPath(maplabel))
+  # conspath <- file.path(outdir, consname %<<% ".fa")
+  # names(conspath) <- x$relPath(conspath)
+  # flog.info("Construct consensus <%s>", names(conspath), name = "info")
+  # conseq <- .writeConseq(x = map$pileup, name = consname, type = "ambig",
+  #                        threshold = x$getThreshold(), suppressAllGaps = TRUE,
+  #                        replaceIndel = "", conspath = conspath)
+  # if (is.null(x$mapFinal$SR)) {
+  #   x$mapFinal$LR$A$conspath  = x$relPath(conspath)
+  # } else {
+  #   x$mapFinal$SR$A$conspath  = x$relPath(conspath)
+  # }
+  # flog.info("Report consensus sequence and potential problematic variants",
+  #           name = "info")
+  # x <- report(x)
   return(invisible(x))
 }
 

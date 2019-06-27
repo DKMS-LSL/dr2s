@@ -311,7 +311,10 @@ pileup <- function(bamfile, reffile, readtype, ..., pParam) {
 #' @examples
 #' ###
 plotPileupCoverage <- function(x, threshold = 0.2, range = NULL, thin = 0.1,
-                               width = 1, label = "", drop.indels = FALSE) {
+                               width = 1, label = "", drop.indels = FALSE, 
+                               compareReference = FALSE) {
+  # if (compareReference)
+  reference <- Biostrings::readDNAStringSet(x$refpath)
   assert_that(is(x, "pileup"))
   x <- data.table::as.data.table(x$pileup)
   if (drop.indels) {
@@ -326,14 +329,16 @@ plotPileupCoverage <- function(x, threshold = 0.2, range = NULL, thin = 0.1,
     c(threshold, 0.3))), by = pos]
   x[nucleotide != "-" & nucleotide != "+", npoly := sum(freq >= max(
     c(threshold, 0.2))), by = pos]
-  #x
-  x[npoly == 1 | (npoly > 1 & freq < threshold), nucleotide := " ", by = pos]
+  x <- x[freq >= threshold]
+  # x[npoly == 1 | (npoly > 1 & freq < threshold), nucleotide := " ", by = pos]
   nonpoly <- x[npoly == 1, unique(pos)]
+  nonMatching <- x[pos %in% nonpoly & !is.na(npoly)]$nucleotide != strsplit(Biostrings::toString(unlist(reference)[nonpoly]), "")[[1]]
+  nonpoly[nonMatching]
   nonpolyThin <- nonpoly[seq(1, length(nonpoly),
                              floor(length(nonpoly)/(length(nonpoly)*thin)))]
   dt <- x[, list(count = sum(count)), by = list(pos, nucleotide)]
   dtbg <- dt[pos %in% nonpolyThin]
-  dtpoly <- dt[!pos %in% nonpoly][order(pos, nucleotide)]
+  dtpoly <- dt[!pos %in% nonpoly | pos %in% nonpoly[nonMatching]][order(pos, nucleotide)]
   dtpoly[, nucleotide := factor(nucleotide,
                                 levels = c("+", "-", "A", "C", "G", "T", " "),
                                 labels = c("+", "-", "A", "C", "G", "T", " "),

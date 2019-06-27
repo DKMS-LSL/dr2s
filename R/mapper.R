@@ -35,8 +35,9 @@ runminimap <- function(reffile,       ## <character>; file path to reference seq
 }
 
 minimapCmd <- function(paths, opts) {
+  opts
   sprintf(
-    "-a %s '%s' %s | gzip -3 > '%s'",
+    "--end-bonus 1 -a %s '%s' %s | gzip -3 > '%s'",
     .makeOpts(opts),
     paths$reffile,
     paths$readfile,

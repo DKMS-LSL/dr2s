@@ -167,6 +167,7 @@ MergeEnv_$set("private", "stepThrough", function(envir) {
   # p  <- envir$pos
   # x  <- yield(envir)
   rs <- disambiguateVariant(x = yield(envir), threshold = self$threshold)
+  # rs$variant
   .update(envir) <- rs
   TRUE
 })

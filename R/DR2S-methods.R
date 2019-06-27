@@ -80,7 +80,7 @@ DR2S_$set("public", "runMapInit", function(opts = list(), ...) {
       mapfun = mapfun, maplabel = maplabel, reffile = reffile, refname = refname,
       readfile = readfile, readtype = readtype, opts = opts, outdir = outdir,
       includeDeletions = TRUE, includeInsertions = TRUE, callInsertions = TRUE,
-      callInsertionThreshold = callInsertionThreshold, clip = FALSE,
+      callInsertionThreshold = callInsertionThreshold, clip = TRUE,
       distributeGaps = TRUE, removeError = FALSE, topx = topx,
       updateBackgroundModel = updateBackgroundModel, clean = clean,
       minMapq = minMapq, pickiness = pickiness, lowerLimit = lowerLimit,
@@ -134,7 +134,7 @@ DR2S_$set("public", "runMapInit", function(opts = list(), ...) {
     mapfun = mapfun, maplabel = maplabel, reffile = reffile, refname = refname,
     readfile = readfile, readtype = readtype, opts = opts, outdir = outdir,
     includeDeletions = TRUE, includeInsertions = TRUE, callInsertions = FALSE,
-    clip = FALSE, distributeGaps = TRUE, removeError = TRUE, topx = topx,
+    clip = TRUE, distributeGaps = TRUE, removeError = TRUE, topx = topx,
     updateBackgroundModel = updateBackgroundModel, clean = clean,
     minMapq = minMapq, pickiness = pickiness, lowerLimit = lowerLimit,
     indent = indent, indelRate = indelRate, ...)
@@ -397,8 +397,8 @@ print.PartList <- function(x, ...) {
 }
 
 DR2S_$set("public", "runSplitLongreadsByHaplotype", function() {
-  ## If reporting is already done exit safely
-  if (.checkReportStatus(self)) return(invisible(self))
+  ## If it is a homozygous sample exit safely
+  if (self$getHomozygous()) return(invisible(self))
 
   assert_that(self$hasLrdPartition())
 
@@ -494,8 +494,8 @@ print.HapList <- function(x, ...) {
 }
 
 DR2S_$set("public", "runExtractPartitionedLongreads", function() {
-  ## Check if reporting has already been done and exit safely
-  if (.checkReportStatus(self)) return(invisible(self))
+  ## Check if homozygous sample and exit safely
+  if (self$getHomozygous()) return(invisible(self))
 
   assert_that(self$hasHapList())
 
@@ -589,8 +589,6 @@ DR2S_$set("public", "runMapIter", function(opts = list(), ...) {
   # self <- dr2s
   # self <- mapper
   # opts = list()
-  ## If reporting is already done exit safely
-  if (.checkReportStatus(self)) return(invisible(self))
 
   ## Collect start time for mapIter runstats
   start.time <- Sys.time()
@@ -708,8 +706,8 @@ partitionShortreads.DR2S <- function(x, opts = list(), ...) {
 DR2S_$set("public", "runPartitionShortreads", function(opts = list(), ...) {
   ## debug
   # opts = list()
-  ## If reporting is already done exit safely
-  if (.checkReportStatus(self)) return(invisible(self))
+  ## Check if homozygous sample and exit safely
+  if (self$getHomozygous()) return(invisible(self))
 
   ## Collect start time for partitionShortreads runstats
   start.time <- Sys.time()
@@ -802,8 +800,6 @@ DR2S_$set("public", "runMapFinal", function(opts = list(), ...) {
   # library(foreach)
   # self <- mapper
   # self <- dr2s
-  ## If reporting is already done exit safely
-  if (.checkReportStatus(self)) return(invisible(self))
 
   ## Collect start time for mapFinal runstats
   start.time <- Sys.time()
@@ -836,12 +832,16 @@ DR2S_$set("public", "runMapFinal", function(opts = list(), ...) {
   readfilesLR <- stats::setNames(lapply(hptypes, function(x)
     self$absPath(readpath(lastIter[[x]]))), hptypes)
   if (self$hasShortreads()) {
-     readfilesSR <-  tryCatch({
-      stats::setNames(lapply(hptypes, function(x)
-        self$absPath(self$srpartition[[x]]$SR)), hptypes)
-      }, error = function(e) {
-        stop("Cant find clustered shortreads. Did you run paritionShortreads?")
+    if (self$getHomozygous()) {
+      readfilesSR <- list(A = self$getShortreads())
+    } else {
+      readfilesSR <-  tryCatch({
+       stats::setNames(lapply(hptypes, function(x)
+         self$absPath(self$srpartition[[x]]$SR)), hptypes)
+       }, error = function(e) {
+         stop("Cant find clustered shortreads. Did you run paritionShortreads?")
       })
+    }
   }
   ## hp = "A"
   ## hp = "B"

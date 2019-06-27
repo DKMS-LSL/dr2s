@@ -355,7 +355,6 @@ checkHomopolymerCount <- function(x, hpCount = 10) {
     x$consensus$homopolymers[[hp]] <- modes
     cl <- x$srpartition$A$srpartition$haplotypes$read
     homopolymersHP$clustered <- homopolymersHP$read %in% cl
-    library(cowplot)
     max(homopolymersHP$length)
     plots <- ggplot(data = homopolymersHP) +
       geom_histogram(aes(length, fill = clustered), binwidth = 1) +

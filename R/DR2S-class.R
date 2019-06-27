@@ -74,7 +74,7 @@ DR2S_ <- R6::R6Class(
     initialize  = function(conf, createOutdir = TRUE) {
       private$conf = initialiseDR2S(conf, createOutdir = createOutdir)
       private$runstats = NULL
-      private$reportStatus = FALSE
+      private$homozygous = FALSE
       if (is.null(conf$reference) ||
           conf$reference == conf$locus) {
         ## fetch the generic reference for <locus>
@@ -435,13 +435,13 @@ DR2S_ <- R6::R6Class(
     ##
     ## Report Status ####
     ##
-    getReportStatus = function() {
-      private$reportStatus
+    getHomozygous = function() {
+      private$homozygous
     },
     ##
-    setReportStatus = function(report) {
-      assert_that(is.logical(report))
-      private$reportStatus <- report
+    setHomozygous = function(homozygous) {
+      assert_that(is.logical(homozygous))
+      private$homozygous <- homozygous
       invisible(self)
     },
     ##
@@ -528,6 +528,11 @@ DR2S_ <- R6::R6Class(
         ref <- match.arg(ref, c("LR", "SR"))
         return(tag(self$mapFinal[[ref]][[group]]))
       }
+      if (iter == "remap") {
+        group <- match.arg(group, self$getHapTypes())
+        ref <- match.arg(ref, c("LR", "SR"))
+        return(tag(self$remap[[ref]][[group]]))
+      }
     },
     ##
     getGroupPileup = function(group = NULL, ref = NULL, iteration = 0) {
@@ -535,6 +540,8 @@ DR2S_ <- R6::R6Class(
       ref    <- match.arg(ref, c("LR", "SR"))
       if (is.numeric(iteration)) {
         self$mapIter[[as.character(iteration)]][[group]]$pileup
+      } else if (iteration == "remap") {
+        self$remap[[ref]][[group]]$pileup
       } else {
         self$mapFinal[[ref]][[group]]$pileup
       }
@@ -809,9 +816,23 @@ DR2S_ <- R6::R6Class(
       ## hp = "A"
       plotlist <- foreach(hp = hptypes) %do% {
         tag <- self$getMapTag(iter = "final", group = hp, ref = readtype)
-        ref <- readtype %<<% hp
         self$plotGroupCoverage(group = hp, ref = readtype,
                                iteration = "final", threshold = NULL,
+                               range = NULL, thin = thin,
+                               width = width, label = tag)
+      }
+      nrow <- if (self$hasShortreads()) 1 else 2
+      cowplot::plot_grid(plotlist = plotlist, labels = hptypes, nrow = nrow,
+                         hjust = -2.5)
+    },
+    ##
+    plotRemapSummary = function(readtype, thin = 0.2, width = 10) {
+      hptypes <- self$getHapTypes()
+      ## hp = "A"
+      plotlist <- foreach(hp = hptypes) %do% {
+        tag <- self$getMapTag(iter = "remap", group = hp, ref = readtype)
+        self$plotGroupCoverage(group = hp, ref = readtype,
+                               iteration = "remap", threshold = NULL,
                                range = NULL, thin = thin,
                                width = width, label = tag)
       }
@@ -852,7 +873,7 @@ DR2S_ <- R6::R6Class(
     runstats     = NULL,
     srStatus     = FALSE,
     lrStatus     = FALSE,
-    reportStatus = FALSE
+    homozygous   = FALSE
   )
 )
 

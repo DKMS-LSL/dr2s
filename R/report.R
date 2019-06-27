@@ -1,7 +1,5 @@
 #' @export
 report.DR2S <- function(x, whichMap = NULL, threshold = NULL, ...) {
-  ## If reporting is already done exit safely
-  # if (.checkReportStatus(x)) return(invisible(x))
   ## Collect start time for report runstats
   start.time <- Sys.time()
 
@@ -105,7 +103,6 @@ report.DR2S <- function(x, whichMap = NULL, threshold = NULL, ...) {
     x <- remapAndReport(x, report = TRUE)
   } 
 
-  x$setReportStatus(TRUE)
   invisible(x)
 }
 
@@ -229,16 +226,6 @@ checkAlignmentFile <- function(x, map = "mapFinal", where = 0,
   pairfileChecked
 }
 
-.checkReportStatus <- function(x){
-  if (x$getReportStatus()) {
-    currentCall <- strsplit1(strsplit1(deparse(sys.call()), "\\$")[2], "\\(")[1]
-    flog.info("%s: Reporting already done! Nothing to do." %<<%
-                " Exit safely for downstream analysis",
-              currentCall, name = "info")
-  }
-  return(x$getReportStatus())
-}
-
 #' Remap an allele to the checked consensus
 #'
 #' @param x  A \code{\link[=DR2S_]{DR2S}} object.
@@ -360,9 +347,6 @@ remapAlignment <- function(x, hptype, report = FALSE, createIgv = TRUE,
     )
   }
   
-  
-  ## TODO! remap only if consensus changed
-  ## TODO! do it parallel
   
   invisible(mappings)
 }
@@ -568,7 +552,7 @@ writeMSA <- function(aln, file="", block.width = 50){
 }
 
 #' @export
-remapAndReport <- function(x, report = FALSE, threshold = NULL, ...) {
+remapAndReport <- function(x, report = FALSE, threshold = NULL, plot = TRUE, ...) {
   if (is.null(threshold)) 
     threshold <- x$getThreshold()
   dots   <- list(...)
@@ -595,6 +579,28 @@ remapAndReport <- function(x, report = FALSE, threshold = NULL, ...) {
    }, x = x, report = report, createIgv = createIgv, threshold = threshold, BPPARAM = bpparam)
   names(mappings) <- x$getHapTypes()
   x$remap <- purrr::transpose(mappings)
+  if (plot) {
+    flog.info("%sPlot remap summary", indent(), name = "info")
+    ## Coverage and base frequency
+    readtypes <- if (x$hasShortreads()) c("LR", "SR") else "LR"
+    plotRows  <- if (x$hasShortreads()) 2 else 1
+    hptypes   <- mapper$getHapTypes()
+    ## readtype = "LR"
+    plotlist <- foreach(readtype = readtypes) %do% {
+      suppressWarnings(x$plotRemapSummary(readtype = readtype, thin = 0.25, width = 20))
+    }
+    p <- cowplot::plot_grid(plotlist = plotlist, nrow = plotRows, labels = readtypes, hjust = -0.25)
+    cowplot::save_plot(p, dpi = 150, filename = x$absPath("plot.remap.png"),
+                       base_width = 6*plotRows*length(hptypes),
+                       base_height = 6/plotRows*length(readtypes),
+                       title = dot(c(x$getLocus(), x$getSampleId())))
+    cowplot::save_plot(p, filename = x$absPath(".plots/plot.remap.svg"),
+                       base_width = 6*plotRows*length(hptypes),
+                       base_height = 6/plotRows*length(readtypes))
+    
+    
+  }
+  
   createIgvConfigs(x, map = "remap", open = FALSE)
   ## Do what polish did
   flog.info("%sReport variants", indent(), name = "info")

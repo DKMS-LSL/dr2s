@@ -63,7 +63,7 @@ partitionReads <- function(x, distAlleles = 2, selectAllelesBy = "count", thresh
                          minClusterSize = minClusterSize, suppressGaps = FALSE,
                          indent = indent)
   if ("@" %in% levels(clusters$clades))
-    flog.warn("%s Removed one clusters due to small cluster size of %s. To force processing run with option minClusterSize > %s.",
+    flog.warn("%s Removed one clusters due to small cluster size of %s. To force processing run with option minClusterSize < %s.",
                  indent(), sum(clusters$clades == "@"), sum(clusters$clades == "@"), name = "info")
   subclades <- factor(clusters$clades[!clusters$clades == "@"])
   tree <- clusters$tree
@@ -93,11 +93,13 @@ partitionReads <- function(x, distAlleles = 2, selectAllelesBy = "count", thresh
 
   if (length(hptypes) > distAlleles) {
     flog.info("%sIdentify chimeric reads/haplotypes", indent(), name = "info")
+    subclades
     if (selectAllelesBy == "count") {
       rC <- names(sort(table(subclades), decreasing = TRUE)[seq_len(distAlleles)])
     }
     else if (selectAllelesBy == "distance") {
-      rC <- sort(.findChimeric(seqs = hpseqs, distAlleles = distAlleles))
+     #  rC <- sort(.findChimeric(seqs = hpseqs, distAlleles = distAlleles))
+      rC <- .findMostDistantPwm(mats)
     }
     flog.info("%sUse only clusters <%s>", indent(), comma(rC), name = "info")
     mats <- mats[rC]
@@ -217,6 +219,24 @@ partitionReads <- function(x, distAlleles = 2, selectAllelesBy = "count", thresh
   names(lenCounts) <- minLens
   minLen <- max(as.numeric(names(
     lenCounts[which(lenCounts > adjustedMinReadsFrac)][1])), minLen)
+}
+
+.findMostDistantPwm <- function(mats) {
+  ## Assert that all pwm are of same length
+  assert_that(length(unique(vapply(mats, NCOL, numeric(1)))) == 1)
+  combs <- combn(names(mats), 2, FUN = paste0)
+  dMats <- apply(combs, 2, function(comb) {
+    .pwmDiff(mats[[comb[[1]]]], mats[[comb[[2]]]])
+  })
+  names(dMats) <- apply(combs, 2, function(x) paste0(x, collapse = ""))
+  ## Use only pairs with an A.
+  dMats <- dMats[grepl("A", names(dMats))]
+  strsplit(names(which.max(dMats)), "")[[1]]
+}
+.pwmDiff <- function(m1, m2) {
+  sum(vapply(seq_len(NCOL(m1)), function(i, m1, m2) {
+    sum((m1[,i] - m2[,i])^2)
+  }, m1 = m1, m2 = m2, FUN.VALUE = numeric(1)))/NCOL(m1)
 }
 
 .getScores <- function(reads, pwmlist) {

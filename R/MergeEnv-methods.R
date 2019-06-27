@@ -91,7 +91,6 @@ disambiguateVariant <- function(x, threshold) {
         lrBases <- c(names(varl), names(varl))
       }
     } else {
-      warningMsg <- warningMsg %<<% "|Variant only in short reads"
       lrBases <- c(names(varl), names(varl))
       if (is.null(ref))
         warningMsg <- warningMsg %<<% "|no reference "
@@ -104,17 +103,16 @@ disambiguateVariant <- function(x, threshold) {
   if (!is.null(x$sr)) {
     sr <- as.matrix(x$sr)
     vars <- .filterVariant(cm = sr, threshold, ignoreInsertions = FALSE)
-
     if (sum(sr) == 0) {
       warningMsg <- warningMsg %<<% "|no shortreads"
       srBases <- c("-", "-")
     } else {
       ## State which reads are ambiguous
-      if (length(vars) > 1 ) {
+      if (length(vars) > 1) {
         srBases <- names(vars)
         ## Check for deletions
         if ("-" %in% names(vars)) {
-          if ((sr[vars["-"]]/sum(sr[vars])) %|na|% 0  > max(threshold/2*3, 0.3)) {
+          if ((sr[vars["-"]]/sum(sr[vars])) %|na|% 0  > max(threshold, 0.3)) {
             warningMsg <- warningMsg %<<% "|Gap in short reads"
           }
         } else if ("+" %in% names(vars)) {
@@ -163,7 +161,7 @@ disambiguateVariant <- function(x, threshold) {
         ## Use only non-gap variants from only longreads.
         warningMsg <- ifelse("-" %in% names(varl),
                              "",
-                             "|Variant only in long reads") %<<% warningMsg
+                             ifelse(length(varl) > 1, "|Variant only in long reads", "")) %<<% warningMsg
         srBases <- c(names(vars), names(vars))
       }
     }

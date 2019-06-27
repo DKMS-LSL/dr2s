@@ -165,7 +165,7 @@ writeDR2SConf <- function(x, outFile = NULL, format = "auto") {
   }, msg = paste0("Config file format <", format, "> does not match file extension"))
   conf <- x$getConfig()
   conf$runstats <- x$getStats()
-  conf$runstats$reported <- x$getReportStatus()
+  conf$runstats$homozygous <- x$getHomozygous()
   switch(
     format,
     yaml = yaml::write_yaml(conf, outFile),
