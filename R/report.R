@@ -584,7 +584,7 @@ remapAndReport <- function(x, report = FALSE, threshold = NULL, plot = TRUE, ...
     ## Coverage and base frequency
     readtypes <- if (x$hasShortreads()) c("LR", "SR") else "LR"
     plotRows  <- if (x$hasShortreads()) 2 else 1
-    hptypes   <- mapper$getHapTypes()
+    hptypes   <- x$getHapTypes()
     ## readtype = "LR"
     plotlist <- foreach(readtype = readtypes) %do% {
       suppressWarnings(x$plotRemapSummary(readtype = readtype, thin = 0.25, width = 20))
