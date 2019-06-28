@@ -102,7 +102,7 @@ report.DR2S <- function(x, whichMap = NULL, threshold = NULL, ...) {
   if (remap) {
     x <- remapAndReport(x, report = TRUE)
   } 
-
+  cache(x)
   invisible(x)
 }
 

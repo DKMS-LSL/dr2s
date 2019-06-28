@@ -795,10 +795,10 @@ mapFinal.DR2S <- function(x, opts = list(), ...) {
 
 DR2S_$set("public", "runMapFinal", function(opts = list(), ...) {
   ## debug
-  # opts = list()
-  # library(futile.logger)
-  # library(foreach)
-  # self <- mapper
+  opts = list()
+  library(futile.logger)
+  library(foreach)
+  self <- mapper
   # self <- dr2s
 
   ## Collect start time for mapFinal runstats
@@ -875,7 +875,7 @@ DR2S_$set("public", "runMapFinal", function(opts = list(), ...) {
     names(conspath) <- self$relPath(conspath)
     flog.info("%sConstruct consensus <%s>", indent(), names(conspath), name = "info")
     conseq <- .writeConseq(x = pileup, name = consname, type = "ambig",
-                           threshold = self$getThreshold(), suppressAllGaps = TRUE,
+                           threshold = self$getThreshold(), suppressAllGaps = FALSE,
                            replaceIndel = "", conspath = conspath)
     ## Initialize mapFinal LR MapList
     self$mapFinal$LR[[hp]] = MapList_(
