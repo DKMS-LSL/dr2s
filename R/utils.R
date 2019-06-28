@@ -351,7 +351,7 @@ rescale <- function(x, lower, upper) {
     max_depth        = dots$max_depth %||% dots$maxDepth %||% 1e4,
     min_base_quality = dots$min_base_quality %||% dots$minBaseQuality %||% 3,
     min_mapq         = dots$min_mapq %||% dots$minMapq %||% 0,
-    min_nucleotide_depth    = dots$min_nucleotide_depth %||% dots$minNucleotideDepth %||% 3,
+    min_nucleotide_depth    = dots$min_nucleotide_depth %||% dots$minNucleotideDepth %||% 0,
     min_minor_allele_depth  = dots$min_minor_allele_depth %||% dots$minMinorAlleleDepth %||% 0,
     distinguish_strands     = dots$distinguish_strands %||% dots$distinguishStrands %||% FALSE,
     distinguish_nucleotides = dots$distinguish_nucleotides %||% dots$distinguishNucleotides %||% TRUE,
