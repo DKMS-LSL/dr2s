@@ -795,10 +795,10 @@ mapFinal.DR2S <- function(x, opts = list(), ...) {
 
 DR2S_$set("public", "runMapFinal", function(opts = list(), ...) {
   ## debug
-  opts = list()
-  library(futile.logger)
-  library(foreach)
-  self <- mapper
+  # opts = list()
+  # library(futile.logger)
+  # library(foreach)
+  # self <- mapper
   # self <- dr2s
 
   ## Collect start time for mapFinal runstats
