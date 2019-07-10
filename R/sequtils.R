@@ -360,7 +360,7 @@ checkHomopolymerCount <- function(x, hpCount = 10) {
       geom_histogram(aes(length, fill = clustered), binwidth = 1) +
       scale_x_continuous(breaks = seq(min(homopolymersHP$length),
                                       max(homopolymersHP$length), 2)) +
-      facet_grid(. ~ position, scales = "free") +
+      facet_wrap(. ~ position, scales = "free") +
       ggtitle(paste("Homopolymer length", hp)) +
       cowplot::theme_cowplot() + 
       theme(axis.text.x = element_text(angle = 90, vjust = 0.5),
