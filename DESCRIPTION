@@ -64,7 +64,8 @@ Imports:
     mclust,
     factoextra,
     svglite,
-    dtplyr
+    dtplyr,
+    ipdDb
 SystemRequirements: bwa (>= 0.7.11) and/or minimap2; optional: samtools (faster, 
   but RSamtools do also work)
 VignetteBuilder: knitr
@@ -93,7 +94,6 @@ Collate:
     'partitionLongreads.R'
     'partitionShortreads.R'
     'pileup.R'
-    'polish.R'
     'polymorphic-positions.R'
     'postprocessScripts.R'
     'report.R'

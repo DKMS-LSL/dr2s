@@ -5,7 +5,8 @@
 \title{Plot pileup coverage}
 \usage{
 plotPileupCoverage(x, threshold = 0.2, range = NULL, thin = 0.1,
-  width = 1, label = "", drop.indels = FALSE)
+  width = 1, label = "", drop.indels = FALSE,
+  compareReference = FALSE)
 }
 \arguments{
 \item{x}{A \code{pileup} object.}

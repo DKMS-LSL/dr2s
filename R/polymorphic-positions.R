@@ -119,7 +119,7 @@ polymorphicPositions.pileup <- function(x, threshold = NULL) {
   }
 
   if (method == "cramer.V") {
-    ## Cramér's V association of nxn contingency tables
+    ## Cramer's V association of nxn contingency tables
     cmat <- matrix(NA_real_, nrow = NCOL(fmat), ncol = NCOL(fmat))
     colnames(cmat) <- colnames(fmat)
     rownames(cmat) <- colnames(fmat)
@@ -191,7 +191,7 @@ polymorphicPositions.pileup <- function(x, threshold = NULL) {
   selectByColSum <- list(...)$selectByColSum %||% FALSE
   minimumExpectedDifference <- list(...)$minimumExpectedDifference %||% 0.05
   measureOfAssociation <- switch(attr(dist, "method"),
-                                 "cramer.V" = "Cramér's V",
+                                 "cramer.V" = "Cramer's V",
                                  "spearman" = "Spearman's Rho",
                                  "kendall"  = "Kendall's Tau")
   ##
@@ -280,7 +280,7 @@ polymorphicPositions.pileup <- function(x, threshold = NULL) {
   measureOfAssociation <- attr(dist, "method")
   ## Set up labels
   if (measureOfAssociation == "cramer.V") {
-    y.lab <- "Mean Cramér's V"
+    y.lab <- "Mean Cramer's V"
     legend.label <- "V"
   } else if (measureOfAssociation == "spearman") {
     y.lab <- "Mean Spearman's Rho"
@@ -337,7 +337,7 @@ cramerV <- function(x) {
   sc <- colSums(x)
   expected <- outer(sr, sc, "*")/n
   chi2 <- sum(abs(x - expected)^2/expected, na.rm = TRUE)
-  ## Cramér's V
+  ## Cramer's V
   k <- NCOL(x)
   V <- sqrt(chi2/(n * (k - 1)))
   V
