@@ -530,7 +530,6 @@ x <- InitDR2S(createDR2SConf(
   partitionLongreads() %>%
   mapIter() %>%
   mapFinal() %>%
-  polish() %>%
   report() %>% 
   cache()
 ```

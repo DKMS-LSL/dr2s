@@ -535,7 +535,12 @@ x <- InitDR2S(createDR2SConf(
   partitionLongreads() %>%
   mapIter() %>%
   mapFinal() %>%
-  polish() %>%
   report() %>% 
   cache()
+  report()
 ```
+
+Installation
+------------
+
+This package is only available via gitlab now. It depends on a local installation of `samtools`, `bwa` (&gt;= 0.7.11), python and the pysam library, and a C++11 compliant compiler. An alternative mapper with better results for long reads is `minimap2`, a successor of `bwa` For installation over git via SSH, you need to have installed libssh2-1 and libssh2-1-dev prior to install git2r/devtools or reinstall the package afterwards. 
