@@ -24,7 +24,7 @@ git2r/devtools or reinstall the package afterwards.
 ``` r
 install.packages("devtools")  # if not already installed
 library("devtools")
-devtools::install_github("gschofl/DR2S)
+devtools::install_github("DKMS-LSL/DR2S)
 ```
 
 ## Workflow
@@ -129,7 +129,6 @@ x %>%
   mapIter() %>%
   partitionShortreads() %>%
   mapFinal() %>%
-  polish() %>%
   report() %>% 
   cache()
 ```
@@ -177,10 +176,6 @@ The individual steps perform the following analyses:
   - `mapFinal()`:
     1.  Map the shortreads against the refined longread consensus
         sequences.
-  - `polish()`:
-    1.  Disambiguate polymorphic positions in the short read mapping.
-        Check and report inconsistencies, insertions, deletions along
-        the way. This should not be that much with okayish seuence data
   - `report()`:
     1.  Report the finalised shortread-based consensus sequences as
         FASTA files. Provide a tsv file with suspicious positions that
@@ -413,18 +408,6 @@ The complete set of available options and their defaults are:
     plot = TRUE
   )
   ##
-  ## polish() defaults ####
-  ##
-  polish = list(
-    ## Threshold to call a polymorphic position. Set to override global default.
-    threshold = NULL,
-    ## Check the number of homopolymer counts. Compare the resulting sequence
-    ## with the mode value and report differences.
-    checkHpCount = TRUE,
-    ## The minimal length of a homopolymer to be checked.
-    hpCount = 10
-  )
-  ##
   ## report() defaults ####
   ##
   report = list(
@@ -503,10 +486,6 @@ An example config file:
       "createIgv": false,
       "plot": true
     },
-    "polish": {
-      "checkHpCount": true,
-      "hpCount": 10
-    },
     "report": {
       "blockWidth": 80,
       "remap": true,
@@ -537,10 +516,4 @@ x <- InitDR2S(createDR2SConf(
   mapFinal() %>%
   report() %>% 
   cache()
-  report()
 ```
-
-Installation
-------------
-
-This package is only available via gitlab now. It depends on a local installation of `samtools`, `bwa` (&gt;= 0.7.11), python and the pysam library, and a C++11 compliant compiler. An alternative mapper with better results for long reads is `minimap2`, a successor of `bwa` For installation over git via SSH, you need to have installed libssh2-1 and libssh2-1-dev prior to install git2r/devtools or reinstall the package afterwards. 
