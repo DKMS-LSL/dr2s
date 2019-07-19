@@ -105,8 +105,10 @@ partitionReads <- function(x, distAlleles = 2, selectAllelesBy = "count", thresh
     flog.info("%sUse only clusters <%s>", indent(), comma(rC), name = "info")
     mats <- mats[rC]
   }
-  maxDeltaScore <- .findMostDistantPwm(mats, onlyScore = TRUE)
-  flog.info("Maximum score difference of the used haplotypes: %s", max(maxDeltaScore))
+  if (length(hptypes) > 1) {
+    maxDeltaScore <- .findMostDistantPwm(mats, onlyScore = TRUE)
+    flog.info("Maximum score difference of the used haplotypes: %s", max(maxDeltaScore))
+  }
 
   hptypes <- names(mats)
   scores <- .getScores(xseqs, mats)

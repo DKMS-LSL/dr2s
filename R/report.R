@@ -571,12 +571,14 @@ remapAndReport <- function(x, report = FALSE, threshold = NULL, plot = TRUE, ...
     }
     polishRange <- POLISH_RANGE(x$getLocus())
     polished <- lapply(names(seqs), function(hap, seqs, vars, report) {
+      # hap <- "hapA"
       seq <- seqs[[hap]]
       ## filter variants of the allele of interest
       ## Use only haplotypes in the polishRange range, no gap variants and LR 
       ## support > 80%
       hapVar <- dplyr::filter(vars, 
                               .data$haplotype == gsub("hap", "", hap), 
+                              grepl("Ambiguous position in short reads", .data$warning),
                               .data$pos %in% polishRange,
                               .data$refSR != "-", 
                               .data$altSR != "-", 
@@ -584,6 +586,7 @@ remapAndReport <- function(x, report = FALSE, threshold = NULL, plot = TRUE, ...
                               .data$altLR != "-",
                               .data$supportLR > 0.80)  %>%
         dplyr::mutate(pos = as.numeric(.data$pos))
+      View(hapVar)
       bases <- apply(hapVar, 1, function(var) {
         # var <- hapVar[11,]
         base <- as.character(seq[as.numeric(var[["pos"]])])
