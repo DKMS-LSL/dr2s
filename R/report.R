@@ -52,7 +52,7 @@ report.DR2S <- function(x, whichMap = NULL, threshold = NULL, ...) {
   
   threshold <- max(x$getThreshold(), 0.3)
   if (remap) {
-    x <- remapAndReport(x, report = TRUE)
+    x <- remapAndReport(x, report = TRUE, threshold = threshold)
   } 
   
   writeReportFiles(x = x, map = map, blockWidth = blockWidth, outdir = outdir)
@@ -558,32 +558,36 @@ remapAndReport <- function(x, report = FALSE, threshold = NULL, plot = TRUE, ...
   ## Do what polish did
   flog.info("%sReport variants", indent(), name = "info")
   vars <- .callVariants(x)
-  ## Polish the reference. This is necessary for Intron 2 of KIR genes, because
+  ## Polish the reference. This is necessary for Intron 2 of KIR genes and the
+  ## beginning of MICB, because
   ## shortreads are not well mapped. Thus set each base of the reference at 
   ## positions 400 to 1,500 to the major base, if the longreads show no 
   ## variation and the base is supported with at least 90%.
-  if (startsWith(x$getLocus(), "KIR")) {
+  if (x$getLocus() %in% c(paste0("KIR", KIR_LOCI()), "MICB")) {
     seqs <- if (report) {
       x$consensus$seq
     } else {
       .getUpdatedSeqs(x, hptype)
     }
-    polishRange <- 400:1500
-    # polishedSeqs <- Biostrings::DNAStringSet(
+    polishRange <- POLISH_RANGE(x$getLocus())
     polished <- lapply(names(seqs), function(hap, seqs, vars, report) {
       seq <- seqs[[hap]]
       ## filter variants of the allele of interest
       ## Use only haplotypes in the polishRange range, no gap variants and LR 
       ## support > 80%
       hapVar <- dplyr::filter(vars, 
-                              haplotype == gsub("hap", "", hap), 
-                              pos %in% polishRange,
-                              !"-" %in% c(refSR, altSR, refLR, altLR) == "-",
-                              supportLR > 0.80)  %>%
-        dplyr::mutate(pos = as.numeric(pos))
+                              .data$haplotype == gsub("hap", "", hap), 
+                              .data$pos %in% polishRange,
+                              .data$refSR != "-", 
+                              .data$altSR != "-", 
+                              .data$refLR != "-", 
+                              .data$altLR != "-",
+                              .data$supportLR > 0.80)  %>%
+        dplyr::mutate(pos = as.numeric(.data$pos))
       bases <- apply(hapVar, 1, function(var) {
-        #var <- hapVar[1,]
+        # var <- hapVar[11,]
         base <- as.character(seq[as.numeric(var[["pos"]])])
+        # DECIPHER::BrowseSeqs(Biostrings::DNAStringSet(seq))
         if (grepl(var[["refLR"]], CODE_MAP()[base])) {
           return(var[["refLR"]])
         }
@@ -602,7 +606,6 @@ remapAndReport <- function(x, report = FALSE, threshold = NULL, plot = TRUE, ...
     polished <- purrr::transpose(polished)
     polishedSeqs <- Biostrings::DNAStringSet(polished$seq)
     names(polishedSeqs) <- names(seqs)
-    
     x$consensus$seq <- polishedSeqs
     vars <- dplyr::setdiff(vars, dplyr::bind_rows(polished$rmVariants))
   }

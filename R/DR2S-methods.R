@@ -270,6 +270,9 @@ DR2S_$set("public", "runPartitionLongreads", function() {
       flog.info("%sUse %s non-indel polymorphisms out of %s for clustering", indent(),
                 NROW(ppos), allpp, name = "info")
     }
+    if (self$getLocus() %in% c(paste0("KIR", KIR_LOCI()), "MICB")) {
+      ppos <- dplyr::filter(ppos, !position %in% POLISH_RANGE(self$getLocus()))
+    }
 
     ## Check if already finished because it is a homozygous sample
     if (NROW(ppos) == 0) {

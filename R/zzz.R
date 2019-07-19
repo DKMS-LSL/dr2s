@@ -23,6 +23,16 @@ DNA_BASES <- function() {
   c("A", "C", "G", "T", "a", "c", "g", "t")
 }
 
+POLISH_RANGE <- function(locus = NULL) {
+  locus <- ifelse(startsWith(locus, "KIR"), "KIR", locus)
+  pr = list(
+    KIR  = 400:1500,
+    MICB = 100:400
+  )
+  if (is.null(locus))
+    return(pr)
+  return(pr[[locus]])
+}
 VALID_DNA <- function(include = "del"){
   include <- match.arg(include, c("none", "del", "ins", "indel"))
   if (include == "indel") return(c("G", "A", "T", "C", "-", "+"))
