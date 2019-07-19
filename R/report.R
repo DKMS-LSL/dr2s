@@ -533,12 +533,12 @@ remapAndReport <- function(x, report = FALSE, threshold = NULL, plot = TRUE, ...
    }, x = x, report = report, createIgv = createIgv, threshold = threshold, BPPARAM = bpparam)
   names(mappings) <- x$getHapTypes()
   x$remap <- purrr::transpose(mappings)
+  hptypes   <- x$getHapTypes()
   if (plot) {
     flog.info("%sPlot remap summary", indent(), name = "info")
     ## Coverage and base frequency
     readtypes <- if (x$hasShortreads()) c("LR", "SR") else "LR"
     plotRows  <- if (x$hasShortreads()) 2 else 1
-    hptypes   <- x$getHapTypes()
     ## readtype = "LR"
     plotlist <- foreach(readtype = readtypes) %do% {
       suppressWarnings(x$plotRemapSummary(readtype = readtype, thin = 0.25, width = 20))
@@ -557,7 +557,7 @@ remapAndReport <- function(x, report = FALSE, threshold = NULL, plot = TRUE, ...
   
   ## Do what polish did
   flog.info("%sReport variants", indent(), name = "info")
-  vars <- .callVariants(x)
+  vars <- .callVariants(x, threshold)
   ## Polish the reference. This is necessary for Intron 2 of KIR genes and the
   ## beginning of MICB, because
   ## shortreads are not well mapped. Thus set each base of the reference at 
@@ -663,9 +663,9 @@ remapAndReport <- function(x, report = FALSE, threshold = NULL, plot = TRUE, ...
   ## Report problematic Variants
   probvarFile <- dot(c("problems", "tsv"))
   outdir <- .dirCreateIfNotExists(x$absPath("report"))
+  vars <- dplyr::arrange(vars, as.numeric(.data$pos), .data$haplotype)
   readr::write_tsv(vars, path = file.path(outdir, probvarFile),
                    append = FALSE, col_names = TRUE)
-  vars <- dplyr::arrange(vars, as.numeric(.data$pos), .data$haplotype)
   x$consensus$variants <- vars
   ## Write the igv config files
   createIgvConfigs(x, map = "remap", open = FALSE)
