@@ -336,6 +336,15 @@ DR2S_$set("public", "runPartitionLongreads", function() {
                           selectAllelesBy = selectAllelesBy,
                           minClusterSize = minClusterSize,
                           indent = incr(indent))
+    ## Set sample haplotypes
+    self$setHapTypes(levels(as.factor(PRT(prt))))
+
+    # Check if we have only one cluster and finish the pipeline if so
+    if (length(self$getHapTypes()) == 1) {
+      flog.warn("%sOnly one allele left", indent(), name = "info")
+      flog.info("%sEntering single allele polish and report pipeline", indent(), name = "info")
+      return(invisible(.finishCn1(x = self)))
+    }
 
     if (plot) {
       ppos <- SNP(prt)
@@ -366,15 +375,6 @@ DR2S_$set("public", "runPartitionLongreads", function() {
                       foundClades = OC(prt),
                       usedClades = as.list(table(PRT(prt)))))
 
-    ## Set sample haplotypes
-    self$setHapTypes(levels(as.factor(PRT(prt))))
-
-    # Check if we have only one cluster and finish the pipeline if so
-    if (length(self$getHapTypes()) == 1) {
-      flog.warn("%sOnly one allele left", indent(), name = "info")
-      flog.info("%sEntering single allele polish and report pipeline", indent(), name = "info")
-      return(invisible(.finishCn1(x = self)))
-    }
 
     self$lrpartition = structure(list(
       mat = mat,

@@ -22,7 +22,7 @@
 #' @examples
 #' ###
 partitionReads <- function(x, distAlleles = 2, selectAllelesBy = "count", threshold = 0.2,
-                           clMethod = "ward.D", minLen = 0.5, skipGapFreq = 2/3,
+                           clMethod = "ward.D", minLen = 0.5, skipGapFreq = 0.8,
                            deepSplit = 1, minClusterSize = 15, ...) {
 
   indent <- list(...)$indent %||% indentation()
@@ -44,10 +44,12 @@ partitionReads <- function(x, distAlleles = 2, selectAllelesBy = "count", thresh
     flog.info("%sUsing the remaining %s polymorphisms for clustering",
               indent(), NCOL(xm), name = "info")
     if (NCOL(xm) == 0) {
-      flog.error("%s No polymorphisms remain. Aborting clustering." %<<%
+      flog.warn("%s No polymorphisms remain. Aborting clustering." %<<%
                  " Check reads and reference and inspect the mapInit plot",
                  indent(), name = "info")
-      stop("No polymorphisms remain for clustering. Check mapInit plot.")
+      part_ <- HapPart(readNames = row.names(xm), snpPos = colnames(xm))
+      PRT(part_) <- "A"  ## <character>; the haplotype assignment for each read
+      return(part_)
     }
   }
 
@@ -93,7 +95,6 @@ partitionReads <- function(x, distAlleles = 2, selectAllelesBy = "count", thresh
 
   if (length(hptypes) > distAlleles) {
     flog.info("%sIdentify chimeric reads/haplotypes", indent(), name = "info")
-    subclades
     if (selectAllelesBy == "count") {
       rC <- names(sort(table(subclades), decreasing = TRUE)[seq_len(distAlleles)])
     }
@@ -104,6 +105,8 @@ partitionReads <- function(x, distAlleles = 2, selectAllelesBy = "count", thresh
     flog.info("%sUse only clusters <%s>", indent(), comma(rC), name = "info")
     mats <- mats[rC]
   }
+  maxDeltaScore <- .findMostDistantPwm(mats, onlyScore = TRUE)
+  flog.info("Maximum score difference of the used haplotypes: %s", max(maxDeltaScore))
 
   hptypes <- names(mats)
   scores <- .getScores(xseqs, mats)
@@ -221,22 +224,35 @@ partitionReads <- function(x, distAlleles = 2, selectAllelesBy = "count", thresh
     lenCounts[which(lenCounts > adjustedMinReadsFrac)][1])), minLen)
 }
 
-.findMostDistantPwm <- function(mats) {
+.findMostDistantPwm <- function(mats, onlyScore = FALSE) {
   ## Assert that all pwm are of same length
   assert_that(length(unique(vapply(mats, NCOL, numeric(1)))) == 1)
   combs <- combn(names(mats), 2, FUN = paste0)
+  if (onlyScore) {
+    dMats <- apply(combs, 2, function(comb) {
+      .pwmDiff(mats[[comb[[1]]]], mats[[comb[[2]]]], max = TRUE)
+    })
+    names(dMats) <- apply(combs, 2, function(x) paste0(x, collapse = ""))
+    return(dMats)
+  }
   dMats <- apply(combs, 2, function(comb) {
-    .pwmDiff(mats[[comb[[1]]]], mats[[comb[[2]]]])
+    .pwmDiff(mats[[comb[[1]]]], mats[[comb[[2]]]], max = FALSE)
   })
   names(dMats) <- apply(combs, 2, function(x) paste0(x, collapse = ""))
   ## Use only pairs with an A.
   dMats <- dMats[grepl("A", names(dMats))]
   strsplit(names(which.max(dMats)), "")[[1]]
 }
-.pwmDiff <- function(m1, m2) {
-  sum(vapply(seq_len(NCOL(m1)), function(i, m1, m2) {
+.pwmDiff <- function(m1, m2, max = FALSE) {
+  ## Check if excluding gaps helps
+  # m1 <- m1[VALID_DNA(include = "none"),]
+  # m2 <- m2[VALID_DNA(include = "none"),]
+  scores <- vapply(seq_len(NCOL(m1)), function(i, m1, m2) {
     sum((m1[,i] - m2[,i])^2)
-  }, m1 = m1, m2 = m2, FUN.VALUE = numeric(1)))/NCOL(m1)
+  }, m1 = m1, m2 = m2, FUN.VALUE = numeric(1))
+  if (max) 
+    return(max(scores))
+  sum(scores)/NCOL(m1)
 }
 
 .getScores <- function(reads, pwmlist) {
@@ -418,7 +434,7 @@ SCR.HapPart <- function(x) {
 ## The actual partition table
 partition <- function(x) UseMethod("partition")
 partition.HapPart <- function(x) {
-  dplyr::arrange(dplyr::data_frame(
+  dplyr::arrange(tibble::tibble(
     read      = as.vector(x),
     haplotype = as.factor(PRT(x)),
     mcoef     = mcoef(x)
@@ -727,9 +743,12 @@ getCl <- function(n, cluster, change) {
       dplyr::group_by(.data$haplotype) %>%
       dplyr::top_n(1, dplyr::desc(nreads)) %>%
       dplyr::slice(1) ## in case of ties take only the top row
-    if (NROW(dfmax2) == 0)
-      stop("No reads above threshold")
-    dfmax[dfmax$haplotype %in% hp, ] <- dfmax2
+    if (NROW(dfmax2) == 0) {
+      flog.warn("No reads above threshold")
+      lowerLimit <- dfmax$nreads
+    } else {
+      dfmax[dfmax$haplotype %in% hp, ] <- dfmax2
+    }
   }
 
   list(
