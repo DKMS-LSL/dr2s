@@ -586,7 +586,6 @@ remapAndReport <- function(x, report = FALSE, threshold = NULL, plot = TRUE, ...
                               .data$altLR != "-",
                               .data$supportLR > 0.80)  %>%
         dplyr::mutate(pos = as.numeric(.data$pos))
-      View(hapVar)
       bases <- apply(hapVar, 1, function(var) {
         # var <- hapVar[11,]
         base <- as.character(seq[as.numeric(var[["pos"]])])
