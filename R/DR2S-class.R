@@ -547,12 +547,6 @@ DR2S_ <- R6::R6Class(
       }
     },
     ##
-    setConsensus = function(x) {
-      stopifnot(is(x, "ConsList"))
-      self$consensus = x
-      invisible(self)
-    },
-    ##
     getLrdMapFun = function() {
       match.fun("run" %<<% self$getLrdMapper())
     },

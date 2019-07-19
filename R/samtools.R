@@ -74,7 +74,7 @@
 #' @export
 subSampleBam <- function(bamfile, windowSize = NULL, sampleSize = 100,
                          fragmentReads = FALSE, fragmentWidth = 1000,
-                         what = NULL, clusteredReads = NULL) {
+                         what = NULL, clusteredReads = NULL, paired = FALSE) {
   assert_that(
     file.exists(bamfile),
     endsWith(bamfile, ".bam"),
@@ -89,11 +89,20 @@ subSampleBam <- function(bamfile, windowSize = NULL, sampleSize = 100,
     what <- Rsamtools::scanBamWhat()
   assert_that(is.character(what))
 
-  alignmentBam <-  GenomicAlignments::readGAlignments(
+  if (paired) {
+    readGAFun <- GenomicAlignments::readGAlignmentPairs
+  }  else {
+    readGAFun <- GenomicAlignments::readGAlignments
+  }
+  alignmentBam <-  readGAFun(
     bam, param = Rsamtools::ScanBamParam(what = what), use.names = TRUE)
   ## Use the median read length if no window size is given
   if (is.null(windowSize))
-    windowSize <- IRanges::median(GenomicAlignments::qwidth(alignmentBam))
+    windowSize <- ifelse(is(
+      alignmentBam, "GAlignmentPairs"),  
+      IRanges::median(GenomicAlignments::qwidth(GenomicAlignments::first(alignmentBam))), 
+      IRanges::median(GenomicAlignments::qwidth(alignmentBam)))
+   
   assert_that(is.numeric(windowSize))
   geneLength <- GenomeInfoDb::seqlengths(GenomeInfoDb::seqinfo(bam))
 

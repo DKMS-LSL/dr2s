@@ -188,13 +188,21 @@ conseq.matrix <- function(x,
   
   ## Take a higher threshold for gaps. Everything with more than 1.5 * threshold
   ## is probably not present
-  cmf[cmf[,"-"] > 1 - (1.5 * threshold), VALID_DNA("none")] <- 0
+  #cmf[11,]
+  #x[11,]
   
+  cmf[cmf[,"-"] > 1 - (1.5 * threshold), VALID_DNA("none")] <- 0
+  # sum(cmf[,"-"] > 1 - (1.5 * threshold)
+      
   baselist <- apply(cmf, 1, function(m) {
     rs <- m[i <- m > threshold]
     names(rs) <- names(m)[i]
     list(rs)
   })
+  # baselist[469]
+  # x[469,]
+  # cmf[469,]
+  
   s <- lapply(baselist, function(b) {
     b <- unlist(b)
     if (length(b) == 0) {

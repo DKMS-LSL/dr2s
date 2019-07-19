@@ -55,7 +55,7 @@ DR2S_$set("public", "runMapInit", function(opts = list(), ...) {
     SR <- mapInitSR(
       self = self, opts = opts, includeDeletions = includeDeletions,
       includeInsertions = TRUE, callInsertions = TRUE,
-      callInsertionThreshold = callInsertionThreshold, clip = FALSE,
+      callInsertionThreshold = callInsertionThreshold, 
       distributeGaps = FALSE, removeError = TRUE, topx = 0,
       outdir = outdir, clean = clean, minMapq = 50, indent = indent, ...)
 
@@ -874,8 +874,9 @@ DR2S_$set("public", "runMapFinal", function(opts = list(), ...) {
     conspath <- file.path(outdir, consname %<<% ".fa")
     names(conspath) <- self$relPath(conspath)
     flog.info("%sConstruct consensus <%s>", indent(), names(conspath), name = "info")
+    threshold <- max(self$getThreshold(), 0.3)
     conseq <- .writeConseq(x = pileup, name = consname, type = "ambig",
-                           threshold = self$getThreshold(), suppressAllGaps = TRUE,
+                           threshold = threshold, suppressAllGaps = TRUE,
                            replaceIndel = "", conspath = conspath)
     ## Initialize mapFinal LR MapList
     self$mapFinal$LR[[hp]] = MapList_(
@@ -915,16 +916,18 @@ DR2S_$set("public", "runMapFinal", function(opts = list(), ...) {
       if (createIgv) {
         clusteredReads <- self$srpartition$A$srpartition$haplotypes$read
         igv <- createIgvJsFiles(
-          refpath(pileup), bampath(pileup), self$getOutdir(), sampleSize = 100,
-          clusteredReads = clusteredReads)
+          reference = refpath(pileup), bamfile = bampath(pileup),
+          outdir = self$getOutdir(), paired = TRUE, 
+          sampleSize = 100, clusteredReads = clusteredReads)
       }
       ## Construct consensus sequence
       consname <- maplabel %<<% ".consensus." %<<% refname
       conspath <- file.path(outdir, consname %<<% ".fa")
       names(conspath) <- self$relPath(conspath)
       flog.info("%sConstruct consensus <%s>", indent(), names(conspath), name = "info")
+      threshold <- max(self$getThreshold(), 0.3)
       conseq <- .writeConseq(x = pileup, name = consname, type = "ambig",
-                             threshold = self$getThreshold(), suppressAllGaps = FALSE,
+                             threshold = threshold, suppressAllGaps = FALSE,
                              replaceIndel = "", conspath = conspath)
       ## Initialize mapFinal SR MapList
       self$mapFinal$SR[[hp]] = MapList_(

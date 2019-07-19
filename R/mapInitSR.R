@@ -1,6 +1,6 @@
 mapInitSR <- function(self, opts = list(), includeDeletions = TRUE,
                       includeInsertions = TRUE, callInsertions = TRUE,
-                      callInsertionThreshold = 0.15, clip = FALSE,
+                      callInsertionThreshold = 0.15,
                       distributeGaps = FALSE, removeError = TRUE, topx = 0,
                       outdir, clean, ...) {
 

@@ -240,7 +240,12 @@ createIgvConfigs <- function(x, position, map = "mapFinal", open = TRUE) {
 #' @param bamfile The bamfile which should be viewed in IGV.js
 #' @param ... Additional parameters passed to \code{\link{subSampleBam}}.
 #' @export
-createIgvJsFiles <- function(reference, bamfile, outdir, ...) {
+createIgvJsFiles <- function(reference, bamfile, outdir, paired = FALSE, ...) {
+          # reference <- refpath(pileup)
+          # bamfile <- bampath(pileup)
+          # outdir <- self$getOutdir()
+          # sampleSize = 100
+          # clusteredReads = clusteredReads
   #mapper <- readDR2S("~/bioinf/DR2S/KIR/181128_3DL3CmitONT/outDevel/KIR3DL3/1397771")
   #bamfile <- mapper$absPath(mapper$mapFinal$SR$A$bampath)
   assert_that(
@@ -249,7 +254,7 @@ createIgvJsFiles <- function(reference, bamfile, outdir, ...) {
     file.exists(reference),
     endsWith(reference, ".fa"))
   ## Subsample the bam file
-  resultList <- subSampleBam(bamfile = bamfile, ...)#fragmentReads = TRUE, sampleSize = 100)#, ...)
+  resultList <- subSampleBam(bamfile = bamfile, paired = paired, ...)#fragmentReads = TRUE, sampleSize = 100)#, ...)
   ## Index the reference
   Rsamtools::indexFa(reference)
   resultList$referenceFile <- .cropPath(outdir, reference)

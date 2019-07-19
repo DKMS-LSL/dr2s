@@ -42,66 +42,20 @@ report.DR2S <- function(x, whichMap = NULL, threshold = NULL, ...) {
    } else stop("Nothing to report")
   }
   map <- match.arg(tolower(map), c("mapfinal", "mapiter"))
-  ref <- Biostrings::BStringSet(x$getRefSeq())
-  if (x$hasShortreads()) {
-    haplotypes <- "SR" %<<% x$getHapTypes()
-    readtype <- x$getSrdType()
-    mapper <-  x$getSrdMapper()
-  } else {
-    haplotypes <- "LR" %<<% x$getHapTypes()
-    readtype <- x$getLrdType()
-    mapper <-  x$getLrdMapper()
-  }
-
+  
   ## Initiate indenter
   indent <- indentation(1)
-  ## Write html alignment file
-  alnFile <- dot(c(map, "aln", readtype, mapper, "unchecked"))
-  # get all seqs as stringset
+  ## write latest consensus sequence to consensus accessor
   seqs <- x$getLatestRef()
   names(seqs) <- "hap" %<<% x$getHapTypes()
-  refseqs <- c(ref, seqs)
-  .browseAlign(refseqs, file = file.path(outdir, alnFile), openURL = FALSE)
-
-  ## Write consensus FASTA files
-  # hp = "SRA"
-  # hp = "SRB
-  for (hp in haplotypes) {
-    hp0 <- substr(hp, 3, 3)
-    hpFile <- dot(c(map, hp, readtype, mapper, "unchecked.fa"))
-    seq <- seqs[endsWith(names(seqs), hp0)]
-    seqname <- paste(x$getSampleId(), hp0, sep = "_")
-    sampleDetails <- x$getSampleDetails()
-    names(seq) <- paste(seqname,
-                        semicolon(c(
-                          "haplotype=" %<<% litQuote(hp0),
-                          sampleDetails,
-                          "date=" %<<% litQuote(Sys.Date()),
-                          "status=" %<<% litQuote("unchecked"))))
-    Biostrings::writeXStringSet(
-      seq,
-      filepath = file.path(outdir, hpFile),
-      format = "fasta"
-    )
-  }
-
-  ## Write Pairwise or Multiple Alignment
-  if (length(x$getHapTypes()) == 2) {
-    alnFile <- dot(c(map, "aln", readtype, mapper, "unchecked", "psa"))
-    aln <- Biostrings::pairwiseAlignment(pattern = seqs[1], subject = seqs[2], type = "global")
-    Biostrings::writePairwiseAlignments(aln, file.path(outdir, alnFile), block.width = blockWidth)
-  } else {
-    alnFile <- dot(c(map, "aln", readtype, mapper, "unchecked", "msa"))
-    if (length(x$getHapTypes()) > 2) {
-      aln <- DECIPHER::AlignSeqs(Biostrings::DNAStringSet(seqs), verbose = FALSE)
-    } else {
-      aln <- Biostrings::DNAStringSet(seqs[1])
-    }
-    writeMSA(aln, file = file.path(outdir, alnFile))
-  }
+  x$consensus$seq <- seqs
+  
+  threshold <- max(x$getThreshold(), 0.3)
   if (remap) {
     x <- remapAndReport(x, report = TRUE)
   } 
+  
+  writeReportFiles(x = x, map = map, blockWidth = blockWidth, outdir = outdir)
   cache(x)
   invisible(x)
 }
@@ -601,22 +555,59 @@ remapAndReport <- function(x, report = FALSE, threshold = NULL, plot = TRUE, ...
     
   }
   
-  createIgvConfigs(x, map = "remap", open = FALSE)
   ## Do what polish did
   flog.info("%sReport variants", indent(), name = "info")
-  threshold <- max(x$getThreshold(), 0.3)
-  hptypes <- x$getHapTypes()
-  menv <- MergeEnv(x, threshold)
-  for (hp in hptypes) {
-    menv$init(hp)
-    menv$walk(hp)
+  vars <- .callVariants(x)
+  ## Polish the reference. This is necessary for Intron 2 of KIR genes, because
+  ## shortreads are not well mapped. Thus set each base of the reference at 
+  ## positions 400 to 1,500 to the major base, if the longreads show no 
+  ## variation and the base is supported with at least 90%.
+  if (startsWith(x$getLocus(), "KIR")) {
+    seqs <- if (report) {
+      x$consensus$seq
+    } else {
+      .getUpdatedSeqs(x, hptype)
+    }
+    polishRange <- 400:1500
+    # polishedSeqs <- Biostrings::DNAStringSet(
+    polished <- lapply(names(seqs), function(hap, seqs, vars, report) {
+      seq <- seqs[[hap]]
+      ## filter variants of the allele of interest
+      ## Use only haplotypes in the polishRange range, no gap variants and LR 
+      ## support > 80%
+      hapVar <- dplyr::filter(vars, 
+                              haplotype == gsub("hap", "", hap), 
+                              pos %in% polishRange,
+                              !"-" %in% c(refSR, altSR, refLR, altLR) == "-",
+                              supportLR > 0.80)  %>%
+        dplyr::mutate(pos = as.numeric(pos))
+      bases <- apply(hapVar, 1, function(var) {
+        #var <- hapVar[1,]
+        base <- as.character(seq[as.numeric(var[["pos"]])])
+        if (grepl(var[["refLR"]], CODE_MAP()[base])) {
+          return(var[["refLR"]])
+        }
+        flog.info("Polishing base at %s is not possible. The base should include %s,
+             but is %s", var[["pos"]], var[["refLR"]], base, name = "info")
+        stop(sprintf("Polishing base at %s is not possible. The base should include %s,
+             but is %s", var[["pos"]], var[["refLR"]], base))
+        return(NA_character_ )
+      })
+      positions <- hapVar$pos[!is.na(bases)]
+      if (report) {
+        seq <- Biostrings::replaceLetterAt(seq, at = positions, na.omit(bases))
+      }
+      list(seq = seq, rmVariants = dplyr::filter(hapVar, pos %in% positions))
+    }, vars = vars, seqs = seqs, report = report)
+    polished <- purrr::transpose(polished)
+    polishedSeqs <- Biostrings::DNAStringSet(polished$seq)
+    names(polishedSeqs) <- names(seqs)
+    
+    x$consensus$seq <- polishedSeqs
+    vars <- dplyr::setdiff(vars, dplyr::bind_rows(polished$rmVariants))
   }
-  
-  x <- menv$export()
-  ## Get variants
-  vars <- .getVariants(x)
   if (report) {
-    seqs <- x$getLatestRef()
+    seqs <- x$consensus$seq
     names(seqs) <- x$getHapTypes()
     ambigPos <- .getAmbigPositions(seqs)
     if (length(ambigPos) > 0) {
@@ -638,7 +629,6 @@ remapAndReport <- function(x, report = FALSE, threshold = NULL, plot = TRUE, ...
       }, ambigPos = ambigPos))
     }
   }
-  
   ## Check homopolymer count; Only check if the count is found in both
   if (checkHpCount & x$hasShortreads()) {
     x <- checkHomopolymerCount(x, hpCount = hpCount)
@@ -664,14 +654,109 @@ remapAndReport <- function(x, report = FALSE, threshold = NULL, plot = TRUE, ...
         vars <- dplyr::bind_rows(vars, adjHp)
     }
   }
-  x$consensus$variants <- na.omit(dplyr::arrange(vars, .data$pos, .data$haplotype))
 
   ## Report problematic Variants
   probvarFile <- dot(c("problems", "tsv"))
-  vars <- vars %>% 
-    dplyr::arrange(as.numeric(.data$pos), .data$haplotype)
   outdir <- .dirCreateIfNotExists(x$absPath("report"))
   readr::write_tsv(vars, path = file.path(outdir, probvarFile),
                    append = FALSE, col_names = TRUE)
+  vars <- dplyr::arrange(vars, as.numeric(.data$pos), .data$haplotype)
+  x$consensus$variants <- vars
+  ## Write the igv config files
+  createIgvConfigs(x, map = "remap", open = FALSE)
   return(invisible(x))
+}
+
+writeReportFiles <- function(x, map, blockWidth, outdir) {
+  ref <- Biostrings::BStringSet(x$getRefSeq())
+  if (x$hasShortreads()) {
+    haplotypes <- "SR" %<<% x$getHapTypes()
+    readtype <- x$getSrdType()
+    mapper <-  x$getSrdMapper()
+  } else {
+    haplotypes <- "LR" %<<% x$getHapTypes()
+    readtype <- x$getLrdType()
+    mapper <-  x$getLrdMapper()
+  }
+  
+  ## Write html alignment file
+  alnFile <- dot(c(map, "aln", readtype, mapper, "unchecked"))
+  # get all seqs as stringset
+  seqs <- x$consensus$seq
+  refseqs <- c(ref, seqs)
+  .browseAlign(refseqs, file = file.path(outdir, alnFile), openURL = FALSE)
+
+  ## Write consensus FASTA files
+  # hp = "SRA"
+  # hp = "SRB
+  for (hp in haplotypes) {
+    hp0 <- substr(hp, 3, 3)
+    hpFile <- dot(c(map, hp, readtype, mapper, "unchecked.fa"))
+    seq <- seqs[endsWith(names(seqs), hp0)]
+    seqname <- paste(x$getSampleId(), hp0, sep = "_")
+    sampleDetails <- x$getSampleDetails()
+    names(seq) <- paste(seqname,
+                        semicolon(c(
+                          "haplotype=" %<<% litQuote(hp0),
+                          sampleDetails,
+                          "date=" %<<% litQuote(Sys.Date()),
+                          "status=" %<<% litQuote("unchecked"))))
+    Biostrings::writeXStringSet(
+      seq,
+      filepath = file.path(outdir, hpFile),
+      format = "fasta"
+    )
+  }
+
+  ## Write Pairwise or Multiple Alignment
+  if (length(x$getHapTypes()) == 2) {
+    alnFile <- dot(c(map, "aln", readtype, mapper, "unchecked", "psa"))
+    aln <- Biostrings::pairwiseAlignment(pattern = seqs[1], subject = seqs[2], type = "global")
+    Biostrings::writePairwiseAlignments(aln, file.path(outdir, alnFile), block.width = blockWidth)
+  } else {
+    alnFile <- dot(c(map, "aln", readtype, mapper, "unchecked", "msa"))
+    if (length(x$getHapTypes()) > 2) {
+      aln <- DECIPHER::AlignSeqs(Biostrings::DNAStringSet(seqs), verbose = FALSE)
+    } else {
+      aln <- Biostrings::DNAStringSet(seqs[1])
+    }
+    writeMSA(aln, file = file.path(outdir, alnFile))
+  }
+}
+
+# Helpers -----------------------------------------------------------------
+
+
+.getVariants <- function(variants) {
+  if (all(vapply(variants, function(x) length(x) == 0, logical(1)))) {
+    return(
+      tibble::tibble(
+        haplotype = character(0), pos = integer(0), ref = character(0),
+        alt = character(0), warning = character(0), refSR = character(0),
+        altSR = character(0), refLR = character(0), altLR = character(0)
+      )
+    )
+  }
+
+  dplyr::bind_rows(lapply(names(variants), function(h)
+    dplyr::bind_rows(lapply(variants[[h]],
+                            .extractVariant_, h = h))))
+}
+
+
+.extractVariant_ <- function(v, h) {
+  data.frame(
+    haplotype = h,
+    pos = attr(v, "position") %||% NA,
+    ref = v[[1]] %||% NA,
+    alt = v[[2]] %||% NA,
+    warning = attr(v, "warning") %||% NA,
+    refSR = attr(v, "srBases")[[1]] %||% NA,
+    altSR = attr(v, "srBases")[[2]] %||% NA,
+    refLR = attr(v, "lrBases")[[1]] %||% NA,
+    altLR = attr(v, "lrBases")[[2]] %||% NA,
+    supportSR = attr(v, "srSupport") %||% NA,
+    supportLR = attr(v, "lrSupport") %||% NA,
+    stringsAsFactors = FALSE
+  )
 }
