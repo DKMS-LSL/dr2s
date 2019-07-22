@@ -94,13 +94,17 @@ partitionReads <- function(x, distAlleles = 2, selectAllelesBy = "count", thresh
   }, FUN.VALUE = character(1))
 
   if (length(hptypes) > distAlleles) {
-    flog.info("%sIdentify chimeric reads/haplotypes", indent(), name = "info")
-    if (selectAllelesBy == "count") {
-      rC <- names(sort(table(subclades), decreasing = TRUE)[seq_len(distAlleles)])
-    }
-    else if (selectAllelesBy == "distance") {
-     #  rC <- sort(.findChimeric(seqs = hpseqs, distAlleles = distAlleles))
-      rC <- .findMostDistantPwm(mats)
+    if (length(hptypes) == 1) {
+      rC <- "A"
+    } else {
+      flog.info("%sIdentify chimeric reads/haplotypes", indent(), name = "info")
+      if (selectAllelesBy == "count") {
+        rC <- names(sort(table(subclades), decreasing = TRUE)[seq_len(distAlleles)])
+      }
+      else if (selectAllelesBy == "distance") {
+       #  rC <- sort(.findChimeric(seqs = hpseqs, distAlleles = distAlleles))
+        rC <- .findMostDistantPwm(mats)
+      }
     }
     flog.info("%sUse only clusters <%s>", indent(), comma(rC), name = "info")
     mats <- mats[rC]
