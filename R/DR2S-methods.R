@@ -275,7 +275,7 @@ DR2S_$set("public", "runPartitionLongreads", function() {
     }
 
     ## Check if already finished because it is a homozygous sample
-    if (NROW(ppos) == 0) {
+    if (NROW(ppos) == 0 || distAlleles == 1) {
       flog.warn("%sNo polymorphic positions found for clustering", indent(), name = "info")
       flog.info("%sEntering single allele polish and report pipeline", indent(), name = "info")
       ## set runstats

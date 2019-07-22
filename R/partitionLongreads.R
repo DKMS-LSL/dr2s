@@ -94,7 +94,7 @@ partitionReads <- function(x, distAlleles = 2, selectAllelesBy = "count", thresh
   }, FUN.VALUE = character(1))
 
   if (length(hptypes) > distAlleles) {
-    if (length(hptypes) == 1) {
+    if (distAlleles == 1) {
       rC <- "A"
     } else {
       flog.info("%sIdentify chimeric reads/haplotypes", indent(), name = "info")
