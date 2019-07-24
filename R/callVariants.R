@@ -242,6 +242,10 @@ disambiguateVariant <- function(x, threshold) {
       warningMsg <- warningMsg %<<% "|More than two long read variants"
       lrBases <- names(varl)[1:2]
     }
+    if ("-" %in% names(varl) & !is.null(ref) & names(varl)[names(varl) != "-"] != ref) {
+      warningMsg <- warningMsg %<<% "|long read variant not matching the reference"
+      lrBases <- c(names(varl), names(varl))
+    }
     ## Set the ambiguous bases
     lrBases <- names(varl)
   } else if (sum(lr) > 0) {

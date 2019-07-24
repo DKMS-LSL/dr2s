@@ -508,7 +508,7 @@ writeMSA <- function(aln, file="", block.width = 50){
 #' @export
 remapAndReport <- function(x, report = FALSE, threshold = NULL, plot = TRUE, ...) {
   if (is.null(threshold)) 
-    threshold <- x$getThreshold()
+    threshold <- max(0.3, x$getThreshold())
   dots   <- list(...)
   indent <- dots$indent %||% indentation()
   ## Export report config to function environment
