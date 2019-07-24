@@ -534,8 +534,9 @@ remapAndReport <- function(x, report = FALSE, threshold = NULL, plot = TRUE, ...
   names(mappings) <- x$getHapTypes()
   x$remap <- purrr::transpose(mappings)
   hptypes   <- x$getHapTypes()
-  if (plot) {
+  if (plot && !is.null(x$plotRemapSummary)) {
     flog.info("%sPlot remap summary", indent(), name = "info")
+    
     ## Coverage and base frequency
     readtypes <- if (x$hasShortreads()) c("LR", "SR") else "LR"
     plotRows  <- if (x$hasShortreads()) 2 else 1
