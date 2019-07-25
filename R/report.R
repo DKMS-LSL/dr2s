@@ -572,7 +572,7 @@ remapAndReport <- function(x, report = FALSE, threshold = NULL, plot = TRUE, ...
     }
     polishRange <- POLISH_RANGE(x$getLocus())
     polished <- lapply(names(seqs), function(hap, seqs, vars, report) {
-      # hap <- "hapB"
+      # hap <- "hapA"
       seq <- seqs[[hap]]
       ## filter variants of the allele of interest
       ## Use only haplotypes in the polishRange range, no gap variants and LR 
@@ -607,9 +607,8 @@ remapAndReport <- function(x, report = FALSE, threshold = NULL, plot = TRUE, ...
           seq <- Biostrings::replaceLetterAt(seq, at = positions, na.omit(bases))
         }
         return(list(seq = seq, rmVariants = dplyr::filter(hapVar, pos %in% positions)))
-      }
-      else {
-        return(list(seq = seq, rmVariants = tibble::tibble()))
+      } else {
+        return(list(seq = seq, rmVariants = hapVar))
       }
     }, vars = vars, seqs = seqs, report = report)
     polished <- purrr::transpose(polished)
