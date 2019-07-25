@@ -572,7 +572,7 @@ remapAndReport <- function(x, report = FALSE, threshold = NULL, plot = TRUE, ...
     }
     polishRange <- POLISH_RANGE(x$getLocus())
     polished <- lapply(names(seqs), function(hap, seqs, vars, report) {
-      # hap <- "hapA"
+      # hap <- "hapB"
       seq <- seqs[[hap]]
       ## filter variants of the allele of interest
       ## Use only haplotypes in the polishRange range, no gap variants and LR 
@@ -587,24 +587,30 @@ remapAndReport <- function(x, report = FALSE, threshold = NULL, plot = TRUE, ...
                               .data$altLR != "-",
                               .data$supportLR > 0.80)  %>%
         dplyr::mutate(pos = as.numeric(.data$pos))
-      bases <- apply(hapVar, 1, function(var) {
-        # var <- hapVar[11,]
-        base <- as.character(seq[as.numeric(var[["pos"]])])
-        # DECIPHER::BrowseSeqs(Biostrings::DNAStringSet(seq))
-        if (grepl(var[["refLR"]], CODE_MAP()[base])) {
-          return(var[["refLR"]])
+      if (NROW(hapVar) > 0) {
+        bases <- apply(hapVar, 1, function(var) {
+          # var <- hapVar[11,]
+          base <- as.character(seq[as.numeric(var[["pos"]])])
+          # DECIPHER::BrowseSeqs(Biostrings::DNAStringSet(seq))
+          if (grepl(var[["refLR"]], CODE_MAP()[base])) {
+            return(var[["refLR"]])
+          }
+          flog.info("Polishing base at %s is not possible. The base should include %s,
+               but is %s", var[["pos"]], var[["refLR"]], base, name = "info")
+          stop(sprintf("Polishing base at %s is not possible. The base should include %s,
+               but is %s", var[["pos"]], var[["refLR"]], base))
+          return(NA_character_ )
+        })
+        
+        positions <- hapVar$pos[!is.na(bases)]
+        if (report) {
+          seq <- Biostrings::replaceLetterAt(seq, at = positions, na.omit(bases))
         }
-        flog.info("Polishing base at %s is not possible. The base should include %s,
-             but is %s", var[["pos"]], var[["refLR"]], base, name = "info")
-        stop(sprintf("Polishing base at %s is not possible. The base should include %s,
-             but is %s", var[["pos"]], var[["refLR"]], base))
-        return(NA_character_ )
-      })
-      positions <- hapVar$pos[!is.na(bases)]
-      if (report) {
-        seq <- Biostrings::replaceLetterAt(seq, at = positions, na.omit(bases))
+        return(list(seq = seq, rmVariants = dplyr::filter(hapVar, pos %in% positions)))
       }
-      list(seq = seq, rmVariants = dplyr::filter(hapVar, pos %in% positions))
+      else {
+        return(list(seq = seq, rmVariants = tibble::tibble()))
+      }
     }, vars = vars, seqs = seqs, report = report)
     polished <- purrr::transpose(polished)
     polishedSeqs <- Biostrings::DNAStringSet(polished$seq)
