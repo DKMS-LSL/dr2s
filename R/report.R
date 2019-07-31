@@ -567,20 +567,19 @@ remapAndReport <- function(x, report = FALSE, threshold = NULL, plot = TRUE, ...
   ## positions 400 to 1,500 to the major base, if the longreads show no 
   ## variation and the base is supported with at least 90%.
   if (x$getLocus() %in% c(paste0("KIR", KIR_LOCI()), "MICB")) {
-    seqs <- if (report) {
-      x$consensus$seq
-    } else {
-      .getUpdatedSeqs(x, hptype)
-    }
-    polishRange <- POLISH_RANGE(x$getLocus())
-    polished <- lapply(names(seqs), function(hap, seqs, vars, report) {
-      # hap <- "hapA"
-      seq <- seqs[[hap]]
+    polished <- lapply(hptypes, function(hap, seqs, vars, report) {
+      # hap <- paste0("hap", hptype)
+      seq <- if (report) {
+        x$consensus$seq[[hptype]]
+      } else {
+        unlist(Biostrings::readDNAStringSet(.getUpdatedSeqs(x, hptype)))
+      }
+      polishRange <- POLISH_RANGE(x$getLocus())
       ## filter variants of the allele of interest
       ## Use only haplotypes in the polishRange range, no gap variants and LR 
       ## support > 80%
       hapVar <- dplyr::filter(vars, 
-                              .data$haplotype == gsub("hap", "", hap), 
+                              .data$haplotype == hptype, 
                               grepl("Ambiguous position in short reads", .data$warning),
                               .data$pos %in% polishRange,
                               .data$refSR != "-", 
@@ -591,7 +590,7 @@ remapAndReport <- function(x, report = FALSE, threshold = NULL, plot = TRUE, ...
         dplyr::mutate(pos = as.numeric(.data$pos))
       if (NROW(hapVar) > 0) {
         bases <- apply(hapVar, 1, function(var) {
-          # var <- hapVar[11,]
+          # var <- hapVar[1,]
           base <- as.character(seq[as.numeric(var[["pos"]])])
           # DECIPHER::BrowseSeqs(Biostrings::DNAStringSet(seq))
           if (grepl(var[["refLR"]], CODE_MAP()[base])) {
@@ -642,6 +641,57 @@ remapAndReport <- function(x, report = FALSE, threshold = NULL, plot = TRUE, ...
       }, ambigPos = ambigPos))
     }
   }
+  ## Check long isertions
+  insPosVars <- dplyr::bind_rows(lapply(hptypes, function(hp, x) {
+    bamRel <- x$remap$LR[[hp]]$bampath
+    if (is.null(bamRel)) {
+      return(tibble::tibble(
+        haplotype = NA_character_,
+        pos = NA_character_,
+        ref = NA_character_,
+        alt = NA_character_,
+        warning = NA_character_,
+        refSR = NA_character_,
+        altSR = NA_character_,
+        refLR = NA_character_,
+        altLR = NA_character_,
+        supportSR = NA_character_,
+        supportLR = NA_character_
+      ))
+    }
+    bamfile <- x$absPath(x$remap$LR[[hp]]$bampath)
+    len <- Biostrings::width(Biostrings::readDNAStringSet(
+      x$absPath(x$remap$LR[[hp]]$refpath)))
+    winLen = 50
+    starts <- seq(1, len - winLen, winLen)
+    param <- ScanBamParam(what=c("rname", "pos", "cigar"))
+    bam <- scanBam(bamfile, param=param)[[1]]
+    qr <- GenomicAlignments::cigarRangesAlongQuerySpace(
+      bam$cigar, ops = "I")
+    rr <- GenomicAlignments::cigarRangesAlongReferenceSpace(
+      bam$cigar, ops = "I")
+    width(rr) <- width(qr)
+    slidingIfrac <- vapply(starts, function(start, rr) {
+      median(sum(width(rr[start(rr) %in% (start:(start + win))]))/win)
+    }, numeric(1), rr = rr)
+    # plot(slidingIfrac)
+    # any(slidingIfrac > 0.10)
+    tibble::tibble(
+      haplotype = hp,
+      pos = starts[which(slidingIfrac > 0.1)] + winLen,
+      ref = NA_character_,
+      alt = NA_character_,
+      warning = "Potential long insertion in long reads",
+      refSR = NA_character_,
+      altSR = NA_character_,
+      refLR = NA_character_,
+      altLR = NA_character_,
+      supportSR = NA_character_,
+      supportLR = NA_character_
+      )
+  }, x = x))
+  vars <- dplyr::bind_rows(vars, insPosVars)
+  
   ## Check homopolymer count; Only check if the count is found in both
   if (checkHpCount & x$hasShortreads()) {
     x <- checkHomopolymerCount(x, hpCount = hpCount)
