@@ -567,7 +567,7 @@ remapAndReport <- function(x, report = FALSE, threshold = NULL, plot = TRUE, ...
   ## positions 400 to 1,500 to the major base, if the longreads show no 
   ## variation and the base is supported with at least 90%.
   if (x$getLocus() %in% c(paste0("KIR", KIR_LOCI()), "MICB")) {
-    polished <- lapply(hptypes, function(hap, seqs, vars, report) {
+    polished <- lapply(hptypes, function(hptype, seq, vars, report) {
       # hap <- paste0("hap", hptype)
       seq <- if (report) {
         x$consensus$seq[[hptype]]
@@ -611,10 +611,10 @@ remapAndReport <- function(x, report = FALSE, threshold = NULL, plot = TRUE, ...
       } else {
         return(list(seq = seq, rmVariants = hapVar))
       }
-    }, vars = vars, seqs = seqs, report = report)
+    }, vars = vars, seq = seq, report = report)
     polished <- purrr::transpose(polished)
     polishedSeqs <- Biostrings::DNAStringSet(polished$seq)
-    names(polishedSeqs) <- names(seqs)
+    names(polishedSeqs) <- paste0("hap", hptypes)
     x$consensus$seq <- polishedSeqs
     vars <- dplyr::setdiff(vars, dplyr::bind_rows(polished$rmVariants))
   }
@@ -664,16 +664,16 @@ remapAndReport <- function(x, report = FALSE, threshold = NULL, plot = TRUE, ...
       x$absPath(x$remap$LR[[hp]]$refpath)))
     winLen = 50
     starts <- seq(1, len - winLen, winLen)
-    param <- ScanBamParam(what=c("rname", "pos", "cigar"))
-    bam <- scanBam(bamfile, param=param)[[1]]
+    param <- Rsamtools::ScanBamParam(what=c("rname", "pos", "cigar"))
+    bam <- Rsamtools::scanBam(bamfile, param=param)[[1]]
     qr <- GenomicAlignments::cigarRangesAlongQuerySpace(
       bam$cigar, ops = "I")
     rr <- GenomicAlignments::cigarRangesAlongReferenceSpace(
       bam$cigar, ops = "I")
-    width(rr) <- width(qr)
-    slidingIfrac <- vapply(starts, function(start, rr) {
-      median(sum(width(rr[start(rr) %in% (start:(start + win))]))/win)
-    }, numeric(1), rr = rr)
+    IRanges::width(rr) <- IRanges::width(qr)
+    slidingIfrac <- vapply(starts, function(start, rr, winLen) {
+      median(sum(IRanges::width(rr[Biostrings::match(IRanges::start(rr), (start:(start + winLen)), nomatch = 0) > 0 ]))/winLen)
+    }, numeric(1), rr = rr, winLen = winLen)
     # plot(slidingIfrac)
     # any(slidingIfrac > 0.10)
     tibble::tibble(
