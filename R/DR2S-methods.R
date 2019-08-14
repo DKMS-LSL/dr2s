@@ -880,9 +880,8 @@ DR2S_$set("public", "runMapFinal", function(opts = list(), ...) {
     flog.info("%sConstruct consensus <%s>", indent(), names(conspath), name = "info")
     threshold <- max(self$getThreshold(), 0.3)
     conseq <- .writeConseq(x = pileup, name = consname, type = "ambig",
-                           threshold = threshold, suppressAllGaps = FALSE,
-                           replaceIndel = "", conspath = conspath,
-                           gapThreshold = threshold)
+                           threshold = threshold, suppressAllGaps = TRUE,
+                           replaceIndel = "", conspath = conspath)
     ## Initialize mapFinal LR MapList
     self$mapFinal$LR[[hp]] = MapList_(
       ## mapdata
@@ -933,8 +932,7 @@ DR2S_$set("public", "runMapFinal", function(opts = list(), ...) {
       threshold <- max(self$getThreshold(), 0.3)
       conseq <- .writeConseq(x = pileup, name = consname, type = "ambig",
                              threshold = threshold, suppressAllGaps = FALSE,
-                             replaceIndel = "", conspath = conspath, 
-                             gapThreshold = 1.5 * threshold)
+                             replaceIndel = "", conspath = conspath)
       ## Initialize mapFinal SR MapList
       self$mapFinal$SR[[hp]] = MapList_(
         ## mapdata
