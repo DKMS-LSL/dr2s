@@ -652,7 +652,8 @@ DR2S_$set("public", "runMapIter", function(opts = list(), ...) {
       conseq <- .writeConseq(x = pileup, name = consname, type = "prob",
                              threshold = NULL, suppressAllGaps = FALSE,
                              suppressInsGaps = TRUE, columnOccupancy = columnOccupancy,
-                             replaceIndel = "", conspath = conspath)
+                             gapThreshold = mapper$getThreshold(), replaceIndel = "", 
+                             conspath = conspath)
 
       ## Initialize mapIter MapList
       self$mapIter[[iterationC]][[hptype]] = MapList_(
@@ -879,8 +880,9 @@ DR2S_$set("public", "runMapFinal", function(opts = list(), ...) {
     flog.info("%sConstruct consensus <%s>", indent(), names(conspath), name = "info")
     threshold <- max(self$getThreshold(), 0.3)
     conseq <- .writeConseq(x = pileup, name = consname, type = "ambig",
-                           threshold = threshold, suppressAllGaps = TRUE,
-                           replaceIndel = "", conspath = conspath)
+                           threshold = threshold, suppressAllGaps = FALSE,
+                           replaceIndel = "", conspath = conspath,
+                           gapThreshold = threshold)
     ## Initialize mapFinal LR MapList
     self$mapFinal$LR[[hp]] = MapList_(
       ## mapdata
@@ -931,7 +933,8 @@ DR2S_$set("public", "runMapFinal", function(opts = list(), ...) {
       threshold <- max(self$getThreshold(), 0.3)
       conseq <- .writeConseq(x = pileup, name = consname, type = "ambig",
                              threshold = threshold, suppressAllGaps = FALSE,
-                             replaceIndel = "", conspath = conspath)
+                             replaceIndel = "", conspath = conspath, 
+                             gapThreshold = 1.5 * threshold)
       ## Initialize mapFinal SR MapList
       self$mapFinal$SR[[hp]] = MapList_(
         ## mapdata

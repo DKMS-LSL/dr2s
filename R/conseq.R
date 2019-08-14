@@ -82,7 +82,9 @@ conseq.matrix <- function(x,
                                  gapThreshold    = gapThreshold,
                                  columnOccupancy = columnOccupancy,
                                  ...),
-    ambig  = .makeAmbigConsensus_(x, threshold, suppressAllGaps, ...),
+    ambig  = .makeAmbigConsensus_(x, threshold, suppressAllGaps,
+                                  gapThreshold   = gapThreshold,
+                                  ...),
     simple = .makeSimpleConsensus_(x)
   )
   names(conseq) <- name
@@ -171,6 +173,9 @@ conseq.matrix <- function(x,
 .makeAmbigConsensus_ <- function(x,
                                  threshold,
                                  suppressAllGaps = FALSE,
+                                 suppressInsGaps = TRUE,
+                                 gapThreshold = NULL,
+                                 columnOccupancy = 0.4,
                                  asString = FALSE,
                                  ...) {
   ## always suppress insertions for consensus call!
@@ -182,18 +187,46 @@ conseq.matrix <- function(x,
   ## suppress all deletions
   if (suppressAllGaps) {
     x[, "-"] <- 0
+  }  else { ## or suppress deletions specifically at insertion positions or below threshold
+    if (suppressInsGaps && length(ins_ <- as.character(ins(x))) > 0) {
+      x <- .suppressGaps_(x, ins = ins_, columnOccupancy = columnOccupancy)
+    }
+    if (!is.null(gapThreshold)) {
+     x[(x[, "-"] / rowSums(x) < (1 - gapThreshold)),"-"] <- 0
+    }
   }
-  ## Filter all bases with a frequency > threshold
+  ## never allow gaps at the beginning and end of a sequence
+  if (!suppressAllGaps) {
+    maxbases <- colnames(x)[apply(x, 1, which.max)]
+    maxbase  <- which(maxbases != "-")
+    maxgap   <- which(maxbases == "-")
+    if (length(maxgap) > 0) {
+      if (min(maxgap) < min(maxbase)) {
+        excludeFromStart <- min(
+          which(maxbases == "-")):(min(which(maxbases != "-")) - 1)
+        x[excludeFromStart, "-"] <- 0
+      }
+      if (max(maxgap) > max(maxbase)) {
+        excludeFromEnd <- (max(
+          which(maxbases != "-")) + 1):max(which(maxbases == "-"))
+        x[excludeFromEnd, "-"] <- 0
+      }
+    }
+  }
+  # ## suppress all deletions
+  # if (suppressAllGaps) {
+  #   x[, "-"] <- 0
+  # }
+  # ## Filter all bases with a frequency > threshold
   cmf <- consmat(x, freq = TRUE)
-  
-  ## Take a higher threshold for gaps. Everything with more than 1.5 * threshold
-  ## is probably not present
-  #cmf[11,]
-  #x[11,]
-  
-  cmf[cmf[,"-"] > 1 - (1.5 * threshold), VALID_DNA("none")] <- 0
-  # sum(cmf[,"-"] > 1 - (1.5 * threshold)
-      
+  # 
+  # ## Take a higher threshold for gaps. Everything with more than 1.5 * threshold
+  # ## is probably not present
+  # #cmf[11,]
+  # #x[11,]
+  # 
+  # cmf[cmf[,"-"] > 1 - threshold, VALID_DNA("none")] <- 0
+  #     
   baselist <- apply(cmf, 1, function(m) {
     rs <- m[i <- m > threshold]
     names(rs) <- names(m)[i]
@@ -271,9 +304,9 @@ conseq.matrix <- function(x,
 }
 
 .writeConseq <- function(x, name, type, threshold = NULL, suppressAllGaps = TRUE,
-                         replaceIndel = "", conspath, ...) {
+                         replaceIndel = "", conspath, gapThreshold = NULL, ...) {
   conseq0 <- conseq(consmat(x, freq = FALSE), name = name, type = type,
-                   threshold = threshold, suppressAllGaps = suppressAllGaps, ...)
+                   threshold = threshold, suppressAllGaps = suppressAllGaps, gapThreshold = gapThreshold, ...)
   conseq1 <- Biostrings::DNAStringSet(stripIndel(conseq0, replace = replaceIndel))
   Biostrings::writeXStringSet(conseq1, conspath, append = FALSE, compress = FALSE)
   return(invisible(conseq1))
