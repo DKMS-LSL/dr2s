@@ -31,7 +31,7 @@
     compact(.walkVariants(envir))
   }, x = x, threshold = threshold)
   names(variants) <- x$getHapTypes()
-  na.omit(dplyr::arrange(.getVariants(variants), as.numeric(.data$pos), .data$haplotype))
+  dplyr::arrange(.getVariants(variants), as.numeric(.data$pos), .data$haplotype)
 }
 
 .walkVariants <- function(envir) {
