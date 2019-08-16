@@ -570,7 +570,7 @@ remapAndReport <- function(x, report = FALSE, threshold = NULL, plot = TRUE, ...
     polished <- lapply(hptypes, function(hptype, seq, vars, report) {
       # hap <- paste0("hap", hptype)
       seq <- if (report) {
-        x$consensus$seq[[hptype]]
+        x$consensus$seq[[paste0("hap", hptype)]]
       } else {
         unlist(Biostrings::readDNAStringSet(.getUpdatedSeqs(x, hptype)))
       }
