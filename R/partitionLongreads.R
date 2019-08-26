@@ -193,6 +193,7 @@ partitionReads <- function(x, distAlleles = 2, selectAllelesBy = "count", thresh
   ## Perform a hierarchical clustering
   hcc <-  stats::hclust(dist, method = clMethod)
 
+  # clusts <- cutree(hcc, k = 3)
   ## do a dynamic cut. Need to be evaluated
   clusts <- dynamicTreeCut::cutreeHybrid(hcc,
                                          minClusterSize = minClusterSize,

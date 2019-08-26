@@ -265,7 +265,8 @@ conseq.matrix <- function(x,
   }
   ambigs <- x[which(!bases %in% DNA_BASES()), ]
   attr(ambigs, "ambiguities") <- unname(bases[which(!bases %in% DNA_BASES())])
-  dels <- bases == "-"
+  bases <- c("A", "b", "A", "A", "-", "C")
+  dels <- unlist(gregexpr("[a-z]", bases)) > 0
   seq  <- Biostrings::BStringSet(paste0(bases[!dels], collapse = ""))
 
   S4Vectors::metadata(seq) <- list(

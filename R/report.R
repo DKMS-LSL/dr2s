@@ -219,7 +219,7 @@ remapAlignment <- function(x, hptype, report = FALSE, createIgv = TRUE,
       gapThreshold <- 1.5 * threshold
     } else {
       cmat <- x$mapFinal$LR[[hptype]]$pileup$consmat 
-      gapThreshold <- threshold
+      gapThreshold <- 1.5 * threshold
     }
     seq <- conseq(cmat, "hap" %<<% hptype, type = "prob", suppressAllGaps = FALSE,
                   gapThreshold = gapThreshold)
