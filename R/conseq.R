@@ -119,7 +119,15 @@ conseq.matrix <- function(x,
       x <- .suppressGaps_(x, ins = ins_, columnOccupancy = columnOccupancy)
     }
     if (!is.null(gapThreshold)) {
-     x[(x[, "-"] / rowSums(x) < (1 - gapThreshold)),"-"] <- 0
+      x[(x[, "-"] / rowSums(x) < (1 - gapThreshold)),"-"] <- 0
+      ## Use a lower threshold for gaps inside homopolymers
+      seqrle <- rle(VALID_DNA(include = "none")[apply(x[,VALID_DNA(include = "none")], 1, which.max)])
+      n <- which(seqrle$lengths > 3)
+      end <- cumsum(seqrle$lengths)
+      start <- c(0, end)
+      hps <- unlist(lapply(n, function(pos) (start[pos]+1):end[pos]))
+      hpGaps <- hps[x[hps, "-"] / rowSums(x[hps,]) < (1 - 0.67 * gapThreshold)]
+      x[hpGaps,"-"] <- 0
     }
   }
   ## never allow gaps at the beginning and end of a sequence
@@ -187,12 +195,20 @@ conseq.matrix <- function(x,
   ## suppress all deletions
   if (suppressAllGaps) {
     x[, "-"] <- 0
-  }  else { ## or suppress deletions specifically at insertion positions or below threshold
+  } else { ## or suppress deletions specifically at insertion positions or below threshold
     if (suppressInsGaps && length(ins_ <- as.character(ins(x))) > 0) {
       x <- .suppressGaps_(x, ins = ins_, columnOccupancy = columnOccupancy)
     }
     if (!is.null(gapThreshold)) {
-     x[(x[, "-"] / rowSums(x) < (1 - gapThreshold)),"-"] <- 0
+      x[(x[, "-"] / rowSums(x) < (1 - gapThreshold)),"-"] <- 0
+      ## Use a lower threshold for gaps inside homopolymers
+      seqrle <- rle(VALID_DNA(include = "none")[apply(x[,VALID_DNA(include = "none")], 1, which.max)])
+      n <- which(seqrle$lengths > 3)
+      end <- cumsum(seqrle$lengths)
+      start <- c(0, end)
+      hps <- unlist(lapply(n, function(pos) (start[pos]+1):end[pos]))
+      hpGaps <- hps[x[hps, "-"] / rowSums(x[hps,]) < (1 - 0.67 * gapThreshold)]
+      x[hpGaps,"-"] <- 0
     }
   }
   ## never allow gaps at the beginning and end of a sequence

@@ -850,6 +850,7 @@ DR2S_$set("public", "runMapFinal", function(opts = list(), ...) {
   ## hp = "A"
   ## hp = "B"
   for (hp in hptypes) {
+      # unlist(conseq)[3157:3167]
     flog.info("%sFor haplotype <%s>", indent(), hp, name = "info" )
     reffile <- reffiles[[hp]]
     ##
@@ -882,8 +883,6 @@ DR2S_$set("public", "runMapFinal", function(opts = list(), ...) {
     conseq <- .writeConseq(x = pileup, name = consname, type = "ambig",
                            threshold = threshold, suppressAllGaps = FALSE,
                            replaceIndel = "", conspath = conspath, gapThreshold = 1.5 * threshold)
-    # unlist(conseq)[3159:3169]
-    # Biostrings::matchPattern("TTTTTT", unlist(conseq))
     ## Initialize mapFinal LR MapList
     self$mapFinal$LR[[hp]] = MapList_(
       ## mapdata
