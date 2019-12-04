@@ -353,7 +353,7 @@ checkHomopolymerCount <- function(x, hpCount = 10) {
       dplyr::summarise(mode = .getModeValue(length)) %>% 
       dplyr::ungroup()
     x$consensus$homopolymers[[hp]] <- modes
-    cl <- x$srpartition$A$srpartition$haplotypes$read
+    cl <- dplyr::pull(x$srpartition$A$srpartition$haplotypes, read)
     homopolymersHP$clustered <- homopolymersHP$read %in% cl
     max(homopolymersHP$length)
     plots <- ggplot(data = homopolymersHP) +

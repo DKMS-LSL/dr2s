@@ -132,7 +132,8 @@ scoreHighestSR <- function(srpartition, diffThreshold = 0.001, ...) {
     sr2 <- dplyr::bind_rows(sr2, srtmp[pos %in% names(which(correctScoring))])
     diffThreshold <- 1.2*diffThreshold
   }
-  dtplyr::tbl_dt(sr2)
+  dtplyr::lazy_dt(sr2)
+  # sr2
 }
 
 .writePartFq <- function(fq, fqPart, dontUse = NULL, doUse = NULL, ...) {

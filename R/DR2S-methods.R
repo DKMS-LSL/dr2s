@@ -765,7 +765,9 @@ DR2S_$set("public", "runPartitionShortreads", function(opts = list(), ...) {
     srfilenames <- c()
     flog.info("%sWrite shortread fastq for haplotype <%s>", indent2(), hp, name = "info")
     fqs <- self$getShortreads()
-    dontUse <- dplyr::filter(srpartition$haplotypes, haplotype != hp)$read
+    dontUse <- srpartition$haplotype %>%
+      dplyr::filter( haplotype != !!hp) %>%
+      dplyr::pull(read)
     # fq <- fqs[1]
     foreach(fq = fqs) %do% {
       fqPart <- self$absPath(
@@ -919,7 +921,7 @@ DR2S_$set("public", "runMapFinal", function(opts = list(), ...) {
         indent = incr(indent), min_nucleotide_depth = 0, ...)
       ## Create igv
       if (createIgv) {
-        clusteredReads <- self$srpartition$A$srpartition$haplotypes$read
+        clusteredReads <- dplyr::pull(self$srpartition$A$srpartition$haplotypes, read)
         igv <- createIgvJsFiles(
           reference = refpath(pileup), bamfile = bampath(pileup),
           outdir = self$getOutdir(), paired = TRUE, 

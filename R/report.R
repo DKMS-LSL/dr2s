@@ -280,7 +280,7 @@ remapAlignment <- function(x, hptype, report = FALSE, createIgv = TRUE,
       includeInsertions = TRUE, callInsertions = FALSE, clip = TRUE, indent = incr(indent))
 
     if (createIgv) {
-      clusteredReads <- x$srpartition$A$srpartition$haplotypes$read
+      clusteredReads <- dplyr::pull(x$srpartition$A$srpartition$haplotypes, read)
       igv <- createIgvJsFiles(
         refpath(pileup), bampath(pileup), x$getOutdir(), sampleSize = 100,
         clusteredReads = clusteredReads)
@@ -591,16 +591,16 @@ remapAndReport <- function(x, report = FALSE, threshold = NULL, plot = TRUE, ...
       if (NROW(hapVar) > 0) {
         bases <- apply(hapVar, 1, function(var) {
           # var <- hapVar[1,]
-          base <- as.character(seq[as.numeric(var[["pos"]])])
+          seqBase <- as.character(seq[as.numeric(var[["pos"]])])
           # DECIPHER::BrowseSeqs(Biostrings::DNAStringSet(seq))
-          if (grepl(var[["refLR"]], CODE_MAP()[base])) {
+          if (grepl(var[["refLR"]], CODE_MAP()[seqBase])) {
             return(var[["refLR"]])
           }
-          flog.info("Polishing base at %s is not possible. The base should include %s,
-               but is %s", var[["pos"]], var[["refLR"]], base, name = "info")
-          stop(sprintf("Polishing base at %s is not possible. The base should include %s,
-               but is %s", var[["pos"]], var[["refLR"]], base))
-          return(NA_character_ )
+          flog.warn("Polishing base at %s is not possible. The base should include %s,
+               but is %s", var[["pos"]], var[["refLR"]], seqBase, name = "info")
+          warning(sprintf("Polishing base at %s is not possible. The base should include %s,
+               but is %s", var[["pos"]], var[["refLR"]], seqBase))
+          return(NA_character_)
         })
         
         positions <- hapVar$pos[!is.na(bases)]
