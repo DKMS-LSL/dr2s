@@ -42,19 +42,19 @@ report.DR2S <- function(x, whichMap = NULL, threshold = NULL, ...) {
    } else stop("Nothing to report")
   }
   map <- match.arg(tolower(map), c("mapfinal", "mapiter"))
-  
+
   ## Initiate indenter
   indent <- indentation(1)
   ## write latest consensus sequence to consensus accessor
   seqs <- x$getLatestRef()
   names(seqs) <- "hap" %<<% x$getHapTypes()
   x$consensus$seq <- seqs
-  
+
   threshold <- max(x$getThreshold(), 0.3)
   if (remap) {
     x <- remapAndReport(x, report = TRUE, threshold = threshold)
-  } 
-  
+  }
+
   writeReportFiles(x = x, map = map, blockWidth = blockWidth, outdir = outdir)
   cache(x)
   invisible(x)
@@ -115,7 +115,7 @@ reportCheckedConsensus <- function(x, map = "mapFinal") {
 
   ## Export FASTA
   files <- vapply(seq_along(seqs), function(sq, seqs, x) {
-    file <- dot(c(x$getSampleId(), x$getLocus(), names(seqs[sq]), 
+    file <- dot(c(x$getSampleId(), x$getLocus(), names(seqs[sq]),
                   x$getLrdType(), x$getLrdMapper(), "fa"))
     seq <- seqs[sq]
     seqname <- paste(x$getSampleId(), sub("^hap", "", names(seq)), sep = "_")
@@ -190,7 +190,7 @@ checkAlignmentFile <- function(x, map = "mapFinal", where = 0,
 #' @return Creates an executable bash file for inspecting the mapping with IGV
 #' @family DR2S mapper functions
 #' @export
-remapAlignment <- function(x, hptype, report = FALSE, createIgv = TRUE, 
+remapAlignment <- function(x, hptype, report = FALSE, createIgv = TRUE,
                            threshold = NULL, ...) {
   # hptype <- "A"
   indent <- list(...)$indent %||% indentation()
@@ -206,19 +206,19 @@ remapAlignment <- function(x, hptype, report = FALSE, createIgv = TRUE,
   outdir <- .dirCreateIfNotExists(x$absPath(reftag))
   if (length(x$getHapTypes()) == 1) {
     readpathLR  <- x$getLongreads()
-    if (x$hasShortreads()) 
+    if (x$hasShortreads())
       readpathSR <- x$getShortreads()
   } else {
     readpathLR <- x$absPath(readpath(x$mapFinal$LR[[hptype]]))
-    if (x$hasShortreads()) 
+    if (x$hasShortreads())
       readpathSR <- x$absPath(readpath(x$mapFinal$SR[[hptype]]))
   }
   refpath <- if (report) {
     if (x$hasShortreads()) {
-      cmat <- x$mapFinal$SR[[hptype]]$pileup$consmat 
+      cmat <- x$mapFinal$SR[[hptype]]$pileup$consmat
       gapThreshold <- 1.5 * threshold
     } else {
-      cmat <- x$mapFinal$LR[[hptype]]$pileup$consmat 
+      cmat <- x$mapFinal$LR[[hptype]]$pileup$consmat
       gapThreshold <- 1.5 * threshold
     }
     seq <- conseq(cmat, "hap" %<<% hptype, type = "prob", suppressAllGaps = FALSE,
@@ -231,9 +231,9 @@ remapAlignment <- function(x, hptype, report = FALSE, createIgv = TRUE,
     seqPath
   } else {
     .getUpdatedSeqs(x, hptype)
-  } 
+  }
   if (!is.null(attr(refpath, "updated")) & !is.null(x$remap)) {
-    flog.info("%sReference of %s is not changed. Keep old mapping", indent(), 
+    flog.info("%sReference of %s is not changed. Keep old mapping", indent(),
               hptype, name = "info")
     return(list(LR = x$remap$LR[[hptype]],
                 SR = x$remap$SR[[hptype]]))
@@ -246,13 +246,13 @@ remapAlignment <- function(x, hptype, report = FALSE, createIgv = TRUE,
     refname = mapgroupLR, readfile = readpathLR, readtype = x$getLrdType(),
     opts = opts, outdir = outdir, clean = TRUE, force = TRUE, includeDeletions = TRUE,
     includeInsertions = TRUE, callInsertions = FALSE, indent = incr(indent))
-  
+
   if (createIgv) {
     igv <- createIgvJsFiles(
       refpath(pileup), bampath(pileup), x$getOutdir(), sampleSize = 100,
       fragmentReads = TRUE)
   }
-  
+
   mappings$LR  <- MapList_(
         ## mapdata
         readpath  = x$relPath(readpathLR),
@@ -280,11 +280,16 @@ remapAlignment <- function(x, hptype, report = FALSE, createIgv = TRUE,
       includeInsertions = TRUE, callInsertions = FALSE, clip = TRUE, indent = incr(indent))
 
     if (createIgv) {
-      clusteredReads <- dplyr::pull(x$srpartition$A$srpartition$haplotypes, read)
+      if (!x$getHomozygous()) {
+        clusteredReads <- dplyr::pull(x$srpartition$A$srpartition$haplotypes, read)
+      } else {
+        clusteredReads <- NULL
+      }
       igv <- createIgvJsFiles(
         refpath(pileup), bampath(pileup), x$getOutdir(), sampleSize = 100,
         clusteredReads = clusteredReads)
     }
+
     mappings$SR <- MapList_(
       ## mapdata
       readpath  = x$relPath(readpathSR),
@@ -302,8 +307,8 @@ remapAlignment <- function(x, hptype, report = FALSE, createIgv = TRUE,
       igv       = igv
     )
   }
-  
-  
+
+
   invisible(mappings)
 }
 
@@ -328,8 +333,8 @@ remapAlignment <- function(x, hptype, report = FALSE, createIgv = TRUE,
   if (!file.exists(pairfileChecked))
     stop("check out the alignment first!")
   rs <- readPairFile(pairfileChecked)
-  
-  
+
+
   seqs <- Biostrings::DNAStringSet(
     lapply(rs, function(s) Biostrings::DNAString(stripIndel(s))))
 
@@ -365,7 +370,7 @@ readPairFile <- function(pairfile) {
   } else if (endsWith(pairfile, "msa")) {
     hap <- readMSA(pairfile)
   }
-  
+
   ## Check for ambiguous positions in sequence
   ambigPositions <- .getAmbigPositions(hap)
   if (length(ambigPositions) > 0) {
@@ -509,7 +514,7 @@ writeMSA <- function(aln, file="", block.width = 50){
 
 #' @export
 remapAndReport <- function(x, report = FALSE, threshold = NULL, plot = TRUE, ...) {
-  if (is.null(threshold)) 
+  if (is.null(threshold))
     threshold <- max(0.3, x$getThreshold())
   dots   <- list(...)
   indent <- dots$indent %||% indentation()
@@ -527,18 +532,18 @@ remapAndReport <- function(x, report = FALSE, threshold = NULL, plot = TRUE, ...
     is.logical(report)
   )
   flog.info("%sRemapping final sequences", indent(), name = "info")
-  
+
   bpparam <- BiocParallel::MulticoreParam(workers = .getIdleCores())
-  mappings <- BiocParallel::bplapply(x$getHapTypes(), function(h, x, report, 
+  mappings <- BiocParallel::bplapply(x$getHapTypes(), function(h, x, report,
                                                                createIgv,threshold) {
     remapAlignment(x, h, report = report, createIgv = createIgv, threshold)
    }, x = x, report = report, createIgv = createIgv, threshold = threshold, BPPARAM = bpparam)
   names(mappings) <- x$getHapTypes()
   x$remap <- purrr::transpose(mappings)
-  hptypes   <- x$getHapTypes()
+  hptypes <- x$getHapTypes()
   if (plot && !is.null(x$plotRemapSummary)) {
     flog.info("%sPlot remap summary", indent(), name = "info")
-    
+
     ## Coverage and base frequency
     readtypes <- if (x$hasShortreads()) c("LR", "SR") else "LR"
     plotRows  <- if (x$hasShortreads()) 2 else 1
@@ -554,17 +559,17 @@ remapAndReport <- function(x, report = FALSE, threshold = NULL, plot = TRUE, ...
     cowplot::save_plot(p, filename = x$absPath(".plots/plot.remap.svg"),
                        base_width = 6*plotRows*length(hptypes),
                        base_height = 6/plotRows*length(readtypes))
-    
-    
+
+
   }
-  
+
   ## Do what polish did
   flog.info("%sReport variants", indent(), name = "info")
   vars <- .callVariants(x, threshold)
   ## Polish the reference. This is necessary for Intron 2 of KIR genes and the
   ## beginning of MICB, because
-  ## shortreads are not well mapped. Thus set each base of the reference at 
-  ## positions 400 to 1,500 to the major base, if the longreads show no 
+  ## shortreads are not well mapped. Thus set each base of the reference at
+  ## positions 400 to 1,500 to the major base, if the longreads show no
   ## variation and the base is supported with at least 90%.
   if (x$getLocus() %in% c(paste0("KIR", KIR_LOCI()), "MICB")) {
     polished <- lapply(hptypes, function(hptype, seq, vars, report) {
@@ -576,15 +581,15 @@ remapAndReport <- function(x, report = FALSE, threshold = NULL, plot = TRUE, ...
       }
       polishRange <- POLISH_RANGE(x$getLocus())
       ## filter variants of the allele of interest
-      ## Use only haplotypes in the polishRange range, no gap variants and LR 
+      ## Use only haplotypes in the polishRange range, no gap variants and LR
       ## support > 80%
-      hapVar <- dplyr::filter(vars, 
-                              .data$haplotype == hptype, 
+      hapVar <- dplyr::filter(vars,
+                              .data$haplotype == hptype,
                               grepl("Ambiguous position in short reads", .data$warning),
                               .data$pos %in% polishRange,
-                              .data$refSR != "-", 
-                              .data$altSR != "-", 
-                              .data$refLR != "-", 
+                              .data$refSR != "-",
+                              .data$altSR != "-",
+                              .data$refLR != "-",
                               .data$altLR != "-",
                               .data$supportLR > 0.80)  %>%
         dplyr::mutate(pos = as.numeric(.data$pos))
@@ -602,7 +607,7 @@ remapAndReport <- function(x, report = FALSE, threshold = NULL, plot = TRUE, ...
                but is %s", var[["pos"]], var[["refLR"]], seqBase))
           return(NA_character_)
         })
-        
+
         positions <- hapVar$pos[!is.na(bases)]
         if (report) {
           seq <- Biostrings::replaceLetterAt(seq, at = positions, na.omit(bases))
@@ -631,8 +636,8 @@ remapAndReport <- function(x, report = FALSE, threshold = NULL, plot = TRUE, ...
           pos = IRanges::start(pos),
           ref = "",
           alt = "",
-          warning = paste0("Ambiguous position ",  ambigLetter, 
-                           " in consensus | Decide for ", 
+          warning = paste0("Ambiguous position ",  ambigLetter,
+                           " in consensus | Decide for ",
                            paste(strsplit1(CODE_MAP()[ambigLetter], ""), collapse = " or ")),
           refSR = "",
           altSR = "",
@@ -641,7 +646,7 @@ remapAndReport <- function(x, report = FALSE, threshold = NULL, plot = TRUE, ...
       }, ambigPos = ambigPos))
     }
   }
-  ## Check long isertions
+  ## Check long insertions
   insPosVars <- dplyr::bind_rows(lapply(hptypes, function(hp, x) {
     bamRel <- x$remap$LR[[hp]]$bampath
     if (is.null(bamRel)) {
@@ -691,7 +696,7 @@ remapAndReport <- function(x, report = FALSE, threshold = NULL, plot = TRUE, ...
       )
   }, x = x))
   vars <- dplyr::bind_rows(vars, insPosVars)
-  
+
   ## Check homopolymer count; Only check if the count is found in both
   if (checkHpCount & x$hasShortreads()) {
     x <- checkHomopolymerCount(x, hpCount = hpCount)
@@ -741,7 +746,7 @@ writeReportFiles <- function(x, map, blockWidth, outdir) {
     readtype <- x$getLrdType()
     mapper <-  x$getLrdMapper()
   }
-  
+
   ## Write html alignment file
   alnFile <- dot(c(map, "aln", readtype, mapper, "unchecked"))
   # get all seqs as stringset

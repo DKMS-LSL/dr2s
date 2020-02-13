@@ -4,8 +4,12 @@
 \alias{plotPileupBasecallFrequency}
 \title{Plot basecall frequency}
 \usage{
-plotPileupBasecallFrequency(x, threshold = 0.2, label = "",
-  drop.indels = FALSE)
+plotPileupBasecallFrequency(
+  x,
+  threshold = 0.2,
+  label = "",
+  drop.indels = FALSE
+)
 }
 \arguments{
 \item{x}{A \code{pileup} object.}

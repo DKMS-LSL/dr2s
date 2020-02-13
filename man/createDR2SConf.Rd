@@ -4,10 +4,18 @@
 \alias{createDR2SConf}
 \title{Create a \code{\link[=DR2S_]{DR2S}} configuration object.}
 \usage{
-createDR2SConf(sample, locus, longreads = list(dir = "pacbio", type =
-  "pacbio", mapper = "minimap"), shortreads = NULL, datadir = ".",
-  outdir = "./output", reference = NULL, details = NULL,
-  opts = NULL, ...)
+createDR2SConf(
+  sample,
+  locus,
+  longreads = list(dir = "pacbio", type = "pacbio", mapper = "minimap"),
+  shortreads = NULL,
+  datadir = ".",
+  outdir = "./output",
+  reference = NULL,
+  details = NULL,
+  opts = NULL,
+  ...
+)
 }
 \arguments{
 \item{sample}{A unique sample identifier used to locate the long and short
@@ -88,12 +96,15 @@ x <- InitDR2S(createDR2SConf(
 }
 }
 \seealso{
-Other DR2S mapper functions: \code{\link{cache}},
-  \code{\link{clear}}, \code{\link{mapFinal}},
-  \code{\link{mapInit}}, \code{\link{mapIter}},
-  \code{\link{partitionLongreads}},
-  \code{\link{remapAlignment}},
-  \code{\link{reportCheckedConsensus}},
-  \code{\link{report}}
+Other DR2S mapper functions: 
+\code{\link{cache}()},
+\code{\link{clear}()},
+\code{\link{mapFinal}()},
+\code{\link{mapInit}()},
+\code{\link{mapIter}()},
+\code{\link{partitionLongreads}()},
+\code{\link{remapAlignment}()},
+\code{\link{reportCheckedConsensus}()},
+\code{\link{report}()}
 }
 \concept{DR2S mapper functions}

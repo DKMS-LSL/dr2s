@@ -37,12 +37,15 @@ x <- DR2Smap(
 }
 }
 \seealso{
-Other DR2S mapper functions: \code{\link{cache}},
-  \code{\link{clear}}, \code{\link{createDR2SConf}},
-  \code{\link{mapFinal}}, \code{\link{mapIter}},
-  \code{\link{partitionLongreads}},
-  \code{\link{remapAlignment}},
-  \code{\link{reportCheckedConsensus}},
-  \code{\link{report}}
+Other DR2S mapper functions: 
+\code{\link{cache}()},
+\code{\link{clear}()},
+\code{\link{createDR2SConf}()},
+\code{\link{mapFinal}()},
+\code{\link{mapIter}()},
+\code{\link{partitionLongreads}()},
+\code{\link{remapAlignment}()},
+\code{\link{reportCheckedConsensus}()},
+\code{\link{report}()}
 }
 \concept{DR2S mapper functions}

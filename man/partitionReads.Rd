@@ -4,9 +4,18 @@
 \alias{partitionReads}
 \title{Cluster a SNP matrix into haplotype groups}
 \usage{
-partitionReads(x, distAlleles = 2, selectAllelesBy = "count",
-  threshold = 0.2, clMethod = "ward.D", minLen = 0.5,
-  skipGapFreq = 2/3, deepSplit = 1, minClusterSize = 15, ...)
+partitionReads(
+  x,
+  distAlleles = 2,
+  selectAllelesBy = "count",
+  threshold = 0.2,
+  clMethod = "ward.D",
+  minLen = 0.5,
+  skipGapFreq = 0.8,
+  deepSplit = 1,
+  minClusterSize = 15,
+  ...
+)
 }
 \arguments{
 \item{x}{A \code{[read x position]} SNP matrix.}

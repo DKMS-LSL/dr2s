@@ -15,6 +15,7 @@ createDR2SConf <- function(sample,
   assert_that(
     !missing(sample) && is.character(sample),
     !missing(locus) && is.character(locus))
+  ##dots <- list(utrLength = list(DRB1 = list(start = 50, end = 50)), distAlleles = 1, format = "yaml")
   dots <- list(...)
   locus_allele <- strsplit1(locus, "*", fixed = TRUE)
   locus        <- .normaliseLocus(locus_allele[1])
@@ -36,8 +37,10 @@ createDR2SConf <- function(sample,
     opts       = normaliseOpts(opts, pipeline),
     format     = dots$format %||% "json"
   )
+  dots$format <- NULL
+  conf0 <- c(conf0, dots)
   conf1 <- structure(conf0, class = c("DR2Sconf", "list"))
-  normaliseDR2SConf(conf1)
+  normaliseDR2SConf(conf = conf1)
 }
 
 #' Read a DR2S config file in yaml or json format
@@ -105,10 +108,10 @@ readDR2SConf <- function(configFile, format = "auto") {
     conf$opts$mapIter$iterations <- conf$iterations
   ##
   conf$opts <- normaliseOpts(conf$opts, conf$pipeline)
-  
+
   if (!is.null(conf$utrLength))
     conf$utrLength <- .normaliseUtrLength(conf$utrLength)
-    
+
   if (is.null(conf$details))
     conf["details"] <- list(NULL)
   conf$runstats <- NULL
@@ -206,7 +209,7 @@ updateDR2SConf <- function(conf0, lrd, sampleId, sample) {
   conf0$locus        <- sample$locus
   conf0$outdir       <- normalizePath(.cropOutdir(conf0), mustWork = FALSE)
   ## Overwrite patition opts distAlleles with sample-specific if present
-  if (!is.null(sample$distAlleles)) 
+  if (!is.null(sample$distAlleles))
     conf0$opts$partitionLongreads$distAlleles <- sample$distAlleles
   sample$sampleId    <- NULL
   sample$reference   <- NULL
@@ -357,14 +360,13 @@ normaliseDR2SConf <- function(conf) {
   ## Normalise locus
   conf$locus <- .normaliseLocus(conf$locus)
   ## if reference is generic for locus normalize it as well.
-  if (conf$reference %in% HLA_LOCI()) 
+  if (conf$reference %in% HLA_LOCI())
     conf$reference <- .normaliseLocus(conf$reference)
-  
-  
-  ## Use only the relevant utrLength 
+
+  ## Use only the relevant utrLength
   if (!is.null(conf$utrLength)) {
     if (!all(names(conf$utrLength) %in% c("start", "end")))
-	    conf$utrLength       <- conf$utrLength[[conf$locus]]
+      conf$utrLength <- .normaliseUtrLength(conf$utrLength)[[conf$locus]]
   }
 
   ## Assert pipeline

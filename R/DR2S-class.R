@@ -22,55 +22,52 @@ clear.DR2S <- function(x, ...) {
 # Class: DR2S -------------------------------------------------------------
 
 
-#' Class \code{"DR2S"}
+#' R6 Class \code{"DR2S"}
 #'
-#' @docType class
-#' @usage InitDR2S(config, createOutdir = TRUE)
-#' @field InitDR2S Initialize DR2S from a config.
-#' @field mapInit \code{[MapList]}; the mapping of long reads to
-#' \code{reference}.
-#' @field partition \code{[PartList]}; the partitioning of full-length
-#'   mapped long reads into different haplotypes.
-#' @field mapIter \code{[MapList]}; the mapping of A and B reads to
-#' consensus sequences produced in the previous step.
-#' @field mapFinal \code{[MapList]}; the mapping of A, B, and short reads
-#' to consensus sequences produced in the previous step.
-#' @field remap \code{[MapList]}; the mapping of A, B, and short reads
-#' to consensus sequences produced in the previous step.
-#' @field consensus \code{[ConsList]}; final consensus sequences for A and
-#' B.
-#' @keywords data internal
-#' @return Object of \code{\link[R6]{R6Class}} representing a DR2S analysis.
-#' @section Public Methods:
-#' \describe{
-#' \item{\code{x$runMapInit( opts = list(), createIgv = TRUE, plot = TRUE, ...)}}{
-#' Run the inital mapping step (long reads against the reference allele)}
-#' \item{\code{x$runPartitionLongreadsplot = TRUE, ...)}}{
-#' Partition mapped longreads into haplotypes}
-#' \item{\code{x$runSplitLongreadsByHaplotype((plot = TRUE)}}{
-#' Partition mapped longreads into haplotypes}
-#' \item{\code{x$runExtractPartitionedLongreads()}}{
-#' Extract FASTQs for partitioned reads.
-#' }}
-#' @section Internals:
-#' \describe{
-#' \item{\code{x$new(conf, createOutdir = TRUE)}}{Initialise object of class
-#'  \code{DR2S}.}
-#' \item{x$getConfig(name = NULL}{Extract configuration}
-#' \item{x$setConfig(name, value}{Modify configuration}
-#' }
+#' @description An object representing a DR2S analysis.
+#'
 DR2S_ <- R6::R6Class(
   classname = "DR2S",
   public = list(
+    ##
     ## Public fields
-    mapInit     = list(), ## <MapList>;
-    lrpartition = list(), ## <PartList>;
-    mapIter     = list(), ## <MapList>;
-    srpartition = list(), ## <PartList>;
-    mapFinal    = list(), ## <MapList>;
-    remap       = list(), ## <MapList>;
-    consensus   = list(), ## <ConsList>;
+    ##
+    #' @field mapInit <MapList>; the initial mapping of long reads to
+    #' \code{reference}.
+    mapInit     = list(),
+
+    #' @field lrpartition <PartList>; the partitioning of full-length
+    #' mapped long reads into different haplotypes.
+    lrpartition = list(),
+
+    #' @field mapIter <MapList>; the mapping of A and B reads to
+    #' consensus sequences produced in the previous step.
+    mapIter     = list(),
+
+    #' @field srpartition <PartList>; the partitioning of mapped short reads
+    #' into different haplotypes.
+    srpartition = list(),
+
+    #' @field mapFinal <MapList>; the mapping of A, B, and short reads
+    #' to consensus sequences produced in the previous step.
+    mapFinal    = list(),
+
+    #' @field remap <MapList>; the mapping of A, B, and short reads
+    #' to consensus sequences produced in the previous step.
+    remap       = list(),
+
+    #' @field consensus <ConsList>; final consensus sequences for A and
+    #' B.
+    consensus   = list(),
+
+    ##
     ## Public functions
+    ##
+    #' @description Create a new DR2S object.
+    #' @param conf A DR2S configuration provided either by [createDR2SConf] or
+    #' read from file by [readDR2SConf].
+    #' @param createOutdir Set up the output directory.
+    #' @return A new DR2S object.
     initialize  = function(conf, createOutdir = TRUE) {
       private$conf = initialiseDR2S(conf, createOutdir = createOutdir)
       private$runstats = NULL
@@ -109,6 +106,10 @@ DR2S_ <- R6::R6Class(
       writeDR2SConf(self)
       flog.info("Creating DR2S Object", name = "info")
     },
+
+    #' @description Store a DR2S object as an rds file.
+    #' @param outname (optional) filename of the stored object.
+    #' @return Returns invisibly the DR2S object.
     cache = function(outname) {
       if (missing(outname)) {
         outname <- dot(c("DR2S", self$getLrdType(), self$getLrdMapper(), "rds"))
@@ -118,6 +119,10 @@ DR2S_ <- R6::R6Class(
       saveRDS(self$clone(deep = TRUE), file = path, compress = FALSE)
       invisible(self)
     },
+
+    #' @description Clear all the files pertaining to a DR2S mapping process
+    #' and set up the whole process from scratch.
+    #' @return Returns invisibly the DR2S object.
     clear = function() {
       unlink(self$getOutdir(), recursive = TRUE)
       .dirCreateIfNotExists(file.path(self$getOutdir()))
@@ -153,6 +158,9 @@ DR2S_ <- R6::R6Class(
       writeDR2SConf(self)
       invisible(self)
     },
+
+    #' @description remove all bam and bai files.
+    #' @return Returns invisibly the DR2S object.
     cleanup = function() {
       unlink(self$absPath(bampath(self$mapInit)))
       unlink(self$absPath(bampath(self$mapInit)) %<<% ".bai")
@@ -162,6 +170,9 @@ DR2S_ <- R6::R6Class(
       unlink(self$absPath("final"), recursive = TRUE)
       invisible(self)
     },
+
+    #' @description Print a DR2S object prettily
+    #' @return Returns invisibly the DR2S object.
     print = function() {
       fmt0 <- "DR2S driver for sample <%s> locus <%s>\n"
       cat(sprintf(fmt0, self$getSampleId(), self$getLocus()))
@@ -175,6 +186,10 @@ DR2S_ <- R6::R6Class(
       ))
       invisible(self)
     },
+
+    #' @description Execute a given step in a DR2S pipeline.
+    #' @param step A step in the DR2S pipeline
+    #' @return Called for side effect.
     run_ = function(step) {
       switch(
         step,
@@ -729,12 +744,13 @@ DR2S_ <- R6::R6Class(
     plotPartitionHistogram = function(label = "", limits = NULL) {
       tag <- self$getMapTag()
       if (length(self$getHapTypes()) == 2) {
-        plotPartitionHistogram(x = self$getPartition(), label %|ch|% tag,
-                                 limits = limits)
+        plotPartitionHistogram(x = self$getPartition(),
+                               label %|ch|% tag,
+                               limits = limits)
       } else {
         plotPartitionHistogramMulti(x = self$getPartition(),
-                                       limits = limits,
-                                       label %|ch|% tag)
+                                    limits = limits,
+                                    label %|ch|% tag)
       }
     },
     ##

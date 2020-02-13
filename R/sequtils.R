@@ -133,7 +133,7 @@
 #' @keywords internal
 #' @examples
 #' ###
-.generateReferenceSequence <- function(locus, allele = NULL, outdir, 
+.generateReferenceSequence <- function(locus, allele = NULL, outdir,
                                        utrLength = NULL, dirtag = NULL) {
   if (is.null(allele)) {
     ## fetch the generic reference for <locus>
@@ -169,7 +169,7 @@
           end <- srefFeatures[srefFeatures$name == "3' UTR"]
           end <- IRanges::start(end) + utrLength$end
         }
-        sref <- Biostrings::subseq(sref, start = start, 
+        sref <- Biostrings::subseq(sref, start = start,
                                    end = end)
       }
       sref
@@ -350,19 +350,22 @@ checkHomopolymerCount <- function(x, hpCount = 10) {
 
     modes <- homopolymersHP %>%
       dplyr::group_by(.data$position, .data$cons) %>%
-      dplyr::summarise(mode = .getModeValue(length)) %>% 
+      dplyr::summarise(mode = .getModeValue(.data$length)) %>%
       dplyr::ungroup()
     x$consensus$homopolymers[[hp]] <- modes
-    cl <- dplyr::pull(x$srpartition$A$srpartition$haplotypes, read)
+    if (!x$getHomozygous()) {
+      cl <- dplyr::pull(x$srpartition$A$srpartition$haplotypes, .data$read)
+    } else {
+      cl <- homopolymersHP$read
+    }
     homopolymersHP$clustered <- homopolymersHP$read %in% cl
-    max(homopolymersHP$length)
     plots <- ggplot(data = homopolymersHP) +
       geom_histogram(aes(length, fill = clustered), binwidth = 1) +
       scale_x_continuous(breaks = seq(min(homopolymersHP$length),
                                       max(homopolymersHP$length), 2)) +
       facet_wrap(. ~ position, scales = "free") +
       ggtitle(paste("Homopolymer length", hp)) +
-      cowplot::theme_cowplot() + 
+      cowplot::theme_cowplot() +
       theme(axis.text.x = element_text(angle = 90, vjust = 0.5),
             panel.grid.major.y = element_blank(),
             panel.grid.minor.y = element_blank(),
@@ -370,7 +373,7 @@ checkHomopolymerCount <- function(x, hpCount = 10) {
             panel.grid.minor.x = element_line(size = .005, color = "black") )
     list(n = n, plot = plots)
   }
-  
+
   if (!all(is.null(unlist(p)))) {
     plots <- lapply(p, function(x) x$plot)
     n <- max(vapply(p, function(x) length(x$n), FUN.VALUE = integer(1)))

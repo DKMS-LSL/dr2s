@@ -4,8 +4,14 @@
 \alias{remapAlignment}
 \title{Remap an allele to the checked consensus}
 \usage{
-remapAlignment(x, hptype, report = FALSE, createIgv = TRUE,
-  threshold = NULL, ...)
+remapAlignment(
+  x,
+  hptype,
+  report = FALSE,
+  createIgv = TRUE,
+  threshold = NULL,
+  ...
+)
 }
 \arguments{
 \item{x}{A \code{\link[=DR2S_]{DR2S}} object.}
@@ -24,11 +30,15 @@ Creates an executable bash file for inspecting the mapping with IGV
 Remap an allele to the checked consensus
 }
 \seealso{
-Other DR2S mapper functions: \code{\link{cache}},
-  \code{\link{clear}}, \code{\link{createDR2SConf}},
-  \code{\link{mapFinal}}, \code{\link{mapInit}},
-  \code{\link{mapIter}}, \code{\link{partitionLongreads}},
-  \code{\link{reportCheckedConsensus}},
-  \code{\link{report}}
+Other DR2S mapper functions: 
+\code{\link{cache}()},
+\code{\link{clear}()},
+\code{\link{createDR2SConf}()},
+\code{\link{mapFinal}()},
+\code{\link{mapInit}()},
+\code{\link{mapIter}()},
+\code{\link{partitionLongreads}()},
+\code{\link{reportCheckedConsensus}()},
+\code{\link{report}()}
 }
 \concept{DR2S mapper functions}

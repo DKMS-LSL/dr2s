@@ -3,7 +3,6 @@
 \docType{package}
 \name{DR2S}
 \alias{DR2S}
-\alias{DR2S-package}
 \title{DR2S - Dual redundant reference sequencing.}
 \description{
 Generate highly accurate reference sequences from heterozygous

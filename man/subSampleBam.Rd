@@ -4,9 +4,16 @@
 \alias{subSampleBam}
 \title{Subsample a bam file according to coverage}
 \usage{
-subSampleBam(bamfile, windowSize = NULL, sampleSize = 100,
-  fragmentReads = FALSE, fragmentWidth = 1000, what = NULL,
-  clusteredReads = NULL, paired = FALSE)
+subSampleBam(
+  bamfile,
+  windowSize = NULL,
+  sampleSize = 100,
+  fragmentReads = FALSE,
+  fragmentWidth = 1000,
+  what = NULL,
+  clusteredReads = NULL,
+  paired = FALSE
+)
 }
 \arguments{
 \item{bamfile}{The bamfile that will be subsampled}

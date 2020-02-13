@@ -4,8 +4,13 @@
 \alias{.generateReferenceSequence}
 \title{Generate reference sequences in a FASTA file}
 \usage{
-.generateReferenceSequence(locus, allele = NULL, outdir,
-  utrLength = NULL, dirtag = NULL)
+.generateReferenceSequence(
+  locus,
+  allele = NULL,
+  outdir,
+  utrLength = NULL,
+  dirtag = NULL
+)
 }
 \arguments{
 \item{locus}{Locus name (HLA or KIR).}

@@ -4,6 +4,7 @@
 inst/doc
 cache
 stuff
+scripts
 output
 outdir
 testdata

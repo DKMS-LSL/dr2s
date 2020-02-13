@@ -55,7 +55,7 @@ DR2S_$set("public", "runMapInit", function(opts = list(), ...) {
     SR <- mapInitSR(
       self = self, opts = opts, includeDeletions = includeDeletions,
       includeInsertions = TRUE, callInsertions = TRUE,
-      callInsertionThreshold = callInsertionThreshold, 
+      callInsertionThreshold = callInsertionThreshold,
       distributeGaps = FALSE, removeError = TRUE, topx = 0,
       outdir = outdir, clean = clean, minMapq = 50, indent = indent, ...)
 
@@ -290,7 +290,7 @@ DR2S_$set("public", "runPartitionLongreads", function() {
     if (NROW(ppos) > 1) {
       spos <- .selectAssociatedPolymorphicPositions(
         mat, measureOfAssociation, proportionOfOverlap, minimumExpectedDifference,
-        noSelect = !selectCorrelatedPositions, indent = indent, 
+        noSelect = !selectCorrelatedPositions, indent = indent,
         selectByColSum = selectByColSum)
       mat0 <- mat[, spos[order(as.numeric(spos))], drop = FALSE]
 
@@ -315,7 +315,7 @@ DR2S_$set("public", "runPartitionLongreads", function() {
 
         ## if exists: mclust
         if (has_attr(spos, "mclust")) {
-          # if more than one cluster is found 
+          # if more than one cluster is found
           if (max(attr(spos, "mclust")$classification) > 1) {
             plotpath <- file.path(self$getOutdir(), "plot.mclust.png")
             p <- factoextra::fviz_mclust(attr(spos, "mclust"))
@@ -435,8 +435,8 @@ DR2S_$set("public", "runSplitLongreadsByHaplotype", function() {
   reads <- stats::setNames(lapply(names(self$getLimits()), function(x) {
     dplyr::filter(prt, .data$haplotype == x, .data$mcoef >= self$getLimits()[x])
   }), names(self$getLimits()))
-  
-  if (any(vapply(reads, NROW, FUN.VALUE = numeric(1)) == 0)) 
+
+  if (any(vapply(reads, NROW, FUN.VALUE = numeric(1)) == 0))
       stop("No reads above threshold available!")
 
   ## Initiate indenter
@@ -652,7 +652,7 @@ DR2S_$set("public", "runMapIter", function(opts = list(), ...) {
       conseq <- .writeConseq(x = pileup, name = consname, type = "prob",
                              threshold = NULL, suppressAllGaps = FALSE,
                              suppressInsGaps = TRUE, columnOccupancy = columnOccupancy,
-                             gapThreshold = self$getThreshold(), replaceIndel = "", 
+                             gapThreshold = self$getThreshold(), replaceIndel = "",
                              conspath = conspath)
 
       ## Initialize mapIter MapList
@@ -852,7 +852,7 @@ DR2S_$set("public", "runMapFinal", function(opts = list(), ...) {
   ## hp = "A"
   ## hp = "B"
   for (hp in hptypes) {
-      # unlist(conseq)[3157:3167]
+    # unlist(conseq)[3157:3167]
     flog.info("%sFor haplotype <%s>", indent(), hp, name = "info" )
     reffile <- reffiles[[hp]]
     ##
@@ -868,7 +868,7 @@ DR2S_$set("public", "runMapFinal", function(opts = list(), ...) {
       includeDeletions = includeDeletions, includeInsertions = TRUE,
       callInsertions = FALSE, callInsertionThreshold = callInsertionThreshold,
       clip = FALSE, distributeGaps = TRUE, removeError = TRUE, topx = 0,
-      clean = TRUE, max_depth = 1e4, min_mapq = 0, indent = incr(indent), 
+      clean = TRUE, max_depth = 1e4, min_mapq = 0, indent = incr(indent),
       min_nucleotide_depth = 0, ...)
     ## Create igv
     if (createIgv) {
@@ -918,13 +918,17 @@ DR2S_$set("public", "runMapFinal", function(opts = list(), ...) {
         callInsertions = TRUE, callInsertionThreshold = callInsertionThreshold,
         clip = trimPolymorphicEnds, distributeGaps = TRUE, removeError = TRUE, topx = 0,
         clean = TRUE, max_depth = 1e5, min_mapq = 50, min_base_quality = 13,
-        indent = incr(indent), min_nucleotide_depth = 0, ...)
+        indent = incr(indent), min_nucleotide_depth = 0)#, ...)
       ## Create igv
       if (createIgv) {
-        clusteredReads <- dplyr::pull(self$srpartition$A$srpartition$haplotypes, read)
+        if (!self$getHomozygous()) {
+          clusteredReads <- dplyr::pull(self$srpartition$A$srpartition$haplotypes, read)
+        } else {
+          clusteredReads <- NULL
+        }
         igv <- createIgvJsFiles(
           reference = refpath(pileup), bamfile = bampath(pileup),
-          outdir = self$getOutdir(), paired = TRUE, 
+          outdir = self$getOutdir(), paired = TRUE,
           sampleSize = 100, clusteredReads = clusteredReads)
       }
       ## Construct consensus sequence
@@ -986,7 +990,7 @@ DR2S_$set("public", "runMapFinal", function(opts = list(), ...) {
       checkCovGaps(pileup)
     }
   }
-      
+
   return(invisible(self))
 })
 

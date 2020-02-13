@@ -4,9 +4,17 @@
 \alias{conseq}
 \title{Construct a consensus sequence}
 \usage{
-conseq(x, name = "conseq", type = c("prob", "ambig", "simple"),
-  threshold = NULL, suppressAllGaps = FALSE, suppressInsGaps = TRUE,
-  gapThreshold = NULL, columnOccupancy = 0.4, ...)
+conseq(
+  x,
+  name = "conseq",
+  type = c("prob", "ambig", "simple"),
+  threshold = NULL,
+  suppressAllGaps = FALSE,
+  suppressInsGaps = TRUE,
+  gapThreshold = NULL,
+  columnOccupancy = 0.4,
+  ...
+)
 }
 \arguments{
 \item{x}{\code{pileup} object.}

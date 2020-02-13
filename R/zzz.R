@@ -33,6 +33,7 @@ POLISH_RANGE <- function(locus = NULL) {
     return(pr)
   return(pr[[locus]])
 }
+
 VALID_DNA <- function(include = "del"){
   include <- match.arg(include, c("none", "del", "ins", "indel"))
   if (include == "indel") return(c("G", "A", "T", "C", "-", "+"))

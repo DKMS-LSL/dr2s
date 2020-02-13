@@ -98,7 +98,6 @@ InitDR2S <- function(config, createOutdir = TRUE) {
 #' @param x A \code{\link[=DR2S_]{DR2S}} object.
 #' @param opts List with options passed to the mapper.
 #' @param ... Additional parameters passed to \code{\link[Rsamtools]{PileupParam}}.
-#' @inheritParams Rsamtools::PileupParam
 #' @return A \code{\link[=DR2S_]{DR2S}} object.
 #' @family DR2S mapper functions
 #' @export
@@ -130,7 +129,6 @@ mapInit <- function(x, opts = list(), ...) {
 #' @param x A \code{\link[=DR2S_]{DR2S}} object.
 #' @param opts Named list with options passed to the mapper.
 #' @param ... Additional parameters passed to \code{\link[Rsamtools]{PileupParam}}.
-#' @inheritParams Rsamtools::PileupParam
 #' @return A \code{\link[=DR2S_]{DR2S}} object.
 #' @family DR2S mapper functions
 #' @export
@@ -162,7 +160,6 @@ mapIter <- function(x, opts = list(), ...) {
 #' @param x A \code{\link[=DR2S_]{DR2S}} object.
 #' @param opts List with options passed to the mapper.
 #' @param ... Additional parameters passed to \code{\link[Rsamtools]{PileupParam}}.
-#' @inheritParams Rsamtools::PileupParam
 #' @return A \code{\link[=DR2S_]{DR2S}} object.
 #' @family DR2S mapper functions
 #' @export

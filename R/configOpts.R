@@ -7,7 +7,10 @@ normaliseOpts <- function(opts, pipeline = "LR") {
   }
   pipeline <- match.arg(pipeline, c("SR", "LR"))
   ## camelCasify option names of passed-in options
-  opts <- setNames(opts, .camelCasify(names(opts)))
+  if (!is.null(opts))
+    opts <- setNames(opts, .camelCasify(names(opts)))
+  else
+    opts <- list()
   ## set up defaults according to the pipeline type
   opts0 <- list()
   ##
@@ -24,7 +27,7 @@ normaliseOpts <- function(opts, pipeline = "LR") {
     ## <callInsertionThreshold>: if <includeInsertions == TRUE>, an insertion
     ## needs to be at frequency <callInsertionThreshold> for it to be included
     ## in the pileup.
-    callInsertionThreshold = 1/5,
+    callInsertionThreshold = 0.18,
     ##
     ## <microsatellite>: if <pipeline == "SR">, perform a second mapping of
     ## shortreads to the inferred reference. Set to TRUE if you suspect
@@ -33,7 +36,7 @@ normaliseOpts <- function(opts, pipeline = "LR") {
     microsatellite = FALSE,
     ##
     ## <forceMapping>: set to TRUE if you want to force processing of "bad"
-    ## shortreads when the distribution of coverage is heavily unequal.
+    ## shortreads where the distribution of coverage is heavily unequal.
     ## Aborts the program if maximum coverage > 75 % quantile * 5.
     forceMapping = FALSE,
     ##
@@ -48,10 +51,10 @@ normaliseOpts <- function(opts, pipeline = "LR") {
     ##
     ## <pickiness>: if <topx == "auto">: <pickiness < 1>: bias towards higher
     ## scores/less reads; <pickiness > 1>: bias towards lower scores/more reads
-    pickiness = 1,
+    pickiness = 0.8,
     ##
     ## <increasePickiness>: if <topx == "auto">: increase pickiness for the
-    ## second iteration of LR mapping
+    ## second iteration of the LR mapping
     increasePickiness = 1,
     ##
     ## <lowerLimit>: if <topx == "auto"> or <topx > 0>: the  minimum number
@@ -60,7 +63,7 @@ normaliseOpts <- function(opts, pipeline = "LR") {
     ##
     ## <updateBackgroundModel>: estimate the indel noise in a pileup and use
     ## this information to update the background model for PWM scoring
-    updateBackgroundModel = FALSE,
+    updateBackgroundModel = TRUE,
     ##
     ## <createIgv>: subsample bam files for visualisation with IgvJs in the
     ## DR2S shiny app.
@@ -73,55 +76,73 @@ normaliseOpts <- function(opts, pipeline = "LR") {
   ## partitionLongreads() defaults ####
   ##
   opts0$partitionLongreads <- compact(list(
-    ## Threshold to call a polymorphic position. A minority nucleotide frequency
-    ## below this threshold is considered noise rather than a valid polymorphism.
-    threshold = 1/5,
-    ## The expected number of distinct alleles in the sample. This should be 2
-    ## for heterozygous samples, 1 for homozygous samples may be >2 for some
-    ## KIR loci.
+    ##
+    ## <threshold>: the threshold to call a polymorphic position. A minority
+    ## nucleotide frequency below this threshold is considered noise rather
+    ## than a valid polymorphism.
+    threshold = 0.2,
+    ##
+    ## <distAlleles>: the expected number of distinct alleles in the sample.
+    ## This should be 2 for heterozygous samples, 1 for homozygous samples,
+    ## and may be set to >2 for some KIR loci.
     distAlleles = 2,
-    ## The minumum frequency of the gap character required to call a gap position.
-    skipGapFreq = 2/3,
-    ## Don't partition based on gaps. Useful for samples with only few SNPs but
-    ## with homopolymers. The falsely called gaps could mask the real variation.
-    ## Set to override global default.
+    ##
+    ## <skipGapFreq>: the minumum frequency of the gap character required to
+    ## call a gap position.
+    skipGapFreq = 0.8,
+    ##
+    ## <noGapPartitioning>: don't partition based on gaps. Useful for samples
+    ## with only few SNPs but with homopolymers. The falsely called gaps could
+    ## mask the real variation. Set to override global default.
     noGapPartitioning = TRUE,
-    ## Correlate polymorphic positions and cluster based on the absolute
-    ## correlation coefficient. Extract positions from the cluster with the
-    ## higher absolute mean correlation coefficient. This gets rid of positions
-    ## that are not well distributed across the two alleles.
+    ##
+    ## <selectCorrelatedPositions>: correlate polymorphic positions and cluster
+    ## based on the absolute correlation coefficient. Extract positions from the
+    ## cluster with the higher absolute mean correlation coefficient. This gets
+    ## rid of positions that are not well distributed across the two alleles.
     selectCorrelatedPositions = FALSE,
-    ## if <selectCorrelatedPositions> == TRUE, use <measureOfAssociation>
-    ## ("cramer.V" or "spearman") to determine linkage between all polymorphic
-    ## positions.
+    ##
+    ## <measureOfAssociation>: if <selectCorrelatedPositions> == TRUE, use
+    ## <measureOfAssociation> ("cramer.V" or "spearman") to determine linkage
+    ## between all polymorphic positions.
     measureOfAssociation = "cramer.V",
-    ## use selectByColSum to decide which SNP cluster to use based on overall 
-    ## sums. Otherwise the intra-cluster values are used
+    ##
+    ## <selectByColSum>: use <selectByColSum> to decide which SNP cluster to
+    ## use based on overal sums. Otherwise the intra-cluster values are used
     selectByColSum = FALSE,
-    ## We perform an equivalence test on clusters of polymorhic positions:
-    ## Calculate the lower 1-sigma bound of the high-association cluster i.
-    ## Calculate the upper 1-sigma bound of the low-association cluster j.
-    ## Reject the clusters, if this bounds overlap by more than <proportionOfOverlap>
-    ## of the average distance (dij) between clusters.
-    proportionOfOverlap = 1/3,
-    ## By how much do we expect 2 clusters to minimally differ in mean Cramér's V.
-    ## BIC-informed model-based clustering tends to split rather than lump
-    ## and this is a heuristical attempt to forestall this.
+    ##
+    ## <proportionOfOverlap>: we perform an equivalence test on clusters of
+    ## polymorhic positions: Calculate the lower 1-sigma bound of the
+    ## high-association cluster i. Calculate the upper 1-sigma bound of the
+    ## low-association cluster j. Reject the clusters, if this bounds overlap
+    ## by more than <proportionOfOverlap> of the average distance (dij) between
+    ## clusters.
+    proportionOfOverlap = 0.1,
+    ##
+    ## <minimumExpectedDifference>: by how much do we expect two clusters to
+    ## minimally differ in mean Cramér's V. BIC-informed model-based clustering
+    ## tends to split rather than lump and this is a heuristical attempt to
+    ## forestall this.
     minimumExpectedDifference = 0.06,
+    ##
     ## If more than <distAlleles> clusters are found select clusters based on:
     ## (1) "distance": The hamming distance of the resulting variant consensus
     ## sequences or (2) "count": Take the clusters with the most reads as the
     ## true alleles.
     selectAllelesBy = "distance",
+    ##
     ## Minimum size of an allele cluster
     minClusterSize = 20,
+    ##
     ## When selecting reads from allele clusters using a dynamic threshold:
     ## pickiness < 1: bias towards higher scores/less reads
     ## pickiness > 1: bias towards lower scores/more reads
-    pickiness = 1,
+    pickiness = 0.2,
+    ##
     ## When selecting reads from allele clusters the minimum number of
     ## reads to pick if available.
     lowerLimit = 40,
+    ##
     ## Generate diagnostic plots.
     plot = TRUE
   ))
@@ -129,15 +150,23 @@ normaliseOpts <- function(opts, pipeline = "LR") {
   ## mapIter() defaults ####
   ##
   opts0$mapIter <- compact(list(
+    ##
     ## Number of <mapIter> iterations. How often are the
     ## clustered reads remapped to updated reference sequences.
-    iterations = 1,
+    iterations = 2,
+    ##
     ## Minimum occupancy (1 - fraction of gap) below which
     ## bases at insertion position are excluded from from consensus calling.
-    columnOccupancy = 2/5,
+    columnOccupancy = 0.2,
+    ##
     ## an insertion needs to be at frequency <callInsertionThreshold> for it
     ## to be included in the pileup.
-    callInsertionThreshold = 1/5,
+    callInsertionThreshold = 0.18,
+    ##
+    ## <createIgv>: subsample bam files for visualisation with IgvJs in the
+    ## DR2S shiny app.
+    createIgv = TRUE,
+    ##
     ## Generate diagnostic plots.
     plot = TRUE
   ))
@@ -153,19 +182,25 @@ normaliseOpts <- function(opts, pipeline = "LR") {
   ## mapFinal() defaults ####
   ##
   opts0$mapFinal <- compact(list(
+    ##
     ## include deletions in pileup.
     includeDeletions = TRUE,
+    ##
     ## include insertions in pileup.
     includeInsertions = TRUE,
+    ##
     ## an insertion needs to be at frequency <callInsertionThreshold> for it
     ## to be included in the pileup.
-    callInsertionThreshold = 1/5,
+    callInsertionThreshold = 0.18,
+    ##
     ## (for shortreads only) trim softclips and polymorphic ends of reads before
     ## the final mapping
     trimPolymorphicEnds = FALSE,
+    ##
     ## Subsample bam files for visualisation with IgvJs in the
     ## DR2S shiny app.
     createIgv = TRUE,
+    ##
     ## Generate diagnostic plots.
     plot = TRUE
   ))
@@ -173,18 +208,24 @@ normaliseOpts <- function(opts, pipeline = "LR") {
   ## report() defaults ####
   ##
   opts0$report <- compact(list(
+    ##
     ## Maximum number of sequence letters per line in pairwise alignment.
     blockWidth = 80,
+    ##
     ## Suppress remapping of reads against final consensus.
     remap = TRUE,
+    ##
     ## Subsample bam files for visualisation with IgvJs in the
     ## DR2S shiny app.
     createIgv = TRUE,
+    ##
     ## Threshold to call a polymorphic position. Set to override global default.
     threshold = NULL,
+    ##
     ## Check the number of homopolymer counts. Compare the resulting sequence
     ## with the mode value and report differences.
     checkHpCount = TRUE,
+    ##
     ## The minimal length of a homopolymer to be checked.
     hpCount = 10
   ))
