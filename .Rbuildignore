@@ -3,6 +3,8 @@
 ^data-raw$
 ^cache$
 ^stuff$
+^scripts$
 ^testdata$
 ^README\.Rmd$
 ^README-.*\.png$
+^scratch\.R$

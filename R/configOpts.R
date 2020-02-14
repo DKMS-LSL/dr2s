@@ -209,15 +209,8 @@ normaliseOpts <- function(opts, pipeline = "LR") {
   ##
   opts0$report <- compact(list(
     ##
-    ## Maximum number of sequence letters per line in pairwise alignment.
-    blockWidth = 80,
-    ##
     ## Suppress remapping of reads against final consensus.
     remap = TRUE,
-    ##
-    ## Subsample bam files for visualisation with IgvJs in the
-    ## DR2S shiny app.
-    createIgv = TRUE,
     ##
     ## Threshold to call a polymorphic position. Set to override global default.
     threshold = NULL,
@@ -227,7 +220,14 @@ normaliseOpts <- function(opts, pipeline = "LR") {
     checkHpCount = TRUE,
     ##
     ## The minimal length of a homopolymer to be checked.
-    hpCount = 10
+    hpCount = 10,
+    ##
+    ## Maximum number of sequence letters per line in pairwise alignment.
+    blockWidth = 80,
+    ##
+    ## Subsample bam files for visualisation with IgvJs in the
+    ## DR2S shiny app.
+    createIgv = TRUE
   ))
   opts0 <- compact(opts0)
   ## update default with config settings

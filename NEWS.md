@@ -1,3 +1,7 @@
+# DR2S 1.1.13
+
+* [bugfix] allow for homozygous samples when downsampling for IGV.
+
 # DR2S 0.0.6
 
 * improved identification of highly associated polymorphic positions.

@@ -64,7 +64,7 @@ Imports:
     mclust,
     factoextra,
     svglite,
-    dtplyr,
+    dtplyr (>= 1.0.1),
     ipdDb
 SystemRequirements: bwa (>= 0.7.11) and/or minimap2; optional: samtools (faster, 
   but RSamtools do also work)
