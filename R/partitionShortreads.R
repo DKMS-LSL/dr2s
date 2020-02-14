@@ -48,26 +48,22 @@ getSRPartitionScores <- function(bamfile, mats, ...) {
   ## Register as many workers as necessary or available
   workers <- min(length(ppos), .getIdleCores())
   bpparam <- BiocParallel::MulticoreParam(workers = workers)
-  bam <- Rsamtools::BamFile(bamfile)
-  ## Get reference from bamfile
-  refname <- GenomeInfoDb::seqnames(Rsamtools::seqinfo(bam))
-  if (workers > 1) {
-    Rsamtools::open.BamFile(bam)
-    on.exit(Rsamtools::close.BamFile(bam))
-  }
   flog.info("%sUsing %s workers to partition shortreads on %s positions",
             indent(), workers, length(ppos), name = "info")
+  bam <- Rsamtools::BamFile(bamfile)
+  Rsamtools::open.BamFile(bam)
+  refname <- GenomeInfoDb::seqnames(GenomeInfoDb::seqinfo(bam))
+  GPOS <- S4Vectors::split(GenomicRanges::GPos(paste0(refname, ":", ppos, "-", ppos)), seq_along(ppos))
+  stacks <- lapply(GPOS, function(p) GenomicAlignments::stackStringsFromBam(bam, param = p, use.names = TRUE))
+  Rsamtools::close.BamFile(bam)
+  names(stacks) <- ppos
   res <- do.call(dplyr::bind_rows,
-    suppressWarnings(BiocParallel::bplapply(as.integer(ppos),
-    function(pos, refname, bamfile, mats) {
-      #message("Get reads on position ", pos)
-      param <- GenomicRanges::GRanges(
-        seqnames = refname, ranges = IRanges::IRanges(start = pos, end = pos))
-      stack <- GenomicAlignments::stackStringsFromBam(bamfile, param = param, use.names = TRUE)
-      dplyr::bind_cols(read = rep(names(stack), each = length(mats)),
-                       dplyr::bind_rows(lapply(stack, function(x)
-                         .partRead(x, mats, pos))))
-  }, refname = refname, bamfile = bam, mats = mats, BPPARAM = bpparam)))
+    BiocParallel::bplapply(ppos,
+      function(pos, stacks, mats) {
+        part <- dplyr::bind_rows(lapply(stacks[[pos]], function(a) .partRead(a, mats, pos)))
+        dplyr::bind_cols(read = rep(names(stacks[[pos]]), each = length(mats)), part)
+      }, stacks = stacks, mats = mats, BPPARAM = bpparam))
+
   structure(
     list(
       bamfile     = bamfile,
@@ -100,15 +96,13 @@ getSRPartitionScores <- function(bamfile, mats, ...) {
 scoreHighestSR <- function(srpartition, diffThreshold = 0.001, ...) {
 
   indent <- list(...)$indent %||% indentation()
-
   sr <- unique(data.table::as.data.table(srpartition)
                # Get the sum of each read and hptype
-               [, clade := sum(prob), by = list(read, haplotype)]
+               [, clade := sum(prob), by = .(read, haplotype)]
                # get the max of the sums of each
                [, max := max(clade), by = read]
                # dismiss the prob and pos which we dont need anymore
                [, !c("prob")])
-
   srtmp <- NULL
   sr2 <- NULL
   while (TRUE) {
@@ -160,13 +154,13 @@ scoreHighestSR <- function(srpartition, diffThreshold = 0.001, ...) {
 ####### Helper #############
 .partRead <- function(a, mats, pos) {
   pos <- as.character(pos)
-  l <- vapply(mats, function(x) x[, pos][as.character(a)], FUN.VALUE = double(1))
-  list(prob = l,  haplotype = names(mats), pos = rep(pos, length(l)))
+  l   <- vapply(mats, function(m) m[, pos][as.character(a)], FUN.VALUE = numeric(1))
+  tibble::tibble(prob = l, haplotype = names(mats), pos = rep(pos, length(l)))
 }
 
 .checkSRScoring <- function(position, dfpos){
   scoreOk <- all(vapply(unique(dfpos$haplotype), function(hp, dfpos)
-    sum( dfpos$read %in% dfpos[dfpos$haplotype == hp]$read)/NROW(dfpos) > 0.2,
+    sum(dfpos$read %in% dfpos[dfpos$haplotype == hp]$read)/NROW(dfpos) > 0.2,
     dfpos = dfpos, FUN.VALUE = logical(1)))
   return(scoreOk)
 }

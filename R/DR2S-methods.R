@@ -765,9 +765,9 @@ DR2S_$set("public", "runPartitionShortreads", function(opts = list(), ...) {
     srfilenames <- c()
     flog.info("%sWrite shortread fastq for haplotype <%s>", indent2(), hp, name = "info")
     fqs <- self$getShortreads()
-    dontUse <- srpartition$haplotype %>%
-      dplyr::filter( haplotype != !!hp) %>%
-      dplyr::pull(read)
+    dontUse <- srpartition$haplotypes %>%
+      dplyr::filter(.data$haplotype != !!hp) %>%
+      dplyr::pull(.data$read)
     # fq <- fqs[1]
     foreach(fq = fqs) %do% {
       fqPart <- self$absPath(

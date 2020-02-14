@@ -55,6 +55,7 @@ Imports:
     GenomicAlignments,
     GenomicRanges,
     GenomeInfoDb,
+    S4Vectors,
     rtracklayer,
     IRanges,
     rlang,
@@ -64,7 +65,7 @@ Imports:
     mclust,
     factoextra,
     svglite,
-    dtplyr (>= 1.0.1),
+    dtplyr (>= 1.0.0),
     ipdDb
 SystemRequirements: bwa (>= 0.7.11) and/or minimap2; optional: samtools (faster, 
   but RSamtools do also work)
