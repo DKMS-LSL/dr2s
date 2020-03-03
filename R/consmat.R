@@ -51,14 +51,14 @@ consmat.matrix <- function(x, freq = TRUE, ...) {
 #' @export
 consmat.tbl_df <- function(x, freq = TRUE, drop.unused.levels = FALSE, ...) {
   assert_that(all(c("pos", "nucleotide", "count") %in% colnames(x)))
-  ## Add empty positions to pileup 
+  ## Add empty positions to pileup
   # gaps <- which(!1:max(x$pos) %in% x$pos)
   # x <- dplyr::bind_rows(x, lapply(gaps, function(i, seqname) {
   #   tibble::tibble(seqnames = seqname, pos = i, nucleotide = "-", count = 0L)
-  # }, seqname = x$seqnames[[1]])) %>% 
+  # }, seqname = x$seqnames[[1]])) %>%
   #   dplyr::arrange(pos)
   # x$nucleotide <- factor(x$nucleotide)
-  
+
   ctab <- stats::xtabs(formula = count ~ pos + nucleotide, data = x,
                        drop.unused.levels = drop.unused.levels)
   cmat <- matrix(ctab, NROW(ctab), NCOL(ctab))
@@ -244,7 +244,7 @@ createPWM <- function(msa, indelRate = NULL) {
   ## Add pseudocount
   cmat <- cmat + 1/length(msa)
   ## Normalise
-  cmat <- scale(cmat, center = FALSE, 
+  cmat <- scale(cmat, center = FALSE,
                  scale = colSums(cmat))
   ## Divide by background model
   b <- DNA_PROB(gapfreq = indelRate, include = "del")
@@ -277,33 +277,34 @@ createPWM <- function(msa, indelRate = NULL) {
   bpparam <- BiocParallel::MulticoreParam(workers = workers, log = FALSE)
   flog.info("%sUse %s workers to rightshift gaps at homopolymer positions <%s>", indent(),
             workers, comma(idx), name = "info")
+  ## NOTE: Parallelising reading from a bam file fails catastrophically on
+  ## the cluster (but not locally) with:
+  ##   [E::bgzf_uncompress] Inflate operation failed: invalid distance too far back
+  ##   [E::bgzf_read] Read block operation failed with error -1 after 0 of 4 bytes
+  ## Also, need to reopen bam file every time before calling stackStringsFromBam()
+  ## on a range. Otherwise returns empty DNAStringSets after first range.
   bam <- Rsamtools::BamFile(bamfile)
-  if (workers > 1) {
+  refname  <- GenomeInfoDb::seqnames(GenomeInfoDb::seqinfo(bam))
+  seqStart <- vapply(idx - 1, function(i) sum(seq$lengths[seq_len(i - 1)]) + 1, FUN.VALUE = numeric(1))
+  seqEnd <- seqStart + seq$lengths[idx] - 1
+  GRNGS  <- S4Vectors::split(GenomicRanges::GRanges(paste0(refname, ":", seqStart, "-", seqEnd)), seq_along(seqStart))
+  MSAs   <- lapply(GRNGS, function(grange) {
     Rsamtools::open.BamFile(bam)
-    on.exit(Rsamtools::close.BamFile(bam))
-  }
+    GenomicAlignments::stackStringsFromBam(
+      bam, param = grange, Lpadding.letter = "+", Rpadding.letter = "+", use.names = TRUE)
+  })
+  Rsamtools::close.BamFile(bam)
   ## Collect changed matrix elements
-  ## TODO: bplapply throws warning in serialize(data, node$con, xdr = FALSE)
-  ## 'package:stats' may not be available when loading
-  ## For the time being we suppress this warning
-  changeMat <- suppressWarnings(BiocParallel::bplapply(idx, function(i, bfl, seq) {
-    # i <- which(idx)[8]
-    ## Assign new gap numbers to each position starting from left
-    #  meanCoverage <- mean(rowSums(mat[(seqStart-2):(seqEnd+2),1:4]))
-    seqStart <- sum(seq$lengths[seq_len(i - 1)]) + 1
-    seqEnd <- seqStart + seq$lengths[i] - 1
-    range <- c(seqStart, seqEnd)
-    msa <- .msaFromBam(bfl, range, paddingLetter = "+")
+  changeMat <- BiocParallel::bpmapply(function(msa, start, end) {
     ## Skip position if empty
     if (length(msa) == 0) {
       NULL
     } else {
       ## Use only reads spanning the complete region; every other read
       ## gives no info
-      msa <- msa[vapply(msa, function(x) !"+" %in% Biostrings::uniqueLetters(x),
-                        FUN.VALUE = logical(1))]
+      msa <- msa[vapply(msa, function(x) !"+" %in% Biostrings::uniqueLetters(x), FUN.VALUE = logical(1))]
       ## Check again if still sequence there
-      if (length(msa) == 0) 
+      if (length(msa) == 0)
         return(NULL)
       if (removeError) {
         aFreq <- colSums(Biostrings::letterFrequency(msa, VALID_DNA("none")))
@@ -342,14 +343,13 @@ createPWM <- function(msa, indelRate = NULL) {
       }, FUN.VALUE = character(1)))
 
       list(
-        seqStart = seqStart,
-        seqEnd = seqEnd,
-        matPart = t(Biostrings::consensusMatrix(msa, as.prob = FALSE))[
-          , VALID_DNA(include = "indel")]
+        seqStart = start,
+        seqEnd = end,
+        matPart = t(Biostrings::consensusMatrix(msa, as.prob = FALSE))[, VALID_DNA(include = "indel")]
       )
     }
-  }, bfl = bam, seq = seq, BPPARAM = bpparam))
-  ## 
+  }, msa = MSAs, start = seqStart, end = seqEnd, SIMPLIFY = FALSE, BPPARAM = bpparam)
+  ##
   ## remove empty entries resulting from too bad coverage
   nullMats <- vapply(changeMat, is.null, FUN.VALUE = logical(1))
   changeMat <- changeMat[!nullMats]

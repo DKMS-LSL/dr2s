@@ -177,16 +177,16 @@ pileup <- function(bamfile, reffile, readtype, ..., pParam) {
   x
 }
 
-.msaFromBam <- function(bamfile, range = NULL, paddingLetter = "+") {
+.msaFromBam <- function(bam, range = NULL, paddingLetter = "+") {
   assert_that(
-    is(bamfile, "BamFile"),
+    is(bam, "BamFile"),
     is.null(range) || (is.numeric(range) && length(range) == 2 && range[1] <= range[2])
   )
-  if (!Rsamtools::isOpen(bamfile)) {
-    Rsamtools::open.BamFile(bamfile)
-    on.exit(Rsamtools::close.BamFile(bamfile))
+  if (!Rsamtools::isOpen(bam)) {
+    Rsamtools::open.BamFile(bam)
+    on.exit(Rsamtools::close.BamFile(bam))
   }
-  baminfo <- Rsamtools::seqinfo(bamfile)
+  baminfo <- Rsamtools::seqinfo(bam)
   param <- if (is.null(range)) {
     GenomicRanges::GRanges(
       seqnames = GenomeInfoDb::seqnames(baminfo),
@@ -197,7 +197,7 @@ pileup <- function(bamfile, reffile, readtype, ..., pParam) {
       ranges = IRanges::IRanges(start = range[1], end = range[2]))
   }
   GenomicAlignments::stackStringsFromBam(
-    file = bamfile, index = bamfile, param = param,
+    file = bam, index = bam, param = param,
     Lpadding.letter = paddingLetter, Rpadding.letter = paddingLetter,
     use.names = TRUE)
 }
@@ -311,7 +311,7 @@ pileup <- function(bamfile, reffile, readtype, ..., pParam) {
 #' @examples
 #' ###
 plotPileupCoverage <- function(x, threshold = 0.2, range = NULL, thin = 0.1,
-                               width = 1, label = "", drop.indels = FALSE, 
+                               width = 1, label = "", drop.indels = FALSE,
                                compareReference = FALSE) {
   # if (compareReference)
   reference <- Biostrings::readDNAStringSet(x$refpath)
@@ -455,7 +455,7 @@ plotPileupBasecallFrequency <- function(x, threshold = 0.20, label = "",
   insSeq <- purrr::transpose(insSeq)
   ## Remove positions where we have only gaps
   insSeq <- insSeq[vapply(insSeq, function(s) !all(is.na(s)), FUN.VALUE = logical(1))]
-  
+
   ## Extract per positions
   insSeqs <- lapply(insSeq, function(i) {
     i <- i[!is.na(i)]

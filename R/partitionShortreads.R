@@ -54,7 +54,10 @@ getSRPartitionScores <- function(bamfile, mats, ...) {
   Rsamtools::open.BamFile(bam)
   refname <- GenomeInfoDb::seqnames(GenomeInfoDb::seqinfo(bam))
   GPOS <- S4Vectors::split(GenomicRanges::GPos(paste0(refname, ":", ppos, "-", ppos)), seq_along(ppos))
-  stacks <- lapply(GPOS, function(p) GenomicAlignments::stackStringsFromBam(bam, param = p, use.names = TRUE))
+  stacks <- lapply(GPOS, function(p) {
+    Rsamtools::open.BamFile(bam)
+    GenomicAlignments::stackStringsFromBam(bam, param = p, use.names = TRUE)
+  })
   Rsamtools::close.BamFile(bam)
   names(stacks) <- ppos
   res <- do.call(dplyr::bind_rows,

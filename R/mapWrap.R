@@ -32,7 +32,6 @@ mapReads <- function(
   ## Run bam - sort - index pipeline
   #flog.info("%sSort and index", indent(), name = "info")
   bamfile <- .bamSortIndex(samfile = samfile, reffile = reffile, minMapq = minMapq, force = force)
-  
 
   ## NOTE: "auto" > 0 evaluates to TRUE, FALSE > 0 evaluates to FALSE
   ## dots <- list()
@@ -90,7 +89,7 @@ mapReads <- function(
   if (topx > 0 ) {
     reads(pileup) <- reads
   }
-  
+
   readfile(pileup) <- readfile
   pileup
 }
