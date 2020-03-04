@@ -97,7 +97,6 @@ getSRPartitionScores <- function(bamfile, mats, ...) {
 #' ### Score
 #
 scoreHighestSR <- function(srpartition, diffThreshold = 0.001, ...) {
-
   indent <- list(...)$indent %||% indentation()
   sr <- unique(data.table::as.data.table(srpartition)
                # Get the sum of each read and hptype
@@ -130,7 +129,6 @@ scoreHighestSR <- function(srpartition, diffThreshold = 0.001, ...) {
     diffThreshold <- 1.2*diffThreshold
   }
   dtplyr::lazy_dt(sr2)
-  # sr2
 }
 
 .writePartFq <- function(fq, fqPart, dontUse = NULL, doUse = NULL, ...) {

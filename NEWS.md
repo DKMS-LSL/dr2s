@@ -1,3 +1,9 @@
+# DR2S 1.1.14
+
+* [bugfix] fixes multiple issues with parallel access to bam files that only
+  arise on the SLURM cluster.
+* [bugfix] depend on dtplyr 1.0.1 for correct handling of .data pronouns.
+
 # DR2S 1.1.13
 
 * [bugfix] allow for homozygous samples when downsampling for IGV.

@@ -756,8 +756,8 @@ DR2S_$set("public", "runPartitionShortreads", function(opts = list(), ...) {
   ## Assign read to haplotype with highest probability,
   ## i.e. product over probabilities of each haplotype and choose max
   flog.info("%sGet highest-scoring haplotype for each read", indent(), name = "info")
-  srpartition$haplotypes <- scoreHighestSR(srpartition$srpartition, diffThreshold = 0.001)
-
+  srpartition$haplotypes <- scoreHighestSR(srpartition = srpartition$srpartition,
+                                           diffThreshold = 0.001)
   # Write fastqs
   # hp <- "A"
   indent2 <- incr(indent)
@@ -765,6 +765,7 @@ DR2S_$set("public", "runPartitionShortreads", function(opts = list(), ...) {
     srfilenames <- c()
     flog.info("%sWrite shortread fastq for haplotype <%s>", indent2(), hp, name = "info")
     fqs <- self$getShortreads()
+    ## NOTE: requires dtplyr 1.0.1 to work properly with .data pronouns
     dontUse <- srpartition$haplotypes %>%
       dplyr::filter(.data$haplotype != !!hp) %>%
       dplyr::pull(.data$read)
