@@ -280,16 +280,11 @@ remapAlignment <- function(x, hptype, report = FALSE, createIgv = TRUE,
       includeInsertions = TRUE, callInsertions = FALSE, clip = TRUE, indent = incr(indent))
 
     if (createIgv) {
-      if (!x$getHomozygous()) {
-        clusteredReads <- dplyr::pull(x$srpartition$A$srpartition$haplotypes, read)
-      } else {
-        clusteredReads <- NULL
-      }
+      clusteredReads <- dplyr::pull(x$srpartition$A$srpartition$haplotypes, read)
       igv <- createIgvJsFiles(
         refpath(pileup), bampath(pileup), x$getOutdir(), sampleSize = 100,
         clusteredReads = clusteredReads)
     }
-
     mappings$SR <- MapList_(
       ## mapdata
       readpath  = x$relPath(readpathSR),
@@ -533,13 +528,14 @@ remapAndReport <- function(x, report = FALSE, threshold = NULL, plot = TRUE, ...
   )
   flog.info("%sRemapping final sequences", indent(), name = "info")
 
-  bpparam <- BiocParallel::MulticoreParam(workers = .getIdleCores())
-  mappings <- BiocParallel::bplapply(x$getHapTypes(), function(h, x, report, createIgv, threshold) {
+  # bpparam <- BiocParallel::MulticoreParam(workers = .getIdleCores())
+  mappings <- parallel::mclapply(x$getHapTypes(), function(h, x, report,
+                                                               createIgv,threshold) {
     remapAlignment(x, h, report = report, createIgv = createIgv, threshold)
-  }, x = x, report = report, createIgv = createIgv, threshold = threshold, BPPARAM = bpparam)
+   }, x = x, report = report, createIgv = createIgv, threshold = threshold, mc.cores = .getIdleCores())
   names(mappings) <- x$getHapTypes()
   x$remap <- purrr::transpose(mappings)
-  hptypes <- x$getHapTypes()
+  hptypes   <- x$getHapTypes()
   if (plot && !is.null(x$plotRemapSummary)) {
     flog.info("%sPlot remap summary", indent(), name = "info")
 
@@ -645,7 +641,7 @@ remapAndReport <- function(x, report = FALSE, threshold = NULL, plot = TRUE, ...
       }, ambigPos = ambigPos))
     }
   }
-  ## Check long insertions
+  ## Check long isertions
   insPosVars <- dplyr::bind_rows(lapply(hptypes, function(hp, x) {
     bamRel <- x$remap$LR[[hp]]$bampath
     if (is.null(bamRel)) {

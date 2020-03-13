@@ -1,3 +1,8 @@
+# DR2S 1.1.15
+
+* [bugfix] fix issue with bpparallel in the remapping step that only occurs 
+  on the slurm cluster.
+
 # DR2S 1.1.14
 
 * [bugfix] fixes multiple issues with parallel access to bam files that only
