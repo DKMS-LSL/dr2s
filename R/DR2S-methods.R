@@ -15,7 +15,7 @@ DR2S_$set("public", "runMapInit", function(opts = list(), ...) {
   # library(cowplot)
   # library(S4Vectors)
   # library(Rsamtools)
-  # self <- mapper
+  # self <- ma
 
   flog.info("# mapInit", name = "info")
 
@@ -57,7 +57,8 @@ DR2S_$set("public", "runMapInit", function(opts = list(), ...) {
       includeInsertions = TRUE, callInsertions = TRUE,
       callInsertionThreshold = callInsertionThreshold,
       distributeGaps = FALSE, removeError = TRUE, topx = 0,
-      outdir = outdir, clean = clean, minMapq = 50, indent = indent, ...)
+      outdir = outdir, clean = clean, minMapq = 0, indent = indent, ...)
+    
 
     ### TODO wrap this command up
     if (createIgv)
@@ -83,7 +84,7 @@ DR2S_$set("public", "runMapInit", function(opts = list(), ...) {
       callInsertionThreshold = callInsertionThreshold, clip = TRUE,
       distributeGaps = TRUE, removeError = FALSE, topx = topx,
       updateBackgroundModel = updateBackgroundModel, clean = clean,
-      minMapq = minMapq, pickiness = pickiness, lowerLimit = lowerLimit,
+      minMapq = 0, pickiness = pickiness, lowerLimit = lowerLimit,
       indent = indent, ...)
 
     ## If topx = "auto" or set to non-zero generate a new subsampled
@@ -136,7 +137,7 @@ DR2S_$set("public", "runMapInit", function(opts = list(), ...) {
     includeDeletions = TRUE, includeInsertions = TRUE, callInsertions = FALSE,
     clip = TRUE, distributeGaps = TRUE, removeError = TRUE, topx = topx,
     updateBackgroundModel = updateBackgroundModel, clean = clean,
-    minMapq = minMapq, pickiness = pickiness, lowerLimit = lowerLimit,
+    minMapq = 0, pickiness = pickiness, lowerLimit = lowerLimit,
     indent = indent, indelRate = indelRate, ...)
 
   if (!is.null(picked2 <- reads(pileup))) {
@@ -918,18 +919,18 @@ DR2S_$set("public", "runMapFinal", function(opts = list(), ...) {
         includeDeletions = includeDeletions, includeInsertions = TRUE,
         callInsertions = TRUE, callInsertionThreshold = callInsertionThreshold,
         clip = trimPolymorphicEnds, distributeGaps = TRUE, removeError = TRUE, topx = 0,
-        clean = TRUE, max_depth = 1e5, min_mapq = 50, min_base_quality = 13,
+        clean = TRUE, max_depth = 1e5, min_mapq = 0, min_base_quality = 13,
         indent = incr(indent), min_nucleotide_depth = 0)#, ...)
       ## Create igv
       if (createIgv) {
         if (!self$getHomozygous()) {
-          clusteredReads <- dplyr::pull(self$srpartition$A$srpartition$haplotypes, read)
+          clusteredReads <- dplyr::pull(tibble::as_tibble(self$srpartition$A$srpartition$haplotypes), read)
         } else {
           clusteredReads <- NULL
         }
         igv <- createIgvJsFiles(
           reference = refpath(pileup), bamfile = bampath(pileup),
-          outdir = self$getOutdir(), paired = TRUE,
+          outdir = self$getOutdir(), paired = FALSE,
           sampleSize = 100, clusteredReads = clusteredReads)
       }
       ## Construct consensus sequence

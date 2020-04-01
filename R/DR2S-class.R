@@ -298,10 +298,6 @@ DR2S_ <- R6::R6Class(
     },
     ##
     getSrdDir = function() {
-      filtered <- self$getConfig("filteredShortreads")
-      if (!is.null(filtered)) {
-        return(self$absPath(filtered))
-      }
       srddir <- self$getConfig("shortreads")$dir
       if (!is.null(sdir <- self$mapInit$meta$SR1$readpath)) {
         if (!any(startsWith(sdir, srddir))) {
@@ -316,6 +312,10 @@ DR2S_ <- R6::R6Class(
     },
     ##
     getShortreads = function() {
+      filtered <- self$getConfig("trimmedShortreads")
+      if (!is.null(filtered)) {
+        return(self$absPath(filtered))
+      }
       srddir <- self$getSrdDir()
       if (is.null(srddir)) {
         return(NULL)

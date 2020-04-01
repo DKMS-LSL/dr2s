@@ -26,7 +26,11 @@ mapInitSR <- function(self, opts = list(), includeDeletions = TRUE,
     includeDeletions = includeDeletions, includeInsertions = includeInsertions,
     callInsertions = TRUE, callInsertionThreshold = callInsertionThreshold,
     clip = TRUE, distributeGaps = FALSE, removeError = TRUE, topx = 0,
-    clean = clean, indent = indent, ...)#minMapq = 50)
+    clean = clean, indent = indent, ...)
+  if (any(readfile != readfile(pileup))) {
+    self$setConfig(name = "trimmedShortreads", self$relPath(readfile(pileup)))
+    readfile <- readfile(pileup)
+  }
 
   ## Check if the pileup is empty and the coverage is somewhat equally distributed
   if (NROW(consmat(pileup)) == 0) {
@@ -50,7 +54,6 @@ mapInitSR <- function(self, opts = list(), includeDeletions = TRUE,
                          replaceIndel = "N", conspath = conspath)
 
   if (microsat) {
-    readfile <- readfile(pileup)
     flog.info("%sRemap shortreads to extended reference", indent(), name = "info")
     pileup <- mapReads(
       mapfun = mapfun, maplabel = maplabel, reffile = conspath, refname = consname,
@@ -58,7 +61,7 @@ mapInitSR <- function(self, opts = list(), includeDeletions = TRUE,
       includeDeletions = includeDeletions, includeInsertions = includeInsertions,
       callInsertions = TRUE, callInsertionThreshold = callInsertionThreshold,
       clip = FALSE, distributeGaps = FALSE, removeError = TRUE, topx = 0,
-      clean = clean, indent = indent, ...)#minMapq = 50)
+      clean = clean, indent = indent, ...)
 
     # Construct secondary initial consensus sequence
     consname <- consname %<<% ".2"
@@ -95,7 +98,7 @@ mapInitSR <- function(self, opts = list(), includeDeletions = TRUE,
     includeDeletions = TRUE, includeInsertions = TRUE, callInsertions = FALSE,
     callInsertionThreshold = callInsertionThreshold, clip = FALSE,
     distributeGaps = FALSE, removeError = TRUE, topx = 0, clean = clean,
-    indent = indent, ...)#minMapq = 50)
+    indent = indent, ...)
 
   SR2 = MapList_(
     ## mapdata

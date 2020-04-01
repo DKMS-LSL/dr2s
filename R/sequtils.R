@@ -59,7 +59,12 @@
   clipPos[clipPos < 0 | is.na(clipPos)] <- 0
   clipPos[clipPos > 0] <- clipPos[clipPos > 0] + 2
   clipPos[clipPos == 0] <- 1
-  fqrClip <- ShortRead::ShortReadQ(sread = bam$seq, quality = Biostrings::BStringSet(bam$qual), id = Biostrings::BStringSet(bam$qname))
+  ids <- bam$qname
+  if (!grepl("_\\d+$", ids[[1]])) {
+    ids <- paste(ids, seq_along(ids), sep = "_")
+  }
+  
+  fqrClip <- ShortRead::ShortReadQ(sread = bam$seq, quality = Biostrings::BStringSet(bam$qual), id = Biostrings::BStringSet(ids))
   fqrClipped <- ShortRead::narrow(fqrClip, start = clipPos, end = Biostrings::width(bam$seq))
   fqFileWrite <- .fileDeleteIfExists(fqFileWrite)
   ShortRead::writeFastq(fqrClipped, fqFileWrite, compress = TRUE)

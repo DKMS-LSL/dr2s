@@ -10,6 +10,7 @@
 #' @import assertthat
 #' @import futile.logger
 #' @import ggplot2
+#' @import dtplyr
 #' @importFrom mclust mclustBIC Mclust
 #' @importFrom data.table :=
 #' @importFrom foreach foreach %do% %:%

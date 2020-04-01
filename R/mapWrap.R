@@ -20,10 +20,10 @@ mapReads <- function(
     flog.info("%sTrim reads to reference", indent(), name = "info")
     ## Run bam - sort - index pipeline
     bamfile <- .bamSortIndex(samfile = samfile, reffile = reffile,
-                             minMapq = minMapq, clean = clean)
+                             minMapq = minMapq, clean = clean, force = force)
     ## Trim to reflen
     readfile <- file.path(outdir, basename(readfile[[1]]))
-    .trimToRefLen(bamfile, readfile)
+    .trimToRefLen(bamfile = bamfile, fqFileWrite = readfile)
     unlink(bamfile)
     flog.info("%sRemap trimmed reads <%s> to reference <%s>", indent(), readfile, names(reffile), name = "info")
     samfile <- mapfun(reffile, refname, readfile, readtype, outdir, maplabel, opts)

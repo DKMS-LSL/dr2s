@@ -80,6 +80,10 @@ subSampleBam <- function(bamfile, windowSize = NULL, sampleSize = 100,
     endsWith(bamfile, ".bam"),
     is.numeric(sampleSize))
 
+  # bamfile <- bampath(ma$mapInit$meta$SR1$pileup)
+  # bamfile <- "/mnt/bioinf/DR2S/NeueAllele/classII/DR_10_11/out_2020-03-13_devel8/HLA-DRB1/ID16162249/mapInit/test.sorted.bam"
+  # bamfile <- bampath(SR$SR1$pileup)
+  # bamfile <- bampath(pileup)
   bam <- Rsamtools::BamFile(bamfile)
   Rsamtools::open.BamFile(bam)
   on.exit(Rsamtools::close.BamFile(bam))
@@ -97,11 +101,13 @@ subSampleBam <- function(bamfile, windowSize = NULL, sampleSize = 100,
   alignmentBam <-  readGAFun(
     bam, param = Rsamtools::ScanBamParam(what = what), use.names = TRUE)
   ## Use the median read length if no window size is given
-  if (is.null(windowSize))
-    windowSize <- ifelse(is(
-      alignmentBam, "GAlignmentPairs"),  
-      IRanges::median(GenomicAlignments::qwidth(GenomicAlignments::first(alignmentBam))), 
-      IRanges::median(GenomicAlignments::qwidth(alignmentBam)))
+  if (is.null(windowSize)) {
+    if (is(alignmentBam, "GAlignmentPairs")) {
+      windowSize <- IRanges::median(GenomicAlignments::qwidth(GenomicAlignments::first(alignmentBam)))
+    } else {
+      windowSize <- IRanges::median(GenomicAlignments::qwidth(alignmentBam))
+    }
+  }
    
   assert_that(is.numeric(windowSize))
   geneLength <- GenomeInfoDb::seqlengths(GenomeInfoDb::seqinfo(bam))

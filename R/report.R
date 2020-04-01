@@ -280,11 +280,16 @@ remapAlignment <- function(x, hptype, report = FALSE, createIgv = TRUE,
       includeInsertions = TRUE, callInsertions = FALSE, clip = TRUE, indent = incr(indent))
 
     if (createIgv) {
-      clusteredReads <- dplyr::pull(x$srpartition$A$srpartition$haplotypes, read)
+      if (!x$getHomozygous()) {
+        clusteredReads <- dplyr::pull(tibble::as_tibble(x$srpartition[[hptype]]$srpartition$haplotypes), read)
+      } else {
+        clusteredReads <- NULL
+      }
       igv <- createIgvJsFiles(
-        refpath(pileup), bampath(pileup), x$getOutdir(), sampleSize = 100,
-        clusteredReads = clusteredReads)
-    }
+        reference = refpath(pileup), bamfile = bampath(pileup),
+        outdir = x$getOutdir(), paired = FALSE,
+        sampleSize = 100, clusteredReads = clusteredReads)
+    } 
     mappings$SR <- MapList_(
       ## mapdata
       readpath  = x$relPath(readpathSR),
@@ -529,10 +534,11 @@ remapAndReport <- function(x, report = FALSE, threshold = NULL, plot = TRUE, ...
   flog.info("%sRemapping final sequences", indent(), name = "info")
 
   # bpparam <- BiocParallel::MulticoreParam(workers = .getIdleCores())
+  # bpparam <- BiocParallel::MulticoreParam(workers = .getIdleCores())
   mappings <- parallel::mclapply(x$getHapTypes(), function(h, x, report,
-                                                               createIgv,threshold) {
+                                                           createIgv, threshold) {
     remapAlignment(x, h, report = report, createIgv = createIgv, threshold)
-   }, x = x, report = report, createIgv = createIgv, threshold = threshold, mc.cores = .getIdleCores())
+  }, x = x, report = report, createIgv = createIgv, threshold = threshold, mc.cores = .getIdleCores())
   names(mappings) <- x$getHapTypes()
   x$remap <- purrr::transpose(mappings)
   hptypes   <- x$getHapTypes()
