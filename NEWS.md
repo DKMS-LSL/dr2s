@@ -1,3 +1,7 @@
+# DR2S 1.1.16
+
+* [bugfix] fix isues with modified paired-end fastqs by renaming reads after the first mapping and trimming
+
 # DR2S 1.1.15
 
 * [bugfix] fix issue with bpparallel in the remapping step that only occurs 

@@ -692,8 +692,8 @@ remapAndReport <- function(x, report = FALSE, threshold = NULL, plot = TRUE, ...
       altSR = NA_character_,
       refLR = NA_character_,
       altLR = NA_character_,
-      supportSR = NA_character_,
-      supportLR = NA_character_
+      supportSR = NA,
+      supportLR = NA
       )
   }, x = x))
   vars <- dplyr::bind_rows(vars, insPosVars)

@@ -128,6 +128,7 @@ B.}
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-new"></a>}}
+\if{latex}{\out{\hypertarget{method-new}{}}}
 \subsection{Method \code{new()}}{
 Create a new DR2S object.
 \subsection{Usage}{
@@ -150,6 +151,7 @@ A new DR2S object.
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-cache"></a>}}
+\if{latex}{\out{\hypertarget{method-cache}{}}}
 \subsection{Method \code{cache()}}{
 Store a DR2S object as an rds file.
 \subsection{Usage}{
@@ -169,6 +171,7 @@ Returns invisibly the DR2S object.
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-clear"></a>}}
+\if{latex}{\out{\hypertarget{method-clear}{}}}
 \subsection{Method \code{clear()}}{
 Clear all the files pertaining to a DR2S mapping process
 and set up the whole process from scratch.
@@ -182,6 +185,7 @@ Returns invisibly the DR2S object.
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-cleanup"></a>}}
+\if{latex}{\out{\hypertarget{method-cleanup}{}}}
 \subsection{Method \code{cleanup()}}{
 remove all bam and bai files.
 \subsection{Usage}{
@@ -194,6 +198,7 @@ Returns invisibly the DR2S object.
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-print"></a>}}
+\if{latex}{\out{\hypertarget{method-print}{}}}
 \subsection{Method \code{print()}}{
 Print a DR2S object prettily
 \subsection{Usage}{
@@ -206,6 +211,7 @@ Returns invisibly the DR2S object.
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-run_"></a>}}
+\if{latex}{\out{\hypertarget{method-run_}{}}}
 \subsection{Method \code{run_()}}{
 Execute a given step in a DR2S pipeline.
 \subsection{Usage}{
@@ -225,6 +231,7 @@ Called for side effect.
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-getConfig"></a>}}
+\if{latex}{\out{\hypertarget{method-getConfig}{}}}
 \subsection{Method \code{getConfig()}}{
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{DR2S_$getConfig(name = NULL)}\if{html}{\out{</div>}}
@@ -233,6 +240,7 @@ Called for side effect.
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-setConfig"></a>}}
+\if{latex}{\out{\hypertarget{method-setConfig}{}}}
 \subsection{Method \code{setConfig()}}{
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{DR2S_$setConfig(name, value)}\if{html}{\out{</div>}}
@@ -241,6 +249,7 @@ Called for side effect.
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-getDatadir"></a>}}
+\if{latex}{\out{\hypertarget{method-getDatadir}{}}}
 \subsection{Method \code{getDatadir()}}{
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{DR2S_$getDatadir()}\if{html}{\out{</div>}}
@@ -249,6 +258,7 @@ Called for side effect.
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-getOutdir"></a>}}
+\if{latex}{\out{\hypertarget{method-getOutdir}{}}}
 \subsection{Method \code{getOutdir()}}{
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{DR2S_$getOutdir()}\if{html}{\out{</div>}}
@@ -257,6 +267,7 @@ Called for side effect.
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-getMicrosatellite"></a>}}
+\if{latex}{\out{\hypertarget{method-getMicrosatellite}{}}}
 \subsection{Method \code{getMicrosatellite()}}{
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{DR2S_$getMicrosatellite()}\if{html}{\out{</div>}}
@@ -265,6 +276,7 @@ Called for side effect.
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-getForceMapping"></a>}}
+\if{latex}{\out{\hypertarget{method-getForceMapping}{}}}
 \subsection{Method \code{getForceMapping()}}{
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{DR2S_$getForceMapping()}\if{html}{\out{</div>}}
@@ -273,6 +285,7 @@ Called for side effect.
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-getThreshold"></a>}}
+\if{latex}{\out{\hypertarget{method-getThreshold}{}}}
 \subsection{Method \code{getThreshold()}}{
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{DR2S_$getThreshold()}\if{html}{\out{</div>}}
@@ -281,6 +294,7 @@ Called for side effect.
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-getDistAlleles"></a>}}
+\if{latex}{\out{\hypertarget{method-getDistAlleles}{}}}
 \subsection{Method \code{getDistAlleles()}}{
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{DR2S_$getDistAlleles()}\if{html}{\out{</div>}}
@@ -289,6 +303,7 @@ Called for side effect.
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-getIterations"></a>}}
+\if{latex}{\out{\hypertarget{method-getIterations}{}}}
 \subsection{Method \code{getIterations()}}{
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{DR2S_$getIterations()}\if{html}{\out{</div>}}
@@ -297,6 +312,7 @@ Called for side effect.
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-getLrdMapper"></a>}}
+\if{latex}{\out{\hypertarget{method-getLrdMapper}{}}}
 \subsection{Method \code{getLrdMapper()}}{
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{DR2S_$getLrdMapper()}\if{html}{\out{</div>}}
@@ -305,6 +321,7 @@ Called for side effect.
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-getLrdType"></a>}}
+\if{latex}{\out{\hypertarget{method-getLrdType}{}}}
 \subsection{Method \code{getLrdType()}}{
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{DR2S_$getLrdType()}\if{html}{\out{</div>}}
@@ -313,6 +330,7 @@ Called for side effect.
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-getLrdDir"></a>}}
+\if{latex}{\out{\hypertarget{method-getLrdDir}{}}}
 \subsection{Method \code{getLrdDir()}}{
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{DR2S_$getLrdDir()}\if{html}{\out{</div>}}
@@ -321,6 +339,7 @@ Called for side effect.
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-getLongreads"></a>}}
+\if{latex}{\out{\hypertarget{method-getLongreads}{}}}
 \subsection{Method \code{getLongreads()}}{
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{DR2S_$getLongreads()}\if{html}{\out{</div>}}
@@ -329,6 +348,7 @@ Called for side effect.
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-getSrdMapper"></a>}}
+\if{latex}{\out{\hypertarget{method-getSrdMapper}{}}}
 \subsection{Method \code{getSrdMapper()}}{
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{DR2S_$getSrdMapper()}\if{html}{\out{</div>}}
@@ -337,6 +357,7 @@ Called for side effect.
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-getSrdType"></a>}}
+\if{latex}{\out{\hypertarget{method-getSrdType}{}}}
 \subsection{Method \code{getSrdType()}}{
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{DR2S_$getSrdType()}\if{html}{\out{</div>}}
@@ -345,6 +366,7 @@ Called for side effect.
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-getSrdDir"></a>}}
+\if{latex}{\out{\hypertarget{method-getSrdDir}{}}}
 \subsection{Method \code{getSrdDir()}}{
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{DR2S_$getSrdDir()}\if{html}{\out{</div>}}
@@ -353,6 +375,7 @@ Called for side effect.
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-getShortreads"></a>}}
+\if{latex}{\out{\hypertarget{method-getShortreads}{}}}
 \subsection{Method \code{getShortreads()}}{
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{DR2S_$getShortreads()}\if{html}{\out{</div>}}
@@ -361,6 +384,7 @@ Called for side effect.
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-getPipeline"></a>}}
+\if{latex}{\out{\hypertarget{method-getPipeline}{}}}
 \subsection{Method \code{getPipeline()}}{
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{DR2S_$getPipeline()}\if{html}{\out{</div>}}
@@ -369,6 +393,7 @@ Called for side effect.
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-getOpts"></a>}}
+\if{latex}{\out{\hypertarget{method-getOpts}{}}}
 \subsection{Method \code{getOpts()}}{
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{DR2S_$getOpts(name = NULL)}\if{html}{\out{</div>}}
@@ -377,6 +402,7 @@ Called for side effect.
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-getSampleId"></a>}}
+\if{latex}{\out{\hypertarget{method-getSampleId}{}}}
 \subsection{Method \code{getSampleId()}}{
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{DR2S_$getSampleId()}\if{html}{\out{</div>}}
@@ -385,6 +411,7 @@ Called for side effect.
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-getLocus"></a>}}
+\if{latex}{\out{\hypertarget{method-getLocus}{}}}
 \subsection{Method \code{getLocus()}}{
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{DR2S_$getLocus()}\if{html}{\out{</div>}}
@@ -393,6 +420,7 @@ Called for side effect.
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-getReference"></a>}}
+\if{latex}{\out{\hypertarget{method-getReference}{}}}
 \subsection{Method \code{getReference()}}{
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{DR2S_$getReference()}\if{html}{\out{</div>}}
@@ -401,6 +429,7 @@ Called for side effect.
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-getPlatform"></a>}}
+\if{latex}{\out{\hypertarget{method-getPlatform}{}}}
 \subsection{Method \code{getPlatform()}}{
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{DR2S_$getPlatform()}\if{html}{\out{</div>}}
@@ -409,6 +438,7 @@ Called for side effect.
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-getFormat"></a>}}
+\if{latex}{\out{\hypertarget{method-getFormat}{}}}
 \subsection{Method \code{getFormat()}}{
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{DR2S_$getFormat()}\if{html}{\out{</div>}}
@@ -417,6 +447,7 @@ Called for side effect.
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-setFormat"></a>}}
+\if{latex}{\out{\hypertarget{method-setFormat}{}}}
 \subsection{Method \code{setFormat()}}{
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{DR2S_$setFormat(format)}\if{html}{\out{</div>}}
@@ -425,6 +456,7 @@ Called for side effect.
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-getDetails"></a>}}
+\if{latex}{\out{\hypertarget{method-getDetails}{}}}
 \subsection{Method \code{getDetails()}}{
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{DR2S_$getDetails(name = NULL)}\if{html}{\out{</div>}}
@@ -433,6 +465,7 @@ Called for side effect.
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-setDetails"></a>}}
+\if{latex}{\out{\hypertarget{method-setDetails}{}}}
 \subsection{Method \code{setDetails()}}{
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{DR2S_$setDetails(details)}\if{html}{\out{</div>}}
@@ -441,6 +474,7 @@ Called for side effect.
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-getSampleDetails"></a>}}
+\if{latex}{\out{\hypertarget{method-getSampleDetails}{}}}
 \subsection{Method \code{getSampleDetails()}}{
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{DR2S_$getSampleDetails()}\if{html}{\out{</div>}}
@@ -449,6 +483,7 @@ Called for side effect.
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-getStats"></a>}}
+\if{latex}{\out{\hypertarget{method-getStats}{}}}
 \subsection{Method \code{getStats()}}{
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{DR2S_$getStats(name = NULL)}\if{html}{\out{</div>}}
@@ -457,6 +492,7 @@ Called for side effect.
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-setStats"></a>}}
+\if{latex}{\out{\hypertarget{method-setStats}{}}}
 \subsection{Method \code{setStats()}}{
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{DR2S_$setStats(name, value)}\if{html}{\out{</div>}}
@@ -465,6 +501,7 @@ Called for side effect.
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-getLimits"></a>}}
+\if{latex}{\out{\hypertarget{method-getLimits}{}}}
 \subsection{Method \code{getLimits()}}{
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{DR2S_$getLimits()}\if{html}{\out{</div>}}
@@ -473,6 +510,7 @@ Called for side effect.
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-setLimits"></a>}}
+\if{latex}{\out{\hypertarget{method-setLimits}{}}}
 \subsection{Method \code{setLimits()}}{
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{DR2S_$setLimits(lmts)}\if{html}{\out{</div>}}
@@ -481,6 +519,7 @@ Called for side effect.
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-getHapTypes"></a>}}
+\if{latex}{\out{\hypertarget{method-getHapTypes}{}}}
 \subsection{Method \code{getHapTypes()}}{
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{DR2S_$getHapTypes()}\if{html}{\out{</div>}}
@@ -489,6 +528,7 @@ Called for side effect.
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-setHapTypes"></a>}}
+\if{latex}{\out{\hypertarget{method-setHapTypes}{}}}
 \subsection{Method \code{setHapTypes()}}{
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{DR2S_$setHapTypes(x)}\if{html}{\out{</div>}}
@@ -497,6 +537,7 @@ Called for side effect.
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-getRefPath"></a>}}
+\if{latex}{\out{\hypertarget{method-getRefPath}{}}}
 \subsection{Method \code{getRefPath()}}{
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{DR2S_$getRefPath()}\if{html}{\out{</div>}}
@@ -505,6 +546,7 @@ Called for side effect.
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-setRefPath"></a>}}
+\if{latex}{\out{\hypertarget{method-setRefPath}{}}}
 \subsection{Method \code{setRefPath()}}{
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{DR2S_$setRefPath(refPath)}\if{html}{\out{</div>}}
@@ -513,6 +555,7 @@ Called for side effect.
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-getHomozygous"></a>}}
+\if{latex}{\out{\hypertarget{method-getHomozygous}{}}}
 \subsection{Method \code{getHomozygous()}}{
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{DR2S_$getHomozygous()}\if{html}{\out{</div>}}
@@ -521,6 +564,7 @@ Called for side effect.
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-setHomozygous"></a>}}
+\if{latex}{\out{\hypertarget{method-setHomozygous}{}}}
 \subsection{Method \code{setHomozygous()}}{
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{DR2S_$setHomozygous(homozygous)}\if{html}{\out{</div>}}
@@ -529,6 +573,7 @@ Called for side effect.
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-getRefSeq"></a>}}
+\if{latex}{\out{\hypertarget{method-getRefSeq}{}}}
 \subsection{Method \code{getRefSeq()}}{
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{DR2S_$getRefSeq()}\if{html}{\out{</div>}}
@@ -537,6 +582,7 @@ Called for side effect.
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-getPileup"></a>}}
+\if{latex}{\out{\hypertarget{method-getPileup}{}}}
 \subsection{Method \code{getPileup()}}{
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{DR2S_$getPileup(useSR = FALSE)}\if{html}{\out{</div>}}
@@ -545,6 +591,7 @@ Called for side effect.
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-getSnpMatrix"></a>}}
+\if{latex}{\out{\hypertarget{method-getSnpMatrix}{}}}
 \subsection{Method \code{getSnpMatrix()}}{
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{DR2S_$getSnpMatrix()}\if{html}{\out{</div>}}
@@ -553,6 +600,7 @@ Called for side effect.
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-getPartition"></a>}}
+\if{latex}{\out{\hypertarget{method-getPartition}{}}}
 \subsection{Method \code{getPartition()}}{
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{DR2S_$getPartition()}\if{html}{\out{</div>}}
@@ -561,6 +609,7 @@ Called for side effect.
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-getHapList"></a>}}
+\if{latex}{\out{\hypertarget{method-getHapList}{}}}
 \subsection{Method \code{getHapList()}}{
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{DR2S_$getHapList(group)}\if{html}{\out{</div>}}
@@ -569,6 +618,7 @@ Called for side effect.
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-getLatestRefPath"></a>}}
+\if{latex}{\out{\hypertarget{method-getLatestRefPath}{}}}
 \subsection{Method \code{getLatestRefPath()}}{
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{DR2S_$getLatestRefPath()}\if{html}{\out{</div>}}
@@ -577,6 +627,7 @@ Called for side effect.
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-getLatestRef"></a>}}
+\if{latex}{\out{\hypertarget{method-getLatestRef}{}}}
 \subsection{Method \code{getLatestRef()}}{
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{DR2S_$getLatestRef()}\if{html}{\out{</div>}}
@@ -585,6 +636,7 @@ Called for side effect.
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-getMapTag"></a>}}
+\if{latex}{\out{\hypertarget{method-getMapTag}{}}}
 \subsection{Method \code{getMapTag()}}{
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{DR2S_$getMapTag(iter = "init", group = NULL, ref = "LR")}\if{html}{\out{</div>}}
@@ -593,6 +645,7 @@ Called for side effect.
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-getGroupPileup"></a>}}
+\if{latex}{\out{\hypertarget{method-getGroupPileup}{}}}
 \subsection{Method \code{getGroupPileup()}}{
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{DR2S_$getGroupPileup(group = NULL, ref = NULL, iteration = 0)}\if{html}{\out{</div>}}
@@ -601,6 +654,7 @@ Called for side effect.
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-getLrdMapFun"></a>}}
+\if{latex}{\out{\hypertarget{method-getLrdMapFun}{}}}
 \subsection{Method \code{getLrdMapFun()}}{
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{DR2S_$getLrdMapFun()}\if{html}{\out{</div>}}
@@ -609,6 +663,7 @@ Called for side effect.
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-getSrdMapFun"></a>}}
+\if{latex}{\out{\hypertarget{method-getSrdMapFun}{}}}
 \subsection{Method \code{getSrdMapFun()}}{
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{DR2S_$getSrdMapFun()}\if{html}{\out{</div>}}
@@ -617,6 +672,7 @@ Called for side effect.
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-absPath"></a>}}
+\if{latex}{\out{\hypertarget{method-absPath}{}}}
 \subsection{Method \code{absPath()}}{
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{DR2S_$absPath(filename)}\if{html}{\out{</div>}}
@@ -625,6 +681,7 @@ Called for side effect.
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-relPath"></a>}}
+\if{latex}{\out{\hypertarget{method-relPath}{}}}
 \subsection{Method \code{relPath()}}{
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{DR2S_$relPath(filepath)}\if{html}{\out{</div>}}
@@ -633,6 +690,7 @@ Called for side effect.
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-hasMapInit"></a>}}
+\if{latex}{\out{\hypertarget{method-hasMapInit}{}}}
 \subsection{Method \code{hasMapInit()}}{
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{DR2S_$hasMapInit()}\if{html}{\out{</div>}}
@@ -641,6 +699,7 @@ Called for side effect.
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-hasLrdPartition"></a>}}
+\if{latex}{\out{\hypertarget{method-hasLrdPartition}{}}}
 \subsection{Method \code{hasLrdPartition()}}{
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{DR2S_$hasLrdPartition()}\if{html}{\out{</div>}}
@@ -649,6 +708,7 @@ Called for side effect.
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-hasHapList"></a>}}
+\if{latex}{\out{\hypertarget{method-hasHapList}{}}}
 \subsection{Method \code{hasHapList()}}{
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{DR2S_$hasHapList()}\if{html}{\out{</div>}}
@@ -657,6 +717,7 @@ Called for side effect.
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-hasMapIter"></a>}}
+\if{latex}{\out{\hypertarget{method-hasMapIter}{}}}
 \subsection{Method \code{hasMapIter()}}{
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{DR2S_$hasMapIter()}\if{html}{\out{</div>}}
@@ -665,6 +726,7 @@ Called for side effect.
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-hasMapFinal"></a>}}
+\if{latex}{\out{\hypertarget{method-hasMapFinal}{}}}
 \subsection{Method \code{hasMapFinal()}}{
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{DR2S_$hasMapFinal()}\if{html}{\out{</div>}}
@@ -673,6 +735,7 @@ Called for side effect.
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-checkGetShortreads"></a>}}
+\if{latex}{\out{\hypertarget{method-checkGetShortreads}{}}}
 \subsection{Method \code{checkGetShortreads()}}{
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{DR2S_$checkGetShortreads()}\if{html}{\out{</div>}}
@@ -681,6 +744,7 @@ Called for side effect.
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-hasShortreads"></a>}}
+\if{latex}{\out{\hypertarget{method-hasShortreads}{}}}
 \subsection{Method \code{hasShortreads()}}{
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{DR2S_$hasShortreads()}\if{html}{\out{</div>}}
@@ -689,6 +753,7 @@ Called for side effect.
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-checkGetLongreads"></a>}}
+\if{latex}{\out{\hypertarget{method-checkGetLongreads}{}}}
 \subsection{Method \code{checkGetLongreads()}}{
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{DR2S_$checkGetLongreads()}\if{html}{\out{</div>}}
@@ -697,6 +762,7 @@ Called for side effect.
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-hasLongreads"></a>}}
+\if{latex}{\out{\hypertarget{method-hasLongreads}{}}}
 \subsection{Method \code{hasLongreads()}}{
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{DR2S_$hasLongreads()}\if{html}{\out{</div>}}
@@ -705,6 +771,7 @@ Called for side effect.
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-plotCoverage"></a>}}
+\if{latex}{\out{\hypertarget{method-plotCoverage}{}}}
 \subsection{Method \code{plotCoverage()}}{
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{DR2S_$plotCoverage(
@@ -721,6 +788,7 @@ Called for side effect.
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-plotGroupCoverage"></a>}}
+\if{latex}{\out{\hypertarget{method-plotGroupCoverage}{}}}
 \subsection{Method \code{plotGroupCoverage()}}{
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{DR2S_$plotGroupCoverage(
@@ -739,6 +807,7 @@ Called for side effect.
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-plotBasecallFrequency"></a>}}
+\if{latex}{\out{\hypertarget{method-plotBasecallFrequency}{}}}
 \subsection{Method \code{plotBasecallFrequency()}}{
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{DR2S_$plotBasecallFrequency(threshold, label = "", drop.indels = FALSE)}\if{html}{\out{</div>}}
@@ -747,6 +816,7 @@ Called for side effect.
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-plotGroupBasecallFrequency"></a>}}
+\if{latex}{\out{\hypertarget{method-plotGroupBasecallFrequency}{}}}
 \subsection{Method \code{plotGroupBasecallFrequency()}}{
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{DR2S_$plotGroupBasecallFrequency(
@@ -762,6 +832,7 @@ Called for side effect.
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-plotPartitionHistogram"></a>}}
+\if{latex}{\out{\hypertarget{method-plotPartitionHistogram}{}}}
 \subsection{Method \code{plotPartitionHistogram()}}{
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{DR2S_$plotPartitionHistogram(label = "", limits = NULL)}\if{html}{\out{</div>}}
@@ -770,6 +841,7 @@ Called for side effect.
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-plotPartitionTree"></a>}}
+\if{latex}{\out{\hypertarget{method-plotPartitionTree}{}}}
 \subsection{Method \code{plotPartitionTree()}}{
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{DR2S_$plotPartitionTree()}\if{html}{\out{</div>}}
@@ -778,6 +850,7 @@ Called for side effect.
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-plotPartitionRadar"></a>}}
+\if{latex}{\out{\hypertarget{method-plotPartitionRadar}{}}}
 \subsection{Method \code{plotPartitionRadar()}}{
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{DR2S_$plotPartitionRadar()}\if{html}{\out{</div>}}
@@ -786,6 +859,7 @@ Called for side effect.
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-polymorphicPositions"></a>}}
+\if{latex}{\out{\hypertarget{method-polymorphicPositions}{}}}
 \subsection{Method \code{polymorphicPositions()}}{
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{DR2S_$polymorphicPositions(threshold, useSR = FALSE)}\if{html}{\out{</div>}}
@@ -794,6 +868,7 @@ Called for side effect.
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-plotMapInitSummary"></a>}}
+\if{latex}{\out{\hypertarget{method-plotMapInitSummary}{}}}
 \subsection{Method \code{plotMapInitSummary()}}{
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{DR2S_$plotMapInitSummary(thin = 0.2, width = 4, label = "")}\if{html}{\out{</div>}}
@@ -802,6 +877,7 @@ Called for side effect.
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-plotPartitionSummary"></a>}}
+\if{latex}{\out{\hypertarget{method-plotPartitionSummary}{}}}
 \subsection{Method \code{plotPartitionSummary()}}{
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{DR2S_$plotPartitionSummary(label = "", limits = NULL)}\if{html}{\out{</div>}}
@@ -810,6 +886,7 @@ Called for side effect.
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-plotMapIterSummary"></a>}}
+\if{latex}{\out{\hypertarget{method-plotMapIterSummary}{}}}
 \subsection{Method \code{plotMapIterSummary()}}{
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{DR2S_$plotMapIterSummary(
@@ -823,6 +900,7 @@ Called for side effect.
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-plotMapFinalSummary"></a>}}
+\if{latex}{\out{\hypertarget{method-plotMapFinalSummary}{}}}
 \subsection{Method \code{plotMapFinalSummary()}}{
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{DR2S_$plotMapFinalSummary(readtype, thin = 0.2, width = 10)}\if{html}{\out{</div>}}
@@ -831,6 +909,7 @@ Called for side effect.
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-plotRemapSummary"></a>}}
+\if{latex}{\out{\hypertarget{method-plotRemapSummary}{}}}
 \subsection{Method \code{plotRemapSummary()}}{
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{DR2S_$plotRemapSummary(readtype, thin = 0.2, width = 10)}\if{html}{\out{</div>}}
@@ -839,6 +918,7 @@ Called for side effect.
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-plotSeqLogo"></a>}}
+\if{latex}{\out{\hypertarget{method-plotSeqLogo}{}}}
 \subsection{Method \code{plotSeqLogo()}}{
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{DR2S_$plotSeqLogo(ppos = NULL, pwm = NULL)}\if{html}{\out{</div>}}
@@ -847,6 +927,7 @@ Called for side effect.
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-runMapInit"></a>}}
+\if{latex}{\out{\hypertarget{method-runMapInit}{}}}
 \subsection{Method \code{runMapInit()}}{
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{DR2S_$runMapInit(opts = list(), ...)}\if{html}{\out{</div>}}
@@ -855,6 +936,7 @@ Called for side effect.
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-runPartitionLongreads"></a>}}
+\if{latex}{\out{\hypertarget{method-runPartitionLongreads}{}}}
 \subsection{Method \code{runPartitionLongreads()}}{
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{DR2S_$runPartitionLongreads()}\if{html}{\out{</div>}}
@@ -863,6 +945,7 @@ Called for side effect.
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-runSplitLongreadsByHaplotype"></a>}}
+\if{latex}{\out{\hypertarget{method-runSplitLongreadsByHaplotype}{}}}
 \subsection{Method \code{runSplitLongreadsByHaplotype()}}{
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{DR2S_$runSplitLongreadsByHaplotype()}\if{html}{\out{</div>}}
@@ -871,6 +954,7 @@ Called for side effect.
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-runExtractPartitionedLongreads"></a>}}
+\if{latex}{\out{\hypertarget{method-runExtractPartitionedLongreads}{}}}
 \subsection{Method \code{runExtractPartitionedLongreads()}}{
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{DR2S_$runExtractPartitionedLongreads()}\if{html}{\out{</div>}}
@@ -879,6 +963,7 @@ Called for side effect.
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-runMapIter"></a>}}
+\if{latex}{\out{\hypertarget{method-runMapIter}{}}}
 \subsection{Method \code{runMapIter()}}{
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{DR2S_$runMapIter(opts = list(), ...)}\if{html}{\out{</div>}}
@@ -887,6 +972,7 @@ Called for side effect.
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-runPartitionShortreads"></a>}}
+\if{latex}{\out{\hypertarget{method-runPartitionShortreads}{}}}
 \subsection{Method \code{runPartitionShortreads()}}{
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{DR2S_$runPartitionShortreads(opts = list(), ...)}\if{html}{\out{</div>}}
@@ -895,6 +981,7 @@ Called for side effect.
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-runMapFinal"></a>}}
+\if{latex}{\out{\hypertarget{method-runMapFinal}{}}}
 \subsection{Method \code{runMapFinal()}}{
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{DR2S_$runMapFinal(opts = list(), ...)}\if{html}{\out{</div>}}
@@ -903,6 +990,7 @@ Called for side effect.
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-runPipeline"></a>}}
+\if{latex}{\out{\hypertarget{method-runPipeline}{}}}
 \subsection{Method \code{runPipeline()}}{
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{DR2S_$runPipeline()}\if{html}{\out{</div>}}
@@ -911,6 +999,7 @@ Called for side effect.
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-clone"></a>}}
+\if{latex}{\out{\hypertarget{method-clone}{}}}
 \subsection{Method \code{clone()}}{
 The objects of this class are cloneable with this method.
 \subsection{Usage}{
