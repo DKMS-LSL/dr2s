@@ -240,7 +240,7 @@ createIgvConfigs <- function(x, position, map = "mapFinal", open = TRUE) {
 #' @param bamfile The bamfile which should be viewed in IGV.js
 #' @param ... Additional parameters passed to \code{\link{subSampleBam}}.
 #' @export
-createIgvJsFiles <- function(reference, bamfile, outdir, paired = FALSE, ...) {
+createIgvJsFiles <- function(reference, bamfile, outdir, paired = FALSE, sampleSize = 100, ...) {
           # reference <- refpath(pileup)
           # bamfile <- bampath(pileup)
           # outdir <- self$getOutdir()
@@ -254,7 +254,9 @@ createIgvJsFiles <- function(reference, bamfile, outdir, paired = FALSE, ...) {
     file.exists(reference),
     endsWith(reference, ".fa"))
   ## Subsample the bam file
+  ### For now use sambamba rather than our own method until bam export is fixed
   resultList <- subSampleBam(bamfile = bamfile, paired = paired, ...)#fragmentReads = TRUE, sampleSize = 100)#, ...)
+  # resultList <- sambambaSubSample(bamfile = bamfile, sampleSize = sampleSize)#fragmentReads = TRUE, sampleSize = 100)#, ...)
   ## Index the reference
   Rsamtools::indexFa(reference)
   resultList$referenceFile <- .cropPath(outdir, reference)

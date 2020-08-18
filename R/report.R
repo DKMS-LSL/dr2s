@@ -247,7 +247,10 @@ remapAlignment <- function(x, hptype, report = FALSE, createIgv = TRUE,
     opts = opts, outdir = outdir, clean = TRUE, force = TRUE, includeDeletions = TRUE,
     includeInsertions = TRUE, callInsertions = FALSE, indent = incr(indent))
 
+  ## manually turn off igv.
   if (createIgv) {
+  # if (FALSE) {
+
     igv <- createIgvJsFiles(
       refpath(pileup), bampath(pileup), x$getOutdir(), sampleSize = 100,
       fragmentReads = TRUE)
@@ -289,7 +292,7 @@ remapAlignment <- function(x, hptype, report = FALSE, createIgv = TRUE,
         reference = refpath(pileup), bamfile = bampath(pileup),
         outdir = x$getOutdir(), paired = FALSE,
         sampleSize = 100, clusteredReads = clusteredReads)
-    } 
+    }
     mappings$SR <- MapList_(
       ## mapdata
       readpath  = x$relPath(readpathSR),
