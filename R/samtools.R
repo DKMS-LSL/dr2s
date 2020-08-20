@@ -207,3 +207,4 @@ sambambaSubSample <- function(bamfile, sampleSize = 100) {
      sampleSize      = sampleSize,
      referenceName   = GenomeInfoDb::seqnames(GenomeInfoDb::seqinfo(bam))
   )
+}
