@@ -570,6 +570,14 @@ remapAndReport <- function(x, report = FALSE, threshold = NULL, plot = TRUE, ...
   ## Do what polish did
   flog.info("%sReport variants", indent(), name = "info")
   vars <- .callVariants(x, threshold)
+  flog.info("x")
+  print(x$mapFinal)
+  message("SR?")
+  print(x$hasShortreads())
+  flog.info("1", name = "info")
+  flog.info("Vars: %s", vars, name = "info")
+  flog.info("Threshold: %s", threshold, name = "info")
+
   ## Polish the reference. This is necessary for Intron 2 of KIR genes and the
   ## beginning of MICB, because
   ## shortreads are not well mapped. Thus set each base of the reference at
@@ -587,16 +595,20 @@ remapAndReport <- function(x, report = FALSE, threshold = NULL, plot = TRUE, ...
       ## filter variants of the allele of interest
       ## Use only haplotypes in the polishRange range, no gap variants and LR
       ## support > 80%
-      hapVar <- dplyr::filter(vars,
-                              .data$haplotype == hptype,
-                              grepl("Ambiguous position in short reads", .data$warning),
-                              .data$pos %in% polishRange,
-                              .data$refSR != "-",
-                              .data$altSR != "-",
-                              .data$refLR != "-",
-                              .data$altLR != "-",
-                              .data$supportLR > 0.80)  %>%
-        dplyr::mutate(pos = as.numeric(.data$pos))
+      if (NROW(vars) > 1) {
+        hapVar <- dplyr::filter(vars,
+                                .data$haplotype == hptype,
+                                grepl("Ambiguous position in short reads", .data$warning),
+                                .data$pos %in% polishRange,
+                                .data$refSR != "-",
+                                .data$altSR != "-",
+                                .data$refLR != "-",
+                                .data$altLR != "-",
+                                .data$supportLR > 0.80)  %>%
+          dplyr::mutate(pos = as.numeric(.data$pos))
+      } else {
+        hapVar <- tibble::tibble()
+      }
       if (NROW(hapVar) > 0) {
         bases <- apply(hapVar, 1, function(var) {
           # var <- hapVar[1,]

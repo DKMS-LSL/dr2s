@@ -4,7 +4,14 @@
 \alias{createIgvJsFiles}
 \title{Create subsampled bam files and fasta index files for igv.js instances.}
 \usage{
-createIgvJsFiles(reference, bamfile, outdir, paired = FALSE, ...)
+createIgvJsFiles(
+  reference,
+  bamfile,
+  outdir,
+  paired = FALSE,
+  sampleSize = 100,
+  ...
+)
 }
 \arguments{
 \item{reference}{The reference fasta file used for mapping}

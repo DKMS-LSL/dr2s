@@ -1,9 +1,14 @@
 .callVariants <- function(x, threshold = NULL) {
   if (is.null(threshold))
     threshold <- x$getThreshold()
+
+  flog.info("Threshold: %s", threshold, name = "info")
   variants <- lapply(x$getHapTypes(), function(hp, x, threshold) {
     envir <- list()
+    flog.info("hp: %s", hp, name = "info")
+    message(sprintf("hp: %s", hp))
     if (x$hasShortreads()) {
+      flog.info("with sr", name = "info")
       lr <- consmat(x$remap$LR[[hp]]$pileup, prob = FALSE)
       sr <- consmat(x$remap$SR[[hp]]$pileup, prob = FALSE)
       rs <- .equaliseConsmat(lrm = lr, srm = sr)
@@ -13,6 +18,7 @@
       reference <- Biostrings::readDNAStringSet(referencePath)
       envir$ref <- unname(strsplit1(as.character(reference), ""))
     } else {
+      flog.info("without sr", name = "info")
       envir$LR <- consmat(x$remap$LR[[hp]]$pileup, prob = FALSE)
       envir$SR <- NULL
       referencePath <- x$absPath(x$remap$LR[[hp]]$refpath)
@@ -20,28 +26,39 @@
       envir$ref <- unname(strsplit1(as.character(reference), ""))
     }
     apos <- foreach(rt = c("LR", "SR"), .combine = c) %do% {
+      # rt <- "LR"
       ## positions not matching the consensus
       dism <- .noRefMatch(envir[[rt]], envir[["ref"]])
       ## ambiguous positions
       amb <- .ambiguousPositions(envir[[rt]], threshold, FALSE)
       sort(c(amb, dism))
     }
+    flog.info("N apos: %s", length(apos), name = "info")
     envir$pos <- unique(sort(apos))
+    message(envir$pos)
     envir$threshold <- threshold
-    compact(.walkVariants(envir))
+    ww <- compact(.walkVariants(envir))
+    message(ww)
+    ww
   }, x = x, threshold = threshold)
+  message(sprintf("Variants: %s", variants))
   names(variants) <- x$getHapTypes()
   dplyr::arrange(.getVariants(variants), as.numeric(.data$pos), .data$haplotype)
 }
 
 .walkVariants <- function(envir) {
+  message(envir)
   lapply(envir$pos, function(pos) {
+    message(pos)
+    # pos <- envir$pos[[1]]
     pos <- ifelse(!is.null(envir$SR),
                   pos + offsetBases(envir$SR),
                   pos + offsetBases(envir$LR))
     envir$currentPos <- pos
     # message(pos)
-    disambiguateVariant(x = yield(envir, pos), threshold = envir$threshold)
+    ba <- disambiguateVariant(x = yield(envir, pos), threshold = envir$threshold)
+    message(ba)
+    ba
   })
 }
 
@@ -123,8 +140,8 @@
   if (length(ins(srm)) > 0) {
     insert <- matrix(c(0, 0, 0, 0, stats::median(rowSums(lm)), 0), ncol = 6)
     myIns  <- sort(ins(srm))
-    
-    ## Don't add the length(of ins(srm) to NROW(lrm) for getting valid 
+
+    ## Don't add the length(of ins(srm) to NROW(lrm) for getting valid
     ## insertions. We don't know the length of each ins and so its useless
     # myIns  <- myIns[myIns < NROW(lrm) + length(ins(srm))]
     myIns  <- myIns[myIns < NROW(lrm)]
@@ -230,21 +247,38 @@ disambiguateVariant <- function(x, threshold) {
 
   ## Look if its ambiguous
   if (length(varl) > 1) {
+    message("Here we go")
+    message(sprintf("varl: %s", names(varl)))
     ## Dont look for deletions in longreads
     # ## Look for deletions
     if (all(names(varl) %in% VALID_DNA("none"))) {
+      message(1)
       warningMsg <- warningMsg %<<% "|Ambiguous position in long reads"
     } else if ("+" %in% names(varl)) {
+      message(2)
       warningMsg <- warningMsg %<<% "|Insertion signal in long reads"
     }
     ## Check for > 2 alleles
     if (length(varl) > 2) {
+      message(3)
       warningMsg <- warningMsg %<<% "|More than two long read variants"
       lrBases <- names(varl)[1:2]
     }
-    if ("-" %in% names(varl) & !is.null(ref) & names(varl)[names(varl) != "-"] != ref) {
-      warningMsg <- warningMsg %<<% "|long read variant not matching the reference"
-      lrBases <- c(names(varl), names(varl))
+    message(sprintf("ref: %s", ref))
+    # message(sprintf("names(varl)[names(varl) != '-']: %s", names(varl)[names(varl) != ref] ))
+    message("Maybe here?")
+    if (is.null(x$sr)) {
+      if ("-" %in% names(varl) & !is.null(ref)) {
+        message(5)
+        warningMsg <- warningMsg %<<% "|gap in long reads"
+        lrBases <- c(names(varl), names(varl))
+      }
+    } else {
+      if ("-" %in% names(varl) & !is.null(ref) & names(varl)[names(varl) != "-"] == ref) {
+        message(4)
+        warningMsg <- warningMsg %<<% "|gap in long reads"
+        lrBases <- c(names(varl), names(varl))
+      }
     }
     ## Set the ambiguous bases
     lrBases <- names(varl)
@@ -266,6 +300,8 @@ disambiguateVariant <- function(x, threshold) {
     warningMsg <- warningMsg %<<% "|no longreads"
   }
 
+  message(lrBases)
+  message(warningMsg)
   if (!is.null(x$sr)) {
     sr <- as.matrix(x$sr)
     vars <- .filterVariant(cm = sr, threshold, ignoreInsertions = FALSE)
@@ -308,7 +344,7 @@ disambiguateVariant <- function(x, threshold) {
               }
             }
           }
-  
+
           ## Check for more than two alleles
           if (length(vars) > 2) {
             warningMsg <- warningMsg %<<% "|More than two short read variants"
@@ -339,8 +375,8 @@ disambiguateVariant <- function(x, threshold) {
   warningMsg <- sub("|", "", trimws(warningMsg), fixed = TRUE)
   #  IGNORE IF ONLY GAPS????
   if (nzchar(warningMsg))
-    return(.variant(lrBases = lrBases, srBases = srBases, 
-                          lrSupport = attr(varl, "support"), 
+    return(.variant(lrBases = lrBases, srBases = srBases,
+                          lrSupport = attr(varl, "support"),
                           srSupport = attr(vars, "support"),
                           warning = warningMsg, vlist = x))
   NULL
