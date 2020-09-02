@@ -570,13 +570,6 @@ remapAndReport <- function(x, report = FALSE, threshold = NULL, plot = TRUE, ...
   ## Do what polish did
   flog.info("%sReport variants", indent(), name = "info")
   vars <- .callVariants(x, threshold)
-  flog.info("x")
-  print(x$mapFinal)
-  message("SR?")
-  print(x$hasShortreads())
-  flog.info("1", name = "info")
-  flog.info("Vars: %s", vars, name = "info")
-  flog.info("Threshold: %s", threshold, name = "info")
 
   ## Polish the reference. This is necessary for Intron 2 of KIR genes and the
   ## beginning of MICB, because

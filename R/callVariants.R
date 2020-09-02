@@ -6,7 +6,6 @@
   variants <- lapply(x$getHapTypes(), function(hp, x, threshold) {
     envir <- list()
     flog.info("hp: %s", hp, name = "info")
-    message(sprintf("hp: %s", hp))
     if (x$hasShortreads()) {
       flog.info("with sr", name = "info")
       lr <- consmat(x$remap$LR[[hp]]$pileup, prob = FALSE)
@@ -35,30 +34,21 @@
     }
     flog.info("N apos: %s", length(apos), name = "info")
     envir$pos <- unique(sort(apos))
-    message(envir$pos)
     envir$threshold <- threshold
-    ww <- compact(.walkVariants(envir))
-    message(ww)
-    ww
+    compact(.walkVariants(envir))
   }, x = x, threshold = threshold)
-  message(sprintf("Variants: %s", variants))
   names(variants) <- x$getHapTypes()
   dplyr::arrange(.getVariants(variants), as.numeric(.data$pos), .data$haplotype)
 }
 
 .walkVariants <- function(envir) {
-  message(envir)
   lapply(envir$pos, function(pos) {
-    message(pos)
     # pos <- envir$pos[[1]]
     pos <- ifelse(!is.null(envir$SR),
                   pos + offsetBases(envir$SR),
                   pos + offsetBases(envir$LR))
     envir$currentPos <- pos
-    # message(pos)
-    ba <- disambiguateVariant(x = yield(envir, pos), threshold = envir$threshold)
-    message(ba)
-    ba
+    disambiguateVariant(x = yield(envir, pos), threshold = envir$threshold)
   })
 }
 
@@ -247,35 +237,25 @@ disambiguateVariant <- function(x, threshold) {
 
   ## Look if its ambiguous
   if (length(varl) > 1) {
-    message("Here we go")
-    message(sprintf("varl: %s", names(varl)))
     ## Dont look for deletions in longreads
     # ## Look for deletions
     if (all(names(varl) %in% VALID_DNA("none"))) {
-      message(1)
       warningMsg <- warningMsg %<<% "|Ambiguous position in long reads"
     } else if ("+" %in% names(varl)) {
-      message(2)
       warningMsg <- warningMsg %<<% "|Insertion signal in long reads"
     }
     ## Check for > 2 alleles
     if (length(varl) > 2) {
-      message(3)
       warningMsg <- warningMsg %<<% "|More than two long read variants"
       lrBases <- names(varl)[1:2]
     }
-    message(sprintf("ref: %s", ref))
-    # message(sprintf("names(varl)[names(varl) != '-']: %s", names(varl)[names(varl) != ref] ))
-    message("Maybe here?")
     if (is.null(x$sr)) {
       if ("-" %in% names(varl) & !is.null(ref)) {
-        message(5)
         warningMsg <- warningMsg %<<% "|gap in long reads"
         lrBases <- c(names(varl), names(varl))
       }
     } else {
       if ("-" %in% names(varl) & !is.null(ref) & names(varl)[names(varl) != "-"] == ref) {
-        message(4)
         warningMsg <- warningMsg %<<% "|gap in long reads"
         lrBases <- c(names(varl), names(varl))
       }
@@ -300,8 +280,6 @@ disambiguateVariant <- function(x, threshold) {
     warningMsg <- warningMsg %<<% "|no longreads"
   }
 
-  message(lrBases)
-  message(warningMsg)
   if (!is.null(x$sr)) {
     sr <- as.matrix(x$sr)
     vars <- .filterVariant(cm = sr, threshold, ignoreInsertions = FALSE)
