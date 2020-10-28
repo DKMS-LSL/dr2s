@@ -93,13 +93,8 @@ subSampleBam <- function(bamfile, windowSize = NULL, sampleSize = 100,
     what <- Rsamtools::scanBamWhat()
   assert_that(is.character(what))
 
-  if (paired) {
-    readGAFun <- GenomicAlignments::readGAlignmentPairs
-  }  else {
-    readGAFun <- GenomicAlignments::readGAlignments
-  }
-  alignmentBam <-  readGAFun(
-    bam, param = Rsamtools::ScanBamParam(what = what), use.names = TRUE)
+  alignmentBam <- rtracklayer::import(con = bam, format = "bam", param = Rsamtools::ScanBamParam(what = what), use.names = TRUE, paired = paired)
+
   ## Use the median read length if no window size is given
   if (is.null(windowSize)) {
     if (is(alignmentBam, "GAlignmentPairs")) {
@@ -108,7 +103,7 @@ subSampleBam <- function(bamfile, windowSize = NULL, sampleSize = 100,
       windowSize <- IRanges::median(GenomicAlignments::qwidth(alignmentBam))
     }
   }
-   
+
   assert_that(is.numeric(windowSize))
   geneLength <- GenomeInfoDb::seqlengths(GenomeInfoDb::seqinfo(bam))
 
@@ -132,7 +127,7 @@ subSampleBam <- function(bamfile, windowSize = NULL, sampleSize = 100,
     if (sum(lens > 1.1 * geneLength)/NROW(alignmentBam) > 0.9) {
       flog.warn("The reference is probably too short", name = "info")
       readsCorrectLen <- lens > 0.9 * geneLength
-    } 
+    }
     ## if there are not enough reads of the correct length use the longest reads
     if (sum(readsCorrectLen) < sampleSize) {
       lenAlignmentBam <- alignmentBam[lens %in% sort(lens)[1:sampleSize]]
@@ -140,7 +135,7 @@ subSampleBam <- function(bamfile, windowSize = NULL, sampleSize = 100,
       lenAlignmentBam <- alignmentBam[readsCorrectLen]
     }
     sampledAlignmentBam <- sample(lenAlignmentBam, size = sampleSize)
-    
+
     missingReads <- max(c(sampleSize - length(sampledAlignmentBam), 0))
     sampledAlignmentBam <- c(sampledAlignmentBam,
                              sample(alignmentBam[!names(alignmentBam) %in% names(sampledAlignmentBam)], missingReads))
@@ -189,4 +184,27 @@ subSampleBam <- function(bamfile, windowSize = NULL, sampleSize = 100,
   fragmentAlignment[order(GenomicAlignments::start(fragmentAlignment))]
 }
 
+sambambaSubSample <- function(bamfile, sampleSize = 100) {
+  #bamfile <- "/mnt/bioinf/DR2S/paperBenchmarkcIIi/out_2020-07-31devel/HLA-A/ID16308036/mapInit/mapInit1.HLA-A.consensus.illumina.bwamem.sorted.bam"
+  bam <- Rsamtools::BamFile(bamfile)
+  Rsamtools::open.BamFile(bam)
+  on.exit(Rsamtools::close.BamFile(bam))
 
+  newBamfile <- gsub(".bam", ".sampled.bam", bamfile)
+
+  sambambaPath <- Sys.which("sambamba")
+
+  command <- sprintf("subsample --type=fasthash --max-cov=%g %s -o%s", sampleSize, bamfile, newBamfile)
+
+  system2(sambambaPath, command)
+
+  Rsamtools::indexBam(newBamfile)
+
+  list(
+     original        = bamfile,
+     sampled         = newBamfile,
+     referenceLength = GenomeInfoDb::seqlengths(GenomeInfoDb::seqinfo(bam)),
+     sampleSize      = sampleSize,
+     referenceName   = GenomeInfoDb::seqnames(GenomeInfoDb::seqinfo(bam))
+  )
+}

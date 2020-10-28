@@ -247,7 +247,10 @@ remapAlignment <- function(x, hptype, report = FALSE, createIgv = TRUE,
     opts = opts, outdir = outdir, clean = TRUE, force = TRUE, includeDeletions = TRUE,
     includeInsertions = TRUE, callInsertions = FALSE, indent = incr(indent))
 
+  ## manually turn off igv.
   if (createIgv) {
+  # if (FALSE) {
+
     igv <- createIgvJsFiles(
       refpath(pileup), bampath(pileup), x$getOutdir(), sampleSize = 100,
       fragmentReads = TRUE)
@@ -289,7 +292,7 @@ remapAlignment <- function(x, hptype, report = FALSE, createIgv = TRUE,
         reference = refpath(pileup), bamfile = bampath(pileup),
         outdir = x$getOutdir(), paired = FALSE,
         sampleSize = 100, clusteredReads = clusteredReads)
-    } 
+    }
     mappings$SR <- MapList_(
       ## mapdata
       readpath  = x$relPath(readpathSR),
@@ -567,6 +570,7 @@ remapAndReport <- function(x, report = FALSE, threshold = NULL, plot = TRUE, ...
   ## Do what polish did
   flog.info("%sReport variants", indent(), name = "info")
   vars <- .callVariants(x, threshold)
+
   ## Polish the reference. This is necessary for Intron 2 of KIR genes and the
   ## beginning of MICB, because
   ## shortreads are not well mapped. Thus set each base of the reference at
@@ -584,16 +588,20 @@ remapAndReport <- function(x, report = FALSE, threshold = NULL, plot = TRUE, ...
       ## filter variants of the allele of interest
       ## Use only haplotypes in the polishRange range, no gap variants and LR
       ## support > 80%
-      hapVar <- dplyr::filter(vars,
-                              .data$haplotype == hptype,
-                              grepl("Ambiguous position in short reads", .data$warning),
-                              .data$pos %in% polishRange,
-                              .data$refSR != "-",
-                              .data$altSR != "-",
-                              .data$refLR != "-",
-                              .data$altLR != "-",
-                              .data$supportLR > 0.80)  %>%
-        dplyr::mutate(pos = as.numeric(.data$pos))
+      if (NROW(vars) > 1) {
+        hapVar <- dplyr::filter(vars,
+                                .data$haplotype == hptype,
+                                grepl("Ambiguous position in short reads", .data$warning),
+                                .data$pos %in% polishRange,
+                                .data$refSR != "-",
+                                .data$altSR != "-",
+                                .data$refLR != "-",
+                                .data$altLR != "-",
+                                .data$supportLR > 0.80)  %>%
+          dplyr::mutate(pos = as.numeric(.data$pos))
+      } else {
+        hapVar <- tibble::tibble()
+      }
       if (NROW(hapVar) > 0) {
         bases <- apply(hapVar, 1, function(var) {
           # var <- hapVar[1,]
