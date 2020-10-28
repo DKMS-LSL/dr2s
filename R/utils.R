@@ -31,6 +31,8 @@ magrittr::`%>%`
       return(db)
     }
   }
+  if (is.null(ipdHlaVersion))
+    ipdHlaVersion <- "Latest"
   db <- suppressMessages(ipdDb::loadHlaData(ipdHlaVersion))
   attr(db, "ipdHlaVersion") <- ipdHlaVersion
   assign("ipdHlaDb", db,
@@ -60,6 +62,8 @@ magrittr::`%>%`
       return(db)
     }
   }
+  if (is.null(ipdKirVersion))
+    ipdKirVersion <- "Latest"
   db <- suppressMessages(ipdDb::loadKirData(ipdKirVersion))
   attr(db, "ipdKirVersion") <- ipdKirVersion
   assign("ipdKirDb", db,
@@ -70,14 +74,16 @@ magrittr::`%>%`
 .normaliseLocus <- function(locus) {
   locus <- gsub(" ", "", locus)
   locus <- sub("(HLA[-_]?|KIR[-_]?)", "", toupper(locus))
-  if (locus %in% HLA_LOCI()) {
+  if (locus == "ABO") {
+    locus
+  } else if (startsWith(locus, "MIC")) {
+    locus
+  } else if (locus %in% HLA_LOCI()) {
     if (startsWith(locus, "MIC"))
       return(locus)
     "HLA-" %<<% locus
   } else if (locus %in% KIR_LOCI()) {
     "KIR" %<<% locus
-  } else if (locus == "ABO") {
-    locus
   } else {
     stop("Unknown locus ", sQuote(locus), call. = FALSE)
   }

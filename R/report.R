@@ -728,7 +728,7 @@ remapAndReport <- function(x, report = FALSE, threshold = NULL, plot = TRUE, ...
   probvarFile <- dot(c("problems", "tsv"))
   outdir <- .dirCreateIfNotExists(x$absPath("report"))
   vars <- dplyr::arrange(vars, as.numeric(.data$pos), .data$haplotype)
-  readr::write_tsv(vars, path = file.path(outdir, probvarFile),
+  readr::write_tsv(vars, file = file.path(outdir, probvarFile),
                    append = FALSE, col_names = TRUE)
   x$consensus$variants <- vars
   ## Write the igv config files
