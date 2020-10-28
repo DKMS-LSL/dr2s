@@ -254,11 +254,6 @@ disambiguateVariant <- function(x, threshold) {
         warningMsg <- warningMsg %<<% "|gap in long reads"
         lrBases <- c(names(varl), names(varl))
       }
-    } else {
-      if ("-" %in% names(varl) & !is.null(ref) & names(varl)[names(varl) != "-"] == ref) {
-        warningMsg <- warningMsg %<<% "|gap in long reads"
-        lrBases <- c(names(varl), names(varl))
-      }
     }
     ## Set the ambiguous bases
     lrBases <- names(varl)
