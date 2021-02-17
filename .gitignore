@@ -1,6 +1,11 @@
 .Rproj.user
 .Rhistory
 .RData
+.gitlab-ci.yml
+renv
+.renvignore
+renv.lock
+.Rprofile
 inst/doc
 cache
 stuff
@@ -14,3 +19,4 @@ eval.[rR]
 .*.Rnb.cached
 *.o
 *.so
+
