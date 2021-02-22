@@ -1,2 +1,0 @@
-<?xml version="1.0"?>
- <Global genome="../refine/hapA.pacbio.minimap.refined.fa" locus="hapA:0-1020">   <Resources>     <Resource path="../refine/LRA.pacbio.minimap.A.default.sorted.bam"/>     <Resource path="../refine/refine.SRA.pacbio.bwamem.illumina.bwamem.A.A1B4O2default.sorted.bam"/>   </Resources> </Global>

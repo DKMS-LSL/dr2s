@@ -1,5 +1,0 @@
-haplotype	pos	ref	alt	warning	refSR	altSR	refLR	altLR
-A	970	G	C	Variant only in short reads|Ambiguous position in short reads	G	C	G	NA
-A	975	G	A	Variant only in short reads|Ambiguous position in short reads	G	A	G	NA
-A	981	T	C	Variant only in short reads|Ambiguous position in short reads	T	C	C	NA
-A	1005	G	T	Variant only in short reads|Ambiguous position in short reads	G	T	G	NA
