@@ -4,34 +4,47 @@ mapReads <- function(
   mapfun, maplabel, reffile, refname, readfile, readtype, opts = NULL, outdir,
   includeDeletions, includeInsertions, callInsertions = FALSE,
   callInsertionThreshold = 0.15, clip = FALSE, distributeGaps = FALSE,
-  removeError = TRUE, updateBackgroundModel = FALSE, topx = 0, clean, force = FALSE, ...) {
+  removeError = TRUE, updateBackgroundModel = FALSE, topx = 0, clean, ...) {
 
   dots   <- list(...)
   indent <- dots$indent %||% indentation()
+  ## collect minMapq for use in .bamSortIndex
+  # minMapq = 0
+  minMapq <- dots$minMapq %||% dots$min_mapq %||% 0
 
   ## Run mapper
   flog.info("%sMap <%s> reads <%s> to reference <%s>", indent(),
             readtype, comma(names(readfile)), names(reffile), name = "info")
   samfile <- mapfun(reffile, refname, readfile, readtype, outdir, maplabel, opts)
-  ## collect minMapq for use in .bamSortIndex
-  # minMapq = 0
-  minMapq <- dots$minMapq %||% dots$min_mapq %||% 0
+  
+  ## Run bam - sort - index pipeline
+  if (!endsWith(samfile, ".bam")) {
+    bamfile <- .bamSortIndex(samfile = samfile, reffile = reffile,
+                             minMapq = minMapq, clean = clean)
+  } else {
+    bamfile <- samfile
+  }
+  
+  
   if (clip) {
     flog.info("%sTrim reads to reference", indent(), name = "info")
-    ## Run bam - sort - index pipeline
-    bamfile <- .bamSortIndex(samfile = samfile, reffile = reffile,
-                             minMapq = minMapq, clean = clean, force = force)
     ## Trim to reflen
     readfile <- file.path(outdir, basename(readfile[[1]]))
     .trimToRefLen(bamfile = bamfile, fqFileWrite = readfile)
     unlink(bamfile)
     flog.info("%sRemap trimmed reads <%s> to reference <%s>", indent(), readfile, names(reffile), name = "info")
     samfile <- mapfun(reffile, refname, readfile, readtype, outdir, maplabel, opts)
+    ## Run bam - sort - index pipeline
+    #flog.info("%sSort and index", indent(), name = "info")
+    ## Run bam - sort - index pipeline
+    if (!endsWith(samfile, ".bam")) {
+      bamfile <- .bamSortIndex(samfile = samfile, reffile = reffile,
+                               minMapq = minMapq, clean = clean)
+    } else {
+      bamfile <- samfile
+    }
   }
 
-  ## Run bam - sort - index pipeline
-  #flog.info("%sSort and index", indent(), name = "info")
-  bamfile <- .bamSortIndex(samfile = samfile, reffile = reffile, minMapq = minMapq, force = force)
 
   ## NOTE: "auto" > 0 evaluates to TRUE, FALSE > 0 evaluates to FALSE
   ## dots <- list()

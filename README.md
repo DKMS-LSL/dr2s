@@ -6,32 +6,53 @@
 An R package designed to facilitate generating reliable, full-length
 phase-defined reference sequences for novel HLA and KIR alleles.
 
-**Note, that this package is still maturing. There’s no guarantee yet
-that the API or the under-the-hood workings of the package won’t change
-substantially**
-
 ## Installation
 
 This package is only available on GitHub for now. It depends on a local
-installation of `samtools`, `bwa` (\>= 0.7.11), python and the pysam
-library, and a C++11 compliant compiler.
+installation of `samtools`, `bwa` (&gt;= 0.7.11) and `minimap2`. Some
+used R packages have additional system dependencies. Bash:
 
-For longreads, an alternative mapper with better results is `minimap2`,
-the successor of `bwa` For installation over git via SSH, you need to
-have installed libssh2-1 and libssh2-1-dev prior to installing
-git2r/devtools or reinstall the package afterwards.
+``` bash
+sudo apt-get update
+sudo apt-get install \
+  build-essentials \ # for samtools, bwa 
+  gcc \              # for samtools, bwa 
+  autoconf \         # for samtools, bwa 
+  libxml2-dev \
+  libssl2-dev \
+  libz-dev \
+  libbz2-dev \
+  liblzma-dev \
+  libncurses5-dev
+```
+
+R:
 
 ``` r
 install.packages("devtools")  # if not already installed
-library("devtools")
-devtools::install_github("DKMS-LSL/DR2S)
+devtools::install_github("DKMS-LSL/DR2S")
 ```
+
+A Docker image is also provided for convenience at docker hub. This can
+be loaded and used with the following command:
+
+``` bash
+docker pull dkmslsl/testrepo
+docker run --rm -p 8788:8787 -e PASSWORD=<yourpassword> -it  dkmslsl/testrepo
+```
+
+An rstudio server session can be accessed in your browser at
+localhost:8788 (The default port 8787 is mapped to the host port 8788 in
+case you have, like me, rstudio server already running). Login to
+rstudio using the username “rstudio” and your set password. A detailed
+introduction to use DR2S with example data can be found at the Vignette
+“DR2S”.
 
 ## Workflow
 
 ### Input and output
 
-`DR2S` is designed to integrate longread HLA and KIR data (e.g., PacBio
+`DR2S` is designed to integrate long-read HLA and KIR data (e.g., PacBio
 or Oxford Nanopore sequences) and shortread shotgun data (Illumina). It
 is also possible to run `DR2S` in “longread-only mode”, but don’t expect
 reference-quality consensus sequences that way.
@@ -46,76 +67,89 @@ one of `2DL1`, `2DL2`, `2DL3`, `2DL4`, `2DL5A`, `2DL5B`, `2DP1`, `2DS1`,
 `2DS2`, `2DS3`, `2DS4`, `2DS5`, `3DL1`, `3DL2`, `3DL3`, `3DP1`, or
 `3DS1` for KIR.
 
-All output is placed in a directory tree `output\LOCUS\SAMPLEID\`.
+All output is placed in a directory tree under the configured output
+directory `LOCUS\SAMPLEID\`.
 
 An example:
 
-``` 
-~/dr2s_data
-   |
-   +-- pacbio
-   |     |-- ID12912701_DPB1_lbc23.fastq.gz
-   |
-   |
-   +-- illumina
-   |     |-- ID12912701_DPB1_S23_L001_R1_001.fastq.gz
-   |     |-- ID12912701_DPB1_S23_L001_R2_001.fastq.gz
-   |
-   +-- output
-         |
-         +-- DPB1
-               |
-               +-- ID12912701
-                 
-```
+    ~/dr2s_data
+       |
+       +-- pacbio
+       |     |-- ID123_DPB1_lbc23.fastq.gz
+       |
+       |
+       +-- illumina
+       |     |-- ID123_DPB1_S23_L001_R1_001.fastq.gz
+       |     |-- ID123_DPB1_S23_L001_R2_001.fastq.gz
+       |
+       +-- output
+             |
+             +-- DQB1
+                   |
+                   +-- ID123
+                          | --...
+                          | --...
+                          | --...
 
 ### Usage
 
 Once all input files are put in place a DR2S analysis is started with a
-call to the functions `createDR2SConf()` and `InitDR2S()`:
+call to the functions `createDR2SConf()` or `readDR2SConf()` and
+`InitDR2S()`:
 
 ``` r
 ## a minimal example:
-x <- InitDR2S(createDR2SConf(
-  sample = "ID12912701",
-  locus = "DPB1",
-  longreads = list(dir = "pacbio", type = "pacbio", mapper = "minimap"),
-  shortreads = list(dir = "illumina", type = "illumina", mapper = "bwamem"),
-  datadir = "~/dr2s_data",
-  outdir = "~/dr2s_data/output"
+x <- InitDR2S(
+  createDR2SConf(
+    sample = "ID123",
+    locus = "DPB1",
+    longreads = list(dir = "Sequel", type = "pacbio"),
+    shortreads = list(dir = "Illumina", type = "illumina"),
+    datadir = "~/dr2s_data",
+    outdir = "~/dr2s_data/output"
 ))
 ```
 
 #### Arguments
 
-  - `sample`: A unique sample identifier. The FASTQs associated with a
+-   `sample`: A unique sample identifier. The FASTQs associated with a
     sample need need to be prefixed with this identifier.
-  - `locus`: One of the allowed HLA and KIR loci above. If allele
-    information for a sample is available it can be specified as, e.g.
-    `DPB1*04:02:01:01`. In this case this allele will be used as a
+-   `locus`: One of the allowed HLA and KIR loci above. If allele
+    information for a sample is available it can be specified as,
+    e.g. `DPB1*04:02:01:01`. In this case this allele will be used as a
     reference against which an initial mapping of the longreads is
     performed. If this information is not given a generic locus-specific
     reference is used. NOTE: generic references are not yet implemented
     for KIR.
-  - `longreads`: The location, type, and mapper for longreads as a named
+-   `longreads`: The location, type, and mapper for longreads as a named
     list with the fields `dir`, `type` (“pacbio” or “nanopore”) and
     `mapper` (“bwamem” or “minimap”).
-  - `shortreads`: (optional) The location, type, and mapper for
+-   `shortreads`: (optional) The location, type, and mapper for
     shortreads as a named list with the fields `dir`, `type`
     (“illumina”) and `mapper` (“bwamem” or “minimap”).
-  - `datadir`: The data directory (see above).
-  - `outdir`: The output directory (see above).
-  - `reference`: (optional) Path to a fasta file containing the
+-   `datadir`: The data directory (see above).
+-   `outdir`: The output directory (see above).
+-   `reference`: (optional) Path to a fasta file containing the
     reference sequence.
-  - `details`: (optional) Named list of sample metadata. These data will
+-   `details`: (optional) Named list of sample metadata. These data will
     be included in the fasta headers of the final sequences and stored
     in the config file.
-  - `opts`: (optional) Named list of arguments to the DR2S pipeline
+-   `opts`: (optional) Named list of arguments to the DR2S pipeline
     steps. They will be stored in the config file. See below for a
     detailed descriptions of options that control the DR2S pipeline.
 
 This call generates an `R6` object of class `DR2S` that encapsulates all
 data and methods for all subsequent analysis steps.
+
+An alternative approach is to use yaml or json config files. An example
+config file is provided in the toy example at `URL to github project`:
+
+``` r
+configFile <- "~/dr2s_data/dr2s_config.yaml"
+x <- InitDR2S(
+  readDR2SConf(configFile)
+)
+```
 
 #### Pipeline
 
@@ -133,7 +167,10 @@ x %>%
   cache()
 ```
 
-Alternatively, the complete pipeline can be run in one go:
+Alternatively, the complete pipeline can be run in one go. There are two
+available pipelines, one for the standard run (SR), and another for only
+long-read data (LR). Which pipeline to run can be configured in the
+config file.
 
 ``` r
 x$runPipeline()
@@ -141,42 +178,43 @@ x$runPipeline()
 
 The individual steps perform the following analyses:
 
-  - `mapInit()`:
+-   `mapInit()`:
     1.  Map the shortreads (SR) against an initial reference. Construct
         a tentative consensus.
-    2.  (optional) Perform a second SR mapping to the consensus sequence
-        from the previous step. This expands the reference and may be
-        necessary if there are extensive repeat structures like
-        microsatellites in your sequence. Construct a tentative
-        consensus.
+    2.  Perform a second SR mapping to the consensus sequence from the
+        previous step. This expands the reference and may be necessary
+        if there are extensive repeat structures like microsatellites in
+        your sequence. Construct a tentative consensus.
     3.  A final SR mapping to the consensus from the previous step.
     4.  A longread (LR) mapping to the consensus from the previous step.
-  - `partitionLongreads()`:
+-   `partitionLongreads()`:
     1.  Infer polymorphic positions from the SR mapping performed in the
         previous step.
     2.  Construct a SNP matrix from the LR mapping at the polymorphic
-        positions infer frm the SR mapping.
+        positions infer from the SR mapping.
     3.  Perform hierarchical clustering the LR SNPs.
     4.  Attempt to detect chimeric reads.
-    5.  Assign a haplotype and a *haplotype score* to each read.
+    5.  Assign a haplotype and a *haplotype\_membership\_coefficient* to
+        each read.
     6.  Pick longreads that best represent the allele haplotypes based
-        on the *haplotype score* from the previous step.
+        on the *haplotype\_membership\_coefficient* from the previous
+        step.
     7.  Extract the selected longreads from the alignment file and
         output the data as FASTQs into subdirectories for each
         haplotype.
-  - `mapIter()`:
+-   `mapIter()`:
     1.  Construct a consensus sequence for each haplotype from the
         initial LR mapping whilst using only reads that have been
         assigned to that haplotype.
     2.  Iteratively refine the longread consensus sequences by remapping
         longreads per haplotype to the latest haplotype consensus.
-  - `partitionShortreads()`:
+-   `partitionShortreads()`:
     1.  Partition the shortreads into haplotypes using the inferred
         longread haplotypes and the initial SR mapping.
-  - `mapFinal()`:
+-   `mapFinal()`:
     1.  Map the shortreads against the refined longread consensus
         sequences.
-  - `report()`:
+-   `report()`:
     1.  Report the finalised shortread-based consensus sequences as
         FASTA files. Provide a tsv file with suspicious positions that
         may warrant manual inspection. Report the alignment of all
@@ -188,7 +226,7 @@ placed in the output directory for later inspection.
 While this process works remarkably well, there are situations where
 alignment artefacts or plain bad luck may introduce errors in the final
 consensus sequences. You should **never** accept the result as ground
-truth without some manual and visual consistency checks\!
+truth without some manual and visual consistency checks!
 
 `DR2S` provides some facilities to aid checking and signing-off of
 finalised consensus sequences.
@@ -198,7 +236,6 @@ finalised consensus sequences.
 A typical post-processing workflow may look as follows:
 
 ``` r
-plot_diagnostic_alignment(x)
 run_igv(x, 3000)
 check_alignment_file(x)
 refineAlignment(x, "A")
@@ -206,38 +243,32 @@ run_igv(x, "refine")
 report_checked_consensus(x)
 ```
 
-  - **plot\_diagnostic\_alignment:** Displays an alignment of three
-    preliminary long-read-based consensus sequences and the final
-    short-read-based consensus sequence for all alleles in your browser.
-    This can be used to spot inconsistencies between the long-read and
-    the short-read evidence.
-
-  - **run\_igv:** Opens an instance of the IGV Genome Browser for each
+-   **run\_igv:** Opens an instance of the IGV Genome Browser for each
     haplotype at a specified position (one for each allele) displaying
     both the long read and short read data for manual inspection.
 
-  - **check\_alignment\_file :** Opens a pairwise or multiple alignment
+-   **check\_alignment\_file :** Opens a pairwise or multiple alignment
     of the final consensus sequences in your text editor. Use this to
     perform any manual edits on the consensus sequences. Editor options
     are: “subl”, “gvim” and “gedit”. Defaults to systems standard
     editor.
 
-  - **report\_checked\_consensus:** Export final consensus sequences
+-   **report\_checked\_consensus:** Export final consensus sequences
     from the edited pairwise or multiple alignment as FASTAs into a
     separate subdirectory `./checked` in the output directory.
 
 `DR2S` creates bash scripts for the convenient access to important
 postprocessing functions:
 
-  - **run\_checkConsensus.sh** Runs the `check_alignment_file` command.
-  - **runIGV\_mapInit.sh** Opens an IGV instance of the initial mapping.
-  - **runIGV\_mapIter.sh** Opens an IGV instance of the results of the
+-   **run\_checkConsensus.sh** Runs the `check_alignment_file` command.
+-   **runIGV\_mapInit.sh** Opens an IGV instance of the initial mapping.
+-   **runIGV\_mapIter.sh** Opens an IGV instance of the results of the
     mapIter step.
-  - **runIGV\_mapFinal.sh** Opens an IGV instance of the final mapping
-  - **run\_remap\[X\].sh** Remap the reads of a haplotype to the manuall
+-   **runIGV\_mapFinal.sh** Opens an IGV instance of the final mapping
+-   **run\_remap\[X\].sh** Remap the reads of a haplotype to the manuall
     curated sequence to look if it is finally correct. This command is
     available for all found haplotypes
-  - **run\_reportCheckedConsensus.sh** report the manually checked
+-   **run\_reportCheckedConsensus.sh** report the manually checked
     consensus and state that its finished and can be used.
 
 #### Pipeline control options
@@ -381,7 +412,7 @@ The complete set of available options and their defaults are:
     ## Minimum occupancy (1 - fraction of gap) below which
     ## bases at insertion position are excluded from from consensus calling.
     columnOccupancy = 2/5,
-    ## an insertion needs to be at frequency <callInsertionThreshold> for it
+   ## an insertion needs to be at frequency <callInsertionThreshold> for it
     ## to be included in the pileup.
     callInsertionThreshold = 1/5,
     ## Generate diagnostic plots.
@@ -425,9 +456,9 @@ An example config file:
 
 ``` json
 {
-  "sampleId": "ID12912701",
+  "sampleId": "ID123",
   "locus": "A",
-  "datadir": "/home/user/dr2s_data",
+  "datadir": "/home//dr2s_data",
   "outdir": "/home/user/dr2s_data/A/ID12912701",
   "reference": "HLA-A*01:01:01:01",
   "longreads": {

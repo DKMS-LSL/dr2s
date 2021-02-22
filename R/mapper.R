@@ -8,7 +8,6 @@ runminimap <- function(reffile,       ## <character>; file path to reference seq
                        opts = list(), ## <named list>;
                        cores = "auto",
                        ...) {
-  assert_that(.hasCommand("minimap2"))
   if (missing(refname)) {
     refname <- "ref"
   }
@@ -21,7 +20,10 @@ runminimap <- function(reffile,       ## <character>; file path to reference seq
   assert_that(is.numeric(cores))
   opts <- mergeList(opts, list(t = cores))
 
-  cmd  <- normalizePath(Sys.which("minimap2"), mustWork = TRUE)
+  cmd  <- Sys.which("minimap2")
+  if (!nzchar(cmd))
+    cmd <- system.file("extSrc/minimap2", package = "DR2S")
+  cmd <- normalizePath(cmd, mustWork = TRUE)
   args <- .generateMappingCommands("minimap", reffile, refname,
                                    readfile, readtype, outdir,
                                    label, opts)
@@ -110,6 +112,71 @@ bwamemCmd <- function(paths, opts) {
   list(idx = .idx,
        map = map)
 }
+
+
+#' Run rsubread
+#' 
+runrsubread <- function(reffile,       ## <character>; file path to reference sequence
+                        refname,       ## <character>; allele/reference identifier
+                        readfile,      ## <character>; file path to read sequences
+                        readtype,      ## <character>; "illumina", "pacbio", "nanopore"
+                        outdir,        ## <character>; dir path to output directory
+                        label = "",    ## <character>; prefix to output file
+                        opts = list(), ## <named list>;
+                        ...) {
+  require(Rsubread)
+  
+  if (missing(refname)) {
+    refname <- "ref"
+  }
+  if (missing(readtype)) {
+    readtype <- "illumina"
+  }
+  assert_that(readtype == "illumina")
+  mapper <- "rsubread"
+  optsname <- optstring(opts)
+  
+  filename <- sprintf("%s.%s.%s.", strip(refname, "_"), readtype, mapper)
+  label    <- if (nzchar(label)) label %<<% "." else ""
+  optsname <- if (nzchar(optsname)) optsname %<<% "." else ""
+  outfile  <- normalizePath(file.path(
+      outdir, sprintf("%s%s%ssam", label, filename, optsname)
+    ), mustWork = FALSE)
+
+  ## Build the index
+  invisible(Rsubread::buildindex(basename = refname, reference = reffile))
+
+  ## map reads
+  if (length(readfile) == 2) {
+    invisible(Rsubread::align(
+      index = refname, 
+      readfile1 = readfile[1], 
+      readfile2 = readfile[2], 
+      type = "dna", 
+      output_file = outfile,
+      output_format = "BAM", 
+      unique = TRUE, 
+      sortReadsByCoordinates = TRUE))
+  } else {
+    invisible(Rsubread::align(
+      index = refname, 
+      readfile1 = readfile, 
+      type = "dna", 
+      output_file = outfile,
+      output_format = "BAM", 
+      unique = TRUE, 
+      sortReadsByCoordinates = TRUE))
+  }
+    
+  ## cleanup
+  .fileDeleteIfExists(reffile %<<% ".fai")
+  .fileDeleteIfExists(outfile %<<% ".indel.vcf")
+  .fileDeleteIfExists(outfile %<<% ".summary")
+  .fileDeleteIfExists(outfile %<<% ".bai")
+  ##
+  outfile
+}
+
 
 .makeOpts <- function(opts) {
   opts[vapply(opts, isTRUE, FALSE)] <- ""

@@ -568,6 +568,8 @@ DR2S_ <- R6::R6Class(
     ##
     getSrdMapFun = function() {
       match.fun("run" %<<% self$getSrdMapper())
+      
+      
     },
     ## Get the absolut path
     absPath = function(filename) {
@@ -779,6 +781,7 @@ DR2S_ <- R6::R6Class(
         c("LR")
       }
       plotlist <- foreach(readtype = readtypes) %do% {
+        # readtype <- "LR"
         tag <- self$getMapTag(ref = readtype)
         self$plotCoverage(
           thin  = thin,

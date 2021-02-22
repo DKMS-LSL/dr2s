@@ -1,66 +1,357 @@
 ---
-title: "Vignette Title"
-author: "Vignette Author"
+title: "DR2S Example Workflow"
+author: "Steffen Klasberg"
 date: "`r Sys.Date()`"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteIndexEntry{DR2S Example Workflow}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
 
-Vignettes are long form documentation commonly included in packages. Because
-they are part of the distribution of the package, they need to be as compact as
-possible. The `html_vignette` output type provides a custom style sheet (and
-tweaks some options) to ensure that the resulting html is as small as possible.
-The `html_vignette` format:
+DR2S is a tool to create fully-phased reference grade sequences of heterozygous loci. It is especially designed for working with the highly polymorphic HLA and KIR genes. A detailed description of the algorithm and how it works can be found at [bioRxiv](https://www.biorxiv.org/content/10.1101/2020.11.09.374140v1).
 
-- Never uses retina figures
-- Has a smaller default figure size
-- Uses a custom CSS stylesheet instead of the default Twitter Bootstrap style
+## Input:
+The usual inputs to DR2S are fastqs of two sequencing experiments, one of short-reads of shotgun-sequencing (e.g. Illumina), the second of long-reads from third-generation sequencing, e.g. ONT Nanopore or PacBio.
+Additionally, a generic reference needs to be give, either as an HLA locus, HLA or KIR allele identifier or path to a fasta file.
 
-## Vignette Info
+## Config
+Input parameters and paths are either bundled in a config file (yaml or json) or can be provided in an interactive R session.
+Possible arguments are described in the function documentation of DR2S::createDR2SConf() `?DR2S::createDR2SConf()`.
 
-Note the various macros within the `vignette` section of the metadata block
-above. These are required in order to instruct R how to build the vignette. Note
-that you should change the `title` field and the `\VignetteIndexEntry` to match
-the title of your vignette.
-
-## Styles
-
-The `html_vignette` template includes a basic CSS theme. To override this theme
-you can specify your own CSS in the document metadata as follows:
-
-    output: 
-      rmarkdown::html_vignette:
-        css: mystyles.css
-
-## Figures
-
-The figure sizes have been customised so that you can easily put two images
-side-by-side.
-
-```{r, fig.show='hold'} plot(1:10) plot(10:1) ```
-
-You can enable figure captions by `fig_caption: yes` in YAML:
-
-    output:
-      rmarkdown::html_vignette:
-        fig_caption: yes
-
-Then you can use the chunk option `fig.cap = "Your figure caption."` in
-**knitr**.
-
-## More Examples
-
-You can write math expressions, e.g. $Y = X\beta + \epsilon$, footnotes^[A
-footnote here.], and tables, e.g. using `knitr::kable()`.
-
-```{r, echo=FALSE, results='asis'}
-knitr::kable(head(mtcars, 10))
+A default config would look like this:
+```yaml 
+datadir: <path to the data> 
+outdir: <output directory>
+pipeline: SR                      # SR: with short-reads, LR: only long-reads
+format: yaml
+longreads:                        # long-read configuration
+  type: pacbio                    # type of long-reads, pacbio or nanopore
+  dir: pacbio_lowQual             # directory containing the fastq files. Either subdirectory of <datadir> or absolute path
+shortreads:                       # short-read configuration
+  type: illumina                  # type of short-reads. Usually illumina
+  dir: illumina                   # directory containing the fastq files. Either subdirectory of <datadir> or absolute path
+sampleId: sample1
+locus: HLA-A
+reference: HLA-A              # Either an HLA or KIR allele identifier, an HLA locus or the path to a reference in fasta format
+details:                      # Any field in details will go to the header of the final fasta.
+  partnerAllele: another
+  notes: xx
 ```
 
-Also a quote using `>`:
+The yaml config can be read using the `readDR2SConf()` function.
+```{r read-config, eval=FALSE}
+# library(DR2S)
+devtools::load_all()
+configFile <- system.file("test/dr2s_conf.yaml", package = "DR2S") # read the example config
+config <- readDR2SConf(configFile)
+```
 
-> "He who gives up [code] safety for [code] speed deserves neither."
-([via](https://twitter.com/hadleywickham/status/504368538874703872))
+The configuration can also be provided via R in an interactive session or script:
+
+```{r create-config, eval=TRUE}
+library(DR2S)
+config <- DR2S::createDR2SConf(
+  sample = "sample3",
+  locus = "HLA-A", 
+  longreads = list(dir = "nanopore_sampled", type = "nanopore", mapper = "minimap"), 
+  shortreads = list(dir = "Illumina_sampled", type = "illumina", mapper = "rsubread"), 
+  datadir = system.file("testData", package = "DR2S"),
+  outdir = tempdir(), 
+  reference = "HLA-A"
+  )
+```
+
+## Initialization
+The DR2S object must be initialized with a valid config using the `InitDR2S()` command. 
+
+```{r init-dr2s, eval=TRUE}
+## Initialize the DR2S object
+dr2s <- InitDR2S(config)
+## The output directory can be cleaned if there remains data from previous attempts using the clear() function. This deletes all the data and re-initialize the project.
+clear(dr2s)
+## Look what it can tell you
+print(dr2s)
+```
+
+`InitDR2S()` creates the output directory, writes the config as a json file, creates the log and copies the reference.
+By default, a folder structure will be created for the output directory consisting of the `outdir` param, the locus and the sampleId. This can be suppressed by setting `createOutdir=FALSE` .
+The DR2S object is an R6 class, which means it behaves like a reference class. It is always modified in-place and an assignment after the initialization is not necessary. 
+All methods in the DR2S workflow expect a DR2S object as input and return a DR2S object, which means they can be chained using `magrittr`'s pipe operator `%>%`.
+
+## Initial mapping 
+The `mapInit` step creates a first sample-specific consensus sequence by a mapping of the short-reads to the generic reference and subsequent consensus calling. This sequence is still heterozygous. The long- and short-reads are mapped to this sample-specific consensus. Options are drawn from the initial config stored in the DR2S object.
+
+```{r mapinit, eval=TRUE, results='markup', collapse=TRUE}
+## Run mapInit
+dr2s <- mapInit(dr2s)
+```
+
+The mapping or coverage plot is created for long- and short-reads and is stored in the output directory. 
+```{r plot-mapinit, eval=TRUE, out.width="100%", fig.align='center', collapse = TRUE}
+imgPath <- file.path(dr2s$getOutdir(), "plot.mapInit.png")
+knitr::include_graphics(imgPath)
+```
+
+## cluster the long-reads
+The clustering of reads based on the long-reads is carried out using the `partitionLongreds` command. 
+Heterozygous positions are derived from short-reads of the `mapIninit` step. Long-reads are clustered based on these heterozygous positions.
+
+```{r cluster-lr, eval=TRUE, collapse = TRUE}
+## cluster the long-reads
+dr2s <- partitionLongreads(dr2s)
+```
+
+Different plots are created to visualize the clustering.
+```{r plot-cluster-summary, eval=TRUE, out.width="100%", fig.align='center', collapse = TRUE,}
+imgPath <- file.path(dr2s$getOutdir(), "plot.partition.png")
+knitr::include_graphics(imgPath)
+```
+
+The top panel shows a histogram of the haplotype membership coefficient for assigned haplotypes. Different colors indicate different haplotypes.
+The middle panel shows the tree of hierarchical clustering. The blue line indicates the cut-height for haplotype inference. Leafs are single long-reads.
+The bottom panel shows assignment of reads assigned to each cluster to all other clusters. This is only useful in cases of more than two haplotypes.
+
+```{r plot-cluster-sequence, eval=TRUE, out.width="100%", fig.align='center', collapse = TRUE,}
+imgPath <- file.path(dr2s$getOutdir(), "plot.sequence.png")
+knitr::include_graphics(imgPath)
+```
+
+Sequence logos of the heterozygous positions used for clustering for each haplotype. 
+Some positions are not perfectly separated, but still sufficient.
+
+```{r, plot-cluster-assoc, eval=FALSE, out.width="100%", fig.align='center', collapse = TRUE, echo=FALSE}
+imgPath <- file.path(dr2s$getOutdir(), "plot.association.png")
+knitr::include_graphics(imgPath)
+```
+
+
+```{r plot-cluster-correlogram, eval=FALSE, out.width="100%", fig.align='center', collapse = TRUE,echo=FALSE}
+imgPath <- file.path(dr2s$getOutdir(), "plot.correlogram.png")
+knitr::include_graphics(imgPath)
+```
+
+```{r, plot-cluster-summary-interactive, eval=FALSE, collapse=TRUE, fig.width=8, fig.asp=1.2, echo=FALSE}
+## We need to provide the limits for plotting the auto-threshold.
+limits <- unlist(dr2s$getLimits())
+dr2s$plotPartitionSummary(limits = limits)
+```
+
+## Iterative mapping
+The iterative mapping step is used to obtain haplotype-specific consensus scaffolds. From this step on, haplotypes are always treated separately.
+It starts with a mapping of haplotype-specific reads from the clustering step against the sample-specific reference from the mapInit step.
+A consensus is drawn from the mapping and this consensus is used as a reference for the subsequent re-mapping. 
+The default is set to two iterations of re-mapping.
+
+```{r mapiter, eval=TRUE, collapse=TRUE}
+## Iteratie mapping of long-reads to create a scaffold consensus
+dr2s <- mapIter(dr2s)
+```
+
+Again, the coverage is plotted and remaining indels and heterozygous positions are highlighted:
+
+```{r plot-mapiter, eval=TRUE, out.width="100%", fig.align='center', collapse = TRUE,}
+imgPath <- file.path(dr2s$getOutdir(), "plot.mapIter.png")
+knitr::include_graphics(imgPath)
+```
+```{r plot-mapite-interactive, eval=FALSE, collapse=TRUE, fig.width=8, fig.asp=0.5, echo=FALSE}
+## Collect the plots for each iteration and haplotype
+plotlist <- purrr::map(seq_len(dr2s$getIterations()), function(iteration) { 
+  iteration <- 1
+  suppressWarnings(dr2s$plotMapIterSummary(
+    thin = 0.1, width = 4, iteration = iteration, drop.indels = TRUE))
+})
+## arrange with cowplot
+cowplot::plot_grid(plotlist = plotlist, nrow = dr2s$getIterations())
+```
+
+## Assign short-reads to clusters
+Short-reads are assigned to the derived clusters based on the mapping from the `mapInit` step. It is ensured that the distribution to the clusters is not too uneven.
+
+```{r cluster-sr, eval=TRUE, collapse=TRUE}
+## Cluster the short-reads
+dr2s <- partitionShortreads(dr2s)
+```
+
+## Polishing the scaffold consensus
+The scaffold consensus derived from long-reads is now polished with the more accurate short-reads, i.e. the clustered short-reads are mapped against the consensus and a new, more accurate, consensus is drawn.
+
+```{r mapfinal, eval=TRUE, collapse=TRUE}
+## Polish with short-reads and draw the final consensus
+dr2s <- mapFinal(dr2s)
+```
+
+The coverage is again plotted for long- and short-reads of all haplotypes.
+
+```{r plot-mapfinal, eval=TRUE, out.width="100%", fig.align='center', collapse = TRUE,}
+imgPath <- file.path(dr2s$getOutdir(), "plot.mapFinal.png")
+knitr::include_graphics(imgPath)
+```
+```{r plot-mapfinal-interactive, eval=FALSE,collapse=TRUE, fig.width=8, fig.asp=0.5, echo=FALSE}
+## Plot coverage and base frequency
+readtypes <- if (dr2s$hasShortreads()) c("LR", "SR") else "LR"
+plotRows  <- if (dr2s$hasShortreads()) 2 else 1
+## readtype = "LR"
+plotlist <- purrr::map(readtypes, function(readtype) {
+  suppressWarnings(dr2s$plotMapFinalSummary(readtype = readtype, thin = 0.25, width = 20))
+})
+p <- cowplot::plot_grid(plotlist = plotlist, nrow = plotRows, labels = readtypes, hjust = -0.25)
+p
+```
+
+## Remap and Report
+The polished sequences may still not be perfect and need to be checked using the `report` function.
+`report` does the following: 
+1. Possible problematic positions are reported to a csv file in the `report` subfolder.
+2. The sequences are written to fasta file in the `report` subfolder.
+3. The alignment of all haplotypes is written to a text file and as html in the `report` subfolder. 
+4. It is checked if the length of homopolymers is concordant between the consensus sequence and the mode value of short-reads.
+5. Long- and short-reads are remapped to the final consensus for visualization with IGV.
+
+```{r report, eval=TRUE, collapse=TRUE}
+## Report possible problems.
+dr2s <- report(dr2s)
+```
+
+The coverage is plotted as it is in the `mapFinal` step. Additionally, the homopolymer distribution is plotted as a histogram of homopolymer lengths in all haplotypes.
+
+```{r plot-report, eval=TRUE, out.width="100%", fig.align='center', collapse = TRUE,}
+imgPath <- file.path(dr2s$getOutdir(), "plot.remap.png")
+knitr::include_graphics(imgPath)
+```
+```{r plot-report-interactive, eval=FALSE,collapse=TRUE, fig.width=8, fig.asp=0.5, echo=FALSE}
+## Plot coverage and base frequency
+readtypes <- if (dr2s$hasShortreads()) c("LR", "SR") else "LR"
+plotRows  <- if (dr2s$hasShortreads()) 2 else 1
+## readtype = "LR"
+plotlist <- purrr::map(readtypes, function(readtype) {
+  suppressWarnings(dr2s$plotRemapSummary(readtype = readtype, thin = 0.25, width = 20))
+})
+p <- cowplot::plot_grid(plotlist = plotlist, nrow = plotRows, labels = readtypes, hjust = -0.25)
+p
+```
+
+!! TODO show the homopolymer plot by loading it from file
+
+
+## Post-processing
+You can now have a look at possible problems to resolve by looking at the file directly:
+
+```{r show-problems, eval=FALSE}
+filepath <- file.path(dr2s$getOutdir(), "report", "problems.tsv")
+file.edit(filepath)
+```
+
+Or you can load the tibble from the dr2s object:
+
+```{r show-problems-tibble, eval=TRUE}
+knitr::kable(dr2s$consensus$variants)
+```
+
+The consensus sequences might now be manually edited. This is carried out in a text representation of the alignment of the haplotypes.
+Positions which needs to be edited are best inferred by a visual inspection of the mapping using the `IGV` genome browser.
+Positions that are still ambiguous are represented in the alignment by the respective IUPAC code, e.g. by 'K' for an 'A' or 'G'.
+
+The alignment should be loaded into the editor using the `checkAlignmentFile()` command.
+`checkAlignmentFile()` creates a copy of the original alignment file which can be edited.
+The text file is by default loaded into the systems default editor.
+Use the `editor = "rstudio"` parameter for loading the file into rstudio during an interactive session.
+
+```{r check-alignment, eval=FALSE}
+## Check the alignment file. 
+## If the file should be edited within rstudio, this must be supplied through the `editor` parameter. 
+## By default, the command will open your systems default editor. 
+checkAlignmentFile(dr2s, editor = "rstudio")
+```
+
+A pair-wise alignment of two haplotypes looks like this:
+
+```{r show-alignment, eval=TRUE, comment="", collapse=TRUE}
+filepath <- list.files(
+  file.path(dr2s$getOutdir(), "report"),
+  pattern = "unchecked.psa$", full.names = TRUE)
+cat(readLines(filepath)[1:38], sep = '\n')
+```
+It is recommended to remap the reads to the altered consensus sequence after manual edits.
+The remapping is carried out by `remapAndReport()`. 
+This function checks the alignment file for updated sequences and remaps reads to consensus sequences.
+The coverage plot and possible problems are also updated.
+
+```{r remap, eval = FALSE}
+## Remap reads to the updated consensus
+remapAndReport(dr2s)
+```
+
+The consensus can be "checked out" if it looks correct in the coverage plot or `IGV`.
+This can be done using the `reportCheckedConsensus()` function.
+The function creates a "checked" subfolder in the output directory and writes the final sequences as fasta files together with the final alignment.
+
+```{r report-checked, eval = FALSE}
+## Report the final consensus sequences 
+reportCheckedConsensus(dr2s)
+```
+
+
+## Extended configuration
+```yaml 
+datadir: <path to the data> 
+outdir: <output directory>
+pipeline: SR                      # SR: with short-reads, LR: only long-reads
+format: yaml
+longreads:                        # long-read configuration
+  type: pacbio                    # type of long-reads, pacbio or nanopore
+  dir: pacbio_lowQual             # directory containing the fastq files. Either subdirectory of <datadir> or absolute path
+shortreads:                       # short-read configuration
+  type: illumina                  # type of short-reads. Usually illumina
+  dir: illumina                   # directory containing the fastq files. Either subdirectory of <datadir> or absolute path
+opts:                             # Options for the basic workflow steps
+  mapInit:                      
+    includeDeletions: yes         # Include deletions for creating a first reference?
+    includeInsertions: yes        # Include insertions for creating a first reference?
+    callInsertionThreshold: 0.18  # Call insertions from this fraction of insertions at a position
+    microsatellite: yes           # Remap reads to its consensus to better infer repetetive regions
+    forceMapping: yes             # force a mapping, even if a file with the current name already exists.
+    topx: no                      # Use only the "best matching" number of reads. Or the best matching reads using 'auto'
+    lowerLimit: 200.0             # Minimal number of reads picked with topx: "auto".
+    createIgv: yes                # Create Igv config files and sample the mappings
+  partitionLongreads:
+    threshold: 0.1                # variant calling threshold
+    distAlleles: 2.0              # expected number of alleles (if known)
+    selectCorrelatedPositions: no # Use only informative variants (most useful when running only with long-reads)
+    selectAllelesBy: distance     # automatically select found clusters by distance of a pwm or by count
+    minClusterSize: 20.0          # minimal number of reads to define a cluster
+  mapIter:
+    iterations: 2.0               # Number of iterative mappings
+  mapFinal:
+    includeDeletions: yes         # Call deletions in the final consensus?
+    includeInsertions: yes        # Call insertions in the final consensus?
+    callInsertionThreshold: 0.18  # Call insertions from this fraction of insertions at a position
+  report:
+    remap: yes                    # Remap the reads to the final consensus for inspection in IGV?
+    checkHpCount: yes             # Compare homopolymer length of the consensus with the mode value in all short-reads
+    hpCount: 10.0                 # minimal number of repeats to define a homopolymer
+samples:
+  '1':
+    sampleId: sample1
+    locus: HLA-A
+    reference: HLA-A
+    distAlleles: 2
+    details:
+      second: another
+      third: .na
+      LIMS_DONOR_ID: .na
+      Spendernummer: .na
+      notes: ~
+  '2':
+    sampleId: sample2
+    locus: HLA-A
+    reference: HLA-A
+    distAlleles: 2
+    details:
+      second: another
+      third: .na
+      LIMS_DONOR_ID: .na
+      Spendernummer: .na
+      notes: ~
+```
+

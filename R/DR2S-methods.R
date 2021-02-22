@@ -15,7 +15,7 @@ DR2S_$set("public", "runMapInit", function(opts = list(), ...) {
   # library(cowplot)
   # library(S4Vectors)
   # library(Rsamtools)
-  # self <- ma
+  # self <- dr
 
   flog.info("# mapInit", name = "info")
 
@@ -52,12 +52,13 @@ DR2S_$set("public", "runMapInit", function(opts = list(), ...) {
   SR <- list()
 
   if (self$hasShortreads()) {
+    # TODO change internal mapper sam/bam
     SR <- mapInitSR(
       self = self, opts = opts, includeDeletions = includeDeletions,
       includeInsertions = TRUE, callInsertions = TRUE,
       callInsertionThreshold = callInsertionThreshold,
       distributeGaps = FALSE, removeError = TRUE, topx = 0,
-      outdir = outdir, clean = clean, minMapq = 0, indent = indent, ...)
+      outdir = outdir, clean = clean, minMapq = 0, indent = indent)#, ...)
     
 
     ### TODO wrap this command up

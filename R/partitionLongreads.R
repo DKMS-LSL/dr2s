@@ -268,7 +268,7 @@ partitionReads <- function(x, distAlleles = 2, selectAllelesBy = "count", thresh
     is.list(pwmlist),
     !is.null(names(pwmlist))
   )
-  rs <- do.call(dplyr::bind_rows, Map(function(pwm, hp) {
+  rs <- dplyr::bind_rows(Map(function(pwm, hp) {
     b <- vapply(reads, function(read) .read_score(read, pwm), FUN.VALUE = double(1))
     tibble::tibble(read = names(b), score = b, clade = hp)
   }, pwm = pwmlist, hp = names(pwmlist))) %>%

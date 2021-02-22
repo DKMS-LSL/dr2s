@@ -307,9 +307,9 @@ normaliseShortreads <- function(srd) {
     msg = paste0("Unsupported longread type <", srd$type, ">")
   )
 
-  ## Mapper must be one of "bwamem" or "minimap"
+  ## Mapper must be one of "bwamem" or "minimap" or "rsubread"
   assert_that(
-    srd$mapper %in% c("bwamem", "minimap"),
+    srd$mapper %in% c("bwamem", "minimap", "rsubread"),
     msg = paste("Unsupported longread mapper <", srd$mapper, ">")
   )
 

@@ -372,18 +372,26 @@ rescale <- function(x, lower, upper) {
 }
 
 editor <- function(x, pos = NULL, useEditor = "xdg-open") {
-  useEditor <- match.arg(useEditor, c("xdg-open", "subl", "gvim", "gedit"))
-  assert_that(.hasCommand(useEditor))
+  useEditor <- match.arg(useEditor, c("xdg-open", "subl", "gvim", "gedit", "rstudio"))
+  if (useEditor == "rstudio") {
+    assertthat::assert_that(Sys.getenv("RSTUDIO") == 1)
+  } else {
+    assert_that(.hasCommand(useEditor))
+  }
   if (tryCatch(is.readable(x), assertError = function(e) FALSE)) {
     x <- normalizePath(x, mustWork = TRUE)
     if (!is.null(pos) && useEditor == "subl") {
       x <- paste0(x, ":", pos)
     }
-    system(paste(useEditor, x, sep = " "))
   } else {
     tmp <- tempfile()
     write(x, file = tmp)
-    system(paste(useEditor, tmp, sep = " "))
+  }
+  
+  if (useEditor == "rstudio") {
+    file.edit(x)
+  } else {
+    system(paste(useEditor, x, sep = " "))
   }
 }
 

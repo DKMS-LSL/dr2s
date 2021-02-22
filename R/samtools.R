@@ -3,14 +3,14 @@
                           minMapq = 0,
                           threads = "auto",
                           threadmem = "1G",
-                          clean = TRUE,
-                          force = FALSE) {
+                          clean = TRUE) {
   if (threads == "auto") {
     threads <- .getIdleCores()
   }
   assert_that(is.numeric(threads))
   samfile <- normalizePath(samfile, mustWork = TRUE)
   reffile <- normalizePath(reffile, mustWork = TRUE)
+  refname <- names(Biostrings::readDNAStringSet(reffile))
   ext <- sprintf("%s.sorted",
                  if (minMapq > 0)
                    ".MAPQ" %<<% minMapq
@@ -23,19 +23,22 @@
     ## -F260 exclude 'read unmapped', 'not primary alignment'
     ## Better use -F2308 to also exclude chimeric reads!
     tmp <- tempfile()
+    tmp2 <- tempfile()
     view <- sprintf("view -@%s -F2308 -q%s -bT '%s' '%s' > '%s'",
                     threads, minMapq, reffile, samfile, tmp)
     sort <- sprintf("sort -m%s -@%s -o '%s' '%s'",
-                    threadmem, threads, sorted, tmp)
-    index <- sprintf("index %s", sorted)
-    ## Don't execute if file exists
-    if (!file.exists(sorted) | force) {
-      system2(samtoolsPath, view)
-      system2(samtoolsPath, sort)
-      system2(samtoolsPath, index)
-    } else {
-      warning(sprintf("file <%s> already exists", sorted))
-    }
+                    threadmem, threads, tmp2, tmp)
+    index <- sprintf("index %s", tmp2)
+    ## filtering is necessary for rsubreads, as it does not output proper flags
+    ## We filter for the *only* reference that should have been used
+    viewFilter <- sprintf("view -@%s %s '%s' -o %s ", threads, tmp2, refname, sorted)
+    indexFilter <- sprintf("index %s", sorted)
+    
+    system2(samtoolsPath, view)
+    system2(samtoolsPath, sort)
+    system2(samtoolsPath, index)
+    system2(samtoolsPath, viewFilter)
+    system2(samtoolsPath, indexFilter)
   } else {
     ## Sam to bam
     bamfile <- Rsamtools::asBam(samfile, tempfile(), overwrite = TRUE,
@@ -53,7 +56,7 @@
     Rsamtools::indexBam(sorted)
   }
   ## Clean up only if the bamfile now exists
-  if (clean && file.exists(sorted)) {
+  if (clean && file.exists(sorted) && !endsWith(samfile, ".bam")) {
     unlink(samfile)
   }
   sorted
@@ -93,7 +96,9 @@ subSampleBam <- function(bamfile, windowSize = NULL, sampleSize = 100,
     what <- Rsamtools::scanBamWhat()
   assert_that(is.character(what))
 
-  alignmentBam <- rtracklayer::import(con = bam, format = "bam", param = Rsamtools::ScanBamParam(what = what), use.names = TRUE, paired = paired)
+  alignmentBam <- rtracklayer::import(
+    con = bam, format = "bam", param = Rsamtools::ScanBamParam(what = what), 
+    use.names = TRUE, paired = paired)
 
   ## Use the median read length if no window size is given
   if (is.null(windowSize)) {

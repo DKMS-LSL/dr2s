@@ -9,10 +9,6 @@ renv.lock
 inst/doc
 cache
 stuff
-scripts
-output
-outdir
-testdata
 scratch.[rR]
 eval.[rR]
 .*.Rnb.cached
