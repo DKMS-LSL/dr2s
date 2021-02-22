@@ -37,8 +37,8 @@ A Docker image is also provided for convenience at docker hub. This can
 be loaded and used with the following command:
 
 ``` bash
-docker pull dkmslsl/testrepo
-docker run --rm -p 8788:8787 -e PASSWORD=<yourpassword> -it  dkmslsl/testrepo
+docker pull dkmslsl/DR2S
+docker run --rm -p 8788:8787 -e PASSWORD=<yourpassword> -it  dkmslsl/DR2S
 ```
 
 An rstudio server session can be accessed in your browser at
