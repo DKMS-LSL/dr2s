@@ -124,7 +124,7 @@ runrsubread <- function(reffile,       ## <character>; file path to reference se
                         label = "",    ## <character>; prefix to output file
                         opts = list(), ## <named list>;
                         ...) {
-  require(Rsubread)
+  suppressPackageStartupMessages(require(Rsubread))
   
   if (missing(refname)) {
     refname <- "ref"
@@ -144,10 +144,13 @@ runrsubread <- function(reffile,       ## <character>; file path to reference se
     ), mustWork = FALSE)
 
   ## Build the index
-  invisible(Rsubread::buildindex(basename = refname, reference = reffile))
+  sink("/dev/null")
+  suppressMessages(invisible(Rsubread::buildindex(basename = refname, reference = reffile)))
+  sink()
 
   ## map reads
   if (length(readfile) == 2) {
+    sink("/dev/null")
     invisible(Rsubread::align(
       index = refname, 
       readfile1 = readfile[1], 
@@ -157,7 +160,9 @@ runrsubread <- function(reffile,       ## <character>; file path to reference se
       output_format = "BAM", 
       unique = TRUE, 
       sortReadsByCoordinates = TRUE))
+    sink()
   } else {
+    sink("/dev/null")
     invisible(Rsubread::align(
       index = refname, 
       readfile1 = readfile, 
@@ -166,6 +171,7 @@ runrsubread <- function(reffile,       ## <character>; file path to reference se
       output_format = "BAM", 
       unique = TRUE, 
       sortReadsByCoordinates = TRUE))
+    sink()
   }
     
   ## cleanup

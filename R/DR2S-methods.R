@@ -58,7 +58,7 @@ DR2S_$set("public", "runMapInit", function(opts = list(), ...) {
       includeInsertions = TRUE, callInsertions = TRUE,
       callInsertionThreshold = callInsertionThreshold,
       distributeGaps = FALSE, removeError = TRUE, topx = 0,
-      outdir = outdir, clean = clean, minMapq = 0, indent = indent)#, ...)
+      outdir = outdir, clean = clean, minMapq = 0, indent = indent, ...)
     
 
     ### TODO wrap this command up
