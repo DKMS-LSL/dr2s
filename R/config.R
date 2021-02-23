@@ -360,7 +360,7 @@ normaliseDR2SConf <- function(conf) {
   ## Normalise locus
   conf$locus <- .normaliseLocus(conf$locus)
   ## if reference is generic for locus normalize it as well.
-  if (conf$reference %in% HLA_LOCI())
+  if (gsub("HLA-", "", conf$reference) %in% HLA_LOCI())
     conf$reference <- .normaliseLocus(conf$reference)
 
   ## Use only the relevant utrLength

@@ -11,6 +11,7 @@
   samfile <- normalizePath(samfile, mustWork = TRUE)
   reffile <- normalizePath(reffile, mustWork = TRUE)
   refname <- names(Biostrings::readDNAStringSet(reffile))
+  refname <- strsplit(refname, " ")[[1]][[1]]
   ext <- sprintf("%s.sorted",
                  if (minMapq > 0)
                    ".MAPQ" %<<% minMapq

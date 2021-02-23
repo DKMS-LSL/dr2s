@@ -112,13 +112,26 @@ COL_PATTERN <- function() {
 }
 
 HLA_LOCI <- function() {
-  loci <- .ipdHla()$getLoci()
+  if (exists("ipdHlaDb", envir = globalenv())) {
+    loci <- .ipdHla()$getLoci()
+  } else {
+    loci <- c("HLA-A", "HLA-B", "HLA-C", "HLA-DPB1", "HLA-DQB1", "HLA-DRB1")
+  }
+  
   unname(vapply(loci, function(x) strsplit1(x, "-")[2],
                 FUN.VALUE = character(1)))
 }
 
 KIR_LOCI <- function(ipd = NULL) {
-  loci <- .ipdKir()$getLoci()
+  if (exists("ipdKirDb", envir = globalenv())) {
+    loci <- .ipdKir()$getLoci()
+  } else {
+    loci <- c("KIR2DL1", "KIR2DL2", "KIR2DL3", "KIR2DL4",
+    "KIR2DL5A", "KIR2DL5B", "KIR2DP1", "KIR2DS1",
+    "KIR2DS2", "KIR2DS3", "KIR2DS4", "KIR2DS5", 
+    "KIR3DL1", "KIR3DL2", "KIR3DL3", "KIR3DP1",
+    "KIR3DS1")
+  }
   gsub(pattern = "KIR", "", loci)
 }
 

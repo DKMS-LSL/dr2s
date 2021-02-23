@@ -51,7 +51,7 @@ The configuration can also be provided via R in an interactive session or script
 
 ```{r create-config, eval=TRUE}
 library(DR2S)
-config <- DR2S::createDR2SConf(
+config <- createDR2SConf(
   sample = "sample3",
   locus = "HLA-A", 
   longreads = list(dir = "nanopore_sampled", type = "nanopore", mapper = "minimap"), 
