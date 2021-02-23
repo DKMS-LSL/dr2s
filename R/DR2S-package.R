@@ -11,6 +11,7 @@
 #' @import futile.logger
 #' @import ggplot2
 #' @import dtplyr
+#' @import Rcpp
 #' @importFrom mclust mclustBIC Mclust
 #' @importFrom data.table :=
 #' @importFrom foreach foreach %do% %:%
