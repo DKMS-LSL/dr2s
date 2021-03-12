@@ -106,7 +106,8 @@ x <- InitDR2S(
     longreads = list(dir = "Sequel", type = "pacbio"),
     shortreads = list(dir = "Illumina", type = "illumina"),
     datadir = "~/dr2s_data",
-    outdir = "~/dr2s_data/output"
+    outdir = "~/dr2s_data/output",
+    reference = "DPB1"
 ))
 ```
 
